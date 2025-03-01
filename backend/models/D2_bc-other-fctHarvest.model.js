@@ -10,7 +10,7 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.INTEGER,
             allowNull: false,
             references: {
-                model: 'C_crop_records',
+                model: 'C_crop_records_others',
                 key: 'record_id'
             }
         },

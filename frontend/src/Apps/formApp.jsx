@@ -2,7 +2,7 @@ import { Box } from '@chakra-ui/react';
 import { Routes, Route } from 'react-router-dom';
 import A_farmerInputs from '../formPages/A_farmerInputs.jsx';
 import B_cropTypes from '../formPages/B_cropTypes.jsx';
-import C_cropRecords from '../formPages/C_cropRecords.jsx';
+import C_cropRecords from '../formPages/C_cropRecordsIndus.jsx';
 
 import React from 'react'
 

@@ -2,7 +2,7 @@
   "development": {
     "username": "root",
     "password": "gktricks428560_JR",
-    "database": "agritrack",
+    "database": "high-value-crop",
     "host": "localhost",
     "dialect": "mysql"
   },

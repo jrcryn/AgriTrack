@@ -1,5 +1,5 @@
 module.exports = (sequelize, DataTypes) => {
-    const C_crop_records = sequelize.define('C_crop_records', {
+    const C_crop_records_others = sequelize.define('C_crop_records_others', {
         record_id: {
             type: DataTypes.INTEGER,
             autoIncrement: true,
@@ -40,5 +40,5 @@ module.exports = (sequelize, DataTypes) => {
         createdAt: false,
         updatedAt: false
     });
-    return C_crop_records;
+    return C_crop_records_others;
 }
