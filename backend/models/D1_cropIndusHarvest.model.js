@@ -14,13 +14,6 @@ module.exports = (sequelize, DataTypes) => {
                 key: 'record_id'
             }
         },
-        variety: {
-            type: DataTypes.STRING,
-            allowNull: false,
-            validate: {
-                notEmpty: true
-            }
-        },
         harvest_date: {
             type: DataTypes.DATE,
             allowNull: false,

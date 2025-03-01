@@ -1,44 +1,51 @@
 module.exports = (sequelize, DataTypes) => {
-    const D1_crop_indus_new = sequelize.define('D1_crop_indus_new', {
-        crop_detail_id: {
+    const C_crop_records = sequelize.define('C_crop_records', {
+        record_id: {
             type: DataTypes.INTEGER,
             autoIncrement: true,
             primaryKey: true,
             allowNull: false
         },
-        record_id: {
+        farmer_input_id: {
             type: DataTypes.INTEGER,
             allowNull: false,
             references: {
-                model: 'C_crop_records',
-                key: 'record_id'
+                model: 'A_farmer_inputs',
+                key: 'farmer_input_id'
             }
         },
-        plantation_date: {
-            type: DataTypes.DATE,
+        crop_type_id: {
+            type: DataTypes.INTEGER,
             allowNull: false,
-            validate: {
-                notEmpty: true
+            references: {
+                model: 'B_crop_types',
+                key: 'crop_type_id'
             }
         },
-        harvest_month: {
+        crop_type: {
             type: DataTypes.STRING,
             allowNull: false,
             validate: {
                 notEmpty: true
             }
         },
-        total_area_planted: {
-            type: DataTypes.FLOAT,
+        crop_variety: {
+            type: DataTypes.STRING,
+            allowNull: false,
+            validate: {
+                notEmpty: true
+            }
+        },
+        crop_stage: {
+            type: DataTypes.ENUM('Newly Planted', 'Harvesting'),
             allowNull: false,
             validate: {
                 notEmpty: true
             }
         },
     }, {
-        tableName: 'D1_crop_indus_new',
         createdAt: false,
         updatedAt: false
     });
-    return D1_crop_indus_new;
+    return C_crop_records;
 }

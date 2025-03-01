@@ -22,6 +22,13 @@ module.exports = (sequelize, DataTypes) => {
                 key: 'crop_type_id'
             }
         },
+        crop_variety: {
+            type: DataTypes.STRING,
+            allowNull: false,
+            validate: {
+                notEmpty: true
+            }
+        },
         crop_stage: {
             type: DataTypes.ENUM('Newly Planted', 'Harvesting'),
             allowNull: false,
