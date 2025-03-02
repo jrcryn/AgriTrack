@@ -65,7 +65,7 @@ const cropRecordsIndus = ({ onNext, onBack }) => {
 
           <Box p={5}>
             <FormControl id="firstName" isRequired>
-              <FormLabel fontWeight={'normal'} mb={5}>URI NG TANIM</FormLabel>
+              <FormLabel fontWeight={'semibold'} mb={5}>URI NG TANIM</FormLabel>
               <Select
                 name='indusCrops'
                 placeholder="Choose"
@@ -90,7 +90,7 @@ const cropRecordsIndus = ({ onNext, onBack }) => {
           borderWidth={2}
         >
           <FormControl id="firstName">
-            <FormLabel fontWeight={'normal'} mb={5}>VARIETY NG TANIM</FormLabel>
+            <FormLabel fontWeight={'semibold'} mb={5}>VARIETY NG TANIM</FormLabel>
                 <Text fontWeight={'bold'} mb={3}>PAALALA:</Text>
                 <Text 
                   fontWeight={'normal'}
@@ -115,7 +115,7 @@ const cropRecordsIndus = ({ onNext, onBack }) => {
           borderWidth={2}
         >
           <FormControl id="firstName" isRequired>
-            <FormLabel fontWeight={'normal'} mb={5}>YUGTO NG INYONG PANANIM</FormLabel>
+            <FormLabel fontWeight={'semibold'} mb={5}>YUGTO NG INYONG PANANIM</FormLabel>
               <RadioGroup>
                 <Stack direction="column" spacing={5}>
                   <Radio colorScheme='purple' value="NEWLY PLANTED">NEWLY PLANTED</Radio>

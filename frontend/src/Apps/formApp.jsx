@@ -4,6 +4,11 @@ import A_farmerInputs from '../formPages/A_farmerInputs.jsx';
 import B_cropTypes from '../formPages/B_cropTypes.jsx';
 import C1_cropRecordsIndus from '../formPages/C1_cropRecordsIndus.jsx';
 import C2_cropRecordsOther from '../formPages/C2_cropRecordsOther.jsx';
+import D1_cropIndusHarvest from '../formPages/D1_cropIndusHarvest.jsx';
+import D1_cropIndusNew from '../formPages/D1_cropIndusNew.jsx';
+import D2_bc_Other_fctHarvest from '../formPages/D2_bc-other-fctHarvest.jsx';
+import D2_bc_Other_fctNew from '../formPages/D2_bc-other-fctNew.jsx';
+
 
 import React, { useState } from 'react'
 
@@ -28,14 +33,27 @@ const formApp = () => {
   return (
     <Box>
       <Routes>
-          <Route path="a_fi" element={<A_farmerInputs onNext={() => handleNext('/b_ct')} />} />
-          <Route path="b_ct" element={<B_cropTypes onNext={handleNext} onBack={handleBack} />} />
-          <Route path="c_cri" element={<C1_cropRecordsIndus onNext={() => handleNext('/a_fi')} onBack={handleBack} />} />
-          <Route path="c_cro" element={<C2_cropRecordsOther 
+          <Route path="a_fi" element={<A_farmerInputs 
+          onNext={() => handleNext('/b_ct')} 
+          />} />
+
+          <Route path="b_ct" element={<B_cropTypes 
+          onNext={handleNext} 
+          onBack={handleBack} 
+          />} />
+
+          <Route path="c1_cri" element={<C1_cropRecordsIndus 
+          onNext={() => handleNext('/a_fi')} 
+          onBack={handleBack} 
+          />} />
+
+          <Route path="c2_cro" element={<C2_cropRecordsOther 
             onNext={() => handleNext('/a_fi')} 
             onBack={(handleBack)}
             cropType={selectedCropType}
           />} />
+
+          <Route path="d1_cih" element={<D1_cropIndusHarvest/>} />
       </Routes>
     </Box>
   )

@@ -21,12 +21,12 @@ const cropTypes = ({ onNext, onBack }) => {
         let nextPath = '';
         switch (selectedCropType) {
           case 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS':
-            nextPath = '/c_cri';
+            nextPath = '/c1_cri';
             break;
           case 'BANANA':
           case 'COFFEE':
           case 'OTHER FRUIT CROPS/TREES':
-            nextPath = '/c_cro';
+            nextPath = '/c2_cro';
             break;
 
         }
@@ -100,7 +100,7 @@ const cropTypes = ({ onNext, onBack }) => {
           borderWidth={2}
         >
           <FormControl id="firstName" isRequired>
-            <FormLabel fontWeight={'normal'} mb={5}>PUMILI NG URI NG TANIM</FormLabel>
+            <FormLabel fontWeight={'semibold'} mb={5}>PUMILI NG URI NG TANIM</FormLabel>
             <RadioGroup onChange={setSelectedCropType} value={selectedCropType}>
               <Stack direction="column" spacing={5}>
                 <Radio colorScheme='purple' value="VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS">VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS</Radio>

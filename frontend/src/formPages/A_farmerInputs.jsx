@@ -64,7 +64,7 @@ const farmerInput = ({ onNext, onBack }) => {
 
           <Box p={5}>
               <FormControl id="surname" isRequired>
-                <FormLabel fontWeight={'normal'} mb={5}>APELYIDO (SURNAME)</FormLabel>
+                <FormLabel fontWeight={'semibold'} mb={5}>APELYIDO (SURNAME)</FormLabel>
                 <Input type="text" placeholder="Your answer" />
               </FormControl>
           </Box>
@@ -79,7 +79,7 @@ const farmerInput = ({ onNext, onBack }) => {
         borderWidth={2}
         >
             <FormControl id="firstName" isRequired>
-              <FormLabel fontWeight={'normal'} mb={5}>UNANG PANGALAN (FIRST NAME)</FormLabel>
+              <FormLabel fontWeight={'semibold'} mb={5}>UNANG PANGALAN (FIRST NAME)</FormLabel>
               <Input type="text" placeholder="Your answer" />
             </FormControl>
         </Box>
@@ -93,7 +93,7 @@ const farmerInput = ({ onNext, onBack }) => {
         borderWidth={2}
         >
             <FormControl id="middleName">
-              <FormLabel fontWeight={'normal'} mb={5}>GITNANG PANGALAN (MIDDLE NAME)</FormLabel>
+              <FormLabel fontWeight={'semibold'} mb={5}>GITNANG PANGALAN (MIDDLE NAME)</FormLabel>
               <Input type="text" placeholder="Your answer" />
             </FormControl>
         </Box>
@@ -107,7 +107,7 @@ const farmerInput = ({ onNext, onBack }) => {
         borderWidth={2}
         >    
             <FormControl id="farmLocation" isRequired>
-              <FormLabel fontWeight={'normal'} mb={5}>FARM LOCATION (PILIIN ANG BARANGAY KUNG NASAAN ANG INYONG TANIMAN)</FormLabel>
+              <FormLabel fontWeight={'semibold'} mb={5}>FARM LOCATION (PILIIN ANG BARANGAY KUNG NASAAN ANG INYONG TANIMAN)</FormLabel>
               <Select
                 name='barangay'
                 placeholder="Select Barangay"

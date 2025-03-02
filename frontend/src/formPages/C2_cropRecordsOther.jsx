@@ -66,7 +66,7 @@ const cropRecordsOther = ({ onNext, onBack, cropType }) => {
 
           <Box p={5}>
             <FormControl id="firstName" isRequired>
-              <FormLabel fontWeight={'normal'} mb={5}>PUMILI NG VARIETY NG BANANA</FormLabel>
+              <FormLabel fontWeight={'semibold'} mb={5}>PUMILI NG VARIETY NG BANANA</FormLabel>
               <RadioGroup>
                 <Stack direction="column" spacing={5}>
                   <Radio colorScheme='purple' value="VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS">VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS</Radio>
@@ -88,7 +88,7 @@ const cropRecordsOther = ({ onNext, onBack, cropType }) => {
             borderWidth={2}
           >
             <FormControl id="firstName" isRequired>
-              <FormLabel fontWeight={'normal'} mb={5}>YUGTO NG INYONG PANANIM</FormLabel>
+              <FormLabel fontWeight={'semibold'} mb={5}>YUGTO NG INYONG PANANIM</FormLabel>
                 <RadioGroup>
                   <Stack direction="column" spacing={5}>
                     <Radio colorScheme='purple' value="NEWLY PLANTED">NEWLY PLANTED</Radio>
@@ -117,7 +117,7 @@ const cropRecordsOther = ({ onNext, onBack, cropType }) => {
 
             <Box p={5}>
               <FormControl id="coffeeVariety" isRequired>
-                <FormLabel fontWeight={'normal'} mb={5}>PUMILI NG VARIETY NG COFFEE</FormLabel>
+                <FormLabel fontWeight={'semibold'} mb={5}>PUMILI NG VARIETY NG COFFEE</FormLabel>
                 <RadioGroup>
                   <Stack direction="column" spacing={5}>
                     <Radio colorScheme='purple' value="LIBERICA">LIBERICA</Radio>
@@ -137,7 +137,7 @@ const cropRecordsOther = ({ onNext, onBack, cropType }) => {
             borderWidth={2}
           >
             <FormControl id="firstName" isRequired>
-              <FormLabel fontWeight={'normal'} mb={5}>YUGTO NG INYONG PANANIM</FormLabel>
+              <FormLabel fontWeight={'semibold'} mb={5}>YUGTO NG INYONG PANANIM</FormLabel>
                 <RadioGroup>
                   <Stack direction="column" spacing={5}>
                     <Radio colorScheme='purple' value="NEWLY PLANTED">NEWLY PLANTED</Radio>
@@ -173,7 +173,7 @@ const cropRecordsOther = ({ onNext, onBack, cropType }) => {
               borderWidth={2}
             >    
                 <FormControl id="farmLocation" isRequired>
-                  <FormLabel fontWeight={'normal'} mb={5}>URI NG TANIM</FormLabel>
+                  <FormLabel fontWeight={'semibold'} mb={5}>URI NG TANIM</FormLabel>
                   <Select
                     name='otherCrops'
                     placeholder="Choose"
@@ -197,7 +197,7 @@ const cropRecordsOther = ({ onNext, onBack, cropType }) => {
             borderWidth={2}
           >
             <FormControl id="firstName" isRequired>
-              <FormLabel fontWeight={'normal'} mb={5}>YUGTO NG INYONG PANANIM</FormLabel>
+              <FormLabel fontWeight={'semibold'} mb={5}>YUGTO NG INYONG PANANIM</FormLabel>
                 <RadioGroup>
                   <Stack direction="column" spacing={5}>
                     <Radio colorScheme='purple' value="NEWLY PLANTED">NEWLY PLANTED</Radio>
