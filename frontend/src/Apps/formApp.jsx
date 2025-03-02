@@ -33,27 +33,30 @@ const formApp = () => {
   return (
     <Box>
       <Routes>
-          <Route path="a_fi" element={<A_farmerInputs 
+          <Route path="a_fi" element={<A_farmerInputs //
           onNext={() => handleNext('/b_ct')} 
           />} />
 
-          <Route path="b_ct" element={<B_cropTypes 
+          <Route path="b_ct" element={<B_cropTypes //
           onNext={handleNext} 
           onBack={handleBack} 
           />} />
 
-          <Route path="c1_cri" element={<C1_cropRecordsIndus 
+          <Route path="c1_cri" element={<C1_cropRecordsIndus //
           onNext={() => handleNext('/a_fi')} 
           onBack={handleBack} 
           />} />
 
-          <Route path="c2_cro" element={<C2_cropRecordsOther 
+          <Route path="c2_cro" element={<C2_cropRecordsOther //
             onNext={() => handleNext('/a_fi')} 
             onBack={(handleBack)}
             cropType={selectedCropType}
           />} />
 
-          <Route path="d1_cih" element={<D1_cropIndusHarvest/>} />
+          <Route path="d1_cih" element={<D1_cropIndusHarvest/>} /> //
+          <Route path="d1_cin" element={<D1_cropIndusNew/>} /> 
+          <Route path="d2_bc_ofh" element={<D2_bc_Other_fctHarvest/>} />
+          <Route path="d2_bc_ofn" element={<D2_bc_Other_fctNew/>} />
       </Routes>
     </Box>
   )
