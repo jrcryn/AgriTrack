@@ -34,3 +34,5 @@ const indusCrops = [
     "UBE",
     "UPO"
 ];
+
+export default indusCrops;

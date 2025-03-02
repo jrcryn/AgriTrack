@@ -48,7 +48,6 @@ const farmerInput = ({ onNext, onBack }) => {
 
 
 
-
         {/* Form Fields */}
         <Box
         maxW="650px"
@@ -59,8 +58,8 @@ const farmerInput = ({ onNext, onBack }) => {
         borderWidth={2}
         overflow='hidden'
         >
-          <Box bg={'purple.600'} height={'50px'}>
-            <Text textColor={'white'} fontWeight={'medium'} pt={3} paddingLeft={5}>PERSONAL INFORMATION</Text>
+          <Box bg={'purple.600'} minH={'50px'}>
+            <Text textColor={'white'} fontWeight={'medium'} p={3} paddingLeft={5}>PERSONAL INFORMATION</Text>
           </Box>
 
           <Box p={5}>
@@ -134,6 +133,7 @@ const farmerInput = ({ onNext, onBack }) => {
                 textColor={'purple.500'} 
                 boxShadow={'md'} 
                 onClick={onBack}
+                isDisabled
               >
                 Back
               </Button>

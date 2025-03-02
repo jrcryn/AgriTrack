@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Heading,
@@ -14,6 +14,25 @@ import {
 } from '@chakra-ui/react';
 
 const cropTypes = ({ onNext, onBack }) => {
+
+    const [selectedCropType, setSelectedCropType] = useState('')
+
+    const handleNext = () => {
+        let nextPath = '';
+        switch (selectedCropType) {
+          case 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS':
+            nextPath = '/c_cri';
+            break;
+          case 'BANANA':
+          case 'COFFEE':
+          case 'OTHER FRUIT CROPS/TREES':
+            nextPath = '/c_cro';
+            break;
+
+        }
+        onNext(nextPath, selectedCropType);
+      };
+
   return (
     <Box bg={'purple.50'} minH="100vh" p={3}>
       <VStack spacing={3}>
@@ -43,6 +62,10 @@ const cropTypes = ({ onNext, onBack }) => {
           </Box>
         </Box>
 
+
+
+
+
         {/* Form Fields */}
         <Box
           maxW="650px"
@@ -52,8 +75,8 @@ const cropTypes = ({ onNext, onBack }) => {
           borderWidth={2}
           overflow='hidden'
         >
-          <Box bg={'purple.600'} height={'50px'}>
-            <Text textColor={'white'} fontWeight={'medium'} pt={3} paddingLeft={5}>URI NG TANIM</Text>
+          <Box bg={'purple.600'} minH={'50px'}>
+            <Text textColor={'white'} fontWeight={'medium'} p={3} paddingLeft={5}>URI NG TANIM</Text>
           </Box>
 
           <Box p={5}>
@@ -78,7 +101,7 @@ const cropTypes = ({ onNext, onBack }) => {
         >
           <FormControl id="firstName" isRequired>
             <FormLabel fontWeight={'normal'} mb={5}>PUMILI NG URI NG TANIM</FormLabel>
-            <RadioGroup>
+            <RadioGroup onChange={setSelectedCropType} value={selectedCropType}>
               <Stack direction="column" spacing={5}>
                 <Radio colorScheme='purple' value="VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS">VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS</Radio>
                 <Radio colorScheme='purple' value="BANANA">BANANA</Radio>
@@ -88,6 +111,10 @@ const cropTypes = ({ onNext, onBack }) => {
             </RadioGroup>
           </FormControl>
         </Box>
+
+
+
+
 
         {/* Navigation Buttons */}
         <Stack direction='row' spacing={4} justifyContent="flex-start" mt={1} mb={5}>
@@ -105,7 +132,7 @@ const cropTypes = ({ onNext, onBack }) => {
             w={'100px'} 
             textColor={'purple.500'} 
             boxShadow={'md'} 
-            onClick={onNext}
+            onClick={handleNext}
           >
             Next
           </Button>

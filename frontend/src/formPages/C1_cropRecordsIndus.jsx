@@ -9,11 +9,14 @@ import {
   Text,
   VStack,
   Divider,
+  Input,
+  Radio,
   RadioGroup,
-  Radio
+  Select
 } from '@chakra-ui/react';
+import IndusCrops from '../components/indusCrops.js';
 
-const cropRecords = ({ onNext, onBack }) => {
+const cropRecordsIndus = ({ onNext, onBack }) => {
   return (
     <Box bg={'purple.50'} minH="100vh" p={3}>
       <VStack spacing={3}>
@@ -43,6 +46,10 @@ const cropRecords = ({ onNext, onBack }) => {
           </Box>
         </Box>
 
+
+
+
+
         {/* Form Fields */}
         <Box
           maxW="650px"
@@ -52,20 +59,51 @@ const cropRecords = ({ onNext, onBack }) => {
           borderWidth={2}
           overflow='hidden'
         >
-          <Box bg={'purple.600'} height={'50px'}>
-            <Text textColor={'white'} fontWeight={'medium'} pt={3} paddingLeft={5}>URI NG TANIM</Text>
+          <Box bg={'purple.600'} minH={'50px'}>
+            <Text textColor={'white'} fontWeight={'medium'} p={3} paddingLeft={5}>VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS</Text>
           </Box>
 
           <Box p={5}>
-            <Text fontWeight={'bold'} mb={5}>PAALALA:</Text>
-            <Text 
-              fontWeight={'normal'}
-              fontStyle={'italic'}
-              fontSize={'sm'}
-            >
-              Kung sakaling mayroon kayong higit sa isang klase ng tanim ay maaaring magsagot ulit sa link na ibinigay pagkatapos ninyong sagutan ang form na ito.
-            </Text>
+            <FormControl id="firstName" isRequired>
+              <FormLabel fontWeight={'normal'} mb={5}>URI NG TANIM</FormLabel>
+              <Select
+                name='indusCrops'
+                placeholder="Choose"
+              >
+                {IndusCrops.map((indusCrops) => (
+                  <option key={indusCrops} value={indusCrops}>
+                    {indusCrops}
+                  </option>
+                ))}
+              </Select>
+            </FormControl>
           </Box>
+          
+        </Box>
+
+        <Box
+          maxW="650px"
+          w="100%"
+          bg="white"
+          p={5}
+          borderRadius="lg"
+          borderWidth={2}
+        >
+          <FormControl id="firstName">
+            <FormLabel fontWeight={'normal'} mb={5}>VARIETY NG TANIM</FormLabel>
+                <Text fontWeight={'bold'} mb={3}>PAALALA:</Text>
+                <Text 
+                  fontWeight={'normal'}
+                  fontStyle={'italic'}
+                  fontSize={'sm'}
+                  mb={5}
+                >
+                  Huwag sagutan kung hindi alam ang ginamit na variety ng tanim.
+                </Text>    
+
+            <Input type="text" placeholder="Isulat ang variety ng inyong tanim" />
+
+          </FormControl>
         </Box>
 
         <Box
@@ -77,17 +115,19 @@ const cropRecords = ({ onNext, onBack }) => {
           borderWidth={2}
         >
           <FormControl id="firstName" isRequired>
-            <FormLabel fontWeight={'normal'} mb={5}>PUMILI NG URI NG TANIM</FormLabel>
-            <RadioGroup>
-              <Stack direction="column" spacing={5}>
-                <Radio colorScheme='purple' value="VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS">VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS</Radio>
-                <Radio colorScheme='purple' value="BANANA">BANANA</Radio>
-                <Radio colorScheme='purple' value="COFFEE">COFFEE</Radio>
-                <Radio colorScheme='purple' value="OTHER FRUIT CROPS/TREES">OTHER FRUIT CROPS/TREES</Radio>
-              </Stack>
-            </RadioGroup>
+            <FormLabel fontWeight={'normal'} mb={5}>YUGTO NG INYONG PANANIM</FormLabel>
+              <RadioGroup>
+                <Stack direction="column" spacing={5}>
+                  <Radio colorScheme='purple' value="NEWLY PLANTED">NEWLY PLANTED</Radio>
+                  <Radio colorScheme='purple' value="HARVESTING">HARVESTING</Radio>
+                </Stack>
+              </RadioGroup>
           </FormControl>
         </Box>
+
+
+
+
 
         {/* Navigation Buttons */}
         <Stack direction='row' spacing={4} justifyContent="flex-start" mt={1} mb={5}>
@@ -115,4 +155,4 @@ const cropRecords = ({ onNext, onBack }) => {
   );
 };
 
-export default cropRecords;
+export default cropRecordsIndus;
