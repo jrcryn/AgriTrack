@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState} from 'react';
 import {
   Box,
   Heading,
@@ -16,6 +16,19 @@ import {
 import OtherFCT from '../components/otherFCT.js';
 
 const cropRecordsOther = ({ onNext, onBack, cropType }) => {
+
+  const [stageOfCrop, setStageOfCrop] = useState('');
+
+  const handleNext = () => {
+    let nextPath = '';
+    if (stageOfCrop === 'NEWLY PLANTED') {
+      nextPath = '/d2_bc_ofn'; // dedicated page for newly planted crops
+    } else if (stageOfCrop === 'HARVESTING') {
+      nextPath = '/d2_bc_ofh'; // dedicated page for harvesting crops
+    }
+    onNext(nextPath);
+  };
+
   return (
     <Box bg={'purple.50'} minH="100vh" p={3}>
       <VStack spacing={3}>
@@ -91,7 +104,7 @@ const cropRecordsOther = ({ onNext, onBack, cropType }) => {
           >
             <FormControl id="firstName" isRequired>
               <FormLabel fontWeight={'semibold'} mb={5}>YUGTO NG INYONG PANANIM</FormLabel>
-                <RadioGroup>
+                <RadioGroup onChange={setStageOfCrop} value={stageOfCrop}>
                   <Stack direction="column" spacing={5}>
                     <Radio colorScheme='purple' value="NEWLY PLANTED">NEWLY PLANTED</Radio>
                     <Radio colorScheme='purple' value="HARVESTING">HARVESTING</Radio>
@@ -120,7 +133,7 @@ const cropRecordsOther = ({ onNext, onBack, cropType }) => {
             <Box p={5}>
               <FormControl id="coffeeVariety" isRequired>
                 <FormLabel fontWeight={'semibold'} mb={5}>PUMILI NG VARIETY NG COFFEE</FormLabel>
-                <RadioGroup>
+                <RadioGroup onChange={setStageOfCrop} value={stageOfCrop}>
                   <Stack direction="column" spacing={5}>
                     <Radio colorScheme='purple' value="LIBERICA">LIBERICA</Radio>
                     <Radio colorScheme='purple' value="ROBUSTA">ROBUSTA</Radio>
@@ -200,7 +213,7 @@ const cropRecordsOther = ({ onNext, onBack, cropType }) => {
           >
             <FormControl id="firstName" isRequired>
               <FormLabel fontWeight={'semibold'} mb={5}>YUGTO NG INYONG PANANIM</FormLabel>
-                <RadioGroup>
+                <RadioGroup onChange={setStageOfCrop} value={stageOfCrop}>
                   <Stack direction="column" spacing={5}>
                     <Radio colorScheme='purple' value="NEWLY PLANTED">NEWLY PLANTED</Radio>
                     <Radio colorScheme='purple' value="HARVESTING">HARVESTING</Radio>
@@ -231,7 +244,7 @@ const cropRecordsOther = ({ onNext, onBack, cropType }) => {
             w={'100px'} 
             textColor={'purple.500'} 
             boxShadow={'md'} 
-            onClick={onNext}
+            onClick={handleNext}
           >
             Next
           </Button>

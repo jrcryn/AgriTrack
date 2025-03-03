@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Heading,
@@ -17,6 +17,19 @@ import {
 import IndusCrops from '../components/indusCrops.js';
 
 const cropRecordsIndus = ({ onNext, onBack }) => {
+
+  const [stageOfCrop, setStageOfCrop] = useState('');
+
+  const handleNext = () => {
+    let nextPath = '';
+    if (stageOfCrop === 'NEWLY PLANTED') {
+      nextPath = '/d1_cin'; // dedicated page for newly planted crops
+    } else if (stageOfCrop === 'HARVESTING') {
+      nextPath = '/d1_cih'; // dedicated page for harvesting crops
+    }
+    onNext(nextPath);
+  };
+
   return (
     <Box bg={'purple.50'} minH="100vh" p={3}>
       <VStack spacing={3}>
@@ -114,9 +127,9 @@ const cropRecordsIndus = ({ onNext, onBack }) => {
           borderRadius="lg"
           borderWidth={2}
         >
-          <FormControl id="firstName" isRequired>
+          <FormControl id="stageOfCrop" isRequired>
             <FormLabel fontWeight={'semibold'} mb={5}>YUGTO NG INYONG PANANIM</FormLabel>
-              <RadioGroup>
+              <RadioGroup onChange={setStageOfCrop} value={stageOfCrop}>
                 <Stack direction="column" spacing={5}>
                   <Radio colorScheme='purple' value="NEWLY PLANTED">NEWLY PLANTED</Radio>
                   <Radio colorScheme='purple' value="HARVESTING">HARVESTING</Radio>
@@ -145,7 +158,7 @@ const cropRecordsIndus = ({ onNext, onBack }) => {
             w={'100px'} 
             textColor={'purple.500'} 
             boxShadow={'md'} 
-            onClick={onNext}
+            onClick={handleNext}
           >
             Next
           </Button>

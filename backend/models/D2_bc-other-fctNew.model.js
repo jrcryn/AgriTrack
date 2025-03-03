@@ -1,38 +1,13 @@
-module.exports = (sequelize, DataTypes) => {
-    const D2_bc_other_fct_new = sequelize.define('D2_bc_other_fct_new', {
-        crop_detail_id: {
-            type: DataTypes.INTEGER,
-            autoIncrement: true,
-            primaryKey: true,
-            allowNull: false
-        },
-        record_id: {
-            type: DataTypes.INTEGER,
-            allowNull: false,
-            references: {
-                model: 'C_crop_records_others',
-                key: 'record_id'
-            }
-        },
-        harvest_month_year: {
-            type: DataTypes.DATE,
-            allowNull: false,
-            validate: {
-                notEmpty: true
-            }
-        },
-        total_trees: {
-            type: DataTypes.FLOAT,
-            allowNull: false,
-            validate: {
-                notEmpty: true
-            }
-        },
+import mongoose from 'mongoose';
 
-    }, {
-        tableName: 'D2_bc_other_fct_new',
-        createdAt: false,
-        updatedAt: false
-    });
-    return D2_bc_other_fct_new;
-}
+const D2BcOtherFctNewSchema = new mongoose.Schema({
+  record_id: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'C_crop_records_others', 
+    required: true 
+  },
+  harvest_month_year: { type: Date, required: true },
+  total_trees: { type: Number, required: true }
+}, { versionKey: false });
+
+export const D2_bc_other_fct_new = mongoose.model('D2_bc_other_fct_new', D2BcOtherFctNewSchema);

@@ -1,28 +1,20 @@
-const express = require('express');
-const dotenv = require('dotenv');
-const db = require('./models');
-const farmerInputs = require('./routes/farmerInputs.route.js');
+import express from 'express';
+import dotenv from 'dotenv';
+import { connectDB } from './config/db.js';
+import farmerInputs from './routes/farmerInputs.route.js';
 
 const app = express();
 dotenv.config();
+dotenv.config({ path: '../.env' });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT;
 
 app.use(express.json());
 app.use('/', farmerInputs);
 
-db.sequelize.sync().then(() => { 
-    app.listen(PORT, () => {
-        console.log('Server is running on port ' + PORT);
-    });
+app.listen(PORT, () => {
+    connectDB();
+    console.log('Server is running on port ' + PORT);
 });
-
-/* Tables does not get automatically updated kahit may nodemon, to alter, { alter: true } is needed to update the table 
-
-db.sequelize.sync({ alter: true }).then(() => { 
-    app.listen(PORT, () => {
-        console.log('Server is running on port ' + PORT);
-    });
-}); */
 
 

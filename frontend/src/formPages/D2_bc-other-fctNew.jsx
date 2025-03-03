@@ -66,7 +66,7 @@ const bc_other_fctNew = ({ onNext, onBack }) => {
         overflow='hidden'
         >
           <Box bg={'purple.600'} minH={'50px'}>
-            <Text textColor={'white'} fontWeight={'medium'} p={3} paddingLeft={5}>VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS (NEWLY PLANTED)</Text>
+            <Text textColor={'white'} fontWeight={'medium'} p={3} paddingLeft={5}>FRUIT CROPS/TREES (NEWLY PLANTED)</Text>
           </Box>
 
           <Box p={5}>

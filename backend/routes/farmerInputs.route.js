@@ -1,19 +1,15 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const { A_farmer_inputs } = require('../models');
+import A_farmer_inputs from '../models/A_farmerInputs.model.js';
 
 router.post('/farmer-inputs', async (req, res) => {
-    const farmerInput = req.body;
-    try {
-        await A_farmer_inputs.create(farmerInput); 
-        res.status(201).json(farmerInput);
-    } catch (error) {
-        res.status(400).json({ error: error.message });
-    }
+    const farmerInput = new A_farmer_inputs(req.body);
+    await farmerInput.save();
+    res.json(farmerInput);
 });
 
 router.get('/farmer-inputs', async (req, res) => {
     res.json('The quick brown fox jumps over the lazy dog.');
 });
 
-module.exports = router;
+export default router;

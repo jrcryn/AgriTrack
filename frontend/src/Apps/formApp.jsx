@@ -43,23 +43,23 @@ const formApp = () => {
           />} />
 
           <Route path="c1_cri" element={<C1_cropRecordsIndus /*DONE */
-          onNext={() => handleNext('/a_fi')} 
+          onNext={handleNext} 
           onBack={handleBack} 
           />} />
 
           <Route path="c2_cro" element={<C2_cropRecordsOther /*DONE */
-            onNext={() => handleNext('/a_fi')} 
-            onBack={(handleBack)}
+            onNext={handleNext} 
+            onBack={handleBack}
             cropType={selectedCropType}
           />} />
 
-          <Route path="d1_cih" element={<D1_cropIndusHarvest/>} /> /*DONE */
+          <Route path="d1_cih" element={<D1_cropIndusHarvest onBack={handleBack}/>} /> /*DONE */
 
-          <Route path="d1_cin" element={<D1_cropIndusNew/>} /> /*DONE */
+          <Route path="d1_cin" element={<D1_cropIndusNew onBack={handleBack}/>} /> /*DONE */
 
-          <Route path="d2_bc_ofh" element={<D2_bc_Other_fctHarvest/>} /> /*DONE */
+          <Route path="d2_bc_ofh" element={<D2_bc_Other_fctHarvest onBack={handleBack}/>} /> /*DONE */
 
-          <Route path="d2_bc_ofn" element={<D2_bc_Other_fctNew/>} /> 
+          <Route path="d2_bc_ofn" element={<D2_bc_Other_fctNew onBack={handleBack}/>} /> /*DONE */
 
       </Routes>
     </Box>
