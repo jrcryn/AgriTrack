@@ -12,12 +12,8 @@ import {
   Divider,
   Radio,
   RadioGroup,
-  UnorderedList,
-  ListItem,
   Select
 } from '@chakra-ui/react';
-import Destination from '../components/destinations.js';
-import ModeOfDelivery from '../components/modeOfDelivery.js';
 import DateMonthOptions from '../components/dateMonthOptions.js';
 import MonthsAndYear from '../components/monthsAndYear.js';
 
@@ -155,7 +151,6 @@ const cropIndusNew = ({ onNext, onBack }) => {
                 textColor={'purple.500'} 
                 boxShadow={'md'} 
                 onClick={onBack}
-                isDisabled
               >
                 Back
               </Button>

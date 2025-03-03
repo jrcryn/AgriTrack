@@ -69,10 +69,12 @@ const cropRecordsOther = ({ onNext, onBack, cropType }) => {
               <FormLabel fontWeight={'semibold'} mb={5}>PUMILI NG VARIETY NG BANANA</FormLabel>
               <RadioGroup>
                 <Stack direction="column" spacing={5}>
-                  <Radio colorScheme='purple' value="VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS">VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS</Radio>
-                  <Radio colorScheme='purple' value="BANANA">BANANA</Radio>
-                  <Radio colorScheme='purple' value="COFFEE">COFFEE</Radio>
-                  <Radio colorScheme='purple' value="OTHER FRUIT CROPS/TREES">OTHER FRUIT CROPS/TREES</Radio>
+                  <Radio colorScheme='purple' value="BUNGULAN">BUNGULAN</Radio>
+                  <Radio colorScheme='purple' value="LACATAN">LACATAN</Radio>
+                  <Radio colorScheme='purple' value="LAGKITAN">LAGKITAN</Radio>
+                  <Radio colorScheme='purple' value="LATUNDAN">LATUNDAN</Radio>
+                  <Radio colorScheme='purple' value="SABA">SABA</Radio>
+                  <Radio colorScheme='purple' value="SENORITA">SENORITA</Radio>
                 </Stack>
               </RadioGroup>
             </FormControl>

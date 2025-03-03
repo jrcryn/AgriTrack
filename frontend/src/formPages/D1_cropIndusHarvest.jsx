@@ -185,9 +185,9 @@ const cropIndusHarvest = ({ onNext, onBack }) => {
             <RadioGroup>
              <Stack direction="column">
                 <Radio colorScheme='purple' value="CASH">CASH</Radio>
-                <Radio colorScheme='purple' value="CHECK">GCASH</Radio>
-                <Radio colorScheme='purple' value="BOTH">CHECK (TSEKE)</Radio>
-                <Radio colorScheme='purple' value="BOTH">OTHERS</Radio>
+                <Radio colorScheme='purple' value="GCASH">GCASH</Radio>
+                <Radio colorScheme='purple' value="CHECK (TSEKE)">CHECK (TSEKE)</Radio>
+                <Radio colorScheme='purple' value="OTHERS">OTHERS</Radio>
               </Stack>
             </RadioGroup>
           </FormControl>
@@ -227,7 +227,6 @@ const cropIndusHarvest = ({ onNext, onBack }) => {
                 textColor={'purple.500'} 
                 boxShadow={'md'} 
                 onClick={onBack}
-                isDisabled
               >
                 Back
               </Button>
