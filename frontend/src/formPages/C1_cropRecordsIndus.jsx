@@ -8,17 +8,18 @@ import {
   Button,
   Text,
   VStack,
-  Divider,
-  Input,
   Radio,
   RadioGroup,
-  Select
+  Select,
+  Input
 } from '@chakra-ui/react';
 import IndusCrops from '../components/indusCrops.js';
 
-const cropRecordsIndus = ({ onNext, onBack }) => {
-
+const CropRecordsIndus = ({ onNext, onBack }) => {
   const [stageOfCrop, setStageOfCrop] = useState('');
+  const cardBg = 'white';
+  const accentColor = 'blue.600';
+  const headerBorder = 'gray.200';
 
   const handleNext = () => {
     let nextPath = '';
@@ -31,141 +32,146 @@ const cropRecordsIndus = ({ onNext, onBack }) => {
   };
 
   return (
-    <Box bg={'purple.50'} minH="100vh" p={3}>
-      <VStack spacing={3}>
-        <Box
-          maxW="650px"
-          w="100%"
-          borderRadius="md"
-          borderWidth={2}
-          overflow="hidden" // Ensures the purple bar follows the container's corner radius
-        >
-          {/* Purple Top Bar */}
-          <Box bg="purple.600" height="10px" />
+    <Box bg='white' minH="100vh" py={10} px={4}>
+      <VStack spacing={8} maxW="800px" mx="auto" w="full">
+        {/* Main Card */}
+        <Box bg={cardBg} borderRadius="xl" shadow="xl" w="full" overflow="hidden">
 
-          {/* White Actual Header */}
-          <Box bg="white" p={5}>
-            <Heading size="xl" fontWeight="normal" mb={6}>
+          {/* Header */}
+          <Box 
+            p={6}
+            borderBottomWidth="2px"
+            borderColor={headerBorder}
+            align="center"
+          >
+            <Heading 
+              size="lg"
+              color={accentColor}
+              fontWeight="semibold"
+              letterSpacing="tight"
+              mb={3}
+            >
               High Value Crop Planting and Harvesting Report
             </Heading>
-            <Divider borderColor="gray.400" my={3} />
-            <Text
-              textColor="red"
-              fontWeight="normal"
-              fontStyle="italic"
-            >
-              * Indicates required question
+            <Text fontSize="sm" color="gray.500" fontWeight="medium" mb={-2}>
+              Fields marked with <Text as="span" color="red.500">*</Text> are required
             </Text>
           </Box>
-        </Box>
 
-
-
-
-
-        {/* Form Fields */}
-        <Box
-          maxW="650px"
-          w="100%"
-          bg="white"
-          borderRadius="lg"
-          borderWidth={2}
-          overflow='hidden'
-        >
-          <Box bg={'purple.600'} minH={'50px'}>
-            <Text textColor={'white'} fontWeight={'medium'} p={3} paddingLeft={5}>VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS</Text>
-          </Box>
-
-          <Box p={5}>
-            <FormControl id="firstName" isRequired>
-              <FormLabel fontWeight={'semibold'} mb={5}>URI NG TANIM</FormLabel>
-              <Select
-                name='indusCrops'
-                placeholder="Choose"
+          {/* Form Content */}
+          <Box p={8}>
+            <VStack spacing={6} align="stretch">
+              {/* Section Label */}
+              <Box
+                bg='blue.50'
+                borderRadius="md"
+                p={4}
+                borderLeftWidth="4px"
+                borderColor={accentColor}
               >
-                {IndusCrops.map((indusCrops) => (
-                  <option key={indusCrops} value={indusCrops}>
-                    {indusCrops}
-                  </option>
-                ))}
-              </Select>
-            </FormControl>
-          </Box>
-          
-        </Box>
+                <Text fontSize="md" fontWeight="bold" color="blue.600">
+                  VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS
+                </Text>
+              </Box>
 
-        <Box
-          maxW="650px"
-          w="100%"
-          bg="white"
-          p={5}
-          borderRadius="lg"
-          borderWidth={2}
-        >
-          <FormControl id="firstName">
-            <FormLabel fontWeight={'semibold'} mb={5}>VARIETY NG TANIM</FormLabel>
-                <Text fontWeight={'bold'} mb={3}>PAALALA:</Text>
-                <Text 
-                  fontWeight={'normal'}
-                  fontStyle={'italic'}
-                  fontSize={'sm'}
-                  mb={5}
+              {/* URI NG TANIM */}
+              <FormControl id="cropName" isRequired>
+                <FormLabel
+                  fontSize="sm"
+                  fontWeight="bold"
+                  color="gray.600"
+                  textTransform="uppercase"
+                  letterSpacing="wide"
+                  mb={4}
                 >
-                  Huwag sagutan kung hindi alam ang ginamit na variety ng tanim.
-                </Text>    
+                  URI NG TANIM
+                </FormLabel>
+                <Select name="indusCrops" placeholder="Choose">
+                  {IndusCrops.map((crop) => (
+                    <option key={crop} value={crop}>
+                      {crop}
+                    </option>
+                  ))}
+                </Select>
+              </FormControl>
 
-            <Input type="text" placeholder="Isulat ang variety ng inyong tanim" />
+              {/* VARIETY NG TANIM */}
+              <FormControl id="variety">
+                <FormLabel
+                  fontSize="sm"
+                  fontWeight="bold"
+                  color="gray.600"
+                  textTransform="uppercase"
+                  letterSpacing="wide"
+                  mb={4}
+                >
+                  VARIETY NG TANIM
+                </FormLabel>
+                <Box
+                  bg='blue.50'
+                  borderRadius="md"
+                  p={3}
+                  borderLeftWidth="4px"
+                  borderColor={accentColor}
+                  mb={3}
+                >
+                  <Text fontSize="sm" fontWeight="bold" color='black' mb={3}>
+                    PAALALA:
+                  </Text>
+                  <Text fontSize='sm' fontWeight={'normal'}>
+                    Huwag sagutan kung hindi alam ang ginamit na variety ng tanim.
+                  </Text>
+                </Box>
+                <Input type="text" placeholder="Isulat ang variety ng inyong tanim" />
+              </FormControl>
 
-          </FormControl>
+              {/* YUGTO NG INYONG PANANIM */}
+              <FormControl id="stageOfCrop" isRequired>
+                <FormLabel
+                  fontSize="sm"
+                  fontWeight="bold"
+                  color="gray.600"
+                  textTransform="uppercase"
+                  letterSpacing="wide"
+                  mb={4}
+                >
+                  YUGTO NG INYONG PANANIM
+                </FormLabel>
+                <RadioGroup onChange={setStageOfCrop} value={stageOfCrop}>
+                  <Stack direction="column" spacing={4}>
+                    <Radio value="NEWLY PLANTED" colorScheme="blue">
+                      <Text fontSize="md" color="gray.700">NEWLY PLANTED</Text>
+                    </Radio>
+                    <Radio value="HARVESTING" colorScheme="blue">
+                      <Text fontSize="md" color="gray.700">HARVESTING</Text>
+                    </Radio>
+                  </Stack>
+                </RadioGroup>
+              </FormControl>
+            </VStack>
+
+            {/* Navigation Buttons */}
+            <Stack direction={{ base: 'column', md: 'row' }} spacing={4} justify="flex-end" mt={12}>
+              <Button variant="ghost" colorScheme="blue" onClick={onBack} px={8} borderRadius="md">
+                Back
+              </Button>
+              <Button
+                bg={accentColor}
+                color="white"
+                _hover={{ bg: 'blue.700' }}
+                onClick={handleNext}
+                px={8}
+                borderRadius="md"
+                isDisabled={!stageOfCrop}
+              >
+                Continue
+              </Button>
+            </Stack>
+          </Box>
         </Box>
-
-        <Box
-          maxW="650px"
-          w="100%"
-          bg="white"
-          p={5}
-          borderRadius="lg"
-          borderWidth={2}
-        >
-          <FormControl id="stageOfCrop" isRequired>
-            <FormLabel fontWeight={'semibold'} mb={5}>YUGTO NG INYONG PANANIM</FormLabel>
-              <RadioGroup onChange={setStageOfCrop} value={stageOfCrop}>
-                <Stack direction="column" spacing={5}>
-                  <Radio colorScheme='purple' value="NEWLY PLANTED">NEWLY PLANTED</Radio>
-                  <Radio colorScheme='purple' value="HARVESTING">HARVESTING</Radio>
-                </Stack>
-              </RadioGroup>
-          </FormControl>
-        </Box>
-
-
-
-
-
-        {/* Navigation Buttons */}
-        <Stack direction='row' spacing={4} justifyContent="flex-start" mt={1} mb={5}>
-          <Button 
-            bg={'white'} 
-            w={'100px'} 
-            textColor={'purple.500'} 
-            boxShadow={'md'} 
-            onClick={onBack}
-          >
-            Back
-          </Button>
-          <Button 
-            bg={'white'} 
-            w={'100px'} 
-            textColor={'purple.500'} 
-            boxShadow={'md'} 
-            onClick={handleNext}
-          >
-            Next
-          </Button>
-        </Stack>
       </VStack>
     </Box>
   );
 };
 
-export default cropRecordsIndus;
+export default CropRecordsIndus;

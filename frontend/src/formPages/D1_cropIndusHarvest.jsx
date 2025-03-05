@@ -9,238 +9,252 @@ import {
   Button,
   Text,
   VStack,
-  Divider,
   Radio,
   RadioGroup,
-  UnorderedList,
-  ListItem,
 } from '@chakra-ui/react';
 import Destination from '../components/destinations.js';
 import ModeOfDelivery from '../components/modeOfDelivery.js';
 import DateMonthOptions from '../components/dateMonthOptions.js';
 
 const cropIndusHarvest = ({ onNext, onBack }) => {
+  const options = DateMonthOptions();
 
-    const options = DateMonthOptions();
+  // Design tokens matching CropTypes
+  const cardBg = 'white';
+  const accentColor = 'blue.600';
+  const headerBorder = 'gray.200';
 
   return (
-    <Box bg={'purple.50'} minH="100vh" p={3} >
-      <VStack spacing={3}>
-        <Box
-          maxW="650px"
-          w="100%"
-          borderRadius="md"
-          borderWidth={2}
-          overflow="hidden" // Ensures the purple bar follows the container's corner radius
-        >
-          {/* Purple Top Bar */}
-          <Box bg="purple.600" height="10px" />
+    <Box minH="100vh" py={10} px={4}>
+      <VStack spacing={8} maxW="800px" mx="auto" w="full">
+        {/* Main Card */}
+        <Box bg={cardBg} borderRadius="xl" shadow="xl" w="full" overflow="hidden">
 
-          {/* White Actual Header */}
-          <Box bg="white" p={5}>
-            <Heading size="xl" fontWeight="normal" mb={6}>
+          {/* Header */}
+          <Box 
+            p={6}
+            borderBottomWidth="2px"
+            borderColor={headerBorder}
+            align="center"
+          >
+            <Heading 
+              size="lg"
+              color={accentColor}
+              fontWeight="semibold"
+              letterSpacing="tight"
+              mb={3}
+            >
               High Value Crop Planting and Harvesting Report
             </Heading>
-            <Divider borderColor="gray.400" my={3} />
-            <Text
-              textColor="red"
-              fontWeight="normal"
-              fontStyle="italic"
-            >
-              * Indicates required question
+            <Text fontSize="sm" color="gray.500" fontWeight="medium" mb={-2}>
+              Fields marked with <Text as="span" color="red.500">*</Text> are required
             </Text>
           </Box>
-        </Box>
 
-
-
-
-
-        {/* Form Fields */}
-        <Box
-        maxW="650px"
-        w="100%"
-        bg="white"
-
-        borderRadius="lg"
-        borderWidth={2}
-        overflow='hidden'
-        >
-          <Box bg={'purple.600'} minH={'50px'}>
-            <Text textColor={'white'} fontWeight={'medium'} p={3} paddingLeft={5}>VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS (HARVESTING)</Text>
-          </Box>
-
-          <Box p={5}>
-              <FormControl id="surname" isRequired>
-              <FormLabel fontWeight={'semibold'} mb={5}>DATE OF HARVEST (PILIIN ANG PETSA KUNG KAILAN NAG-ANI)</FormLabel>
+          {/* Form Content */}
+          <Box p={8}>
+            <VStack spacing={6} align="stretch">
+              {/* Section Label */}
+              <Box
+                bg='blue.50'
+                borderRadius="md"
+                p={4}
+                borderLeftWidth="4px"
+                borderColor={accentColor}
+              >
+                <Text fontSize="md" fontWeight="bold" color="blue.600">
+                  VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS (HARVESTING)
+                </Text>
+            </Box>
+              {/* Date of Harvest */}
+              <FormControl id="harvestDate" isRequired>
+                <FormLabel
+                  fontSize="sm"
+                  fontWeight="bold"
+                  color="gray.600"
+                  textTransform="uppercase"
+                  letterSpacing="wide"
+                  mb={4}
+                >
+                  DATE OF HARVEST (PILIIN ANG PETSA KUNG KAILAN NAG-ANI)
+                </FormLabel>
                 <RadioGroup>
-                    <Stack direction="column">
-                        {options.map((option) => (
-                        <Radio key={option.value} value={option.value} colorScheme='purple'>
-                            {option.label}
-                        </Radio>
-                        ))}
-                    </Stack>
+                  <Stack direction="column" spacing={4}>
+                    {options.map((option) => (
+                      <Radio key={option.value} value={option.value} colorScheme="blue">
+                        <Text fontSize="md" color="gray.700">
+                          {option.label}
+                        </Text>
+                      </Radio>
+                    ))}
+                  </Stack>
                 </RadioGroup>
               </FormControl>
-          </Box>
-        </Box>
 
-        <Box
-        maxW="650px"
-        w="100%"
-        bg="white"
-        p={5}
-        borderRadius="lg"
-        borderWidth={2}
-        >
-            <FormControl id="firstName" isRequired>
-              <FormLabel fontWeight={'semibold'} mb={5}>TOTAL AREA HARVESTED (ILAN ANG KABUUANG SUKAT NA INYONG INANIHAN?)</FormLabel>
-                 <Text fontWeight={'bold'} fontSize={'sm'}>PAALALA:</Text>
-                 <Text 
-                   fontWeight={'normal'}
-                   fontSize={'sm'}
-                   mb={5}
-                 >
-                   <strong>EKTARYA (HECTARE / HA)</strong> ang gamiting sukat sa pagsagot sa area ng inyong tanim
-                 </Text>          
-                 <Text fontWeight={'bold'} fontSize={'sm'}>HALIMBAWA:</Text>
-                 <Text fontSize={'sm'}>Ang 1000 square meters o 1 arya ay katumbas ng <strong><u><i>0.1 ektarya</i></u></strong></Text>
+              {/* Total Area Harvested */}
+              <FormControl id="totalAreaHarvested" isRequired>
+                <FormLabel
+                  fontSize="sm"
+                  fontWeight="bold"
+                  color="gray.600"
+                  textTransform="uppercase"
+                  letterSpacing="wide"
+                  mb={4}
+                >
+                  TOTAL AREA HARVESTED (ILAN ANG KABUUANG SUKAT NA INYONG INANIHAN?)
+                </FormLabel>
+                  <Box 
+                      bg='blue.50'
+                      borderRadius="md"
+                      p={4}
+                      mb={5}
+                      borderLeftWidth="4px"
+                      borderColor={accentColor}
+                    >
+                        <Text fontWeight={'bold'} fontSize={'sm'}>PAALALA:</Text>
+                        <Text 
+                          fontWeight={'normal'}
+                          fontSize={'sm'}
+                          mb={5}
+                        >
+                          <strong>EKTARYA (HECTARE / HA)</strong> ang gamiting sukat sa pagsagot sa area ng inyong tanim
+                        </Text>          
+                        <Text fontWeight={'bold'} fontSize={'sm'}>HALIMBAWA:</Text>
+                        <Text fontSize={'sm'}>Ang 1000 square meters o 1 arya ay katumbas ng <strong><u><i>0.1 ektarya</i></u></strong></Text>
 
-                 <Text fontSize={'sm'} mb={5}>Ang 500 square meters o kalahating arya (1/2 arya) ay katumbas ng <strong><u><i>0.05 ektarya</i></u></strong></Text>
+                        <Text fontSize={'sm'} mb={5}>Ang 500 square meters o kalahating arya (1/2 arya) ay katumbas ng <strong><u><i>0.05 ektarya</i></u></strong></Text>
 
-                 <Text fontWeight={'bold'} fontSize={'sm'} textDecoration={'underline'} fontStyle={'italic'}>Paano i-compute:</Text>
-                 <Text fontSize={'sm'} mb={5}>1,000 square meters divided by 10,000 square meters = <strong><u><i>0.1 ektarya</i></u></strong></Text>
+                        <Text fontWeight={'bold'} fontSize={'sm'} textDecoration={'underline'} fontStyle={'italic'}>Paano i-compute:</Text>
+                        <Text fontSize={'sm'}>1,000 square meters divided by 10,000 square meters = <strong><u><i>0.1 ektarya</i></u></strong></Text>
+                    </Box>
+                 <Input type="number" placeholder="Your answer" />
+                </FormControl>
 
-              <Input type="number" placeholder="Your answer" />
-            </FormControl>
-        </Box>
+              {/* Total Volume of Production */}
+              <FormControl id="totalVolumeProduction" isRequired>
+                <FormLabel
+                  fontSize="sm"
+                  fontWeight="bold"
+                  color="gray.600"
+                  textTransform="uppercase"
+                  letterSpacing="wide"
+                  mb={4}
+                >
+                  TOTAL VOLUME OF PRODUCTION (ILAN ANG KABUUANG TIMBANG NA INYONG NAANI?)
+                </FormLabel>
+                 <Input type="number" placeholder="Your answer" />
+                </FormControl>
 
-        <Box
-        maxW="650px"
-        w="100%"
-        bg="white"
-        p={5}
-        borderRadius="lg"
-        borderWidth={2}
-        >
-            <FormControl id="firstName" isRequired>
-              <FormLabel fontWeight={'semibold'} mb={5}>TOTAL VOLUME OF PRODUCTION (ILAN ANG KABUUANG TIMBANG NA INYONG NAANI?)</FormLabel>
-                 <Text fontWeight={'bold'} fontSize={'sm'}>PAALALA:</Text>
-                 <Text 
-                   fontWeight={'normal'}
-                   fontSize={'sm'}
-                   mb={5}
-                 >
-                   <strong>KILO (KG)</strong> ang gamiting sukat sa pagsagot ng dami ng gulay na inyong inani
-                 </Text>          
-                 <Text fontWeight={'bold'} fontSize={'sm'}>HALIMBAWA:</Text>
-                 <Text fontSize={'sm'}>Ang 1,000 grams (g) ay katumbas ng <strong><u><i>1 kilogram (kg)</i></u></strong></Text>
-                 <Text fontSize={'sm'} mb={5}>Ang 100 grams (g) ay katumbas ng <strong><u><i>0.1 kilogram (kg)</i></u></strong></Text>
+              {/* Destination */}
+              <FormControl id="destination" isRequired>
+                <FormLabel
+                  fontSize="sm"
+                  fontWeight="bold"
+                  color="gray.600"
+                  textTransform="uppercase"
+                  letterSpacing="wide"
+                  mb={4}
+                >
+                  DESTINATION (SAAN NIYO DINADALA ANG INYONG MGA INANING GULAY?)
+                </FormLabel>
+                <RadioGroup>
+                  <Stack direction="column" spacing={4}>
+                    {Destination.map((option) => (
+                      <Radio key={option} value={option} colorScheme="blue">
+                        <Text fontSize="md" color="gray.700">
+                          {option}
+                        </Text>
+                      </Radio>
+                    ))}
+                  </Stack>
+                </RadioGroup>
+              </FormControl>
 
-                 <Text fontWeight={'bold'} fontSize={'sm'} mb={3} textDecoration={'underline'} fontStyle={'italic'}>Paano i-compute:</Text>
-                 <Text fontSize={'sm'} ml={5} mb={5}>
-                    <UnorderedList>
-                        <ListItem>1,000 grams divided by 1,000 = <strong><u><i>1 kilogram (kg)</i></u></strong></ListItem>
-                        <ListItem>100 grams divided by 1,000 = <strong><u><i>0.1 kilogram (kg)</i></u></strong></ListItem>
-                    </UnorderedList>
-                 </Text>
+              {/* Mode of Payment */}
+              <FormControl id="modeOfPayment" isRequired>
+                <FormLabel
+                  fontSize="sm"
+                  fontWeight="bold"
+                  color="gray.600"
+                  textTransform="uppercase"
+                  letterSpacing="wide"
+                  mb={4}
+                >
+                  MODE OF PAYMENT (PAANO ANG MODE OF PAYMENT SA INYONG PRODUKTO?)
+                </FormLabel>
+                <RadioGroup>
+                  <Stack direction="column" spacing={4}>
+                    <Radio colorScheme="blue" value="CASH">
+                      CASH
+                    </Radio>
+                    <Radio colorScheme="blue" value="GCASH">
+                      GCASH
+                    </Radio>
+                    <Radio colorScheme="blue" value="CHECK (TSEKE)">
+                      CHECK (TSEKE)
+                    </Radio>
+                    <Radio colorScheme="blue" value="OTHERS">
+                      OTHERS
+                    </Radio>
+                  </Stack>
+                </RadioGroup>
+              </FormControl>
 
-              <Input type="number" placeholder="Your answer" />
-            </FormControl>
-        </Box>
+              {/* Mode of Delivery */}
+              <FormControl id="modeOfDelivery" isRequired>
+                <FormLabel
+                  fontSize="sm"
+                  fontWeight="bold"
+                  color="gray.600"
+                  textTransform="uppercase"
+                  letterSpacing="wide"
+                  mb={4}
+                >
+                  MODE OF DELIVERY (PAANO ANG MODE OF DELIVERY NG INYONG PRODUKTO?)
+                </FormLabel>
+                <RadioGroup>
+                  <Stack direction="column" spacing={4}>
+                    {ModeOfDelivery.map((option) => (
+                      <Radio key={option} value={option} colorScheme="blue">
+                        <Text fontSize="md" color="gray.700">
+                          {option}
+                        </Text>
+                      </Radio>
+                    ))}
+                  </Stack>
+                </RadioGroup>
+              </FormControl>
+            </VStack>
 
-        <Box
-          maxW="650px"
-          w="100%"
-          bg="white"
-          p={5}
-          borderRadius="lg"
-          borderWidth={2}
-        >
-          <FormControl id="firstName" isRequired>
-            <FormLabel fontWeight={'semibold'} mb={5}>DESTINATION (SAAN NIYO DINADALA ANG INYONG MGA INANING GULAY?)</FormLabel>
-            <RadioGroup>
-              <Stack direction="column">
-                {Destination.map((option) => (
-                  <Radio key={option} value={option} colorScheme='purple'>
-                    {option}
-                  </Radio>
-                ))}
-              </Stack>
-            </RadioGroup>
-          </FormControl>
-        </Box>  
-
-        <Box
-          maxW="650px"
-          w="100%"
-          bg="white"
-          p={5}
-          borderRadius="lg"
-          borderWidth={2}
-        >
-          <FormControl id="firstName" isRequired>
-            <FormLabel fontWeight={'semibold'} mb={5}>MODE OF PAYMENT (PAANO ANG MODE OF PAYMENT SA INYONG PRODUKTO?)</FormLabel>
-            <RadioGroup>
-             <Stack direction="column">
-                <Radio colorScheme='purple' value="CASH">CASH</Radio>
-                <Radio colorScheme='purple' value="GCASH">GCASH</Radio>
-                <Radio colorScheme='purple' value="CHECK (TSEKE)">CHECK (TSEKE)</Radio>
-                <Radio colorScheme='purple' value="OTHERS">OTHERS</Radio>
-              </Stack>
-            </RadioGroup>
-          </FormControl>
-        </Box>       
-
-        <Box
-          maxW="650px"
-          w="100%"
-          bg="white"
-          p={5}
-          borderRadius="lg"
-          borderWidth={2}
-        >
-          <FormControl id="firstName" isRequired>
-            <FormLabel fontWeight={'semibold'} mb={5}>MODE OF DELIVERY (PAANO ANG MODE OF DELIVERY NG INYONG PRODUKTO?)</FormLabel>
-            <RadioGroup>
-             <Stack direction="column">
-                {ModeOfDelivery.map((option) => (
-                  <Radio key={option} value={option} colorScheme='purple'>
-                    {option}
-                  </Radio>
-                ))}
-              </Stack>
-            </RadioGroup>
-          </FormControl>
-        </Box>        
-
-
-
-
-
-        {/* Navigation Buttons */}
-          <Stack direction='row' spacing={4} justify="flex-start" mt={1} mb={5}>
-              <Button 
-                bg={'white'} 
-                w={'100px'} 
-                textColor={'purple.500'} 
-                boxShadow={'md'} 
+            {/* Navigation Buttons */}
+            <Stack
+              direction={{ base: 'column', md: 'row' }}
+              spacing={4}
+              justify="flex-end"
+              mt={12}
+            >
+              <Button
+                variant="ghost"
+                colorScheme="blue"
                 onClick={onBack}
+                px={8}
+                borderRadius="md"
               >
                 Back
               </Button>
-              <Button 
-                bg={'white'} 
-                w={'100px'} 
-                textColor={'purple.500'} 
-                boxShadow={'md'} 
+              <Button
+                bg={accentColor}
+                color="white"
+                _hover={{ bg: 'blue.700' }}
                 onClick={onNext}
+                px={8}
+                borderRadius="md"
               >
-                Next
+                Submit
               </Button>
-          </Stack>
-
+            </Stack>
+          </Box>
+        </Box>
       </VStack>
     </Box>
   );

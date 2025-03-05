@@ -8,138 +8,152 @@ import {
   Button,
   Text,
   VStack,
-  Divider,
   RadioGroup,
-  Radio
+  Radio,
 } from '@chakra-ui/react';
 
-const cropTypes = ({ onNext, onBack }) => {
+const CropTypes = ({ onNext, onBack }) => {
+  const [selectedCropType, setSelectedCropType] = useState('');
+  const cardBg = 'white';
+  const accentColor = 'blue.600';
+  const headerBorder = 'gray.200';
 
-    const [selectedCropType, setSelectedCropType] = useState('')
-
-    const handleNext = () => {
-        let nextPath = '';
-        switch (selectedCropType) {
-          case 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS':
-            nextPath = '/c1_cri';
-            break;
-          case 'BANANA':
-          case 'COFFEE':
-          case 'OTHER FRUIT CROPS/TREES':
-            nextPath = '/c2_cro';
-            break;
-
-        }
-        onNext(nextPath, selectedCropType);
-      };
+  const handleNext = () => {
+    let nextPath = '';
+    switch (selectedCropType) {
+      case 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS':
+        nextPath = '/c1_cri';
+        break;
+      case 'BANANA':
+      case 'COFFEE':
+      case 'OTHER FRUIT CROPS/TREES':
+        nextPath = '/c2_cro';
+        break;
+    }
+    onNext(nextPath, selectedCropType);
+  };
 
   return (
-    <Box bg={'purple.50'} minH="100vh" p={3}>
-      <VStack spacing={3}>
-        <Box
-          maxW="650px"
-          w="100%"
-          borderRadius="md"
-          borderWidth={2}
-          overflow="hidden" // Ensures the purple bar follows the container's corner radius
+    <Box minH="100vh" py={10} px={4}>
+      <VStack spacing={8} maxW="800px" mx="auto" w="full">
+        {/* Main Card */}
+        <Box 
+          bg={cardBg}
+          borderRadius="xl"
+          shadow="xl"
+          w="full"
+          overflow="hidden"
         >
-          {/* Purple Top Bar */}
-          <Box bg="purple.600" height="10px" />
-
-          {/* White Actual Header */}
-          <Box bg="white" p={5}>
-            <Heading size="xl" fontWeight="normal" mb={6}>
+          {/* Header */}
+          <Box 
+            p={6}
+            borderBottomWidth="2px"
+            borderColor={headerBorder}
+            align="center"
+          >
+            <Heading 
+              size="lg"
+              color={accentColor}
+              fontWeight="semibold"
+              letterSpacing="tight"
+              mb={3}
+            >
               High Value Crop Planting and Harvesting Report
             </Heading>
-            <Divider borderColor="gray.400" my={3} />
-            <Text
-              textColor="red"
-              fontWeight="normal"
-              fontStyle="italic"
-            >
-              * Indicates required question
+            <Text fontSize="sm" color="gray.500" fontWeight="medium" mb={-2}>
+              Fields marked with <Text as="span" color="red.500">*</Text> are required
             </Text>
           </Box>
-        </Box>
 
+          {/* Form Content */}
+          <Box p={8}>
+            <VStack spacing={6} align="stretch">
+              {/* Instruction Section */}
+              <Box 
+                bg='blue.50'
+                borderRadius="md"
+                p={4}
+                borderLeftWidth="4px"
+                borderColor={accentColor}
+              >
+                <Text fontSize="sm">
+                  <Text fontWeight="bold" mb={3}>PAALALA:</Text> 
+                  Kung sakaling mayroon kayong higit sa isang klase ng tanim ay maaaring magsagot ulit sa link na ibinigay pagkatapos ninyong sagutan ang form na ito.
+                </Text>
+              </Box>
 
+              {/* Crop Selection */}
+              <FormControl id="cropType" isRequired>
+                <FormLabel 
+                  fontSize="sm" 
+                  fontWeight="bold"
+                  color="gray.600"
+                  textTransform="uppercase"
+                  letterSpacing="wide"
+                  mb={4}
+                >
+                  Select Crop Type
+                </FormLabel>
+                
+                <RadioGroup 
+                  onChange={setSelectedCropType} 
+                  value={selectedCropType}
+                >
+                  <Stack direction="column" spacing={4}>
+                    {[
+                      'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS',
+                      'BANANA',
+                      'COFFEE',
+                      'OTHER FRUIT CROPS/TREES'
+                    ].map((crop) => (
+                      <Radio 
+                        key={crop}
+                        value={crop}
+                        colorScheme="blue"
+                      >
+                        <Text fontSize="md" color="gray.700">
+                          {crop}
+                        </Text>
+                      </Radio>
+                    ))}
+                  </Stack>
+                </RadioGroup>
+              </FormControl>
+            </VStack>
 
-
-
-        {/* Form Fields */}
-        <Box
-          maxW="650px"
-          w="100%"
-          bg="white"
-          borderRadius="lg"
-          borderWidth={2}
-          overflow='hidden'
-        >
-          <Box bg={'purple.600'} minH={'50px'}>
-            <Text textColor={'white'} fontWeight={'medium'} p={3} paddingLeft={5}>URI NG TANIM</Text>
-          </Box>
-
-          <Box p={5}>
-            <Text fontWeight={'bold'} mb={5}>PAALALA:</Text>
-            <Text 
-              fontWeight={'normal'}
-              fontStyle={'italic'}
-              fontSize={'sm'}
+            {/* Navigation Buttons */}
+            <Stack 
+              direction={{ base: 'column', md: 'row' }}
+              spacing={4}
+              justify="flex-end"
+              mt={12}
             >
-              Kung sakaling mayroon kayong higit sa isang klase ng tanim ay maaaring magsagot ulit sa link na ibinigay pagkatapos ninyong sagutan ang form na ito.
-            </Text>
+              <Button 
+                variant="ghost"
+                colorScheme="blue"
+                onClick={onBack}
+                px={8}
+                borderRadius="md"
+              >
+                Back
+              </Button>
+              <Button 
+                bg={accentColor}
+                color="white"
+                _hover={{ bg: 'blue.700' }}
+                onClick={handleNext}
+                px={8}
+                borderRadius="md"
+                isDisabled={!selectedCropType}
+              >
+                Continue
+              </Button>
+            </Stack>
           </Box>
         </Box>
-
-        <Box
-          maxW="650px"
-          w="100%"
-          bg="white"
-          p={5}
-          borderRadius="lg"
-          borderWidth={2}
-        >
-          <FormControl id="firstName" isRequired>
-            <FormLabel fontWeight={'semibold'} mb={5}>PUMILI NG URI NG TANIM</FormLabel>
-            <RadioGroup onChange={setSelectedCropType} value={selectedCropType}>
-              <Stack direction="column" spacing={5}>
-                <Radio colorScheme='purple' value="VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS">VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS</Radio>
-                <Radio colorScheme='purple' value="BANANA">BANANA</Radio>
-                <Radio colorScheme='purple' value="COFFEE">COFFEE</Radio>
-                <Radio colorScheme='purple' value="OTHER FRUIT CROPS/TREES">OTHER FRUIT CROPS/TREES</Radio>
-              </Stack>
-            </RadioGroup>
-          </FormControl>
-        </Box>
-
-
-
-
-
-        {/* Navigation Buttons */}
-        <Stack direction='row' spacing={4} justifyContent="flex-start" mt={1} mb={5}>
-          <Button 
-            bg={'white'} 
-            w={'100px'} 
-            textColor={'purple.500'} 
-            boxShadow={'md'} 
-            onClick={onBack}
-          >
-            Back
-          </Button>
-          <Button 
-            bg={'white'} 
-            w={'100px'} 
-            textColor={'purple.500'} 
-            boxShadow={'md'} 
-            onClick={handleNext}
-          >
-            Next
-          </Button>
-        </Stack>
       </VStack>
     </Box>
   );
 };
 
-export default cropTypes;
+export default CropTypes;

@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Heading,
@@ -8,16 +8,17 @@ import {
   Button,
   Text,
   VStack,
-  Divider,
   RadioGroup,
   Radio,
-  Select
+  Select,
 } from '@chakra-ui/react';
 import OtherFCT from '../components/otherFCT.js';
 
 const cropRecordsOther = ({ onNext, onBack, cropType }) => {
-
   const [stageOfCrop, setStageOfCrop] = useState('');
+  const cardBg = 'white';
+  const accentColor = 'blue.600';
+  const headerBorder = 'gray.200';
 
   const handleNext = () => {
     let nextPath = '';
@@ -30,169 +31,205 @@ const cropRecordsOther = ({ onNext, onBack, cropType }) => {
   };
 
   return (
-    <Box bg={'purple.50'} minH="100vh" p={3}>
-      <VStack spacing={3}>
-        <Box
-          maxW="650px"
-          w="100%"
-          borderRadius="md"
-          borderWidth={2}
-          overflow="hidden" // Ensures the purple bar follows the container's corner radius
-        >
-          {/* Purple Top Bar */}
-          <Box bg="purple.600" height="10px" />
-
-          {/* White Actual Header */}
-          <Box bg="white" p={5}>
-            <Heading size="xl" fontWeight="normal" mb={6}>
+    <Box minH="100vh" py={10} px={4} bg='white'>
+      <VStack spacing={8} maxW="800px" mx="auto" w="full">
+        <Box bg={cardBg} borderRadius="xl" shadow="xl" w="full" overflow="hidden">
+          {/* Header */}
+          <Box 
+            p={6}
+            borderBottomWidth="2px"
+            borderColor={headerBorder}
+            align="center"
+          >
+            <Heading 
+              size="lg"
+              color={accentColor}
+              fontWeight="semibold"
+              letterSpacing="tight"
+              mb={3}
+            >
               High Value Crop Planting and Harvesting Report
             </Heading>
-            <Divider borderColor="gray.400" my={3} />
-            <Text
-              textColor="red"
-              fontWeight="normal"
-              fontStyle="italic"
-            >
-              * Indicates required question
+            <Text fontSize="sm" color="gray.500" fontWeight="medium" mb={-2}>
+              Fields marked with <Text as="span" color="red.500">*</Text> are required
             </Text>
           </Box>
-        </Box>
 
+          {/* Form Content */}
+          <Box p={8}>
+            {cropType === "BANANA" && (
+              <>
+                {/* Section Header */}
+                <Box
+                  bg="blue.50"
+                  borderRadius="md"
+                  p={4}
+                  mb={6}
+                  borderLeftWidth="4px"
+                  borderColor="blue.600"
+                >
+                  <Text fontSize="md" fontWeight="bold" color="blue.600">
+                    BANANA
+                  </Text>
+                </Box>
 
-
-
-
-        {/* Form Fields (BANANA) */}
-        {cropType === "BANANA" && (
-          <>
-          <Box
-          maxW="650px"
-          w="100%"
-          bg="white"
-          borderRadius="lg"
-          borderWidth={2}
-          overflow='hidden'
-          >
-          <Box bg={'purple.600'} height={'50px'}>
-            <Text textColor={'white'} fontWeight={'medium'} pt={3} paddingLeft={5}>BANANA</Text>
-          </Box>
-
-          <Box p={5}>
-            <FormControl id="firstName" isRequired>
-              <FormLabel fontWeight={'semibold'} mb={5}>PUMILI NG VARIETY NG BANANA</FormLabel>
-              <RadioGroup>
-                <Stack direction="column" spacing={5}>
-                  <Radio colorScheme='purple' value="BUNGULAN">BUNGULAN</Radio>
-                  <Radio colorScheme='purple' value="LACATAN">LACATAN</Radio>
-                  <Radio colorScheme='purple' value="LAGKITAN">LAGKITAN</Radio>
-                  <Radio colorScheme='purple' value="LATUNDAN">LATUNDAN</Radio>
-                  <Radio colorScheme='purple' value="SABA">SABA</Radio>
-                  <Radio colorScheme='purple' value="SENORITA">SENORITA</Radio>
-                </Stack>
-              </RadioGroup>
-            </FormControl>
-          </Box>
-          </Box>
-
-          <Box
-            maxW="650px"
-            w="100%"
-            bg="white"
-            p={5}
-            borderRadius="lg"
-            borderWidth={2}
-          >
-            <FormControl id="firstName" isRequired>
-              <FormLabel fontWeight={'semibold'} mb={5}>YUGTO NG INYONG PANANIM</FormLabel>
-                <RadioGroup onChange={setStageOfCrop} value={stageOfCrop}>
-                  <Stack direction="column" spacing={5}>
-                    <Radio colorScheme='purple' value="NEWLY PLANTED">NEWLY PLANTED</Radio>
-                    <Radio colorScheme='purple' value="HARVESTING">HARVESTING</Radio>
-                  </Stack>
-                </RadioGroup>
-            </FormControl>
-          </Box>
-          </>
-        )}
-
-        {/* Form Fields (COFFEE) */}
-        {cropType === "COFFEE" && (
-          <>
-          <Box
-            maxW="650px"
-            w="100%"
-            bg="white"
-            borderRadius="lg"
-            borderWidth={2}
-            overflow='hidden'
-          >
-            <Box bg={'purple.600'} height={'50px'}>
-              <Text textColor={'white'} fontWeight={'medium'} pt={3} paddingLeft={5}>COFFEE</Text>
-            </Box>
-
-            <Box p={5}>
-              <FormControl id="coffeeVariety" isRequired>
-                <FormLabel fontWeight={'semibold'} mb={5}>PUMILI NG VARIETY NG COFFEE</FormLabel>
-                <RadioGroup onChange={setStageOfCrop} value={stageOfCrop}>
-                  <Stack direction="column" spacing={5}>
-                    <Radio colorScheme='purple' value="LIBERICA">LIBERICA</Radio>
-                    <Radio colorScheme='purple' value="ROBUSTA">ROBUSTA</Radio>
-                  </Stack>
-                </RadioGroup>
-              </FormControl>
-            </Box>
-          </Box>
-
-          <Box
-            maxW="650px"
-            w="100%"
-            bg="white"
-            p={5}
-            borderRadius="lg"
-            borderWidth={2}
-          >
-            <FormControl id="firstName" isRequired>
-              <FormLabel fontWeight={'semibold'} mb={5}>YUGTO NG INYONG PANANIM</FormLabel>
-                <RadioGroup>
-                  <Stack direction="column" spacing={5}>
-                    <Radio colorScheme='purple' value="NEWLY PLANTED">NEWLY PLANTED</Radio>
-                    <Radio colorScheme='purple' value="HARVESTING">HARVESTING</Radio>
-                  </Stack>
-                </RadioGroup>
-            </FormControl>
-          </Box>
-          </>
-        )}
-
-        {/* Form Fields (OTHER FRUIT CROPS/TREES) */}
-        {cropType === "OTHER FRUIT CROPS/TREES" && (
-          <>
-          <Box
-            maxW="650px"
-            w="100%"
-            bg="white"
-            borderRadius="lg"
-            borderWidth={2}
-            overflow='hidden'
-          >
-            <Box bg={'purple.600'} height={'50px'}>
-              <Text textColor={'white'} fontWeight={'medium'} pt={3} paddingLeft={5}>OTHER FRUIT CROPS/TREES</Text>
-            </Box>
-
-            <Box
-              maxW="650px"
-              w="100%"
-              bg="white"
-              p={5}
-              borderRadius="lg"
-              borderWidth={2}
-            >    
-                <FormControl id="farmLocation" isRequired>
-                  <FormLabel fontWeight={'semibold'} mb={5}>URI NG TANIM</FormLabel>
-                  <Select
-                    name='otherCrops'
-                    placeholder="Choose"
+                {/* Variety Selection */}
+                <FormControl id="bananaVariety" isRequired mb={6}>
+                  <FormLabel
+                    fontSize="sm"
+                    fontWeight="bold"
+                    color="gray.600"
+                    textTransform="uppercase"
+                    letterSpacing="wide"
+                    mb={4}
                   >
+                    PUMILI NG VARIETY NG BANANA
+                  </FormLabel>
+                  <RadioGroup>
+                    <Stack direction="column" spacing={4}>
+                      <Radio colorScheme="blue" value="BUNGULAN">
+                        <Text fontSize="md" color="gray.700">BUNGULAN</Text>
+                      </Radio>
+                      <Radio colorScheme="blue" value="LACATAN">
+                        <Text fontSize="md" color="gray.700">LACATAN</Text>
+                      </Radio>
+                      <Radio colorScheme="blue" value="LAGKITAN">
+                        <Text fontSize="md" color="gray.700">LAGKITAN</Text>
+                      </Radio>
+                      <Radio colorScheme="blue" value="LATUNDAN">
+                        <Text fontSize="md" color="gray.700">LATUNDAN</Text>
+                      </Radio>
+                      <Radio colorScheme="blue" value="SABA">
+                        <Text fontSize="md" color="gray.700">SABA</Text>
+                      </Radio>
+                      <Radio colorScheme="blue" value="SENORITA">
+                        <Text fontSize="md" color="gray.700">SENORITA</Text>
+                      </Radio>
+                    </Stack>
+                  </RadioGroup>
+                </FormControl>
+
+                {/* Stage Selection */}
+                <FormControl id="stageOfCrop" isRequired>
+                  <FormLabel
+                    fontSize="sm"
+                    fontWeight="bold"
+                    color="gray.600"
+                    textTransform="uppercase"
+                    letterSpacing="wide"
+                    mb={4}
+                  >
+                    YUGTO NG INYONG PANANIM
+                  </FormLabel>
+                  <RadioGroup onChange={setStageOfCrop} value={stageOfCrop}>
+                    <Stack direction="column" spacing={4}>
+                      <Radio colorScheme="blue" value="NEWLY PLANTED">
+                        <Text fontSize="md" color="gray.700">NEWLY PLANTED</Text>
+                      </Radio>
+                      <Radio colorScheme="blue" value="HARVESTING">
+                        <Text fontSize="md" color="gray.700">HARVESTING</Text>
+                      </Radio>
+                    </Stack>
+                  </RadioGroup>
+                </FormControl>
+              </>
+            )}
+
+            {cropType === "COFFEE" && (
+              <>
+                {/* Section Header */}
+                <Box
+                  bg="blue.50"
+                  borderRadius="md"
+                  p={4}
+                  mb={6}
+                  borderLeftWidth="4px"
+                  borderColor="blue.600"
+                >
+                  <Text fontSize="md" fontWeight="bold" color="blue.600">
+                    COFFEE
+                  </Text>
+                </Box>
+
+                {/* Variety Selection */}
+                <FormControl id="coffeeVariety" isRequired mb={6}>
+                  <FormLabel
+                    fontSize="sm"
+                    fontWeight="bold"
+                    color="gray.600"
+                    textTransform="uppercase"
+                    letterSpacing="wide"
+                    mb={4}
+                  >
+                    PUMILI NG VARIETY NG COFFEE
+                  </FormLabel>
+                  <RadioGroup onChange={setStageOfCrop} value={stageOfCrop}>
+                    <Stack direction="column" spacing={4}>
+                      <Radio colorScheme="blue" value="LIBERICA">
+                        <Text fontSize="md" color="gray.700">LIBERICA</Text>
+                      </Radio>
+                      <Radio colorScheme="blue" value="ROBUSTA">
+                        <Text fontSize="md" color="gray.700">ROBUSTA</Text>
+                      </Radio>
+                    </Stack>
+                  </RadioGroup>
+                </FormControl>
+
+                {/* Stage Selection */}
+                <FormControl id="stageOfCrop" isRequired>
+                  <FormLabel
+                    fontSize="sm"
+                    fontWeight="bold"
+                    color="gray.600"
+                    textTransform="uppercase"
+                    letterSpacing="wide"
+                    mb={4}
+                  >
+                    YUGTO NG INYONG PANANIM
+                  </FormLabel>
+                  <RadioGroup onChange={setStageOfCrop} value={stageOfCrop}>
+                    <Stack direction="column" spacing={4}>
+                      <Radio colorScheme="blue" value="NEWLY PLANTED">
+                        <Text fontSize="md" color="gray.700">NEWLY PLANTED</Text>
+                      </Radio>
+                      <Radio colorScheme="blue" value="HARVESTING">
+                        <Text fontSize="md" color="gray.700">HARVESTING</Text>
+                      </Radio>
+                    </Stack>
+                  </RadioGroup>
+                </FormControl>
+              </>
+            )}
+
+            {cropType === "OTHER FRUIT CROPS/TREES" && (
+              <>
+                {/* Section Header */}
+                <Box
+                  bg="blue.50"
+                  borderRadius="md"
+                  p={4}
+                  mb={6}
+                  borderLeftWidth="4px"
+                  borderColor="blue.600"
+                >
+                  <Text fontSize="md" fontWeight="bold" color="blue.600">
+                    OTHER FRUIT CROPS/TREES
+                  </Text>
+                </Box>
+
+                {/* Crop Type Selection */}
+                <FormControl id="farmLocation" isRequired mb={6}>
+                  <FormLabel
+                    fontSize="sm"
+                    fontWeight="bold"
+                    color="gray.600"
+                    textTransform="uppercase"
+                    letterSpacing="wide"
+                    mb={4}
+                  >
+                    URI NG TANIM
+                  </FormLabel>
+                  <Select name="otherCrops" placeholder="Choose">
                     {OtherFCT.map((otherFCT) => (
                       <option key={otherFCT} value={otherFCT}>
                         {otherFCT}
@@ -200,55 +237,63 @@ const cropRecordsOther = ({ onNext, onBack, cropType }) => {
                     ))}
                   </Select>
                 </FormControl>
-            </Box> 
+
+                {/* Stage Selection */}
+                <FormControl id="stageOfCrop" isRequired>
+                  <FormLabel
+                    fontSize="sm"
+                    fontWeight="bold"
+                    color="gray.600"
+                    textTransform="uppercase"
+                    letterSpacing="wide"
+                    mb={4}
+                  >
+                    YUGTO NG INYONG PANANIM
+                  </FormLabel>
+                  <RadioGroup onChange={setStageOfCrop} value={stageOfCrop}>
+                    <Stack direction="column" spacing={4}>
+                      <Radio colorScheme="blue" value="NEWLY PLANTED">
+                        <Text fontSize="md" color="gray.700">NEWLY PLANTED</Text>
+                      </Radio>
+                      <Radio colorScheme="blue" value="HARVESTING">
+                        <Text fontSize="md" color="gray.700">HARVESTING</Text>
+                      </Radio>
+                    </Stack>
+                  </RadioGroup>
+                </FormControl>
+              </>
+            )}
+
+            {/* Navigation Buttons */}
+            <Stack
+              direction={{ base: 'column', md: 'row' }}
+              spacing={4}
+              justify="flex-end"
+              mt={12}
+            >
+              <Button
+                variant="ghost"
+                colorScheme="blue"
+                onClick={onBack}
+                px={8}
+                borderRadius="md"
+              >
+                Back
+              </Button>
+              <Button
+                bg="blue.600"
+                color="white"
+                _hover={{ bg: 'blue.700' }}
+                onClick={handleNext}
+                px={8}
+                borderRadius="md"
+                isDisabled={!stageOfCrop}
+              >
+                Continue
+              </Button>
+            </Stack>
           </Box>
-
-          <Box
-            maxW="650px"
-            w="100%"
-            bg="white"
-            p={5}
-            borderRadius="lg"
-            borderWidth={2}
-          >
-            <FormControl id="firstName" isRequired>
-              <FormLabel fontWeight={'semibold'} mb={5}>YUGTO NG INYONG PANANIM</FormLabel>
-                <RadioGroup onChange={setStageOfCrop} value={stageOfCrop}>
-                  <Stack direction="column" spacing={5}>
-                    <Radio colorScheme='purple' value="NEWLY PLANTED">NEWLY PLANTED</Radio>
-                    <Radio colorScheme='purple' value="HARVESTING">HARVESTING</Radio>
-                  </Stack>
-                </RadioGroup>
-            </FormControl>
-          </Box>
-          </>
-        )}        
-
-
-
-
-
-        {/* Navigation Buttons */}
-        <Stack direction='row' spacing={4} justifyContent="flex-start" mt={1} mb={5}>
-          <Button 
-            bg={'white'} 
-            w={'100px'} 
-            textColor={'purple.500'} 
-            boxShadow={'md'} 
-            onClick={onBack}
-          >
-            Back
-          </Button>
-          <Button 
-            bg={'white'} 
-            w={'100px'} 
-            textColor={'purple.500'} 
-            boxShadow={'md'} 
-            onClick={handleNext}
-          >
-            Next
-          </Button>
-        </Stack>
+        </Box>
       </VStack>
     </Box>
   );

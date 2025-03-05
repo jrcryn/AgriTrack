@@ -9,148 +9,193 @@ import {
   Button,
   Text,
   VStack,
+  HStack,
   Divider,
-  Select
+  Select,
+  SimpleGrid,
+  Image
 } from '@chakra-ui/react';
-import Barangays from '../components/barangays.js';
+import Barangays from '../components/barangays';
+import Logo from '../images/D.A_Logo.png';
 
-const farmerInput = ({ onNext, onBack }) => {
+const FarmerInput = ({ onNext, onBack }) => {
+  const cardBg = 'white';
+  const headerBorder = 'gray.200';
+  const accentColor = 'blue.600';
+
   return (
-    <Box bg={'purple.50'} minH="100vh" p={3} >
-      <VStack spacing={3}>
-        <Box
-          maxW="650px"
-          w="100%"
-          borderRadius="md"
-          borderWidth={2}
-          overflow="hidden" // Ensures the purple bar follows the container's corner radius
+    <Box minH="100vh" py={10} px={4}>
+      <VStack spacing={8} maxW="800px" mx="auto" w="full">
+        <Box 
+          bg={cardBg}
+          borderRadius="xl"
+          shadow="xl"
+          w="full"
+          overflow="hidden"
         >
-          {/* Purple Top Bar */}
-          <Box bg="purple.600" height="10px" />
-
-          {/* White Actual Header */}
-          <Box bg="white" p={5}>
-            <Heading size="xl" fontWeight="normal" mb={6}>
+          {/* Header */}
+          <Box 
+            p={6}
+            borderBottomWidth="2px"
+            borderColor={headerBorder}
+            align="center"
+          >
+            <Heading 
+              size="lg"
+              color={accentColor}
+              fontWeight="semibold"
+              letterSpacing="tight"
+              mb={3}
+            >
               High Value Crop Planting and Harvesting Report
             </Heading>
-            <Divider borderColor="gray.400" my={3} />
-            <Text
-              textColor="red"
-              fontWeight="normal"
-              fontStyle="italic"
-            >
-              * Indicates required question
+            <Text fontSize="sm" color="gray.500" fontWeight="medium" mb={-2}>
+              Fields marked with <Text as="span" color="red.500">*</Text> are required
             </Text>
           </Box>
-        </Box>
+
+          {/* Form Content */}
+          <Box p={8}>
+
+            <VStack spacing={6} align="stretch">
+              <Box>
+                <Text 
+                  fontSize="sm" 
+                  fontWeight="bold" 
+                  color="gray.600"
+                  textTransform="uppercase"
+                  letterSpacing="wide"
+                  mb={4}
+                >
+                  Personal Information
+                </Text>
+                <Divider />
+              </Box>
+
+              <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
+                <FormControl id="surname" isRequired>
+                  <FormLabel 
+                    fontSize="sm" 
+                    fontWeight="medium"
+                    color="gray.600"
+                  >
+                    APELYIDO
+                  </FormLabel>
+                  <Input 
+                    placeholder="Your answer"
+                    borderRadius="md"
+                    focusBorderColor={accentColor}
+                  />
+                </FormControl>
+
+                <FormControl id="firstName" isRequired>
+                  <FormLabel 
+                    fontSize="sm" 
+                    fontWeight="medium"
+                    color="gray.600"
+                  >
+                    UNANG PANGALAN 
+                  </FormLabel>
+                  <Input 
+                    placeholder="Your answer"
+                    borderRadius="md"
+                    focusBorderColor={accentColor}
+                  />
+                </FormControl>
 
 
+              </SimpleGrid>
 
+            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
 
-
-        {/* Form Fields */}
-        <Box
-        maxW="650px"
-        w="100%"
-        bg="white"
-
-        borderRadius="lg"
-        borderWidth={2}
-        overflow='hidden'
-        >
-          <Box bg={'purple.600'} minH={'50px'}>
-            <Text textColor={'white'} fontWeight={'medium'} p={3} paddingLeft={5}>PERSONAL INFORMATION</Text>
-          </Box>
-
-          <Box p={5}>
-              <FormControl id="surname" isRequired>
-                <FormLabel fontWeight={'semibold'} mb={5}>APELYIDO (SURNAME)</FormLabel>
-                <Input type="text" placeholder="Your answer" />
-              </FormControl>
-          </Box>
-        </Box>
-
-        <Box
-        maxW="650px"
-        w="100%"
-        bg="white"
-        p={5}
-        borderRadius="lg"
-        borderWidth={2}
-        >
-            <FormControl id="firstName" isRequired>
-              <FormLabel fontWeight={'semibold'} mb={5}>UNANG PANGALAN (FIRST NAME)</FormLabel>
-              <Input type="text" placeholder="Your answer" />
-            </FormControl>
-        </Box>
-
-        <Box
-        maxW="650px"
-        w="100%"
-        bg="white"
-        p={5}
-        borderRadius="lg"
-        borderWidth={2}
-        >
             <FormControl id="middleName">
-              <FormLabel fontWeight={'semibold'} mb={5}>GITNANG PANGALAN (MIDDLE NAME)</FormLabel>
-              <Input type="text" placeholder="Your answer" />
-            </FormControl>
-        </Box>
+                <FormLabel 
+                  fontSize="sm" 
+                  fontWeight="medium"
+                  color="gray.600"
+                >
+                  GITNANG PANGALAN
+                </FormLabel>
+                <Input 
+                  placeholder="Your answer (optional)"
+                  borderRadius="md"
+                  focusBorderColor={accentColor}
+                />
+              </FormControl>
 
-        <Box
-        maxW="650px"
-        w="100%"
-        bg="white"
-        p={5}
-        borderRadius="lg"
-        borderWidth={2}
-        >    
-            <FormControl id="farmLocation" isRequired>
-              <FormLabel fontWeight={'semibold'} mb={5}>FARM LOCATION (PILIIN ANG BARANGAY KUNG NASAAN ANG INYONG TANIMAN)</FormLabel>
-              <Select
-                name='barangay'
-                placeholder="Select Barangay"
-              >
-                {Barangays.map((barangay) => (
-                  <option key={barangay} value={barangay}>
-                    {barangay}
-                  </option>
-                ))}
-              </Select>
-            </FormControl>
-        </Box>    
+              <FormControl id="suffix">
+                <FormLabel 
+                  fontSize="sm" 
+                  fontWeight="medium"
+                  color="gray.600"
+                >
+                  SUFFIX
+                </FormLabel>
+                <Input 
+                  placeholder="Your answer (optional)"
+                  borderRadius="md"
+                  focusBorderColor={accentColor}
+                />
+              </FormControl>
+            </SimpleGrid>
 
+              <SimpleGrid>
+              <FormControl id="farmLocation" isRequired>
+                <FormLabel 
+                  fontSize="sm" 
+                  fontWeight="medium"
+                  color="gray.600"
+                >
+                  FARM LOCATION (PILIIN ANG BARANGAY KUNG NASAAN ANG INYONG TANIMAN)
+                </FormLabel>
+                <Select 
+                  placeholder="Select Barangay"
+                  borderRadius="md"
+                  focusBorderColor={accentColor}
+                >
+                  {Barangays.map((barangay) => (
+                    <option key={barangay} value={barangay}>
+                      {barangay}
+                    </option>
+                  ))}
+                </Select>
+              </FormControl>
+              </SimpleGrid>
+            </VStack>
 
-
-
-
-        {/* Navigation Buttons */}
-          <Stack direction='row' spacing={4} justify="flex-start" mt={1} mb={5}>
+            {/* Navigation Buttons */}
+            <Stack 
+              direction={{ base: 'column', md: 'row' }}
+              spacing={4}
+              justify="flex-end"
+              mt={12}
+            >
               <Button 
-                bg={'white'} 
-                w={'100px'} 
-                textColor={'purple.500'} 
-                boxShadow={'md'} 
+                variant="ghost"
+                colorScheme="blue"
                 onClick={onBack}
                 isDisabled
+                px={8}
+                borderRadius="md"
               >
                 Back
               </Button>
               <Button 
-                bg={'white'} 
-                w={'100px'} 
-                textColor={'purple.500'} 
-                boxShadow={'md'} 
+                bg={accentColor}
+                color="white"
+                _hover={{ bg: 'blue.700' }}
                 onClick={onNext}
+                px={8}
+                borderRadius="md"
               >
-                Next
+                Continue
               </Button>
-          </Stack>
-
+            </Stack>
+          </Box>
+        </Box>
       </VStack>
     </Box>
   );
 };
 
-export default farmerInput;
+export default FarmerInput;
