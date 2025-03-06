@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 const D1CropIndusHarvestSchema = new mongoose.Schema({
   record_id: { 
     type: mongoose.Schema.Types.ObjectId, 
-    ref: 'C_crop_records_indus', 
+    ref: 'C1_crop_records_indus', 
     required: true 
   },
   harvest_date: { type: Date, required: true },

@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 const D2BcOtherFctHarvestSchema = new mongoose.Schema({
   record_id: { 
     type: mongoose.Schema.Types.ObjectId, 
-    ref: 'C_crop_records_others', 
+    ref: 'C2_crop_records_others', 
     required: true 
   },
   harvest_date: { type: Date, required: true },
