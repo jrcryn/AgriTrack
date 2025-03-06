@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Heading,
@@ -14,11 +14,37 @@ import {
   Select,
 } from '@chakra-ui/react';
 import DateMonthOptions from '../components/dateMonthOptions.js';
+import { useFarmerFormStore } from '../store/farmerForm.js';
 
-const cropIndusNew = ({ onNext, onBack }) => {
+const CropIndusNew = ({ onNext, onBack }) => {
   const options = DateMonthOptions();
+  const [formData, setFormData] = useState({
+    plantation_date: '',
+    harvest_month: '',
+    harvest_year: '',
+    total_area_planted: '',
+  });
 
-  // Design tokens matching CropTypes
+  const { D1IndusNew } = useFarmerFormStore();
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prevData) => ({ ...prevData, [name]: value }));
+  };
+
+  const handleRadioChange = (name, value) => {
+    setFormData((prevData) => ({ ...prevData, [name]: value }));
+  };
+
+  const handleSubmit = async () => {
+    const data = {
+      ...formData,
+      harvest_month: `${formData.harvest_month} ${formData.harvest_year}`,
+    };
+    await D1IndusNew(data);
+    onNext();
+  };
+
   const cardBg = 'white';
   const accentColor = 'blue.600';
   const headerBorder = 'gray.200';
@@ -64,7 +90,8 @@ const cropIndusNew = ({ onNext, onBack }) => {
                 <Text fontSize="md" fontWeight="bold" color="blue.600">
                   VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS (NEWLY PLANTED)
                 </Text>
-            </Box>
+              </Box>
+
               {/* DATE OF PLANTATION */}
               <FormControl id="plantationDate" isRequired>
                 <FormLabel
@@ -77,7 +104,11 @@ const cropIndusNew = ({ onNext, onBack }) => {
                 >
                   DATE OF PLANTATION (PILIIN ANG PETSA KUNG KAILAN ITO ITINANIM)
                 </FormLabel>
-                <RadioGroup>
+                <RadioGroup
+                  name="plantation_date"
+                  onChange={(value) => handleRadioChange('plantation_date', value)}
+                  value={formData.plantation_date}
+                >
                   <Stack direction="column" spacing={4}>
                     {options.map((option) => (
                       <Radio key={option.value} value={option.value} colorScheme="blue">
@@ -90,7 +121,7 @@ const cropIndusNew = ({ onNext, onBack }) => {
                 </RadioGroup>
               </FormControl>
 
-              {/* MONTH OF HARVEST */}
+              {/* MONTH AND YEAR OF HARVEST */}
               <FormControl id="monthOfHarvest" isRequired>
                 <FormLabel
                   fontSize="sm"
@@ -103,7 +134,12 @@ const cropIndusNew = ({ onNext, onBack }) => {
                   MONTH AND YEAR OF HARVEST (BUWAN AT TAON KUNG KAILAN AANIHIN ANG ITINANIM)
                 </FormLabel>
                 <Stack direction={{ base: "column", md: "row" }} spacing={4}>
-                  <Select placeholder="Select month">
+                  <Select
+                    name="harvest_month"
+                    placeholder="Select month"
+                    value={formData.harvest_month}
+                    onChange={handleChange}
+                  >
                     <option value="January">January</option>
                     <option value="February">February</option>
                     <option value="March">March</option>
@@ -118,12 +154,15 @@ const cropIndusNew = ({ onNext, onBack }) => {
                     <option value="December">December</option>
                   </Select>
                   <Input
+                    name="harvest_year"
                     type="text"
                     placeholder="YYYY"
                     maxLength={4}
                     pattern="^[0-9]{4}$"
                     inputMode="numeric"
                     title="Please enter a valid 4-digit year"
+                    value={formData.harvest_year}
+                    onChange={handleChange}
                     required
                   />
                 </Stack>
@@ -141,31 +180,37 @@ const cropIndusNew = ({ onNext, onBack }) => {
                 >
                   TOTAL AREA PLANTED (KABUUANG SUKAT NG TINANIMAN)
                 </FormLabel>
-                   <Box 
-                      bg='blue.50'
-                      borderRadius="md"
-                      p={4}
-                      mb={5}
-                      borderLeftWidth="4px"
-                      borderColor={accentColor}
-                    >
-                      <Text fontWeight={'bold'} fontSize={'sm'}>PAALALA:</Text>
-                      <Text 
-                        fontWeight={'normal'}
-                        fontSize={'sm'}
-                        mb={5}
-                      >
-                        <strong>EKTARYA (HECTARE / HA)</strong> ang gamiting sukat sa pagsagot sa area ng inyong tanim
-                      </Text>          
-                      <Text fontWeight={'bold'} fontSize={'sm'}>HALIMBAWA:</Text>
-                      <Text fontSize={'sm'}>Ang 1000 square meters o 1 arya ay katumbas ng <strong><u><i>0.1 ektarya</i></u></strong></Text>
+                <Box 
+                  bg='blue.50'
+                  borderRadius="md"
+                  p={4}
+                  mb={5}
+                  borderLeftWidth="4px"
+                  borderColor={accentColor}
+                >
+                  <Text fontWeight={'bold'} fontSize={'sm'}>PAALALA:</Text>
+                  <Text 
+                    fontWeight={'normal'}
+                    fontSize={'sm'}
+                    mb={5}
+                  >
+                    <strong>EKTARYA (HECTARE / HA)</strong> ang gamiting sukat sa pagsagot sa area ng inyong tanim
+                  </Text>          
+                  <Text fontWeight={'bold'} fontSize={'sm'}>HALIMBAWA:</Text>
+                  <Text fontSize={'sm'}>Ang 1000 square meters o 1 arya ay katumbas ng <strong><u><i>0.1 ektarya</i></u></strong></Text>
 
-                      <Text fontSize={'sm'} mb={5}>Ang 500 square meters o kalahating arya (1/2 arya) ay katumbas ng <strong><u><i>0.05 ektarya</i></u></strong></Text>
+                  <Text fontSize={'sm'} mb={5}>Ang 500 square meters o kalahating arya (1/2 arya) ay katumbas ng <strong><u><i>0.05 ektarya</i></u></strong></Text>
 
-                      <Text fontWeight={'bold'} fontSize={'sm'} textDecoration={'underline'} fontStyle={'italic'}>Paano i-compute:</Text>
-                      <Text fontSize={'sm'}>1,000 square meters divided by 10,000 square meters = <strong><u><i>0.1 ektarya</i></u></strong></Text>
-                    </Box>
-                <Input type="number" placeholder="Your answer" />
+                  <Text fontWeight={'bold'} fontSize={'sm'} textDecoration={'underline'} fontStyle={'italic'}>Paano i-compute:</Text>
+                  <Text fontSize={'sm'}>1,000 square meters divided by 10,000 square meters = <strong><u><i>0.1 ektarya</i></u></strong></Text>
+                </Box>
+                <Input
+                  type="number"
+                  name="total_area_planted"
+                  value={formData.total_area_planted}
+                  onChange={handleChange}
+                  placeholder="Your answer"
+                />
               </FormControl>
             </VStack>
 
@@ -189,7 +234,7 @@ const cropIndusNew = ({ onNext, onBack }) => {
                 bg={accentColor}
                 color="white"
                 _hover={{ bg: 'blue.700' }}
-                onClick={onNext}
+                onClick={handleSubmit}
                 px={8}
                 borderRadius="md"
               >
@@ -203,4 +248,4 @@ const cropIndusNew = ({ onNext, onBack }) => {
   );
 };
 
-export default cropIndusNew;
+export default CropIndusNew;

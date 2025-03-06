@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Heading,
@@ -14,12 +14,37 @@ import {
   Select,
 } from '@chakra-ui/react';
 import DateMonthOptions from '../components/dateMonthOptions.js';
-import MonthsAndYear from '../components/monthsAndYear.jsx';
+import { useFarmerFormStore } from '../store/farmerForm.js';
 
 const bc_other_fctNew = ({ onNext, onBack }) => {
   const options = DateMonthOptions();
+  const [formData, setFormData] = useState({
+    plantation_date: '',
+    harvest_month: '',
+    harvest_year: '',
+    total_trees: '',
+  });
 
-  // Design tokens matching CropTypes
+  const { D2OtherNew } = useFarmerFormStore();
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prevData) => ({ ...prevData, [name]: value }));
+  };
+
+  const handleRadioChange = (name, value) => {
+    setFormData((prevData) => ({ ...prevData, [name]: value }));
+  };
+
+  const handleSubmit = async () => {
+    const data = {
+      ...formData,
+      harvest_month_year: `${formData.harvest_month} ${formData.harvest_year}`,
+    };
+    await D2OtherNew(data);
+    onNext();
+  };
+
   const cardBg = 'white';
   const accentColor = 'blue.600';
   const headerBorder = 'gray.200';
@@ -66,14 +91,14 @@ const bc_other_fctNew = ({ onNext, onBack }) => {
                 >
                   DATE OF PLANTATION (PILIIN ANG PETSA KUNG KAILAN ITO ITINANIM)
                 </FormLabel>
-                <RadioGroup>
+                <RadioGroup
+                  name="plantation_date"
+                  onChange={(value) => handleRadioChange('plantation_date', value)}
+                  value={formData.plantation_date}
+                >
                   <Stack direction="column" spacing={4}>
                     {options.map((option) => (
-                      <Radio
-                        key={option.value}
-                        value={option.value}
-                        colorScheme="blue"
-                      >
+                      <Radio key={option.value} value={option.value} colorScheme="blue">
                         <Text fontSize="md" color="gray.700">
                           {option.label}
                         </Text>
@@ -83,7 +108,7 @@ const bc_other_fctNew = ({ onNext, onBack }) => {
                 </RadioGroup>
               </FormControl>
 
-              {/* MONTH OF HARVEST */}
+              {/* MONTH AND YEAR OF HARVEST */}
               <FormControl id="monthOfHarvest" isRequired>
                 <FormLabel
                   fontSize="sm"
@@ -96,7 +121,12 @@ const bc_other_fctNew = ({ onNext, onBack }) => {
                   MONTH AND YEAR OF HARVEST (BUWAN AT TAON KUNG KAILAN AANIHIN ANG ITINANIM)
                 </FormLabel>
                 <Stack direction={{ base: "column", md: "row" }} spacing={4}>
-                  <Select placeholder="Select month">
+                  <Select
+                    name="harvest_month"
+                    placeholder="Select month"
+                    value={formData.harvest_month}
+                    onChange={handleChange}
+                  >
                     <option value="January">January</option>
                     <option value="February">February</option>
                     <option value="March">March</option>
@@ -111,12 +141,15 @@ const bc_other_fctNew = ({ onNext, onBack }) => {
                     <option value="December">December</option>
                   </Select>
                   <Input
+                    name="harvest_year"
                     type="text"
                     placeholder="YYYY"
                     maxLength={4}
                     pattern="^[0-9]{4}$"
                     inputMode="numeric"
                     title="Please enter a valid 4-digit year"
+                    value={formData.harvest_year}
+                    onChange={handleChange}
                     required
                   />
                 </Stack>
@@ -134,20 +167,26 @@ const bc_other_fctNew = ({ onNext, onBack }) => {
                 >
                   TOTAL NUMBER OF TREES (KABUUANG BILANG NG PUNO NA NAKATANIM)
                 </FormLabel>
-                  <Box 
-                    bg='blue.50'
-                    borderRadius="md"
-                    p={4}
-                    mb={5}
-                    borderLeftWidth="4px"
-                    borderColor={accentColor}
-                  >
-                    <Text fontSize="sm">
-                      <Text fontWeight="bold" mb={3}>PAALALA:</Text> 
-                      Isulat kung ilang piraso ng puno ang nakatanim.
-                    </Text>
-                  </Box>
-                <Input type="number" placeholder="Your answer" />
+                <Box 
+                  bg='blue.50'
+                  borderRadius="md"
+                  p={4}
+                  mb={5}
+                  borderLeftWidth="4px"
+                  borderColor={accentColor}
+                >
+                  <Text fontSize="sm">
+                    <Text fontWeight="bold" mb={3}>PAALALA:</Text> 
+                    Isulat kung ilang piraso ng puno ang nakatanim.
+                  </Text>
+                </Box>
+                <Input
+                  type="number"
+                  name="total_trees"
+                  value={formData.total_trees}
+                  onChange={handleChange}
+                  placeholder="Your answer"
+                />
               </FormControl>
             </VStack>
 
@@ -171,11 +210,11 @@ const bc_other_fctNew = ({ onNext, onBack }) => {
                 bg={accentColor}
                 color="white"
                 _hover={{ bg: 'blue.700' }}
-                onClick={onNext}
+                onClick={handleSubmit}
                 px={8}
                 borderRadius="md"
               >
-                Next
+                Submit
               </Button>
             </Stack>
           </Box>

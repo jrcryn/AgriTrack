@@ -11,14 +11,15 @@ import {
   RadioGroup,
   Radio,
 } from '@chakra-ui/react';
+import { useFarmerFormStore } from '../store/farmerForm';
 
 const CropTypes = ({ onNext, onBack }) => {
   const [selectedCropType, setSelectedCropType] = useState('');
-  const cardBg = 'white';
-  const accentColor = 'blue.600';
-  const headerBorder = 'gray.200';
+  const { CropType, isLoading } = useFarmerFormStore();
 
-  const handleNext = () => {
+
+  const handleNext = async () => {
+    await CropType({crop_type: selectedCropType});
     let nextPath = '';
     switch (selectedCropType) {
       case 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS':
@@ -32,6 +33,10 @@ const CropTypes = ({ onNext, onBack }) => {
     }
     onNext(nextPath, selectedCropType);
   };
+
+  const cardBg = 'white';
+  const accentColor = 'blue.600';
+  const headerBorder = 'gray.200';
 
   return (
     <Box minH="100vh" py={10} px={4}>
@@ -142,6 +147,7 @@ const CropTypes = ({ onNext, onBack }) => {
                 color="white"
                 _hover={{ bg: 'blue.700' }}
                 onClick={handleNext}
+                isLoading={isLoading}
                 px={8}
                 borderRadius="md"
                 isDisabled={!selectedCropType}

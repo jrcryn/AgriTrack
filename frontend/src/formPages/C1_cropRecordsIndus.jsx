@@ -14,12 +14,33 @@ import {
   Input
 } from '@chakra-ui/react';
 import IndusCrops from '../components/indusCrops.js';
+import { useFarmerFormStore } from '../store/farmerForm.js';
 
 const CropRecordsIndus = ({ onNext, onBack }) => {
   const [stageOfCrop, setStageOfCrop] = useState('');
-  const cardBg = 'white';
-  const accentColor = 'blue.600';
-  const headerBorder = 'gray.200';
+
+  const [formData, setFormData] = useState({
+    crop_type: '',
+    crop_variety: '',
+    crop_stage: '',
+  });
+
+  const { CropRecordIndus } = useFarmerFormStore();
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prevData) => ({ ...prevData, [name]: value }));
+  };
+
+  const handleStageChange = (value) => {
+    setStageOfCrop(value);
+    setFormData((prevData) => ({ ...prevData, crop_stage: value }));
+  };
+
+  const handleSubmit = async () => {
+    await CropRecordIndus(formData);
+    handleNext();
+  };
 
   const handleNext = () => {
     let nextPath = '';
@@ -30,6 +51,10 @@ const CropRecordsIndus = ({ onNext, onBack }) => {
     }
     onNext(nextPath);
   };
+
+  const cardBg = 'white';
+  const accentColor = 'blue.600';
+  const headerBorder = 'gray.200';
 
   return (
     <Box bg='white' minH="100vh" py={10} px={4}>
@@ -86,7 +111,12 @@ const CropRecordsIndus = ({ onNext, onBack }) => {
                 >
                   URI NG TANIM
                 </FormLabel>
-                <Select name="indusCrops" placeholder="Choose">
+                <Select 
+                name="crop_type" 
+                placeholder="Choose"
+                value={formData.crop_type}
+                onChange={handleChange}
+                >
                   {IndusCrops.map((crop) => (
                     <option key={crop} value={crop}>
                       {crop}
@@ -122,7 +152,13 @@ const CropRecordsIndus = ({ onNext, onBack }) => {
                     Huwag sagutan kung hindi alam ang ginamit na variety ng tanim.
                   </Text>
                 </Box>
-                <Input type="text" placeholder="Isulat ang variety ng inyong tanim" />
+                <Input 
+                name='crop_variety'
+                value={formData.crop_variety}
+                onChange={handleChange}
+                type="text" 
+                placeholder="Isulat ang variety ng inyong tanim" 
+                />
               </FormControl>
 
               {/* YUGTO NG INYONG PANANIM */}
@@ -137,7 +173,10 @@ const CropRecordsIndus = ({ onNext, onBack }) => {
                 >
                   YUGTO NG INYONG PANANIM
                 </FormLabel>
-                <RadioGroup onChange={setStageOfCrop} value={stageOfCrop}>
+                <RadioGroup 
+                onChange={handleStageChange} 
+                value={stageOfCrop}
+                >
                   <Stack direction="column" spacing={4}>
                     <Radio value="NEWLY PLANTED" colorScheme="blue">
                       <Text fontSize="md" color="gray.700">NEWLY PLANTED</Text>
@@ -159,7 +198,7 @@ const CropRecordsIndus = ({ onNext, onBack }) => {
                 bg={accentColor}
                 color="white"
                 _hover={{ bg: 'blue.700' }}
-                onClick={handleNext}
+                onClick={handleSubmit}
                 px={8}
                 borderRadius="md"
                 isDisabled={!stageOfCrop}

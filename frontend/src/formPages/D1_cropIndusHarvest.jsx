@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Heading,
@@ -15,11 +15,35 @@ import {
 import Destination from '../components/destinations.js';
 import ModeOfDelivery from '../components/modeOfDelivery.js';
 import DateMonthOptions from '../components/dateMonthOptions.js';
+import { useFarmerFormStore } from '../store/farmerForm.js';
 
-const cropIndusHarvest = ({ onNext, onBack }) => {
+const CropIndusHarvest = ({ onNext, onBack }) => {
   const options = DateMonthOptions();
+  const [formData, setFormData] = useState({
+    harvest_date: '',
+    total_area_harvested: '',
+    total_volume_production: '',
+    destination: '',
+    mode_of_payment: '',
+    mode_of_delivery: '',
+  });
 
-  // Design tokens matching CropTypes
+  const { D1IndusHarv } = useFarmerFormStore();
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prevData) => ({ ...prevData, [name]: value }));
+  };
+
+  const handleRadioChange = (name, value) => {
+    setFormData((prevData) => ({ ...prevData, [name]: value }));
+  };
+
+  const handleSubmit = async () => {
+    await D1IndusHarv(formData);
+    onNext();
+  };
+
   const cardBg = 'white';
   const accentColor = 'blue.600';
   const headerBorder = 'gray.200';
@@ -65,7 +89,8 @@ const cropIndusHarvest = ({ onNext, onBack }) => {
                 <Text fontSize="md" fontWeight="bold" color="blue.600">
                   VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS (HARVESTING)
                 </Text>
-            </Box>
+              </Box>
+
               {/* Date of Harvest */}
               <FormControl id="harvestDate" isRequired>
                 <FormLabel
@@ -78,7 +103,11 @@ const cropIndusHarvest = ({ onNext, onBack }) => {
                 >
                   DATE OF HARVEST (PILIIN ANG PETSA KUNG KAILAN NAG-ANI)
                 </FormLabel>
-                <RadioGroup>
+                <RadioGroup
+                  name="harvest_date"
+                  onChange={(value) => handleRadioChange('harvest_date', value)}
+                  value={formData.harvest_date}
+                >
                   <Stack direction="column" spacing={4}>
                     {options.map((option) => (
                       <Radio key={option.value} value={option.value} colorScheme="blue">
@@ -103,32 +132,38 @@ const cropIndusHarvest = ({ onNext, onBack }) => {
                 >
                   TOTAL AREA HARVESTED (ILAN ANG KABUUANG SUKAT NA INYONG INANIHAN?)
                 </FormLabel>
-                  <Box 
-                      bg='blue.50'
-                      borderRadius="md"
-                      p={4}
-                      mb={5}
-                      borderLeftWidth="4px"
-                      borderColor={accentColor}
-                    >
-                        <Text fontWeight={'bold'} fontSize={'sm'}>PAALALA:</Text>
-                        <Text 
-                          fontWeight={'normal'}
-                          fontSize={'sm'}
-                          mb={5}
-                        >
-                          <strong>EKTARYA (HECTARE / HA)</strong> ang gamiting sukat sa pagsagot sa area ng inyong tanim
-                        </Text>          
-                        <Text fontWeight={'bold'} fontSize={'sm'}>HALIMBAWA:</Text>
-                        <Text fontSize={'sm'}>Ang 1000 square meters o 1 arya ay katumbas ng <strong><u><i>0.1 ektarya</i></u></strong></Text>
+                <Box 
+                  bg='blue.50'
+                  borderRadius="md"
+                  p={4}
+                  mb={5}
+                  borderLeftWidth="4px"
+                  borderColor={accentColor}
+                >
+                  <Text fontWeight={'bold'} fontSize={'sm'}>PAALALA:</Text>
+                  <Text 
+                    fontWeight={'normal'}
+                    fontSize={'sm'}
+                    mb={5}
+                  >
+                    <strong>EKTARYA (HECTARE / HA)</strong> ang gamiting sukat sa pagsagot sa area ng inyong tanim
+                  </Text>          
+                  <Text fontWeight={'bold'} fontSize={'sm'}>HALIMBAWA:</Text>
+                  <Text fontSize={'sm'}>Ang 1000 square meters o 1 arya ay katumbas ng <strong><u><i>0.1 ektarya</i></u></strong></Text>
 
-                        <Text fontSize={'sm'} mb={5}>Ang 500 square meters o kalahating arya (1/2 arya) ay katumbas ng <strong><u><i>0.05 ektarya</i></u></strong></Text>
+                  <Text fontSize={'sm'} mb={5}>Ang 500 square meters o kalahating arya (1/2 arya) ay katumbas ng <strong><u><i>0.05 ektarya</i></u></strong></Text>
 
-                        <Text fontWeight={'bold'} fontSize={'sm'} textDecoration={'underline'} fontStyle={'italic'}>Paano i-compute:</Text>
-                        <Text fontSize={'sm'}>1,000 square meters divided by 10,000 square meters = <strong><u><i>0.1 ektarya</i></u></strong></Text>
-                    </Box>
-                 <Input type="number" placeholder="Your answer" />
-                </FormControl>
+                  <Text fontWeight={'bold'} fontSize={'sm'} textDecoration={'underline'} fontStyle={'italic'}>Paano i-compute:</Text>
+                  <Text fontSize={'sm'}>1,000 square meters divided by 10,000 square meters = <strong><u><i>0.1 ektarya</i></u></strong></Text>
+                </Box>
+                <Input 
+                  type="number" 
+                  name="total_area_harvested"
+                  value={formData.total_area_harvested}
+                  onChange={handleChange}
+                  placeholder="Your answer" 
+                />
+              </FormControl>
 
               {/* Total Volume of Production */}
               <FormControl id="totalVolumeProduction" isRequired>
@@ -142,8 +177,14 @@ const cropIndusHarvest = ({ onNext, onBack }) => {
                 >
                   TOTAL VOLUME OF PRODUCTION (ILAN ANG KABUUANG TIMBANG NA INYONG NAANI?)
                 </FormLabel>
-                 <Input type="number" placeholder="Your answer" />
-                </FormControl>
+                <Input 
+                  type="number" 
+                  name="total_volume_production"
+                  value={formData.total_volume_production}
+                  onChange={handleChange}
+                  placeholder="Your answer" 
+                />
+              </FormControl>
 
               {/* Destination */}
               <FormControl id="destination" isRequired>
@@ -157,7 +198,11 @@ const cropIndusHarvest = ({ onNext, onBack }) => {
                 >
                   DESTINATION (SAAN NIYO DINADALA ANG INYONG MGA INANING GULAY?)
                 </FormLabel>
-                <RadioGroup>
+                <RadioGroup
+                  name="destination"
+                  onChange={(value) => handleRadioChange('destination', value)}
+                  value={formData.destination}
+                >
                   <Stack direction="column" spacing={4}>
                     {Destination.map((option) => (
                       <Radio key={option} value={option} colorScheme="blue">
@@ -182,7 +227,11 @@ const cropIndusHarvest = ({ onNext, onBack }) => {
                 >
                   MODE OF PAYMENT (PAANO ANG MODE OF PAYMENT SA INYONG PRODUKTO?)
                 </FormLabel>
-                <RadioGroup>
+                <RadioGroup
+                  name="mode_of_payment"
+                  onChange={(value) => handleRadioChange('mode_of_payment', value)}
+                  value={formData.mode_of_payment}
+                >
                   <Stack direction="column" spacing={4}>
                     <Radio colorScheme="blue" value="CASH">
                       CASH
@@ -212,7 +261,11 @@ const cropIndusHarvest = ({ onNext, onBack }) => {
                 >
                   MODE OF DELIVERY (PAANO ANG MODE OF DELIVERY NG INYONG PRODUKTO?)
                 </FormLabel>
-                <RadioGroup>
+                <RadioGroup
+                  name="mode_of_delivery"
+                  onChange={(value) => handleRadioChange('mode_of_delivery', value)}
+                  value={formData.mode_of_delivery}
+                >
                   <Stack direction="column" spacing={4}>
                     {ModeOfDelivery.map((option) => (
                       <Radio key={option} value={option} colorScheme="blue">
@@ -246,7 +299,7 @@ const cropIndusHarvest = ({ onNext, onBack }) => {
                 bg={accentColor}
                 color="white"
                 _hover={{ bg: 'blue.700' }}
-                onClick={onNext}
+                onClick={handleSubmit}
                 px={8}
                 borderRadius="md"
               >
@@ -260,4 +313,4 @@ const cropIndusHarvest = ({ onNext, onBack }) => {
   );
 };
 
-export default cropIndusHarvest;
+export default CropIndusHarvest;

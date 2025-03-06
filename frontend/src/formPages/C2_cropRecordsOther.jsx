@@ -13,12 +13,32 @@ import {
   Select,
 } from '@chakra-ui/react';
 import OtherFCT from '../components/otherFCT.js';
+import { useFarmerFormStore } from '../store/farmerForm.js';
 
 const cropRecordsOther = ({ onNext, onBack, cropType }) => {
   const [stageOfCrop, setStageOfCrop] = useState('');
-  const cardBg = 'white';
-  const accentColor = 'blue.600';
-  const headerBorder = 'gray.200';
+
+  const [formData, setFormData] = useState({
+    crop_variety: '',
+    crop_stage: '',
+  });
+
+  const { CropRecordOther } = useFarmerFormStore();
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prevData) => ({ ...prevData, [name]: value }));
+  };
+
+  const handleStageChange = (value) => {
+    setStageOfCrop(value);
+    setFormData((prevData) => ({ ...prevData, crop_stage: value }));
+  };
+
+  const handleSubmit = async () => {
+    await CropRecordOther(formData);
+    handleNext();
+  };
 
   const handleNext = () => {
     let nextPath = '';
@@ -29,6 +49,10 @@ const cropRecordsOther = ({ onNext, onBack, cropType }) => {
     }
     onNext(nextPath);
   };
+
+  const cardBg = 'white';
+  const accentColor = 'blue.600';
+  const headerBorder = 'gray.200';
 
   return (
     <Box minH="100vh" py={10} px={4} bg='white'>
@@ -85,7 +109,11 @@ const cropRecordsOther = ({ onNext, onBack, cropType }) => {
                   >
                     PUMILI NG VARIETY NG BANANA
                   </FormLabel>
-                  <RadioGroup>
+                  <RadioGroup
+                    name='crop_variety'
+                    onChange={handleChange}
+                    value={formData.crop_variety}
+                  >
                     <Stack direction="column" spacing={4}>
                       <Radio colorScheme="blue" value="BUNGULAN">
                         <Text fontSize="md" color="gray.700">BUNGULAN</Text>
@@ -121,7 +149,10 @@ const cropRecordsOther = ({ onNext, onBack, cropType }) => {
                   >
                     YUGTO NG INYONG PANANIM
                   </FormLabel>
-                  <RadioGroup onChange={setStageOfCrop} value={stageOfCrop}>
+                  <RadioGroup 
+                  onChange={handleStageChange} 
+                  value={stageOfCrop}
+                  >
                     <Stack direction="column" spacing={4}>
                       <Radio colorScheme="blue" value="NEWLY PLANTED">
                         <Text fontSize="md" color="gray.700">NEWLY PLANTED</Text>
@@ -163,7 +194,11 @@ const cropRecordsOther = ({ onNext, onBack, cropType }) => {
                   >
                     PUMILI NG VARIETY NG COFFEE
                   </FormLabel>
-                  <RadioGroup onChange={setStageOfCrop} value={stageOfCrop}>
+                  <RadioGroup 
+                  name='crop_variety'
+                  onChange={handleChange}
+                  value={formData.crop_variety} 
+                  >
                     <Stack direction="column" spacing={4}>
                       <Radio colorScheme="blue" value="LIBERICA">
                         <Text fontSize="md" color="gray.700">LIBERICA</Text>
@@ -187,7 +222,10 @@ const cropRecordsOther = ({ onNext, onBack, cropType }) => {
                   >
                     YUGTO NG INYONG PANANIM
                   </FormLabel>
-                  <RadioGroup onChange={setStageOfCrop} value={stageOfCrop}>
+                  <RadioGroup 
+                  onChange={setStageOfCrop} 
+                  value={stageOfCrop}
+                  >
                     <Stack direction="column" spacing={4}>
                       <Radio colorScheme="blue" value="NEWLY PLANTED">
                         <Text fontSize="md" color="gray.700">NEWLY PLANTED</Text>
@@ -229,7 +267,12 @@ const cropRecordsOther = ({ onNext, onBack, cropType }) => {
                   >
                     URI NG TANIM
                   </FormLabel>
-                  <Select name="otherCrops" placeholder="Choose">
+                  <Select 
+                  name="crop_variety"
+                  value={formData.crop_variety}
+                  onChange={handleChange} 
+                  placeholder="Choose"
+                  >
                     {OtherFCT.map((otherFCT) => (
                       <option key={otherFCT} value={otherFCT}>
                         {otherFCT}
@@ -250,7 +293,10 @@ const cropRecordsOther = ({ onNext, onBack, cropType }) => {
                   >
                     YUGTO NG INYONG PANANIM
                   </FormLabel>
-                  <RadioGroup onChange={setStageOfCrop} value={stageOfCrop}>
+                  <RadioGroup 
+                  onChange={setStageOfCrop} 
+                  value={stageOfCrop}
+                  >
                     <Stack direction="column" spacing={4}>
                       <Radio colorScheme="blue" value="NEWLY PLANTED">
                         <Text fontSize="md" color="gray.700">NEWLY PLANTED</Text>
@@ -284,7 +330,7 @@ const cropRecordsOther = ({ onNext, onBack, cropType }) => {
                 bg="blue.600"
                 color="white"
                 _hover={{ bg: 'blue.700' }}
-                onClick={handleNext}
+                onClick={handleSubmit}
                 px={8}
                 borderRadius="md"
                 isDisabled={!stageOfCrop}

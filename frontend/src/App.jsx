@@ -5,7 +5,7 @@ function App() {
   
   return (
    <Routes>
-      <Route path="/*" element={<FormApp/>} />
+      <Route path="/form/*" element={<FormApp/>} />
     </Routes>
   )
 }

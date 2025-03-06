@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Heading,
@@ -9,19 +9,38 @@ import {
   Button,
   Text,
   VStack,
-  HStack,
   Divider,
   Select,
   SimpleGrid,
-  Image
 } from '@chakra-ui/react';
+import { useFarmerFormStore } from '../store/farmerForm.js';
 import Barangays from '../components/barangays';
-import Logo from '../images/D.A_Logo.png';
 
 const FarmerInput = ({ onNext, onBack }) => {
+
+  const [formData, setFormData] = useState({
+    surname: '',
+    first_name: '',
+    middle_mame: '',
+    suffix: '',
+    farm_location: '',
+  });
+
+  const { FarmerInput, isLoading } = useFarmerFormStore();
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prevData) => ({ ...prevData, [name]: value }));
+  };
+
+  const handleSubmit = async () => {
+    await FarmerInput(formData);
+    onNext();
+  };
+
   const cardBg = 'white';
   const headerBorder = 'gray.200';
-  const accentColor = 'blue.600';
+  const accentColor = 'blue.600'; 
 
   return (
     <Box minH="100vh" py={10} px={4}>
@@ -82,13 +101,16 @@ const FarmerInput = ({ onNext, onBack }) => {
                     APELYIDO
                   </FormLabel>
                   <Input 
+                    name='surname'
+                    value={formData.surname}
+                    onChange={handleChange}
                     placeholder="Your answer"
                     borderRadius="md"
                     focusBorderColor={accentColor}
                   />
                 </FormControl>
 
-                <FormControl id="firstName" isRequired>
+                <FormControl id="firstname" isRequired>
                   <FormLabel 
                     fontSize="sm" 
                     fontWeight="medium"
@@ -97,6 +119,9 @@ const FarmerInput = ({ onNext, onBack }) => {
                     UNANG PANGALAN 
                   </FormLabel>
                   <Input 
+                    name='firstName'
+                    value={formData.first_name}
+                    onChange={handleChange}
                     placeholder="Your answer"
                     borderRadius="md"
                     focusBorderColor={accentColor}
@@ -117,6 +142,9 @@ const FarmerInput = ({ onNext, onBack }) => {
                   GITNANG PANGALAN
                 </FormLabel>
                 <Input 
+                  name='middlename'
+                  value={formData.middle_mame}
+                  onChange={handleChange}
                   placeholder="Your answer (optional)"
                   borderRadius="md"
                   focusBorderColor={accentColor}
@@ -132,6 +160,9 @@ const FarmerInput = ({ onNext, onBack }) => {
                   SUFFIX
                 </FormLabel>
                 <Input 
+                  name='suffix'
+                  value={formData.suffix}
+                  onChange={handleChange}
                   placeholder="Your answer (optional)"
                   borderRadius="md"
                   focusBorderColor={accentColor}
@@ -149,6 +180,9 @@ const FarmerInput = ({ onNext, onBack }) => {
                   FARM LOCATION (PILIIN ANG BARANGAY KUNG NASAAN ANG INYONG TANIMAN)
                 </FormLabel>
                 <Select 
+                  name='farmlocation'
+                  value={formData.farm_location}
+                  onChange={handleChange}
                   placeholder="Select Barangay"
                   borderRadius="md"
                   focusBorderColor={accentColor}
@@ -184,7 +218,8 @@ const FarmerInput = ({ onNext, onBack }) => {
                 bg={accentColor}
                 color="white"
                 _hover={{ bg: 'blue.700' }}
-                onClick={onNext}
+                onClick={handleSubmit}
+                isLoading={isLoading}
                 px={8}
                 borderRadius="md"
               >
