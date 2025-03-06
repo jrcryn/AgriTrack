@@ -7,7 +7,7 @@ const D1CropIndusNewSchema = new mongoose.Schema({
     required: true 
   },
   plantation_date: { type: Date, required: true },
-  harvest_month: { type: String, required: true },
+  harvest_month_year: { type: String, required: true },
   total_area_planted: { type: Number, required: true }
 }, { versionKey: false });
 

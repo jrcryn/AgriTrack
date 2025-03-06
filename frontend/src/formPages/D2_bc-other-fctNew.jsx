@@ -39,7 +39,7 @@ const bc_other_fctNew = ({ onNext, onBack }) => {
   const handleSubmit = async () => {
     const data = {
       ...formData,
-      harvest_month_year: `${formData.harvest_month} ${formData.harvest_year}`,
+      harvest_month: `${formData.harvest_month} ${formData.harvest_year}`,
     };
     await D2OtherNew(data);
     onNext();
@@ -79,6 +79,20 @@ const bc_other_fctNew = ({ onNext, onBack }) => {
           {/* Form Content */}
           <Box p={8}>
             <VStack spacing={6} align="stretch">
+
+            {/* Section Header */}
+            <Box
+                  bg="blue.50"
+                  borderRadius="md"
+                  p={4}
+                  borderLeftWidth="4px"
+                  borderColor="blue.600"
+                >
+                  <Text fontSize="md" fontWeight="bold" color="blue.600">
+                    OTHER FRUIT CROPS/TREES (NEWLY PLANTED)
+                  </Text>
+            </Box>
+
               {/* DATE OF PLANTATION */}
               <FormControl id="dateOfPlantation" isRequired>
                 <FormLabel

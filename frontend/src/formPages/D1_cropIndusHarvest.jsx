@@ -22,7 +22,7 @@ const CropIndusHarvest = ({ onNext, onBack }) => {
   const [formData, setFormData] = useState({
     harvest_date: '',
     total_area_harvested: '',
-    total_volume_production: '',
+    total_weight: '',
     destination: '',
     mode_of_payment: '',
     mode_of_delivery: '',
@@ -166,7 +166,7 @@ const CropIndusHarvest = ({ onNext, onBack }) => {
               </FormControl>
 
               {/* Total Volume of Production */}
-              <FormControl id="totalVolumeProduction" isRequired>
+              <FormControl id="totalWeightProduction" isRequired>
                 <FormLabel
                   fontSize="sm"
                   fontWeight="bold"
@@ -175,12 +175,12 @@ const CropIndusHarvest = ({ onNext, onBack }) => {
                   letterSpacing="wide"
                   mb={4}
                 >
-                  TOTAL VOLUME OF PRODUCTION (ILAN ANG KABUUANG TIMBANG NA INYONG NAANI?)
+                  TOTAL WEIGHT OF PRODUCTION (ILAN ANG KABUUANG TIMBANG NA INYONG NAANI?)
                 </FormLabel>
                 <Input 
                   type="number" 
-                  name="total_volume_production"
-                  value={formData.total_volume_production}
+                  name="total_weight"
+                  value={formData.total_weight}
                   onChange={handleChange}
                   placeholder="Your answer" 
                 />

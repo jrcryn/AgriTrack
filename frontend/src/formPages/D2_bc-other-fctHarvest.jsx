@@ -78,6 +78,20 @@ const bc_other_fctHarvest = ({ onNext, onBack }) => {
           {/* Form Content */}
           <Box p={8}>
             <VStack spacing={6} align="stretch">
+
+            {/* Section Header */}
+            <Box
+                  bg="blue.50"
+                  borderRadius="md"
+                  p={4}
+                  borderLeftWidth="4px"
+                  borderColor="blue.600"
+                >
+                  <Text fontSize="md" fontWeight="bold" color="blue.600">
+                    OTHER FRUIT CROPS/TREES (HARVESTING)
+                  </Text>
+            </Box>
+
               {/* DATE OF HARVEST */}
               <FormControl id="dateOfHarvest" isRequired>
                 <FormLabel
