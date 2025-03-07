@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Heading,
@@ -25,7 +25,8 @@ const CropRecordsIndus = ({ onNext, onBack }) => {
     crop_stage: '',
   });
 
-  const { CropRecordIndus } = useFarmerFormStore();
+  const { CropRecordIndus, isLoading } = useFarmerFormStore();
+  const [isFormValid, setIsFormValid] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -51,6 +52,11 @@ const CropRecordsIndus = ({ onNext, onBack }) => {
     }
     onNext(nextPath);
   };
+
+  useEffect(() => {
+    const { crop_type, crop_stage } = formData;
+    setIsFormValid(crop_type && crop_stage);
+  }, [formData]);
 
   const cardBg = 'white';
   const accentColor = 'blue.600';
@@ -112,10 +118,10 @@ const CropRecordsIndus = ({ onNext, onBack }) => {
                   URI NG TANIM
                 </FormLabel>
                 <Select 
-                name="crop_type" 
-                placeholder="Choose"
-                value={formData.crop_type}
-                onChange={handleChange}
+                  name="crop_type" 
+                  placeholder="Choose"
+                  value={formData.crop_type}
+                  onChange={handleChange}
                 >
                   {IndusCrops.map((crop) => (
                     <option key={crop} value={crop}>
@@ -153,11 +159,11 @@ const CropRecordsIndus = ({ onNext, onBack }) => {
                   </Text>
                 </Box>
                 <Input 
-                name='crop_variety'
-                value={formData.crop_variety}
-                onChange={handleChange}
-                type="text" 
-                placeholder="Isulat ang variety ng inyong tanim" 
+                  name='crop_variety'
+                  value={formData.crop_variety}
+                  onChange={handleChange}
+                  type="text" 
+                  placeholder="Isulat ang variety ng inyong tanim" 
                 />
               </FormControl>
 
@@ -174,8 +180,8 @@ const CropRecordsIndus = ({ onNext, onBack }) => {
                   YUGTO NG INYONG PANANIM
                 </FormLabel>
                 <RadioGroup 
-                onChange={handleStageChange} 
-                value={stageOfCrop}
+                  onChange={handleStageChange} 
+                  value={stageOfCrop}
                 >
                   <Stack direction="column" spacing={4}>
                     <Radio value="NEWLY PLANTED" colorScheme="blue">
@@ -199,9 +205,10 @@ const CropRecordsIndus = ({ onNext, onBack }) => {
                 color="white"
                 _hover={{ bg: 'blue.700' }}
                 onClick={handleSubmit}
+                isLoading={isLoading}
                 px={8}
                 borderRadius="md"
-                isDisabled={!stageOfCrop}
+                isDisabled={!isFormValid}
               >
                 Continue
               </Button>

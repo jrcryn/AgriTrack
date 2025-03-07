@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Heading,
@@ -15,7 +15,7 @@ import {
 import OtherFCT from '../components/otherFCT.js';
 import { useFarmerFormStore } from '../store/farmerForm.js';
 
-const cropRecordsOther = ({ onNext, onBack, cropType }) => {
+const CropRecordsOther = ({ onNext, onBack, cropType }) => {
   const [stageOfCrop, setStageOfCrop] = useState('');
 
   const [formData, setFormData] = useState({
@@ -23,7 +23,8 @@ const cropRecordsOther = ({ onNext, onBack, cropType }) => {
     crop_stage: '',
   });
 
-  const { CropRecordOther } = useFarmerFormStore();
+  const { CropRecordOther, isLoading } = useFarmerFormStore();
+  const [isFormValid, setIsFormValid] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -49,6 +50,11 @@ const cropRecordsOther = ({ onNext, onBack, cropType }) => {
     }
     onNext(nextPath);
   };
+
+  useEffect(() => {
+    const { crop_variety, crop_stage } = formData;
+    setIsFormValid(crop_variety && crop_stage);
+  }, [formData]);
 
   const cardBg = 'white';
   const accentColor = 'blue.600';
@@ -223,7 +229,7 @@ const cropRecordsOther = ({ onNext, onBack, cropType }) => {
                     YUGTO NG INYONG PANANIM
                   </FormLabel>
                   <RadioGroup 
-                  onChange={setStageOfCrop} 
+                  onChange={handleStageChange} 
                   value={stageOfCrop}
                   >
                     <Stack direction="column" spacing={4}>
@@ -294,7 +300,7 @@ const cropRecordsOther = ({ onNext, onBack, cropType }) => {
                     YUGTO NG INYONG PANANIM
                   </FormLabel>
                   <RadioGroup 
-                  onChange={setStageOfCrop} 
+                  onChange={handleStageChange} 
                   value={stageOfCrop}
                   >
                     <Stack direction="column" spacing={4}>
@@ -327,13 +333,14 @@ const cropRecordsOther = ({ onNext, onBack, cropType }) => {
                 Back
               </Button>
               <Button
-                bg="blue.600"
+                bg={accentColor}
                 color="white"
                 _hover={{ bg: 'blue.700' }}
                 onClick={handleSubmit}
+                isLoading={isLoading}
                 px={8}
                 borderRadius="md"
-                isDisabled={!stageOfCrop}
+                isDisabled={!isFormValid}
               >
                 Continue
               </Button>
@@ -345,4 +352,4 @@ const cropRecordsOther = ({ onNext, onBack, cropType }) => {
   );
 };
 
-export default cropRecordsOther;
+export default CropRecordsOther;

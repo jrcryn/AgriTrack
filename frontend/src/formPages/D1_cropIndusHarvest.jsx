@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Heading,
@@ -28,7 +28,8 @@ const CropIndusHarvest = ({ onNext, onBack }) => {
     mode_of_delivery: '',
   });
 
-  const { D1IndusHarv } = useFarmerFormStore();
+  const { D1IndusHarv, isLoading } = useFarmerFormStore();
+  const [isFormValid, setIsFormValid] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -43,6 +44,11 @@ const CropIndusHarvest = ({ onNext, onBack }) => {
     await D1IndusHarv(formData);
     onNext();
   };
+
+  useEffect(() => {
+    const { harvest_date, total_area_harvested, total_weight, destination, mode_of_payment, mode_of_delivery } = formData;
+    setIsFormValid(harvest_date && total_area_harvested && total_weight && destination && mode_of_payment && mode_of_delivery);
+  }, [formData]);
 
   const cardBg = 'white';
   const accentColor = 'blue.600';
@@ -300,8 +306,10 @@ const CropIndusHarvest = ({ onNext, onBack }) => {
                 color="white"
                 _hover={{ bg: 'blue.700' }}
                 onClick={handleSubmit}
+                isLoading={isLoading}
                 px={8}
                 borderRadius="md"
+                isDisabled={!isFormValid}
               >
                 Submit
               </Button>

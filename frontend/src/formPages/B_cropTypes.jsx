@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Heading,
@@ -16,10 +16,10 @@ import { useFarmerFormStore } from '../store/farmerForm';
 const CropTypes = ({ onNext, onBack }) => {
   const [selectedCropType, setSelectedCropType] = useState('');
   const { CropType, isLoading } = useFarmerFormStore();
-
+  const [isFormValid, setIsFormValid] = useState(false);
 
   const handleNext = async () => {
-    await CropType({crop_type: selectedCropType});
+    await CropType({ crop_type: selectedCropType });
     let nextPath = '';
     switch (selectedCropType) {
       case 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS':
@@ -33,6 +33,10 @@ const CropTypes = ({ onNext, onBack }) => {
     }
     onNext(nextPath, selectedCropType);
   };
+
+  useEffect(() => {
+    setIsFormValid(!!selectedCropType);
+  }, [selectedCropType]);
 
   const cardBg = 'white';
   const accentColor = 'blue.600';
@@ -81,8 +85,8 @@ const CropTypes = ({ onNext, onBack }) => {
                 borderLeftWidth="4px"
                 borderColor={accentColor}
               >
+                <Text fontWeight="bold" mb={3}>PAALALA:</Text> 
                 <Text fontSize="sm">
-                  <Text fontWeight="bold" mb={3}>PAALALA:</Text> 
                   Kung sakaling mayroon kayong higit sa isang klase ng tanim ay maaaring magsagot ulit sa link na ibinigay pagkatapos ninyong sagutan ang form na ito.
                 </Text>
               </Box>
@@ -150,7 +154,7 @@ const CropTypes = ({ onNext, onBack }) => {
                 isLoading={isLoading}
                 px={8}
                 borderRadius="md"
-                isDisabled={!selectedCropType}
+                isDisabled={!isFormValid}
               >
                 Continue
               </Button>

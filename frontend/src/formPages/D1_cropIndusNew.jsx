@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Heading,
@@ -25,10 +25,14 @@ const CropIndusNew = ({ onNext, onBack }) => {
     total_area_planted: '',
   });
 
-  const { D1IndusNew } = useFarmerFormStore();
+  const { D1IndusNew, isLoading } = useFarmerFormStore();
+  const [isFormValid, setIsFormValid] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    if (name === 'harvest_year' && !/^\d{0,4}$/.test(value)) {
+      return; // Prevent invalid year input
+    }
     setFormData((prevData) => ({ ...prevData, [name]: value }));
   };
 
@@ -44,6 +48,12 @@ const CropIndusNew = ({ onNext, onBack }) => {
     await D1IndusNew(data);
     onNext();
   };
+
+  useEffect(() => {
+    const { plantation_date, harvest_month, harvest_year, total_area_planted } = formData;
+    const isValidYear = /^\d{4}$/.test(harvest_year);
+    setIsFormValid(plantation_date && harvest_month && isValidYear && total_area_planted);
+  }, [formData]);
 
   const cardBg = 'white';
   const accentColor = 'blue.600';
@@ -235,8 +245,10 @@ const CropIndusNew = ({ onNext, onBack }) => {
                 color="white"
                 _hover={{ bg: 'blue.700' }}
                 onClick={handleSubmit}
+                isLoading={isLoading}
                 px={8}
                 borderRadius="md"
+                isDisabled={!isFormValid}
               >
                 Submit
               </Button>

@@ -1,20 +1,33 @@
 import express from 'express';
 import dotenv from 'dotenv';
+import cors from 'cors';
+
 import { connectDB } from './config/db.js';
-import farmerInputs from './routes/farmerInputs.route.js';
+import farmerForm from './routes/farmerForm.route.js';
 
 const app = express();
 dotenv.config();
-dotenv.config({ path: '../.env' });
-
-const PORT = process.env.PORT;
+dotenv.config({ path: './backend/.env' });
 
 app.use(express.json());
-app.use('/', farmerInputs);
 
-app.listen(PORT, () => {
+
+const allowedOrigins = [
+    process.env.CLIENT_URL,
+];
+
+app.use(cors({
+    origin: allowedOrigins,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  }));
+
+app.use('/', farmerForm);
+
+app.listen(process.env.PORT, () => {
     connectDB();
-    console.log('Server is running on port ' + PORT);
+    console.log('Server is running on port ' + process.env.PORT);
 });
 
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Heading,
@@ -21,12 +21,13 @@ const FarmerInput = ({ onNext, onBack }) => {
   const [formData, setFormData] = useState({
     surname: '',
     first_name: '',
-    middle_mame: '',
+    middle_name: '',
     suffix: '',
     farm_location: '',
   });
 
   const { FarmerInput, isLoading } = useFarmerFormStore();
+  const [isFormValid, setIsFormValid] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -37,6 +38,11 @@ const FarmerInput = ({ onNext, onBack }) => {
     await FarmerInput(formData);
     onNext();
   };
+
+  useEffect(() => {
+    const { surname, first_name, farm_location } = formData;
+    setIsFormValid(surname && first_name && farm_location);
+  }, [formData]);
 
   const cardBg = 'white';
   const headerBorder = 'gray.200';
@@ -119,7 +125,7 @@ const FarmerInput = ({ onNext, onBack }) => {
                     UNANG PANGALAN 
                   </FormLabel>
                   <Input 
-                    name='firstName'
+                    name='first_name'
                     value={formData.first_name}
                     onChange={handleChange}
                     placeholder="Your answer"
@@ -127,73 +133,70 @@ const FarmerInput = ({ onNext, onBack }) => {
                     focusBorderColor={accentColor}
                   />
                 </FormControl>
-
-
               </SimpleGrid>
 
-            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
+              <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
+                <FormControl id="middleName">
+                  <FormLabel 
+                    fontSize="sm" 
+                    fontWeight="medium"
+                    color="gray.600"
+                  >
+                    GITNANG PANGALAN
+                  </FormLabel>
+                  <Input 
+                    name='middle_name'
+                    value={formData.middle_name}
+                    onChange={handleChange}
+                    placeholder="Your answer (optional)"
+                    borderRadius="md"
+                    focusBorderColor={accentColor}
+                  />
+                </FormControl>
 
-            <FormControl id="middleName">
-                <FormLabel 
-                  fontSize="sm" 
-                  fontWeight="medium"
-                  color="gray.600"
-                >
-                  GITNANG PANGALAN
-                </FormLabel>
-                <Input 
-                  name='middlename'
-                  value={formData.middle_mame}
-                  onChange={handleChange}
-                  placeholder="Your answer (optional)"
-                  borderRadius="md"
-                  focusBorderColor={accentColor}
-                />
-              </FormControl>
-
-              <FormControl id="suffix">
-                <FormLabel 
-                  fontSize="sm" 
-                  fontWeight="medium"
-                  color="gray.600"
-                >
-                  SUFFIX
-                </FormLabel>
-                <Input 
-                  name='suffix'
-                  value={formData.suffix}
-                  onChange={handleChange}
-                  placeholder="Your answer (optional)"
-                  borderRadius="md"
-                  focusBorderColor={accentColor}
-                />
-              </FormControl>
-            </SimpleGrid>
+                <FormControl id="suffix">
+                  <FormLabel 
+                    fontSize="sm" 
+                    fontWeight="medium"
+                    color="gray.600"
+                  >
+                    SUFFIX
+                  </FormLabel>
+                  <Input 
+                    name='suffix'
+                    value={formData.suffix}
+                    onChange={handleChange}
+                    placeholder="Your answer (optional)"
+                    borderRadius="md"
+                    focusBorderColor={accentColor}
+                  />
+                </FormControl>
+              </SimpleGrid>
 
               <SimpleGrid>
-              <FormControl id="farmLocation" isRequired>
-                <FormLabel 
-                  fontSize="sm" 
-                  fontWeight="medium"
-                  color="gray.600"
-                >
-                  FARM LOCATION (PILIIN ANG BARANGAY KUNG NASAAN ANG INYONG TANIMAN)
-                </FormLabel>
-                <Select 
-                  name='farmlocation'
-                  value={formData.farm_location}
-                  onChange={handleChange}
-                  placeholder="Select Barangay"
-                  borderRadius="md"
-                  focusBorderColor={accentColor}
-                >
-                  {Barangays.map((barangay) => (
-                    <option key={barangay} value={barangay}>
-                      {barangay}
-                    </option>
-                  ))}
-                </Select>
-              </FormControl>
+                <FormControl id="farmLocation" isRequired>
+                  <FormLabel 
+                    fontSize="sm" 
+                    fontWeight="medium"
+                    color="gray.600"
+                  >
+                    FARM LOCATION (PILIIN ANG BARANGAY KUNG NASAAN ANG INYONG TANIMAN)
+                  </FormLabel>
+                  <Select 
+                    name='farm_location'
+                    value={formData.farm_location}
+                    onChange={handleChange}
+                    placeholder="Select Barangay"
+                    borderRadius="md"
+                    focusBorderColor={accentColor}
+                  >
+                    {Barangays.map((barangay) => (
+                      <option key={barangay} value={barangay}>
+                        {barangay}
+                      </option>
+                    ))}
+                  </Select>
+                </FormControl>
               </SimpleGrid>
             </VStack>
 
@@ -222,6 +225,7 @@ const FarmerInput = ({ onNext, onBack }) => {
                 isLoading={isLoading}
                 px={8}
                 borderRadius="md"
+                isDisabled={!isFormValid}
               >
                 Continue
               </Button>

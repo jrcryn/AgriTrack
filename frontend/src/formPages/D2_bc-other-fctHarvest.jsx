@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Heading,
@@ -28,7 +28,8 @@ const bc_other_fctHarvest = ({ onNext, onBack }) => {
     mode_of_delivery: '',
   });
 
-  const { D2OtherHarv } = useFarmerFormStore();
+  const { D2OtherHarv, isLoading } = useFarmerFormStore();
+  const [isFormValid, setIsFormValid] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -43,6 +44,11 @@ const bc_other_fctHarvest = ({ onNext, onBack }) => {
     await D2OtherHarv(formData);
     onNext();
   };
+
+  useEffect(() => {
+    const { harvest_date, trees_harvested, total_weight, destination, mode_of_payment, mode_of_delivery } = formData;
+    setIsFormValid(harvest_date && trees_harvested && total_weight && destination && mode_of_payment && mode_of_delivery);
+  }, [formData]);
 
   const cardBg = 'white';
   const accentColor = 'blue.600';
@@ -79,18 +85,18 @@ const bc_other_fctHarvest = ({ onNext, onBack }) => {
           <Box p={8}>
             <VStack spacing={6} align="stretch">
 
-            {/* Section Header */}
-            <Box
-                  bg="blue.50"
-                  borderRadius="md"
-                  p={4}
-                  borderLeftWidth="4px"
-                  borderColor="blue.600"
-                >
-                  <Text fontSize="md" fontWeight="bold" color="blue.600">
-                    OTHER FRUIT CROPS/TREES (HARVESTING)
-                  </Text>
-            </Box>
+              {/* Section Header */}
+              <Box
+                bg="blue.50"
+                borderRadius="md"
+                p={4}
+                borderLeftWidth="4px"
+                borderColor="blue.600"
+              >
+                <Text fontSize="md" fontWeight="bold" color="blue.600">
+                  OTHER FRUIT CROPS/TREES (HARVESTING)
+                </Text>
+              </Box>
 
               {/* DATE OF HARVEST */}
               <FormControl id="dateOfHarvest" isRequired>
@@ -261,7 +267,16 @@ const bc_other_fctHarvest = ({ onNext, onBack }) => {
               <Button variant="ghost" colorScheme="blue" onClick={onBack} px={8} borderRadius="md">
                 Back
               </Button>
-              <Button bg={accentColor} color="white" _hover={{ bg: 'blue.700' }} onClick={handleSubmit} px={8} borderRadius="md">
+              <Button
+                bg={accentColor}
+                color="white"
+                _hover={{ bg: 'blue.700' }}
+                onClick={handleSubmit}
+                isLoading={isLoading}
+                px={8}
+                borderRadius="md"
+                isDisabled={!isFormValid}
+              >
                 Submit
               </Button>
             </Stack>

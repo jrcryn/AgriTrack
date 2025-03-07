@@ -8,12 +8,6 @@ const BCropTypesSchema = new mongoose.Schema({
   },
   crop_type: { 
     type: String,
-    enum: [
-      'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS', 
-      'BANANA', 
-      'COFFEE', 
-      'OTHER FRUIT CROPS/TREES'
-    ],
     required: true,
   }
 }, { versionKey: false });

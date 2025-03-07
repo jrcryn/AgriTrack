@@ -8,6 +8,5 @@ const AFarmerInputsSchema = new mongoose.Schema({
   farm_location: { type: String, required: true, trim: true }
 }, { versionKey: false });
 
-const A_farmer_inputs = mongoose.model('A_farmer_inputs', AFarmerInputsSchema);
+export const A_farmer_inputs = mongoose.model('A_farmer_inputs', AFarmerInputsSchema);
 
-export default A_farmer_inputs;

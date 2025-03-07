@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Heading,
@@ -25,7 +25,8 @@ const bc_other_fctNew = ({ onNext, onBack }) => {
     total_trees: '',
   });
 
-  const { D2OtherNew } = useFarmerFormStore();
+  const { D2OtherNew, isLoading } = useFarmerFormStore();
+  const [isFormValid, setIsFormValid] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -44,6 +45,12 @@ const bc_other_fctNew = ({ onNext, onBack }) => {
     await D2OtherNew(data);
     onNext();
   };
+
+  useEffect(() => {
+    const { plantation_date, harvest_month, harvest_year, total_trees } = formData;
+    const isValidYear = /^\d{4}$/.test(harvest_year);
+    setIsFormValid(plantation_date && harvest_month && isValidYear && total_trees);
+  }, [formData]);
 
   const cardBg = 'white';
   const accentColor = 'blue.600';
@@ -80,18 +87,18 @@ const bc_other_fctNew = ({ onNext, onBack }) => {
           <Box p={8}>
             <VStack spacing={6} align="stretch">
 
-            {/* Section Header */}
-            <Box
-                  bg="blue.50"
-                  borderRadius="md"
-                  p={4}
-                  borderLeftWidth="4px"
-                  borderColor="blue.600"
-                >
-                  <Text fontSize="md" fontWeight="bold" color="blue.600">
-                    OTHER FRUIT CROPS/TREES (NEWLY PLANTED)
-                  </Text>
-            </Box>
+              {/* Section Header */}
+              <Box
+                bg="blue.50"
+                borderRadius="md"
+                p={4}
+                borderLeftWidth="4px"
+                borderColor="blue.600"
+              >
+                <Text fontSize="md" fontWeight="bold" color="blue.600">
+                  OTHER FRUIT CROPS/TREES (NEWLY PLANTED)
+                </Text>
+              </Box>
 
               {/* DATE OF PLANTATION */}
               <FormControl id="dateOfPlantation" isRequired>
@@ -225,8 +232,10 @@ const bc_other_fctNew = ({ onNext, onBack }) => {
                 color="white"
                 _hover={{ bg: 'blue.700' }}
                 onClick={handleSubmit}
+                isLoading={isLoading}
                 px={8}
                 borderRadius="md"
+                isDisabled={!isFormValid}
               >
                 Submit
               </Button>
