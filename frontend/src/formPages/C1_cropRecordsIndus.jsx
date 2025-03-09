@@ -14,49 +14,50 @@ import {
   Input
 } from '@chakra-ui/react';
 import IndusCrops from '../components/indusCrops.js';
-import { useFarmerFormStore } from '../store/farmerForm.js';
+import { useFarmerFormStore } from '../store/farmerForm.store.js';
 
 const CropRecordsIndus = ({ onNext, onBack }) => {
-  const [stageOfCrop, setStageOfCrop] = useState('');
 
-  const [formData, setFormData] = useState({
+  const { formData, updateCropRecordIndus, isLoading } = useFarmerFormStore();
+
+  // Initialize with data from store
+  const [localFormData, setLocalFormData] = useState(formData.cropRecordIndus || {
     crop_type: '',
     crop_variety: '',
-    crop_stage: '',
+    crop_stage: ''
   });
-
-  const { CropRecordIndus, isLoading } = useFarmerFormStore();
+  
   const [isFormValid, setIsFormValid] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prevData) => ({ ...prevData, [name]: value }));
+    setLocalFormData((prevData) => ({ ...prevData, [name]: value }));
   };
 
   const handleStageChange = (value) => {
-    setStageOfCrop(value);
-    setFormData((prevData) => ({ ...prevData, crop_stage: value }));
+    setLocalFormData((prevData) => ({ ...prevData, crop_stage: value }));
   };
 
   const handleSubmit = async () => {
-    await CropRecordIndus(formData);
+    // Update the store with current form data
+    updateCropRecordIndus(localFormData);
     handleNext();
   };
 
   const handleNext = () => {
     let nextPath = '';
-    if (stageOfCrop === 'NEWLY PLANTED') {
-      nextPath = '/d1_cin'; // dedicated page for newly planted crops
-    } else if (stageOfCrop === 'HARVESTING') {
-      nextPath = '/d1_cih'; // dedicated page for harvesting crops
+    if (localFormData.crop_stage === 'NEWLY PLANTED') {
+      nextPath = '/d1_cin'; 
+    } else if (localFormData.crop_stage === 'HARVESTING') {
+      nextPath = '/d1_cih';
     }
     onNext(nextPath);
   };
 
   useEffect(() => {
-    const { crop_type, crop_stage } = formData;
+    const { crop_type, crop_stage } = localFormData;
     setIsFormValid(crop_type && crop_stage);
-  }, [formData]);
+  }, [localFormData]);
 
   const cardBg = 'white';
   const accentColor = 'blue.600';
@@ -120,7 +121,7 @@ const CropRecordsIndus = ({ onNext, onBack }) => {
                 <Select 
                   name="crop_type" 
                   placeholder="Choose"
-                  value={formData.crop_type}
+                  value={localFormData.crop_type}
                   onChange={handleChange}
                 >
                   {IndusCrops.map((crop) => (
@@ -160,7 +161,7 @@ const CropRecordsIndus = ({ onNext, onBack }) => {
                 </Box>
                 <Input 
                   name='crop_variety'
-                  value={formData.crop_variety}
+                  value={localFormData.crop_variety}
                   onChange={handleChange}
                   type="text" 
                   placeholder="Isulat ang variety ng inyong tanim" 
@@ -180,8 +181,8 @@ const CropRecordsIndus = ({ onNext, onBack }) => {
                   YUGTO NG INYONG PANANIM
                 </FormLabel>
                 <RadioGroup 
-                  onChange={handleStageChange} 
-                  value={stageOfCrop}
+                    onChange={(value) => handleStageChange(value)} 
+                    value={localFormData.crop_stage}
                 >
                   <Stack direction="column" spacing={4}>
                     <Radio value="NEWLY PLANTED" colorScheme="blue">

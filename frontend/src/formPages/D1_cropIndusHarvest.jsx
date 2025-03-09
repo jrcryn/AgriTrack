@@ -15,11 +15,14 @@ import {
 import Destination from '../components/destinations.js';
 import ModeOfDelivery from '../components/modeOfDelivery.js';
 import DateMonthOptions from '../components/dateMonthOptions.js';
-import { useFarmerFormStore } from '../store/farmerForm.js';
+import { useFarmerFormStore } from '../store/farmerForm.store.js';
 
 const CropIndusHarvest = ({ onNext, onBack }) => {
   const options = DateMonthOptions();
-  const [formData, setFormData] = useState({
+  const { formData, updateCropIndusHarvest, submitFarmerForm, isLoading } = useFarmerFormStore();
+  
+  // Initialize from store
+  const [localFormData, setLocalFormData] = useState(formData.cropIndusHarvest || {
     harvest_date: '',
     total_area_harvested: '',
     total_weight: '',
@@ -27,28 +30,41 @@ const CropIndusHarvest = ({ onNext, onBack }) => {
     mode_of_payment: '',
     mode_of_delivery: '',
   });
-
-  const { D1IndusHarv, isLoading } = useFarmerFormStore();
+  
   const [isFormValid, setIsFormValid] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prevData) => ({ ...prevData, [name]: value }));
+    setLocalFormData((prevData) => ({ ...prevData, [name]: value }));
   };
 
   const handleRadioChange = (name, value) => {
-    setFormData((prevData) => ({ ...prevData, [name]: value }));
+    setLocalFormData((prevData) => ({ ...prevData, [name]: value }));
   };
 
   const handleSubmit = async () => {
-    await D1IndusHarv(formData);
-    onNext();
+    setSubmitting(true);
+    
+    // First update the store
+    updateCropIndusHarvest(localFormData);
+    
+    // Then submit the entire form
+    const success = await submitFarmerForm();
+    setSubmitting(false);
+    
+    if (success) {
+      onNext('/success'); // Navigate to success page
+    }
   };
 
   useEffect(() => {
-    const { harvest_date, total_area_harvested, total_weight, destination, mode_of_payment, mode_of_delivery } = formData;
-    setIsFormValid(harvest_date && total_area_harvested && total_weight && destination && mode_of_payment && mode_of_delivery);
-  }, [formData]);
+    const { harvest_date, total_area_harvested, total_weight, destination, mode_of_payment, mode_of_delivery } = localFormData;
+    setIsFormValid(
+      harvest_date && total_area_harvested && total_weight && 
+      destination && mode_of_payment && mode_of_delivery
+    );
+  }, [localFormData]);
 
   const cardBg = 'white';
   const accentColor = 'blue.600';
@@ -112,7 +128,7 @@ const CropIndusHarvest = ({ onNext, onBack }) => {
                 <RadioGroup
                   name="harvest_date"
                   onChange={(value) => handleRadioChange('harvest_date', value)}
-                  value={formData.harvest_date}
+                  value={localFormData.harvest_date}
                 >
                   <Stack direction="column" spacing={4}>
                     {options.map((option) => (
@@ -165,13 +181,13 @@ const CropIndusHarvest = ({ onNext, onBack }) => {
                 <Input 
                   type="number" 
                   name="total_area_harvested"
-                  value={formData.total_area_harvested}
+                  value={localFormData.total_area_harvested}
                   onChange={handleChange}
                   placeholder="Your answer" 
                 />
               </FormControl>
 
-              {/* Total Volume of Production */}
+              {/* Total Weight of Production */}
               <FormControl id="totalWeightProduction" isRequired>
                 <FormLabel
                   fontSize="sm"
@@ -186,7 +202,7 @@ const CropIndusHarvest = ({ onNext, onBack }) => {
                 <Input 
                   type="number" 
                   name="total_weight"
-                  value={formData.total_weight}
+                  value={localFormData.total_weight}
                   onChange={handleChange}
                   placeholder="Your answer" 
                 />
@@ -207,7 +223,7 @@ const CropIndusHarvest = ({ onNext, onBack }) => {
                 <RadioGroup
                   name="destination"
                   onChange={(value) => handleRadioChange('destination', value)}
-                  value={formData.destination}
+                  value={localFormData.destination}
                 >
                   <Stack direction="column" spacing={4}>
                     {Destination.map((option) => (
@@ -236,7 +252,7 @@ const CropIndusHarvest = ({ onNext, onBack }) => {
                 <RadioGroup
                   name="mode_of_payment"
                   onChange={(value) => handleRadioChange('mode_of_payment', value)}
-                  value={formData.mode_of_payment}
+                  value={localFormData.mode_of_payment}
                 >
                   <Stack direction="column" spacing={4}>
                     <Radio colorScheme="blue" value="CASH">
@@ -270,7 +286,7 @@ const CropIndusHarvest = ({ onNext, onBack }) => {
                 <RadioGroup
                   name="mode_of_delivery"
                   onChange={(value) => handleRadioChange('mode_of_delivery', value)}
-                  value={formData.mode_of_delivery}
+                  value={localFormData.mode_of_delivery}
                 >
                   <Stack direction="column" spacing={4}>
                     {ModeOfDelivery.map((option) => (
@@ -306,7 +322,7 @@ const CropIndusHarvest = ({ onNext, onBack }) => {
                 color="white"
                 _hover={{ bg: 'blue.700' }}
                 onClick={handleSubmit}
-                isLoading={isLoading}
+                isLoading={isLoading || submitting}
                 px={8}
                 borderRadius="md"
                 isDisabled={!isFormValid}

@@ -11,15 +11,21 @@ import {
   RadioGroup,
   Radio,
 } from '@chakra-ui/react';
-import { useFarmerFormStore } from '../store/farmerForm';
+import { useFarmerFormStore } from '../store/farmerForm.store.js';
 
 const CropTypes = ({ onNext, onBack }) => {
-  const [selectedCropType, setSelectedCropType] = useState('');
-  const { CropType, isLoading } = useFarmerFormStore();
-  const [isFormValid, setIsFormValid] = useState(false);
+
+  const { formData, updateCropType, isLoading } = useFarmerFormStore();
+
+  // Initialize local state with store data
+  const [selectedCropType, setSelectedCropType] = useState(formData.cropType || '');
+  const [isFormValid, setIsFormValid] = useState(!!formData.cropType);
 
   const handleNext = async () => {
-    await CropType({ crop_type: selectedCropType });
+    // Update the store before navigating
+    updateCropType(selectedCropType);
+    
+    // Determine the next path based on the selection
     let nextPath = '';
     switch (selectedCropType) {
       case 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS':

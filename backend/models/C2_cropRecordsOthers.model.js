@@ -14,7 +14,7 @@ const C2CropRecordsOthersSchema = new mongoose.Schema({
   crop_variety: { type: String, required: true, trim: true }, //uri ng tanim
   crop_stage: {  //yugto ng tanim
     type: String, 
-    enum: ['Newly Planted', 'Harvesting'], 
+    enum: ['NEWLY PLANTED', 'HARVESTING'], 
     required: true 
   }
 }, { versionKey: false });

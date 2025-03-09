@@ -13,48 +13,48 @@ import {
   Select,
 } from '@chakra-ui/react';
 import OtherFCT from '../components/otherFCT.js';
-import { useFarmerFormStore } from '../store/farmerForm.js';
+import { useFarmerFormStore } from '../store/farmerForm.store.js';
 
 const CropRecordsOther = ({ onNext, onBack, cropType }) => {
-  const [stageOfCrop, setStageOfCrop] = useState('');
-
-  const [formData, setFormData] = useState({
+  const { formData, updateCropRecordOther, isLoading } = useFarmerFormStore();
+  
+  // Initialize from store
+  const [localFormData, setLocalFormData] = useState(formData.cropRecordOther || {
     crop_variety: '',
-    crop_stage: '',
+    crop_stage: ''
   });
-
-  const { CropRecordOther, isLoading } = useFarmerFormStore();
+  
   const [isFormValid, setIsFormValid] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prevData) => ({ ...prevData, [name]: value }));
+    setLocalFormData((prevData) => ({ ...prevData, [name]: value }));
   };
 
   const handleStageChange = (value) => {
-    setStageOfCrop(value);
-    setFormData((prevData) => ({ ...prevData, crop_stage: value }));
+    setLocalFormData((prevData) => ({ ...prevData, crop_stage: value }));
   };
 
   const handleSubmit = async () => {
-    await CropRecordOther(formData);
+    // Update the store
+    updateCropRecordOther(localFormData);
     handleNext();
   };
 
   const handleNext = () => {
     let nextPath = '';
-    if (stageOfCrop === 'NEWLY PLANTED') {
-      nextPath = '/d2_bc_ofn'; // dedicated page for newly planted crops
-    } else if (stageOfCrop === 'HARVESTING') {
-      nextPath = '/d2_bc_ofh'; // dedicated page for harvesting crops
+    if (localFormData.crop_stage === 'NEWLY PLANTED') {
+      nextPath = '/d2_bc_ofn';
+    } else if (localFormData.crop_stage === 'HARVESTING') {
+      nextPath = '/d2_bc_ofh';
     }
     onNext(nextPath);
   };
 
   useEffect(() => {
-    const { crop_variety, crop_stage } = formData;
+    const { crop_variety, crop_stage } = localFormData;
     setIsFormValid(crop_variety && crop_stage);
-  }, [formData]);
+  }, [localFormData]);
 
   const cardBg = 'white';
   const accentColor = 'blue.600';
@@ -117,8 +117,8 @@ const CropRecordsOther = ({ onNext, onBack, cropType }) => {
                   </FormLabel>
                   <RadioGroup
                     name='crop_variety'
-                    onChange={handleChange}
-                    value={formData.crop_variety}
+                    onChange={(value) => setLocalFormData(prev => ({ ...prev, crop_variety: value }))}
+                    value={localFormData.crop_variety}
                   >
                     <Stack direction="column" spacing={4}>
                       <Radio colorScheme="blue" value="BUNGULAN">
@@ -157,7 +157,7 @@ const CropRecordsOther = ({ onNext, onBack, cropType }) => {
                   </FormLabel>
                   <RadioGroup 
                   onChange={handleStageChange} 
-                  value={stageOfCrop}
+                  value={localFormData.crop_stage}
                   >
                     <Stack direction="column" spacing={4}>
                       <Radio colorScheme="blue" value="NEWLY PLANTED">
@@ -203,7 +203,7 @@ const CropRecordsOther = ({ onNext, onBack, cropType }) => {
                   <RadioGroup 
                   name='crop_variety'
                   onChange={handleChange}
-                  value={formData.crop_variety} 
+                  value={localFormData.crop_variety} 
                   >
                     <Stack direction="column" spacing={4}>
                       <Radio colorScheme="blue" value="LIBERICA">
@@ -230,7 +230,7 @@ const CropRecordsOther = ({ onNext, onBack, cropType }) => {
                   </FormLabel>
                   <RadioGroup 
                   onChange={handleStageChange} 
-                  value={stageOfCrop}
+                  value={localFormData.crop_stage}
                   >
                     <Stack direction="column" spacing={4}>
                       <Radio colorScheme="blue" value="NEWLY PLANTED">
@@ -275,7 +275,7 @@ const CropRecordsOther = ({ onNext, onBack, cropType }) => {
                   </FormLabel>
                   <Select 
                   name="crop_variety"
-                  value={formData.crop_variety}
+                  value={localFormData.crop_variety}
                   onChange={handleChange} 
                   placeholder="Choose"
                   >
@@ -301,7 +301,7 @@ const CropRecordsOther = ({ onNext, onBack, cropType }) => {
                   </FormLabel>
                   <RadioGroup 
                   onChange={handleStageChange} 
-                  value={stageOfCrop}
+                  value={localFormData.crop_stage}
                   >
                     <Stack direction="column" spacing={4}>
                       <Radio colorScheme="blue" value="NEWLY PLANTED">

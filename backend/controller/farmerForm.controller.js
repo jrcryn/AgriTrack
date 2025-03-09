@@ -50,7 +50,7 @@ export const formB_ct = async (req, res) => {
 
 export const formC1_cri = async (req, res) => {
   const { farmer_input_id, crop_type_id, crop_type, crop_variety, crop_stage } = req.body;
-  if (!farmer_input_id || !crop_type_id || !crop_type || !crop_variety || !crop_stage) {
+  if (!farmer_input_id || !crop_type_id || !crop_type || !crop_stage) {
       return res.status(400).json({ message: 'Missing required fields' });
   }
   try {

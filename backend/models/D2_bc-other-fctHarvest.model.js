@@ -6,7 +6,7 @@ const D2BcOtherFctHarvestSchema = new mongoose.Schema({
     ref: 'C2_crop_records_others', 
     required: true 
   },
-  harvest_date: { type: Date, required: true },
+  harvest_date: { type: String, required: true },
   trees_harvested: { type: Number, required: true },
   total_weight: { type: Number, required: true },
   destination: { type: String, required: true },

@@ -14,18 +14,19 @@ import {
   Select,
 } from '@chakra-ui/react';
 import DateMonthOptions from '../components/dateMonthOptions.js';
-import { useFarmerFormStore } from '../store/farmerForm.js';
+import { useFarmerFormStore } from '../store/farmerForm.store.js';
 
 const CropIndusNew = ({ onNext, onBack }) => {
   const options = DateMonthOptions();
-  const [formData, setFormData] = useState({
+  const { formData, updateCropIndusNew, submitFarmerForm, isLoading } = useFarmerFormStore();
+
+  const [localFormData, setLocalFormData] = useState(formData.cropIndusNew || {
     plantation_date: '',
     harvest_month: '',
     harvest_year: '',
     total_area_planted: '',
   });
 
-  const { D1IndusNew, isLoading } = useFarmerFormStore();
   const [isFormValid, setIsFormValid] = useState(false);
 
   const handleChange = (e) => {
@@ -33,27 +34,31 @@ const CropIndusNew = ({ onNext, onBack }) => {
     if (name === 'harvest_year' && !/^\d{0,4}$/.test(value)) {
       return; // Prevent invalid year input
     }
-    setFormData((prevData) => ({ ...prevData, [name]: value }));
+    setLocalFormData((prevData) => ({ ...prevData, [name]: value }));
   };
 
   const handleRadioChange = (name, value) => {
-    setFormData((prevData) => ({ ...prevData, [name]: value }));
+    setLocalFormData((prevData) => ({ ...prevData, [name]: value }));
   };
 
   const handleSubmit = async () => {
     const data = {
-      ...formData,
-      harvest_month: `${formData.harvest_month} ${formData.harvest_year}`,
+      ...localFormData,
+      harvest_month: `${localFormData.harvest_month} ${localFormData.harvest_year}`,
     };
-    await D1IndusNew(data);
-    onNext();
+    updateCropIndusNew(data);
+    
+    const success = await submitFarmerForm();
+    if (success) {
+      onNext('/success');
+    }
   };
 
   useEffect(() => {
-    const { plantation_date, harvest_month, harvest_year, total_area_planted } = formData;
+    const { plantation_date, harvest_month, harvest_year, total_area_planted } = localFormData;
     const isValidYear = /^\d{4}$/.test(harvest_year);
     setIsFormValid(plantation_date && harvest_month && isValidYear && total_area_planted);
-  }, [formData]);
+  }, [localFormData]);
 
   const cardBg = 'white';
   const accentColor = 'blue.600';
@@ -117,7 +122,7 @@ const CropIndusNew = ({ onNext, onBack }) => {
                 <RadioGroup
                   name="plantation_date"
                   onChange={(value) => handleRadioChange('plantation_date', value)}
-                  value={formData.plantation_date}
+                  value={localFormData.plantation_date}
                 >
                   <Stack direction="column" spacing={4}>
                     {options.map((option) => (
@@ -147,7 +152,7 @@ const CropIndusNew = ({ onNext, onBack }) => {
                   <Select
                     name="harvest_month"
                     placeholder="Select month"
-                    value={formData.harvest_month}
+                    value={localFormData.harvest_month}
                     onChange={handleChange}
                   >
                     <option value="January">January</option>
@@ -171,7 +176,7 @@ const CropIndusNew = ({ onNext, onBack }) => {
                     pattern="^[0-9]{4}$"
                     inputMode="numeric"
                     title="Please enter a valid 4-digit year"
-                    value={formData.harvest_year}
+                    value={localFormData.harvest_year}
                     onChange={handleChange}
                     required
                   />
@@ -217,7 +222,7 @@ const CropIndusNew = ({ onNext, onBack }) => {
                 <Input
                   type="number"
                   name="total_area_planted"
-                  value={formData.total_area_planted}
+                  value={localFormData.total_area_planted}
                   onChange={handleChange}
                   placeholder="Your answer"
                 />

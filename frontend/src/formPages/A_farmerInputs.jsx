@@ -13,37 +13,33 @@ import {
   Select,
   SimpleGrid,
 } from '@chakra-ui/react';
-import { useFarmerFormStore } from '../store/farmerForm.js';
+import { useFarmerFormStore } from '../store/farmerForm.store.js';
 import Barangays from '../components/barangays';
 
 const FarmerInput = ({ onNext, onBack }) => {
 
-  const [formData, setFormData] = useState({
-    surname: '',
-    first_name: '',
-    middle_name: '',
-    suffix: '',
-    farm_location: '',
-  });
-
-  const { FarmerInput, isLoading } = useFarmerFormStore();
+  // Get the existing farmer input data from the store
+  const { formData, updateFarmerInput, isLoading } = useFarmerFormStore();
+  
+  // Initialize form data with existing data from the store
+  const [localFormData, setLocalFormData] = useState(formData.farmerInput);
   const [isFormValid, setIsFormValid] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prevData) => ({ ...prevData, [name]: value }));
+    setLocalFormData((prevData) => ({ ...prevData, [name]: value }));
   };
 
-  const handleSubmit = async () => {
-    await FarmerInput(formData);
+  const handleNext = () => {
+    // Update the store with the form data
+    updateFarmerInput(localFormData);
     onNext();
   };
 
   useEffect(() => {
-    const { surname, first_name, farm_location } = formData;
+    const { surname, first_name, farm_location } = localFormData;
     setIsFormValid(surname && first_name && farm_location);
-  }, [formData]);
-
+  }, [localFormData]);
   const cardBg = 'white';
   const headerBorder = 'gray.200';
   const accentColor = 'blue.600'; 
@@ -108,7 +104,7 @@ const FarmerInput = ({ onNext, onBack }) => {
                   </FormLabel>
                   <Input 
                     name='surname'
-                    value={formData.surname}
+                    value={localFormData.surname}
                     onChange={handleChange}
                     placeholder="Your answer"
                     borderRadius="md"
@@ -126,7 +122,7 @@ const FarmerInput = ({ onNext, onBack }) => {
                   </FormLabel>
                   <Input 
                     name='first_name'
-                    value={formData.first_name}
+                    value={localFormData.first_name}
                     onChange={handleChange}
                     placeholder="Your answer"
                     borderRadius="md"
@@ -146,7 +142,7 @@ const FarmerInput = ({ onNext, onBack }) => {
                   </FormLabel>
                   <Input 
                     name='middle_name'
-                    value={formData.middle_name}
+                    value={localFormData.middle_name}
                     onChange={handleChange}
                     placeholder="Your answer (optional)"
                     borderRadius="md"
@@ -164,7 +160,7 @@ const FarmerInput = ({ onNext, onBack }) => {
                   </FormLabel>
                   <Input 
                     name='suffix'
-                    value={formData.suffix}
+                    value={localFormData.suffix}
                     onChange={handleChange}
                     placeholder="Your answer (optional)"
                     borderRadius="md"
@@ -184,7 +180,7 @@ const FarmerInput = ({ onNext, onBack }) => {
                   </FormLabel>
                   <Select 
                     name='farm_location'
-                    value={formData.farm_location}
+                    value={localFormData.farm_location}
                     onChange={handleChange}
                     placeholder="Select Barangay"
                     borderRadius="md"
@@ -221,7 +217,7 @@ const FarmerInput = ({ onNext, onBack }) => {
                 bg={accentColor}
                 color="white"
                 _hover={{ bg: 'blue.700' }}
-                onClick={handleSubmit}
+                onClick={handleNext}
                 isLoading={isLoading}
                 px={8}
                 borderRadius="md"

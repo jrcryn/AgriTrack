@@ -14,43 +14,48 @@ import {
   Select,
 } from '@chakra-ui/react';
 import DateMonthOptions from '../components/dateMonthOptions.js';
-import { useFarmerFormStore } from '../store/farmerForm.js';
+import { useFarmerFormStore } from '../store/farmerForm.store.js';
 
 const bc_other_fctNew = ({ onNext, onBack }) => {
   const options = DateMonthOptions();
-  const [formData, setFormData] = useState({
+
+  const { formData, updateCropOtherNew, submitFarmerForm, isLoading } = useFarmerFormStore();
+  const [localFormData, setLocalFormData] = useState(formData.cropOtherNew || {
     plantation_date: '',
     harvest_month: '',
     harvest_year: '',
     total_trees: '',
   });
 
-  const { D2OtherNew, isLoading } = useFarmerFormStore();
   const [isFormValid, setIsFormValid] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prevData) => ({ ...prevData, [name]: value }));
+    setLocalFormData((prevData) => ({ ...prevData, [name]: value }));
   };
 
   const handleRadioChange = (name, value) => {
-    setFormData((prevData) => ({ ...prevData, [name]: value }));
+    setLocalFormData((prevData) => ({ ...prevData, [name]: value }));
   };
 
-  const handleSubmit = async () => {
-    const data = {
-      ...formData,
-      harvest_month: `${formData.harvest_month} ${formData.harvest_year}`,
-    };
-    await D2OtherNew(data);
-    onNext();
+const handleSubmit = async () => {
+  const data = {
+    ...localFormData,
+    harvest_month: `${localFormData.harvest_month} ${localFormData.harvest_year}`,
   };
+  updateCropOtherNew(data);
+  
+  const success = await submitFarmerForm();
+  if (success) {
+    onNext('/success');
+  }
+};
 
   useEffect(() => {
-    const { plantation_date, harvest_month, harvest_year, total_trees } = formData;
+    const { plantation_date, harvest_month, harvest_year, total_trees } = localFormData;
     const isValidYear = /^\d{4}$/.test(harvest_year);
     setIsFormValid(plantation_date && harvest_month && isValidYear && total_trees);
-  }, [formData]);
+  }, [localFormData]);
 
   const cardBg = 'white';
   const accentColor = 'blue.600';
@@ -115,7 +120,7 @@ const bc_other_fctNew = ({ onNext, onBack }) => {
                 <RadioGroup
                   name="plantation_date"
                   onChange={(value) => handleRadioChange('plantation_date', value)}
-                  value={formData.plantation_date}
+                  value={localFormData.plantation_date}
                 >
                   <Stack direction="column" spacing={4}>
                     {options.map((option) => (
@@ -145,7 +150,7 @@ const bc_other_fctNew = ({ onNext, onBack }) => {
                   <Select
                     name="harvest_month"
                     placeholder="Select month"
-                    value={formData.harvest_month}
+                    value={localFormData.harvest_month}
                     onChange={handleChange}
                   >
                     <option value="January">January</option>
@@ -169,7 +174,7 @@ const bc_other_fctNew = ({ onNext, onBack }) => {
                     pattern="^[0-9]{4}$"
                     inputMode="numeric"
                     title="Please enter a valid 4-digit year"
-                    value={formData.harvest_year}
+                    value={localFormData.harvest_year}
                     onChange={handleChange}
                     required
                   />
@@ -204,7 +209,7 @@ const bc_other_fctNew = ({ onNext, onBack }) => {
                 <Input
                   type="number"
                   name="total_trees"
-                  value={formData.total_trees}
+                  value={localFormData.total_trees}
                   onChange={handleChange}
                   placeholder="Your answer"
                 />

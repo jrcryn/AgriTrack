@@ -8,7 +8,7 @@ import D1_cropIndusHarvest from '../formPages/D1_cropIndusHarvest.jsx';
 import D1_cropIndusNew from '../formPages/D1_cropIndusNew.jsx';
 import D2_bc_Other_fctHarvest from '../formPages/D2_bc-other-fctHarvest.jsx';
 import D2_bc_Other_fctNew from '../formPages/D2_bc-other-fctNew.jsx';
-
+import SuccessPage from '../formPages/E_successPage.jsx';
 
 import React, { useState } from 'react'
 
@@ -33,34 +33,47 @@ const formApp = () => {
   return (
     <Box>
       <Routes>
-          <Route path='a_fi' element={<A_farmerInputs /*DONE */
+          <Route path='a_fi' element={<A_farmerInputs
           onNext={() => handleNext('/b_ct')} 
           />} />
 
-          <Route path='b_ct' element={<B_cropTypes /*DONE */
+          <Route path='b_ct' element={<B_cropTypes
           onNext={handleNext} 
           onBack={handleBack} 
           />} />
 
-          <Route path='c1_cri' element={<C1_cropRecordsIndus /*DONE */
+          <Route path='c1_cri' element={<C1_cropRecordsIndus
           onNext={handleNext} 
           onBack={handleBack} 
           />} />
 
-          <Route path='c2_cro' element={<C2_cropRecordsOther /*DONE */
+          <Route path='c2_cro' element={<C2_cropRecordsOther
             onNext={handleNext} 
             onBack={handleBack}
             cropType={selectedCropType}
           />} />
 
-          <Route path='d1_cih' element={<D1_cropIndusHarvest onBack={handleBack}/>} /> /*DONE */
+          <Route path='d1_cih' element={<D1_cropIndusHarvest 
+            onNext={handleNext}
+            onBack={handleBack}
+          />} />
 
-          <Route path='d1_cin' element={<D1_cropIndusNew onBack={handleBack}/>} /> /*DONE */
+          <Route path='d1_cin' element={<D1_cropIndusNew 
+            onNext={handleNext}
+            onBack={handleBack}
+          />} />
 
-          <Route path='d2_bc_ofh' element={<D2_bc_Other_fctHarvest onBack={handleBack}/>} /> /*DONE */
+          <Route path='d2_bc_ofh' element={<D2_bc_Other_fctHarvest 
+            onNext={handleNext}
+            onBack={handleBack}
+          />} />
 
-          <Route path='d2_bc_ofn' element={<D2_bc_Other_fctNew onBack={handleBack}/>} /> /*DONE */
-
+          <Route path='d2_bc_ofn' element={<D2_bc_Other_fctNew 
+            onNext={handleNext}
+            onBack={handleBack}
+          />} />
+          
+          <Route path='success' element={<SuccessPage />} />
       </Routes>
     </Box>
   )
