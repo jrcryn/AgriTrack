@@ -17,14 +17,30 @@ import DateMonthOptions from '../components/dateMonthOptions.js';
 import { useFarmerFormStore } from '../store/farmerForm.store.js';
 
 const bc_other_fctNew = ({ onNext, onBack }) => {
-  const options = DateMonthOptions();
-
+  const dateOptions = DateMonthOptions();
   const { formData, updateCropOtherNew, submitFarmerForm, isLoading } = useFarmerFormStore();
+
+  // Create combined date options, initially apat kasi yung binibigay ni DateMonthOptions
+  const combinedOptions = [
+    {
+      label: `${dateOptions[0].label} to ${dateOptions[1].label}`,
+      value: `${dateOptions[0].startDate}_to_${dateOptions[1].endDate}`,
+      startDate: dateOptions[0].startDate,
+      endDate: dateOptions[1].endDate
+    },
+    {
+      label: `${dateOptions[2].label} to ${dateOptions[3].label}`,
+      value: `${dateOptions[2].startDate}_to_${dateOptions[3].endDate}`,
+      startDate: dateOptions[2].startDate,
+      endDate: dateOptions[3].endDate
+    }
+  ];
+
   const [localFormData, setLocalFormData] = useState(formData.cropOtherNew || {
-    plantation_date: '',
-    harvest_month: '',
-    harvest_year: '',
-    total_trees: '',
+    plantation_start_date: '',
+    plantation_end_date: '',
+    harvest_month_year: '',
+    total_area_planted: '',
   });
 
   const [isFormValid, setIsFormValid] = useState(false);
@@ -34,27 +50,36 @@ const bc_other_fctNew = ({ onNext, onBack }) => {
     setLocalFormData((prevData) => ({ ...prevData, [name]: value }));
   };
 
-  const handleRadioChange = (name, value) => {
-    setLocalFormData((prevData) => ({ ...prevData, [name]: value }));
+  const handleDateRadioChange = (value) => {
+    const [plantation_start_date, plantation_end_date] = value.split('_to_');
+    setLocalFormData((prevData) => ({
+      ...prevData,
+      plantation_start_date,
+      plantation_end_date,
+    }));
   };
 
-const handleSubmit = async () => {
-  const data = {
-    ...localFormData,
-    harvest_month: `${localFormData.harvest_month} ${localFormData.harvest_year}`,
+  const handleSubmit = async () => {
+    // Combine harvest_month and harvest_year into a date value
+    const harvestDate = new Date(`${localFormData.harvest_year}-${localFormData.harvest_month}-01`);
+    const formattedHarvestDate = harvestDate.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+
+    const data = {
+      ...localFormData,
+      harvest_month_year: formattedHarvestDate,
+    };
+    updateCropOtherNew(data);
+    
+    const success = await submitFarmerForm();
+    if (success) {
+      onNext('/success');
+    }
   };
-  updateCropOtherNew(data);
-  
-  const success = await submitFarmerForm();
-  if (success) {
-    onNext('/success');
-  }
-};
 
   useEffect(() => {
-    const { plantation_date, harvest_month, harvest_year, total_trees } = localFormData;
+    const { harvest_month, harvest_year, total_trees } = localFormData;
     const isValidYear = /^\d{4}$/.test(harvest_year);
-    setIsFormValid(plantation_date && harvest_month && isValidYear && total_trees);
+    setIsFormValid( harvest_month && isValidYear && total_trees);
   }, [localFormData]);
 
   const cardBg = 'white';
@@ -119,11 +144,11 @@ const handleSubmit = async () => {
                 </FormLabel>
                 <RadioGroup
                   name="plantation_date"
-                  onChange={(value) => handleRadioChange('plantation_date', value)}
-                  value={localFormData.plantation_date}
+                  onChange={handleDateRadioChange}
+                  value={`${localFormData.plantation_start_date}_to_${localFormData.plantation_end_date}`}
                 >
                   <Stack direction="column" spacing={4}>
-                    {options.map((option) => (
+                    {combinedOptions.map((option) => (
                       <Radio key={option.value} value={option.value} colorScheme="blue">
                         <Text fontSize="md" color="gray.700">
                           {option.label}

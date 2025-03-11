@@ -17,13 +17,29 @@ import DateMonthOptions from '../components/dateMonthOptions.js';
 import { useFarmerFormStore } from '../store/farmerForm.store.js';
 
 const CropIndusNew = ({ onNext, onBack }) => {
-  const options = DateMonthOptions();
+  const dateOptions = DateMonthOptions();
   const { formData, updateCropIndusNew, submitFarmerForm, isLoading } = useFarmerFormStore();
 
+  // Create combined date options, initially apat kasi yung binibigay ni DateMonthOptions
+  const combinedOptions = [
+    {
+      label: `${dateOptions[0].label} to ${dateOptions[1].label}`,
+      value: `${dateOptions[0].startDate}_to_${dateOptions[1].endDate}`,
+      startDate: dateOptions[0].startDate,
+      endDate: dateOptions[1].endDate
+    },
+    {
+      label: `${dateOptions[2].label} to ${dateOptions[3].label}`,
+      value: `${dateOptions[2].startDate}_to_${dateOptions[3].endDate}`,
+      startDate: dateOptions[2].startDate,
+      endDate: dateOptions[3].endDate
+    }
+  ];
+
   const [localFormData, setLocalFormData] = useState(formData.cropIndusNew || {
-    plantation_date: '',
-    harvest_month: '',
-    harvest_year: '',
+    plantation_start_date: '',
+    plantation_end_date: '',
+    harvest_month_year: '',
     total_area_planted: '',
   });
 
@@ -31,20 +47,26 @@ const CropIndusNew = ({ onNext, onBack }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    if (name === 'harvest_year' && !/^\d{0,4}$/.test(value)) {
-      return; // Prevent invalid year input
-    }
     setLocalFormData((prevData) => ({ ...prevData, [name]: value }));
   };
 
-  const handleRadioChange = (name, value) => {
-    setLocalFormData((prevData) => ({ ...prevData, [name]: value }));
+  const handleDateRadioChange = (value) => {
+    const [plantation_start_date, plantation_end_date] = value.split('_to_');
+    setLocalFormData((prevData) => ({
+      ...prevData,
+      plantation_start_date,
+      plantation_end_date,
+    }));
   };
 
   const handleSubmit = async () => {
+    // Combine harvest_month and harvest_year into a date value
+    const harvestDate = new Date(`${localFormData.harvest_year}-${localFormData.harvest_month}-01`);
+    const formattedHarvestDate = harvestDate.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+
     const data = {
       ...localFormData,
-      harvest_month: `${localFormData.harvest_month} ${localFormData.harvest_year}`,
+      harvest_month_year: formattedHarvestDate,
     };
     updateCropIndusNew(data);
     
@@ -55,9 +77,9 @@ const CropIndusNew = ({ onNext, onBack }) => {
   };
 
   useEffect(() => {
-    const { plantation_date, harvest_month, harvest_year, total_area_planted } = localFormData;
+    const { harvest_month, harvest_year, total_area_planted } = localFormData;
     const isValidYear = /^\d{4}$/.test(harvest_year);
-    setIsFormValid(plantation_date && harvest_month && isValidYear && total_area_planted);
+    setIsFormValid( harvest_month && isValidYear && total_area_planted);
   }, [localFormData]);
 
   const cardBg = 'white';
@@ -121,11 +143,11 @@ const CropIndusNew = ({ onNext, onBack }) => {
                 </FormLabel>
                 <RadioGroup
                   name="plantation_date"
-                  onChange={(value) => handleRadioChange('plantation_date', value)}
-                  value={localFormData.plantation_date}
+                  onChange={handleDateRadioChange}
+                  value={`${localFormData.plantation_start_date}_to_${localFormData.plantation_end_date}`}
                 >
                   <Stack direction="column" spacing={4}>
-                    {options.map((option) => (
+                    {combinedOptions.map((option) => (
                       <Radio key={option.value} value={option.value} colorScheme="blue">
                         <Text fontSize="md" color="gray.700">
                           {option.label}
@@ -155,18 +177,18 @@ const CropIndusNew = ({ onNext, onBack }) => {
                     value={localFormData.harvest_month}
                     onChange={handleChange}
                   >
-                    <option value="January">January</option>
-                    <option value="February">February</option>
-                    <option value="March">March</option>
-                    <option value="April">April</option>
-                    <option value="May">May</option>
-                    <option value="June">June</option>
-                    <option value="July">July</option>
-                    <option value="August">August</option>
-                    <option value="September">September</option>
-                    <option value="October">October</option>
-                    <option value="November">November</option>
-                    <option value="December">December</option>
+                    <option value="01">January</option>
+                    <option value="02">February</option>
+                    <option value="03">March</option>
+                    <option value="04">April</option>
+                    <option value="05">May</option>
+                    <option value="06">June</option>
+                    <option value="07">July</option>
+                    <option value="08">August</option>
+                    <option value="09">September</option>
+                    <option value="10">October</option>
+                    <option value="11">November</option>
+                    <option value="12">December</option>
                   </Select>
                   <Input
                     name="harvest_year"

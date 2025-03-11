@@ -6,7 +6,11 @@ const D1CropIndusHarvestSchema = new mongoose.Schema({
     ref: 'C1_crop_records_indus', 
     required: true 
   },
-  harvest_date: { type: String, required: true },
+
+  //harvest date
+  harvest_start_date: { type: Date, required: true },
+  harvest_end_date: { type: Date, required: true },
+
   total_area_harvested: { type: Number, required: true },
   total_weight: { type: Number, required: true },
   destination: { type: String, required: true },

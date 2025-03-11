@@ -90,14 +90,15 @@ export const formC2_cro = async (req, res) => {
 // Step 4A: If selected INDUSTRIAL CROP and HARVESTING ang stage, ito next form na pupuntahan
 
 export const formD1_cih = async (req, res) => {
-  const { record_id, harvest_date, total_area_harvested, total_weight, destination, mode_of_payment, mode_of_delivery } = req.body;
-  if (!record_id || !harvest_date || !total_area_harvested || !total_weight || !destination || !mode_of_payment || !mode_of_delivery) {
+  const { record_id, harvest_start_date, harvest_end_date, total_area_harvested, total_weight, destination, mode_of_payment, mode_of_delivery } = req.body;
+  if (!record_id || !harvest_start_date || !harvest_end_date || !total_area_harvested || !total_weight || !destination || !mode_of_payment || !mode_of_delivery) {
       return res.status(400).json({ message: 'Missing required fields' });
   }
   try {
       const newIndusHarvest = await D1_crop_indus_harvest.create({
           record_id,
-          harvest_date,
+          harvest_start_date,
+          harvest_end_date,
           total_area_harvested,
           total_weight,
           destination,
@@ -113,15 +114,16 @@ export const formD1_cih = async (req, res) => {
 // Step 4A: If selected INDUSTRIAL CROP pero NEWLY PLANTED and stage, to pupuntahan
 
 export const formD1_cin = async (req, res) => {
-  const { record_id, plantation_date, harvest_month, total_area_planted } = req.body;
-  if (!record_id || !plantation_date || !harvest_month || !total_area_planted) {
+  const { record_id, plantation_start_date, plantation_end_date, harvest_month_year, total_area_planted } = req.body;
+  if (!record_id || !plantation_start_date || !plantation_end_date || !harvest_month_year || !total_area_planted) {
       return res.status(400).json({ message: 'Missing required fields' });
   }
   try {
       const newIndusNew = await D1_crop_indus_new.create({
           record_id,
-          plantation_date,
-          harvest_month_year: harvest_month,
+          plantation_start_date,
+          plantation_end_date,
+          harvest_month_year,
           total_area_planted,
       });
       return res.json(newIndusNew);
@@ -133,14 +135,15 @@ export const formD1_cin = async (req, res) => {
 // Step 4B: If selected BANANA, COFFEE or OTHERS and HARVESTING ang stage, ito next form na pupuntahan
 
 export const formD2_bc_ofh = async (req, res) => {
-  const { record_id, harvest_date, trees_harvested, total_weight, destination, mode_of_payment, mode_of_delivery } = req.body;
-  if (!record_id || !harvest_date || !trees_harvested || !total_weight || !destination || !mode_of_payment || !mode_of_delivery) {
+  const { record_id, harvest_start_date, harvest_end_date, trees_harvested, total_weight, destination, mode_of_payment, mode_of_delivery } = req.body;
+  if (!record_id || !harvest_start_date || !harvest_end_date || !trees_harvested || !total_weight || !destination || !mode_of_payment || !mode_of_delivery) {
       return res.status(400).json({ message: 'Missing required fields' });
   }
   try {
       const newOthersHarvest = await D2_bc_other_fct_harvest.create({
           record_id,
-          harvest_date,
+          harvest_start_date,
+          harvest_end_date,
           trees_harvested,
           total_weight,
           destination,
@@ -156,14 +159,16 @@ export const formD2_bc_ofh = async (req, res) => {
 // Step 4B: If selected BANANA, COFFEE or OTHERS pero NEWLY PLANTED ang stage, ito next na pupuntahan
 
 export const formD2_bc_ofn = async (req, res) => {
-  const { record_id, harvest_month, total_trees } = req.body;
-  if (!record_id || !harvest_month || !total_trees) {
+  const { record_id, plantation_start_date, plantation_end_date, harvest_month_year, total_trees } = req.body;
+  if (!record_id || !plantation_start_date || !plantation_end_date || !harvest_month_year || !total_trees) {
       return res.status(400).json({ message: 'Missing required fields' });
   }
   try {
       const newOthersNew = await D2_bc_other_fct_new.create({
           record_id,
-          harvest_month_year: harvest_month,
+          plantation_start_date,
+          plantation_end_date,
+          harvest_month_year,
           total_trees,
       });
       return res.json(newOthersNew);

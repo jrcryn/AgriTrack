@@ -18,12 +18,29 @@ import DateMonthOptions from '../components/dateMonthOptions.js';
 import { useFarmerFormStore } from '../store/farmerForm.store.js';
 
 const CropIndusHarvest = ({ onNext, onBack }) => {
-  const options = DateMonthOptions();
+  const dateOptions = DateMonthOptions();
   const { formData, updateCropIndusHarvest, submitFarmerForm, isLoading } = useFarmerFormStore();
+
+  // Create combined date options, initially apat kasi yung binibigay ni DateMonthOptions
+  const combinedOptions = [
+    {
+      label: `${dateOptions[0].label} to ${dateOptions[1].label}`,
+      value: `${dateOptions[0].startDate}_to_${dateOptions[1].endDate}`,
+      startDate: dateOptions[0].startDate,
+      endDate: dateOptions[1].endDate
+    },
+    {
+      label: `${dateOptions[2].label} to ${dateOptions[3].label}`,
+      value: `${dateOptions[2].startDate}_to_${dateOptions[3].endDate}`,
+      startDate: dateOptions[2].startDate,
+      endDate: dateOptions[3].endDate
+    }
+  ];
   
   // Initialize from store
   const [localFormData, setLocalFormData] = useState(formData.cropIndusHarvest || {
-    harvest_date: '',
+    harvest_start_date: '',
+    harvest_end_date: '',
     total_area_harvested: '',
     total_weight: '',
     destination: '',
@@ -43,10 +60,19 @@ const CropIndusHarvest = ({ onNext, onBack }) => {
     setLocalFormData((prevData) => ({ ...prevData, [name]: value }));
   };
 
+  const handleDateRadioChange = (value) => {
+    const [harvest_start_date, harvest_end_date] = value.split('_to_');
+    setLocalFormData((prevData) => ({
+      ...prevData,
+      harvest_start_date,
+      harvest_end_date,
+    }));
+  };
+
   const handleSubmit = async () => {
     setSubmitting(true);
     
-    // First update the store
+    // Update the store with the start and end dates
     updateCropIndusHarvest(localFormData);
     
     // Then submit the entire form
@@ -59,9 +85,9 @@ const CropIndusHarvest = ({ onNext, onBack }) => {
   };
 
   useEffect(() => {
-    const { harvest_date, total_area_harvested, total_weight, destination, mode_of_payment, mode_of_delivery } = localFormData;
+    const { harvest_start_date, harvest_end_date, total_area_harvested, total_weight, destination, mode_of_payment, mode_of_delivery } = localFormData;
     setIsFormValid(
-      harvest_date && total_area_harvested && total_weight && 
+      harvest_start_date && harvest_end_date && total_area_harvested && total_weight && 
       destination && mode_of_payment && mode_of_delivery
     );
   }, [localFormData]);
@@ -127,11 +153,11 @@ const CropIndusHarvest = ({ onNext, onBack }) => {
                 </FormLabel>
                 <RadioGroup
                   name="harvest_date"
-                  onChange={(value) => handleRadioChange('harvest_date', value)}
-                  value={localFormData.harvest_date}
+                  onChange={handleDateRadioChange}
+                  value={`${localFormData.harvest_start_date}_to_${localFormData.harvest_end_date}`}
                 >
                   <Stack direction="column" spacing={4}>
-                    {options.map((option) => (
+                    {combinedOptions.map((option) => (
                       <Radio key={option.value} value={option.value} colorScheme="blue">
                         <Text fontSize="md" color="gray.700">
                           {option.label}

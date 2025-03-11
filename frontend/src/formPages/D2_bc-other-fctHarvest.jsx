@@ -18,12 +18,28 @@ import DateMonthOptions from '../components/dateMonthOptions.js';
 import { useFarmerFormStore } from '../store/farmerForm.store.js';
 
 const bc_other_fctHarvest = ({ onNext, onBack }) => {
-  const options = DateMonthOptions();
+  const dateOptions = DateMonthOptions();
+
+  // Create combined date options, initially apat kasi yung binibigay ni DateMonthOptions
+  const combinedOptions = [
+    {
+      label: `${dateOptions[0].label} to ${dateOptions[1].label}`,
+      value: `${dateOptions[0].startDate}_to_${dateOptions[1].endDate}`,
+      startDate: dateOptions[0].startDate,
+      endDate: dateOptions[1].endDate
+    },
+    {
+      label: `${dateOptions[2].label} to ${dateOptions[3].label}`,
+      value: `${dateOptions[2].startDate}_to_${dateOptions[3].endDate}`,
+      startDate: dateOptions[2].startDate,
+      endDate: dateOptions[3].endDate
+    }
+  ];
 
   const { formData, updateCropOtherHarvest, submitFarmerForm, isLoading } = useFarmerFormStore();
   const [localFormData, setLocalFormData] = useState(formData.cropOtherHarvest || {
-    harvest_date: '',
-    trees_harvested: '',
+    harvest_start_date: '',
+    harvest_end_date: '',
     total_weight: '',
     destination: '',
     mode_of_payment: '',
@@ -41,6 +57,15 @@ const bc_other_fctHarvest = ({ onNext, onBack }) => {
     setLocalFormData((prevData) => ({ ...prevData, [name]: value }));
   };
 
+  const handleDateRadioChange = (value) => {
+    const [harvest_start_date, harvest_end_date] = value.split('_to_');
+    setLocalFormData((prevData) => ({
+      ...prevData,
+      harvest_start_date,
+      harvest_end_date,
+    }));
+  };
+
   const handleSubmit = async () => {
     updateCropOtherHarvest(localFormData);
     
@@ -51,8 +76,8 @@ const bc_other_fctHarvest = ({ onNext, onBack }) => {
   };
 
   useEffect(() => {
-    const { harvest_date, trees_harvested, total_weight, destination, mode_of_payment, mode_of_delivery } = localFormData;
-    setIsFormValid(harvest_date && trees_harvested && total_weight && destination && mode_of_payment && mode_of_delivery);
+    const { harvest_start_date, harvest_end_date, trees_harvested, total_weight, destination, mode_of_payment, mode_of_delivery } = localFormData;
+    setIsFormValid(harvest_start_date && harvest_end_date && trees_harvested && total_weight && destination && mode_of_payment && mode_of_delivery);
   }, [localFormData]);
 
   const cardBg = 'white';
@@ -117,11 +142,11 @@ const bc_other_fctHarvest = ({ onNext, onBack }) => {
                 </FormLabel>
                 <RadioGroup
                   name="harvest_date"
-                  onChange={(value) => handleRadioChange('harvest_date', value)}
-                  value={localFormData.harvest_date}
+                  onChange={handleDateRadioChange}
+                  value={`${localFormData.harvest_start_date}_to_${localFormData.harvest_end_date}`}
                 >
                   <Stack direction="column" spacing={4}>
-                    {options.map((option) => (
+                    {combinedOptions.map((option) => (
                       <Radio key={option.value} value={option.value} colorScheme="blue">
                         <Text fontSize="md" color="gray.700">
                           {option.label}

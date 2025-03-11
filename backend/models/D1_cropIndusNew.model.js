@@ -6,8 +6,12 @@ const D1CropIndusNewSchema = new mongoose.Schema({
     ref: 'C1_crop_records_indus', 
     required: true 
   },
-  plantation_date: { type: String, required: true },
-  harvest_month_year: { type: String, required: true },
+  
+    //plantation date
+    plantation_start_date: { type: Date, required: true },
+    plantation_end_date: { type: Date, required: true },
+
+  harvest_month_year: { type: Date, required: true },
   total_area_planted: { type: Number, required: true }
 }, { versionKey: false });
 

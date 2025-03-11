@@ -1,6 +1,5 @@
-'use client'
-
 import React, { useState, useEffect } from 'react'
+import { Link as RouterLink } from 'react-router-dom';
 import {
   IconButton,
   Avatar,
@@ -34,11 +33,11 @@ import { FaWpforms } from "react-icons/fa";
 import Logo from '../images/Calamba_Seal.png'
 
 const LinkItems = [
-  { name: 'Dashboard', icon: FiGrid },
-  { name: 'Metrics', icon: FiBarChart2 },
-  { name: 'Generate Reports', icon: FiFileText },
-  { name: 'Responses', icon: FaWpforms },
-  { name: 'Farmers', icon: FiUsers },
+  { name: 'Dashboard', icon: FiGrid, path : '/admin/dashboard' },
+  { name: 'Metrics', icon: FiBarChart2, path : '/admin/metrics' },
+  { name: 'Generate Reports', icon: FiFileText, path : '/admin/gen-reports' },
+  { name: 'Responses', icon: FaWpforms, path : '/admin/responses' },
+  { name: 'Farmers', icon: FiUsers, path : '/admin/farmers' },
 ]
 
 const SidebarContent = ({ onClose, ...rest }) => {
@@ -71,7 +70,7 @@ const SidebarContent = ({ onClose, ...rest }) => {
       />
       {/* Navigation Items */}
       {LinkItems.map((link) => (
-        <NavItem key={link.name} icon={link.icon}>
+        <NavItem key={link.name} icon={link.icon} path={link.path}>
           {link.name}
         </NavItem>
       ))}
@@ -79,9 +78,13 @@ const SidebarContent = ({ onClose, ...rest }) => {
   )
 }
 
-const NavItem = ({ icon, children, ...rest }) => {
+const NavItem = ({ icon, children, path, ...rest }) => {
   return (
-    <Box as="a" href="#" style={{ textDecoration: 'none' }} _focus={{ boxShadow: 'none' }}>
+    <Box 
+      as={RouterLink} 
+      to={path}
+      style={{ textDecoration: 'none' }} 
+      _focus={{ boxShadow: 'none' }}>
       <Flex
         align="center"
         p="4"
@@ -129,15 +132,21 @@ const MobileNav = ({ onOpen, ...rest }) => {
 
   return (
     <Flex
-      ml={{ base: 0, md: 60 }}
+      ml={{ base: 0, md: 260 }}
       px={{ base: 4, md: 4 }}
-      height="55" // thinner navbar
+      height="55px" 
       alignItems="center"
       bg="white"
+      boxShadow={'md'}
       borderBottomWidth="1px"
       borderBottomColor="gray.200"
       justifyContent={{ base: 'space-between', md: 'flex-end' }}
-      {...rest}>
+      position="fixed"
+      top={0}
+      right={0}
+      left={0}
+      zIndex={10}
+    {...rest}>
       <IconButton
         display={{ base: 'flex', md: 'none' }}
         onClick={onOpen}
@@ -184,7 +193,7 @@ const SidebarHeader = () => {
   const { isOpen, onOpen, onClose } = useDisclosure()
 
   return (
-    <Box minH="100vh" bg="gray.200">
+    <Box>
       <SidebarContent onClose={onClose} display={{ base: 'none', md: 'block' }} />
       <Drawer
         isOpen={isOpen}
@@ -192,15 +201,13 @@ const SidebarHeader = () => {
         onClose={onClose}
         returnFocusOnClose={false}
         onOverlayClick={onClose}
-        size="full">
+        size="full"
+      >
         <DrawerContent>
           <SidebarContent onClose={onClose} />
         </DrawerContent>
       </Drawer>
       <MobileNav onOpen={onOpen} />
-      <Box ml={{ base: 0, md: 60 }} p="4">
-        {/* Content */}
-      </Box>
     </Box>
   )
 }

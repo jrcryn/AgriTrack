@@ -1,18 +1,24 @@
 import React from 'react';
-import { Box } from '@chakra-ui/react';
+import { Box, Flex } from '@chakra-ui/react';
 import SidebarHeader from './SidebarHeader';
 
 const Layout = ({ children }) => {
   return (
-    <Box>
-      {/* SidebarHeader */}
+    <Flex minH="100vh" direction="column">
+      {/* SidebarHeader - already has fixed positioning */}
       <SidebarHeader />
       
-      {/* Main content area */}
-      <Box flex="1" ml="250px" p={4} position={'sticky'}>
+      {/* Main content area - adjust margin to account for sidebar width */}
+      <Box 
+        flex="1" 
+        ml={{ base: 0, md: "260px" }} 
+        mt="55px" 
+        p={4}
+        overflowY="auto"
+      >
         {children}
       </Box>
-    </Box>
+    </Flex>
   );
 };
 
