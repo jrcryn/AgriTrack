@@ -14,7 +14,8 @@ app.use(express.json());
 
 
 const allowedOrigins = [
-    'https://agri-trackfrontend.vercel.app',
+    'https://agri-trackfrontend.vercel.app', // frontend
+    'https://agri-track-green.vercel.app', // backend/frontend
     process.env.CLIENT_URL,
 ];
 
