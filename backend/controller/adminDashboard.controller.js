@@ -127,5 +127,197 @@ export const getValidatedFarmerInputs = async (req, res) => {
 
 
 
+// Update farmer input and all referenced documents
+export const updateFarmerInputAndReferences = async (req, res) => {
+  try {
+    const { farmerId, updateData } = req.body;
+
+    if (!farmerId) {
+      return res.status(400).json({ message: 'Farmer ID is required' });
+    }
+
+    // 1. Find the farmer input and check if it's unvalidated
+    const farmerInput = await A_farmer_inputs.findById(farmerId);
+    
+    if (!farmerInput) {
+      return res.status(404).json({ message: 'Farmer input not found' });
+    }
+    
+    // Only unvalidated farmer inputs can be updated
+    if (farmerInput.isValidated) {
+      return res.status(400).json({ message: 'Cannot update already validated farmer input' });
+    }
+
+    // 2. Update the farmer input data if provided
+    if (updateData.farmerInput) {
+      const { surname, first_name, middle_name, suffix, farm_location } = updateData.farmerInput;
+      
+      if (surname) farmerInput.surname = surname;
+      if (first_name) farmerInput.first_name = first_name;
+      if (middle_name !== undefined) farmerInput.middle_name = middle_name;
+      if (suffix !== undefined) farmerInput.suffix = suffix;
+      if (farm_location) farmerInput.farm_location = farm_location;
+    }
+
+    // 3. Set the validation status to true
+    farmerInput.isValidated = true;
+    await farmerInput.save();
+
+    // 4. Find and update the crop type
+    const cropType = await B_crop_types.findOne({ farmer_input_id: farmerId });
+    
+    if (cropType && updateData.cropType) {
+      cropType.crop_type = updateData.cropType;
+      await cropType.save();
+    }
+
+    // 5. Find and update the appropriate crop record based on crop type
+    let cropRecord;
+    if (cropType?.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS') {
+      cropRecord = await C_crop_records_indus.findOne({ farmer_input_id: farmerId });
+      
+      if (cropRecord && updateData.cropRecord) {
+        const { crop_type, crop_variety, crop_stage } = updateData.cropRecord;
+        if (crop_type) cropRecord.crop_type = crop_type;
+        if (crop_variety !== undefined) cropRecord.crop_variety = crop_variety;
+        if (crop_stage) cropRecord.crop_stage = crop_stage;
+        
+        await cropRecord.save();
+      }
+    } else if (cropType) {
+      cropRecord = await C_crop_records_others.findOne({ farmer_input_id: farmerId });
+      
+      if (cropRecord && updateData.cropRecord) {
+        const { crop_variety, crop_stage } = updateData.cropRecord;
+        if (crop_variety) cropRecord.crop_variety = crop_variety;
+        if (crop_stage) cropRecord.crop_stage = crop_stage;
+        
+        await cropRecord.save();
+      }
+    }
+
+    // 6. Find and update crop details based on crop type and stage
+    if (cropRecord) {
+      let cropDetails;
+      
+      if (cropType?.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS') {
+        if (cropRecord.crop_stage === 'NEWLY PLANTED') {
+          cropDetails = await D1_crop_indus_new.findOne({ record_id: cropRecord._id });
+          
+          if (cropDetails && updateData.cropDetails) {
+            const { plantation_start_date, plantation_end_date, harvest_month_year, total_area_planted } = updateData.cropDetails;
+            
+            if (plantation_start_date) cropDetails.plantation_start_date = plantation_start_date;
+            if (plantation_end_date) cropDetails.plantation_end_date = plantation_end_date;
+            if (harvest_month_year) cropDetails.harvest_month_year = harvest_month_year;
+            if (total_area_planted) cropDetails.total_area_planted = total_area_planted;
+            
+            await cropDetails.save();
+          }
+        } else if (cropRecord.crop_stage === 'HARVESTING') {
+          cropDetails = await D1_crop_indus_harvest.findOne({ record_id: cropRecord._id });
+          
+          if (cropDetails && updateData.cropDetails) {
+            const { harvest_start_date, harvest_end_date, total_area_harvested, 
+                   total_weight, destination, mode_of_payment, mode_of_delivery } = updateData.cropDetails;
+            
+            if (harvest_start_date) cropDetails.harvest_start_date = harvest_start_date;
+            if (harvest_end_date) cropDetails.harvest_end_date = harvest_end_date;
+            if (total_area_harvested) cropDetails.total_area_harvested = total_area_harvested;
+            if (total_weight) cropDetails.total_weight = total_weight;
+            if (destination) cropDetails.destination = destination;
+            if (mode_of_payment) cropDetails.mode_of_payment = mode_of_payment;
+            if (mode_of_delivery) cropDetails.mode_of_delivery = mode_of_delivery;
+            
+            await cropDetails.save();
+          }
+        }
+      } else {
+        if (cropRecord.crop_stage === 'NEWLY PLANTED') {
+          cropDetails = await D2_bc_other_fct_new.findOne({ record_id: cropRecord._id });
+          
+          if (cropDetails && updateData.cropDetails) {
+            const { plantation_start_date, plantation_end_date, harvest_month_year, total_trees } = updateData.cropDetails;
+            
+            if (plantation_start_date) cropDetails.plantation_start_date = plantation_start_date;
+            if (plantation_end_date) cropDetails.plantation_end_date = plantation_end_date;
+            if (harvest_month_year) cropDetails.harvest_month_year = harvest_month_year;
+            if (total_trees) cropDetails.total_trees = total_trees;
+            
+            await cropDetails.save();
+          }
+        } else if (cropRecord.crop_stage === 'HARVESTING') {
+          cropDetails = await D2_bc_other_fct_harvest.findOne({ record_id: cropRecord._id });
+          
+          if (cropDetails && updateData.cropDetails) {
+            const { harvest_start_date, harvest_end_date, trees_harvested, 
+                   total_weight, destination, mode_of_payment, mode_of_delivery } = updateData.cropDetails;
+            
+            if (harvest_start_date) cropDetails.harvest_start_date = harvest_start_date;
+            if (harvest_end_date) cropDetails.harvest_end_date = harvest_end_date;
+            if (trees_harvested) cropDetails.trees_harvested = trees_harvested;
+            if (total_weight) cropDetails.total_weight = total_weight;
+            if (destination) cropDetails.destination = destination;
+            if (mode_of_payment) cropDetails.mode_of_payment = mode_of_payment;
+            if (mode_of_delivery) cropDetails.mode_of_delivery = mode_of_delivery;
+            
+            await cropDetails.save();
+          }
+        }
+      }
+    }
+
+    // 7. Return the updated data
+    const updatedData = await getCompleteRecordById(farmerId);
+    res.json({ 
+      message: 'Farmer input and references updated successfully',
+      data: updatedData
+    });
+    
+  } catch (error) {
+    console.error('Error updating farmer input:', error);
+    res.status(500).json({ 
+      message: 'Error updating farmer input and references', 
+      error: error.message 
+    });
+  }
+};
+
+// Helper function to get complete record by farmer input ID
+const getCompleteRecordById = async (farmerId) => {
+  const farmerInput = await A_farmer_inputs.findById(farmerId).lean();
+  if (!farmerInput) return null;
+  
+  const cropType = await B_crop_types.findOne({ farmer_input_id: farmerId }).lean();
+  if (!cropType) return { farmerInput, cropType: null, cropRecord: null, cropDetails: null };
+  
+  let cropRecord, cropDetails;
+  
+  if (cropType.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS') {
+    cropRecord = await C_crop_records_indus.findOne({ farmer_input_id: farmerId }).lean();
+    if (!cropRecord) return { farmerInput, cropType, cropRecord: null, cropDetails: null };
+    
+    if (cropRecord.crop_stage === 'NEWLY PLANTED') {
+      cropDetails = await D1_crop_indus_new.findOne({ record_id: cropRecord._id }).lean();
+    } else if (cropRecord.crop_stage === 'HARVESTING') {
+      cropDetails = await D1_crop_indus_harvest.findOne({ record_id: cropRecord._id }).lean();
+    }
+  } else {
+    cropRecord = await C_crop_records_others.findOne({ farmer_input_id: farmerId }).lean();
+    if (!cropRecord) return { farmerInput, cropType, cropRecord: null, cropDetails: null };
+    
+    if (cropRecord.crop_stage === 'NEWLY PLANTED') {
+      cropDetails = await D2_bc_other_fct_new.findOne({ record_id: cropRecord._id }).lean();
+    } else if (cropRecord.crop_stage === 'HARVESTING') {
+      cropDetails = await D2_bc_other_fct_harvest.findOne({ record_id: cropRecord._id }).lean();
+    }
+  }
+
+  return { farmerInput, cropType, cropRecord, cropDetails };
+};
+
+
+
+
 
 
