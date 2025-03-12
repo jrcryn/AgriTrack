@@ -1,9 +1,9 @@
 import express from 'express';
-import { getAllFarmerInputs, updateFarmerInput } from '../controller/adminDashboard.controller.js'; 
+import { getUnvalidatedFarmerInputs, getValidatedFarmerInputs } from '../controller/adminDashboard.controller.js'; 
 
 const router = express.Router();
 
-router.get('/get-farmerInputs', getAllFarmerInputs);
-router.put('/update-farmerInput', updateFarmerInput);
+router.get('/get-unvalidated-inputs', getUnvalidatedFarmerInputs);
+router.get('/get-validated-inputs', getValidatedFarmerInputs);
 
 export default router;
