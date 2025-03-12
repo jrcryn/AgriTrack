@@ -14,31 +14,16 @@ app.use(express.json());
 
 
 const allowedOrigins = [
-    'https://agri-trackfrontend.vercel.app', // frontend
-    'https://agri-track-green.vercel.app', // backend/frontend
+    'https://agritrack-5zw3.onrender.com',
     process.env.CLIENT_URL,
 ];
 
-app.use((req, res, next) => {
-    const origin = req.headers.origin;
-    if (allowedOrigins.includes(origin)) {
-        res.setHeader('Access-Control-Allow-Origin', origin);
-    } else {
-        // Allow any origin for development/testing
-        res.setHeader('Access-Control-Allow-Origin', '*');
-    }
-    
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-    
-    // Handle preflight requests
-    if (req.method === 'OPTIONS') {
-        return res.status(200).end();
-    }
-    
-    next();
-});
+app.use(cors({
+    origin: allowedOrigins,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  }));
 
 app.use('/', farmerForm);
 app.use('/', adminDashboard);
