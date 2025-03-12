@@ -5,7 +5,8 @@ const AFarmerInputsSchema = new mongoose.Schema({
   first_name: { type: String, required: true, trim: true },
   middle_name: { type: String, trim: true },
   suffix: { type: String, trim: true },
-  farm_location: { type: String, required: true, trim: true }
+  farm_location: { type: String, required: true, trim: true },
+  isValidated: { type: Boolean, default: false },
 }, { versionKey: false });
 
 export const A_farmer_inputs = mongoose.model('A_farmer_inputs', AFarmerInputsSchema);

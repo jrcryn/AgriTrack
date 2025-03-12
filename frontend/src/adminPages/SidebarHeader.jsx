@@ -35,8 +35,8 @@ import Logo from '../images/Calamba_Seal.png'
 const LinkItems = [
   { name: 'Dashboard', icon: FiGrid, path : '/admin/dashboard' },
   { name: 'Metrics', icon: FiBarChart2, path : '/admin/metrics' },
-  { name: 'Generate Reports', icon: FiFileText, path : '/admin/gen-reports' },
-  { name: 'Responses', icon: FaWpforms, path : '/admin/responses' },
+  { name: 'Generate Report', icon: FiFileText, path : '/admin/gen-reports' },
+  { name: 'New Responses', icon: FaWpforms, path : '/admin/responses' },
   { name: 'Farmers', icon: FiUsers, path : '/admin/farmers' },
 ]
 

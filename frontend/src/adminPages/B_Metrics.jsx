@@ -1,246 +1,280 @@
-import React, { useState } from 'react';
-import { 
-  Box, 
-  Heading, 
-  Text, 
-  HStack, 
-  Flex, 
-  Stat, 
-  StatLabel, 
-  StatNumber, 
+import React, { useState } from "react";
+import {
+  Box,
+  Heading,
+  Text,
+  Stack,
+  HStack,
+  Flex,
   Button,
-  Divider,
-  Icon,
-  useColorModeValue,
+  Stat,
+  StatLabel,
+  StatNumber,
+  StatHelpText,
   Select,
-  FormControl,
-  FormLabel,
-  Grid,
-  GridItem,
-  Badge
-} from '@chakra-ui/react';
-import { FiUsers, FiMapPin, FiTruck, FiArrowRight, FiFilter, FiCalendar } from 'react-icons/fi';
-import { GiPlantSeed } from "react-icons/gi"; 
-
-
-const MetricCard = ({ title, value, icon, accentColor }) => {
-  const bgColor = useColorModeValue('white', 'gray.700');
-  const borderColor = useColorModeValue('gray.200', 'gray.600');
-  
-  return (
-    <Box 
-      bg={bgColor}
-      p={5}
-      borderRadius="lg"
-      boxShadow="md"
-      borderWidth="1px"
-      borderColor={borderColor}
-      flexGrow={1}
-      position="relative"
-      overflow="hidden"
-    >
-      <Box 
-        position="absolute" 
-        top={0} 
-        left={0} 
-        h="4px" 
-        w="100%" 
-        bg={accentColor} 
-      />
-      
-      <HStack spacing={4} align="center">
-        <Icon as={icon} boxSize={10} color={accentColor} />
-        <Stat>
-          <StatLabel fontSize="sm" color="gray.500">{title}</StatLabel>
-          <StatNumber fontSize="2xl" fontWeight="bold">{value}</StatNumber>
-        </Stat>
-      </HStack>
-    </Box>
-  );
-};
-
-const SectionHeader = ({ title, accentColor }) => {
-  return (
-    <Flex align="center" mb={4}>
-      <Box w="4px" h="24px" bg={accentColor} mr={3} borderRadius="sm" />
-      <Heading size="md" fontWeight="semibold" letterSpacing="tight">
-        {title}
-      </Heading>
-    </Flex>
-  );
-};
-
-const FilterControls = ({ onFilterChange }) => {
-  const [year, setYear] = useState(new Date().getFullYear().toString());
-  const [period, setPeriod] = useState('all');
-  const borderColor = useColorModeValue('gray.200', 'gray.600');
-  const bgColor = useColorModeValue('gray.50', 'gray.800');
-
-  const handleFilter = () => {
-    onFilterChange({ year, period });
-  };
-
-  return (
-    <Box 
-      mb={6} 
-      p={4} 
-      borderWidth="1px" 
-      borderColor={borderColor} 
-      borderRadius="md" 
-      bg={bgColor}
-    >
-      <Flex 
-        direction={{ base: "column", md: "row" }} 
-        align={{ base: "stretch", md: "flex-end" }}
-        justify="space-between"
-        wrap="wrap"
-        gap={4}
-      >
-        <Box>
-          <Flex align="center" mb={2}>
-            <Icon as={FiFilter} mr={2} color="blue.600" />
-            <Text fontWeight="medium" color="gray.700">Data Filters</Text>
-          </Flex>
-          <Badge colorScheme="blue" variant="subtle" mb={2}>
-            Current view: {period === 'all' ? 'All periods' : period} {year}
-          </Badge>
-        </Box>
-        
-        <Grid 
-          templateColumns={{ base: "1fr", sm: "repeat(2, 1fr)", md: "repeat(3, 1fr)" }}
-          gap={4}
-          width={{ base: "100%", md: "auto" }}
-        >
-          <GridItem>
-            <FormControl size="sm">
-              <FormLabel fontSize="xs" fontWeight="medium" mb={1}>Year</FormLabel>
-              <Select 
-                size="sm" 
-                value={year} 
-                onChange={(e) => setYear(e.target.value)}
-              >
-                <option value="2025">2025</option>
-                <option value="2024">2024</option>
-                <option value="2023">2023</option>
-              </Select>
-            </FormControl>
-          </GridItem>
-          
-          <GridItem>
-            <FormControl size="sm">
-              <FormLabel fontSize="xs" fontWeight="medium" mb={1}>Period</FormLabel>
-              <Select 
-                size="sm" 
-                value={period} 
-                onChange={(e) => setPeriod(e.target.value)}
-              >
-                <option value="all">All Periods</option>
-                <option value="Q1">Q1 (Jan-Mar)</option>
-                <option value="Q2">Q2 (Apr-Jun)</option>
-                <option value="Q3">Q3 (Jul-Sep)</option>
-                <option value="Q4">Q4 (Oct-Dec)</option>
-              </Select>
-            </FormControl>
-          </GridItem>
-          
-          <GridItem display="flex" alignItems="flex-end">
-            <Button 
-              leftIcon={<FiCalendar />}
-              colorScheme="blue" 
-              size="sm"
-              onClick={handleFilter}
-              width="100%"
-            >
-              Apply Filter
-            </Button>
-          </GridItem>
-        </Grid>
-      </Flex>
-    </Box>
-  );
-};
-
-const MetricsSection = ({ title, metrics, accentColor }) => {
-  return (
-    <Box mb={10}>
-      <Flex justify="space-between" align="center" mb={5}>
-        <SectionHeader title={title} accentColor={accentColor} />
-        <Button 
-          rightIcon={<FiArrowRight />} 
-          variant="outline" 
-          size="sm"
-          colorScheme="blue"
-        >
-          SEE MORE
-        </Button>
-      </Flex>
-      
-      <HStack spacing={5} wrap={["wrap", "wrap", "nowrap"]}>
-        {metrics.map((metric, index) => (
-          <MetricCard 
-            key={index}
-            title={metric.title}
-            value={metric.value}
-            icon={metric.icon}
-            accentColor={accentColor}
-          />
-        ))}
-      </HStack>
-    </Box>
-  );
-};
+  Icon,
+} from "@chakra-ui/react";
+import { FaChartLine, FaUsers, FaLeaf, FaSeedling, FaBoxes, FaCalendarAlt } from "react-icons/fa";
 
 const Metrics = () => {
-  const [activeFilter, setActiveFilter] = useState({ 
-    year: new Date().getFullYear().toString(), 
-    period: 'all' 
-  });
+  // State for year and month filters
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   
-  const handleFilterChange = (filters) => {
-    setActiveFilter(filters);
-    // In a real app, you would fetch filtered data here
-    console.log('Filters applied:', filters);
+  // Generate array of years (last 5 years)
+  const years = Array.from(
+    { length: 5 },
+    (_, i) => new Date().getFullYear() - i
+  );
+  
+  // Array of months
+  const months = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
+  
+  // Mock data for demonstration
+  const newlyPlantedData = {
+    farmers: 237,
+    areaPlanted: 458.5, // in hectares
   };
   
-  // Sample data - would be replaced with actual data from API/state based on activeFilter
-  const newlyPlantedMetrics = [
-    { title: "Number of Farmers", value: "124", icon: FiUsers },
-    { title: "T. Num of Trees Planted", value: "328.5 ha", icon: GiPlantSeed }
-  ];
+  const harvestingData = {
+    farmers: 189,
+    areaHarvested: 352.8, // in hectares
+    volumeProduction: 2845.6, // in metric tons
+  };
   
-  const harvestingMetrics = [
-    { title: "Number of Farmers", value: "87", icon: FiUsers },
-    { title: "T. Area Harv.", value: "205.2 ha", icon: FiMapPin },
-    { title: "T. Volume Prod.", value: "468.3 tons", icon: FiTruck }
-  ];
-
   return (
-    <Box p={6} maxW="1200px" mx="auto">
-      <Box mb={6}>
-        <Heading size="lg" mb={2} color="blue.700">
-          High Value Crops Metrics
+      <Box 
+        overflow="hidden" 
+        bg="white" 
+        p={5} 
+        minH="100vh"
+      >
+        <Heading as="h1" size="xl" mb={2} color="black">
+          High-Value Crops Metrics
         </Heading>
-        <Text color="gray.600">
-          Overview of planting and harvesting activities across the barangays. Go to SEE MORE for farmer response sorting.
+        <Text color="gray.600" mb={5}>
+          Overview of planting and harvesting activities across calamba. Go to SEE MORE for farmer response sorting.
         </Text>
-        <Divider my={4} />
+      
+        {/* Year and Month Selector */}
+        <Flex 
+          direction={{ base: "column", md: "row" }} 
+          mb={6} 
+          gap={4}
+          p={4}
+          bg="blue.50"
+          borderRadius="md"
+          alignItems="center"
+        >
+          <HStack spacing={2}>
+            <Icon as={FaCalendarAlt} color="blue.500" />
+            <Text fontWeight="medium">Filter by:</Text>
+          </HStack>
+          <HStack spacing={4} flex={1} wrap="wrap">
+            <Select 
+              value={selectedYear} 
+              onChange={(e) => setSelectedYear(Number(e.target.value))}
+              width={{ base: "full", md: "xs" }}
+              bg="white"
+            >
+              {years.map((year) => (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              ))}
+            </Select>
+            <Select 
+              value={selectedMonth} 
+              onChange={(e) => setSelectedMonth(Number(e.target.value))}
+              width={{ base: "full", md: "xs" }}
+              bg="white"
+            >
+              {months.map((month, index) => (
+                <option key={index} value={index}>
+                  {month}
+                </option>
+              ))}
+            </Select>
+          </HStack>
+        </Flex>
+      
+        {/* NEWLY PLANTED SECTION */}
+        <Box mb={8}>
+          <Flex 
+            justify="space-between" 
+            align="center" 
+            mb={4}
+            bg="green.50"
+            p={3}
+            borderRadius="md"
+            borderLeftWidth="4px"
+            borderLeftColor="green.500"
+          >
+            <Heading as="h2" size="md" display="flex" alignItems="center">
+              <Icon as={FaSeedling} mr={2} color="green.600" /> NEWLY PLANTED
+            </Heading>
+          </Flex>
+        
+          <Stack 
+            direction={{ base: "column", md: "row" }} 
+            spacing={4} 
+            w="full"
+          >
+            {/* Number of Farmers */}
+            <Box 
+              p={5} 
+              flex={1} 
+              borderRadius="md" 
+              boxShadow="sm" 
+              bg="white"
+              borderWidth="1px"
+              borderColor="gray.200"
+            >
+              <Stat>
+                <StatLabel fontSize="md" display="flex" alignItems="center">
+                  <Icon as={FaUsers} mr={2} color="blue.500" /> Number of Farmers
+                </StatLabel>
+                <StatNumber fontSize="3xl">{newlyPlantedData.farmers}</StatNumber>
+                <StatHelpText>
+                  {months[selectedMonth]} {selectedYear}
+                </StatHelpText>
+              </Stat>
+            </Box>
+          
+            {/* Total Area Planted */}
+            <Box 
+              p={5} 
+              flex={1}
+              borderRadius="md"  
+              boxShadow="sm" 
+              bg="white"
+              borderWidth="1px"
+              borderColor="gray.200"
+            >
+              <Stat>
+                <StatLabel fontSize="md" display="flex" alignItems="center">
+                  <Icon as={FaLeaf} mr={2} color="green.500" /> T. Area Planted
+                </StatLabel>
+                <StatNumber fontSize="3xl">{newlyPlantedData.areaPlanted} <Text as="span" fontSize="lg">ha</Text></StatNumber>
+                <StatHelpText>
+                  {months[selectedMonth]} {selectedYear}
+                </StatHelpText>
+              </Stat>
+            </Box>
+          </Stack>
+        
+          <Flex justifyContent="flex-end" mt={3}>
+            <Button 
+              colorScheme="green" 
+              size="sm"
+              rightIcon={<FaChartLine />}
+            >
+              See more
+            </Button>
+          </Flex>
+        </Box>
+    
+      
+        {/* HARVESTING SECTION */}
+        <Box mb={4}>
+          <Flex 
+            justify="space-between" 
+            align="center" 
+            mb={4}
+            bg="orange.50"
+            p={3}
+            borderRadius="md"
+            borderLeftWidth="4px"
+            borderLeftColor="orange.500"
+          >
+            <Heading as="h2" size="md" display="flex" alignItems="center">
+              <Icon as={FaBoxes} mr={2} color="orange.600" /> HARVESTING
+            </Heading>
+          </Flex>
+        
+          <Stack 
+            direction={{ base: "column", md: "row" }} 
+            spacing={4} 
+            w="full"
+          >
+            {/* Number of Farmers */}
+            <Box 
+              p={5} 
+              flex={1} 
+              borderRadius="md" 
+              boxShadow="sm" 
+              bg="white"
+              borderWidth="1px"
+              borderColor="gray.200"
+            >
+              <Stat>
+                <StatLabel fontSize="md" display="flex" alignItems="center">
+                  <Icon as={FaUsers} mr={2} color="blue.500" /> Number of Farmers
+                </StatLabel>
+                <StatNumber fontSize="3xl">{harvestingData.farmers}</StatNumber>
+                <StatHelpText>
+                  {months[selectedMonth]} {selectedYear}
+                </StatHelpText>
+              </Stat>
+            </Box>
+          
+            {/* Total Area Harvested */}
+            <Box 
+              p={5} 
+              flex={1} 
+              borderRadius="md" 
+              boxShadow="sm" 
+              bg="white"
+              borderWidth="1px"
+              borderColor="gray.200"
+            >
+              <Stat>
+                <StatLabel fontSize="md" display="flex" alignItems="center">
+                  <Icon as={FaLeaf} mr={2} color="green.500" /> T. Area Harv
+                </StatLabel>
+                <StatNumber fontSize="3xl">{harvestingData.areaHarvested} <Text as="span" fontSize="lg">ha</Text></StatNumber>
+                <StatHelpText>
+                  {months[selectedMonth]} {selectedYear}
+                </StatHelpText>
+              </Stat>
+            </Box>
+          
+            {/* Total Volume Production */}
+            <Box 
+              p={5} 
+              flex={1} 
+              borderRadius="md" 
+              boxShadow="sm" 
+              bg="white"
+              borderWidth="1px"
+              borderColor="gray.200"
+            >
+              <Stat>
+                <StatLabel fontSize="md" display="flex" alignItems="center">
+                  <Icon as={FaBoxes} mr={2} color="orange.500" /> T. Volume Prod
+                </StatLabel>
+                <StatNumber fontSize="3xl">{harvestingData.volumeProduction} <Text as="span" fontSize="lg">mt</Text></StatNumber>
+                <StatHelpText>
+                  {months[selectedMonth]} {selectedYear}
+                </StatHelpText>
+              </Stat>
+            </Box>
+          </Stack>
+        
+          <Flex justifyContent="flex-end" mt={3}>
+            <Button 
+              colorScheme="orange" 
+              size="sm"
+              rightIcon={<FaChartLine />}
+            >
+              See more
+            </Button>
+          </Flex>
+        </Box>
       </Box>
-      
-      {/* Filter controls added here */}
-      <FilterControls onFilterChange={handleFilterChange} />
-      
-      <MetricsSection 
-        title="NEWLY PLANTED" 
-        metrics={newlyPlantedMetrics}
-        accentColor="green.500"
-      />
-      
-      <MetricsSection 
-        title="HARVESTING" 
-        metrics={harvestingMetrics}
-        accentColor="blue.500"
-      />
-    </Box>
   );
 };
 
