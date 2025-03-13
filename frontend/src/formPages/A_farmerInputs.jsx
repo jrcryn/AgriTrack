@@ -158,14 +158,21 @@ const FarmerInput = ({ onNext, onBack }) => {
                   >
                     SUFFIX
                   </FormLabel>
-                  <Input 
+                  <Select 
                     name='suffix'
                     value={localFormData.suffix}
                     onChange={handleChange}
-                    placeholder="Your answer (optional)"
+                    placeholder="Select suffix (optional)"
                     borderRadius="md"
                     focusBorderColor={accentColor}
-                  />
+                  >
+                    <option value="Jr.">Jr.</option>
+                    <option value="Sr.">Sr.</option>
+                    <option value="II">II</option>
+                    <option value="III">III</option>
+                    <option value="IV">IV</option>
+                    <option value="V">V</option>
+                  </Select>
                 </FormControl>
               </SimpleGrid>
 
