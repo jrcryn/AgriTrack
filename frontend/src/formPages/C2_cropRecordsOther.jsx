@@ -202,7 +202,7 @@ const CropRecordsOther = ({ onNext, onBack, cropType }) => {
                   </FormLabel>
                   <RadioGroup 
                   name='crop_variety'
-                  onChange={handleChange}
+                  onChange={(value) => setLocalFormData(prev => ({ ...prev, crop_variety: value }))}
                   value={localFormData.crop_variety} 
                   >
                     <Stack direction="column" spacing={4}>
