@@ -8,6 +8,7 @@ const getMonthName = (month, locale = 'en-US') => {
   return new Date(2025, month).toLocaleString(locale, { month: 'long' });
 };
 
+// ...existing code...
 const getHarvestPeriods = () => {
   const today = new Date();
   const day = today.getDate();
@@ -39,30 +40,8 @@ const getHarvestPeriods = () => {
     endDate: `${currentYear}-${currentMonth + 1}-15`
   });
 
-  // Last two weeks of the current month
-  const lastDayCurrent = getLastDayOfMonth(currentYear, currentMonth);
-  options.push({
-    label: `${getMonthName(currentMonth)} 16-${lastDayCurrent}, ${currentYear}`,
-    value: `${currentYear}-${currentMonth + 1}-16_to_${currentYear}-${currentMonth + 1}-${lastDayCurrent}`,
-    startDate: `${currentYear}-${currentMonth + 1}-16`,
-    endDate: `${currentYear}-${currentMonth + 1}-${lastDayCurrent}`
-  });
-
-  // First two weeks of the next month
-  let nextMonth = currentMonth + 1;
-  let nextYear = currentYear;
-  if (nextMonth > 11) {
-    nextMonth = 0;
-    nextYear++;
-  }
-  options.push({
-    label: `${getMonthName(nextMonth)} 1-15, ${nextYear}`,
-    value: `${nextYear}-${nextMonth + 1}-01_to_${nextYear}-${nextMonth + 1}-15`,
-    startDate: `${nextYear}-${nextMonth + 1}-01`,
-    endDate: `${nextYear}-${nextMonth + 1}-15`
-  });
+  console.log(options);
   return options;
-
 };
 
 export default getHarvestPeriods;

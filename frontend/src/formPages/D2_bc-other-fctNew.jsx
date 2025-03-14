@@ -23,16 +23,13 @@ const bc_other_fctNew = ({ onNext, onBack }) => {
   // Create combined date options, initially apat kasi yung binibigay ni DateMonthOptions
   const combinedOptions = [
     {
-      label: `${dateOptions[0].label} to ${dateOptions[1].label}`,
-      value: `${dateOptions[0].startDate}_to_${dateOptions[1].endDate}`,
-      startDate: dateOptions[0].startDate,
-      endDate: dateOptions[1].endDate
+      label: dateOptions[0].label,
+      value: `${dateOptions[0].startDate}_to_${dateOptions[0].endDate}`,
+
     },
     {
-      label: `${dateOptions[2].label} to ${dateOptions[3].label}`,
-      value: `${dateOptions[2].startDate}_to_${dateOptions[3].endDate}`,
-      startDate: dateOptions[2].startDate,
-      endDate: dateOptions[3].endDate
+      label: dateOptions[1].label,
+      value: `${dateOptions[1].startDate}_to_${dateOptions[1].endDate}`,
     }
   ];
 
@@ -77,9 +74,9 @@ const bc_other_fctNew = ({ onNext, onBack }) => {
   };
 
   useEffect(() => {
-    const { harvest_month, harvest_year, total_trees } = localFormData;
+    const { plantation_start_date, plantation_end_date, harvest_month, harvest_year, total_trees } = localFormData;
     const isValidYear = /^\d{4}$/.test(harvest_year);
-    setIsFormValid( harvest_month && isValidYear && total_trees);
+    setIsFormValid( plantation_start_date && plantation_end_date && harvest_month && isValidYear && total_trees);
   }, [localFormData]);
 
   const cardBg = 'white';

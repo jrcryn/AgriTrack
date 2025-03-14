@@ -23,16 +23,13 @@ const CropIndusNew = ({ onNext, onBack }) => {
   // Create combined date options, initially apat kasi yung binibigay ni DateMonthOptions
   const combinedOptions = [
     {
-      label: `${dateOptions[0].label} to ${dateOptions[1].label}`,
-      value: `${dateOptions[0].startDate}_to_${dateOptions[1].endDate}`,
-      startDate: dateOptions[0].startDate,
-      endDate: dateOptions[1].endDate
+      label: dateOptions[0].label,
+      value: `${dateOptions[0].startDate}_to_${dateOptions[0].endDate}`,
+
     },
     {
-      label: `${dateOptions[2].label} to ${dateOptions[3].label}`,
-      value: `${dateOptions[2].startDate}_to_${dateOptions[3].endDate}`,
-      startDate: dateOptions[2].startDate,
-      endDate: dateOptions[3].endDate
+      label: dateOptions[1].label,
+      value: `${dateOptions[1].startDate}_to_${dateOptions[1].endDate}`,
     }
   ];
 
@@ -77,9 +74,9 @@ const CropIndusNew = ({ onNext, onBack }) => {
   };
 
   useEffect(() => {
-    const { harvest_month, harvest_year, total_area_planted } = localFormData;
+    const { plantation_start_date, plantation_end_date, harvest_month, harvest_year, total_area_planted } = localFormData;
     const isValidYear = /^\d{4}$/.test(harvest_year);
-    setIsFormValid( harvest_month && isValidYear && total_area_planted);
+    setIsFormValid( plantation_start_date && plantation_end_date && harvest_month && isValidYear && total_area_planted);
   }, [localFormData]);
 
   const cardBg = 'white';
@@ -177,18 +174,18 @@ const CropIndusNew = ({ onNext, onBack }) => {
                     value={localFormData.harvest_month}
                     onChange={handleChange}
                   >
-                    <option value="01">January</option>
-                    <option value="02">February</option>
-                    <option value="03">March</option>
-                    <option value="04">April</option>
-                    <option value="05">May</option>
-                    <option value="06">June</option>
-                    <option value="07">July</option>
-                    <option value="08">August</option>
-                    <option value="09">September</option>
-                    <option value="10">October</option>
-                    <option value="11">November</option>
-                    <option value="12">December</option>
+                    <option value="01">JANUARY</option>
+                    <option value="02">FEBRUARY</option>
+                    <option value="03">MARCH</option>
+                    <option value="04">APRIL</option>
+                    <option value="05">MAY</option>
+                    <option value="06">JUNE</option>
+                    <option value="07">JULY</option>
+                    <option value="08">AUGUST</option>
+                    <option value="09">SEPTEMBER</option>
+                    <option value="10">OCTOBER</option>
+                    <option value="11">NOVEMBER</option>
+                    <option value="12">DECEMBER</option>
                   </Select>
                   <Input
                     name="harvest_year"

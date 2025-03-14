@@ -127,6 +127,7 @@ export const getValidatedFarmerInputs = async (req, res) => {
 
 
 
+
 // Update farmer input and all referenced documents
 export const updateFarmerInputAndReferences = async (req, res) => {
   try {
@@ -282,6 +283,10 @@ export const updateFarmerInputAndReferences = async (req, res) => {
     });
   }
 };
+
+
+
+
 
 // Helper function to get complete record by farmer input ID
 const getCompleteRecordById = async (farmerId) => {

@@ -1,0 +1,82 @@
+import axios from 'axios';
+import { create } from 'zustand';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+
+const API_URL = import.meta.env.VITE_API_URL;
+
+// React Query hooks for data fetching
+export const useUnvalidatedInputsQuery = () => 
+  useQuery({
+    queryKey: ['unvalidatedInputs'],
+    queryFn: async () => {
+      const response = await axios.get(`${API_URL}/get-unvalidated-inputs`);
+      return response.data;
+    }
+  });
+
+export const useValidatedInputsQuery = () => 
+  useQuery({
+    queryKey: ['validatedInputs'],
+    queryFn: async () => {
+      const response = await axios.get(`${API_URL}/get-validated-inputs`);
+      return response.data;
+    }
+  });
+
+export const useUpdateFarmerInputMutation = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ farmerId, updateData }) => {
+      const response = await axios.post(`${API_URL}/update-farmer-input`, {
+        farmerId,
+        updateData
+      });
+      return response.data;
+    },
+    onSuccess: () => {
+      // Invalidate queries to refetch data
+      queryClient.invalidateQueries({ queryKey: ['unvalidatedInputs'] });
+      queryClient.invalidateQueries({ queryKey: ['validatedInputs'] });
+    }
+  });
+};
+
+// Zustand store for UI state management
+export const useAdminDashboardStore = create((set) => ({
+  error: null,
+  
+  // Error handling
+  setError: (error) => set({ error }),
+  clearError: () => set({ error: null })
+}));
+
+// Composite hook that combines React Query and Zustand
+export const useAdminDashboard = () => {
+  const { error, setError, clearError } = useAdminDashboardStore();
+  const { data: unvalidatedInputs = [], isLoading: isLoadingUnvalidated, error: unvalidatedError } = useUnvalidatedInputsQuery();
+  const { data: validatedInputs = [], isLoading: isLoadingValidated, error: validatedError } = useValidatedInputsQuery();
+  const { mutate: updateFarmerInput, isPending: isUpdating, error: updateError } = useUpdateFarmerInputMutation();
+
+  // Combine errors from different sources
+  if (unvalidatedError) setError(unvalidatedError.message || 'Failed to fetch unvalidated inputs');
+  if (validatedError) setError(validatedError.message || 'Failed to fetch validated inputs');
+  if (updateError) setError(updateError.message || 'Failed to update farmer input');
+
+  return {
+    // Data
+    unvalidatedInputs,
+    validatedInputs,
+    
+    // Loading states
+    isLoading: isLoadingUnvalidated || isLoadingValidated,
+    isUpdating,
+    
+    // Error state
+    error,
+    
+    // Actions
+    updateFarmerInput,
+    clearError
+  };
+};
