@@ -90,8 +90,8 @@ export const formC2_cro = async (req, res) => {
 // Step 4A: If selected INDUSTRIAL CROP and HARVESTING ang stage, ito next form na pupuntahan
 
 export const formD1_cih = async (req, res) => {
-  const { record_id, harvest_start_date, harvest_end_date, total_area_harvested, total_weight, destination, mode_of_payment, mode_of_delivery } = req.body;
-  if (!record_id || !harvest_start_date || !harvest_end_date || !total_area_harvested || !total_weight || !destination || !mode_of_payment || !mode_of_delivery) {
+  const { record_id, harvest_start_date, harvest_end_date, total_area_harvested, total_weight, crop_purpose, destination, mode_of_payment, mode_of_delivery } = req.body;
+  if (!record_id || !harvest_start_date || !harvest_end_date || !total_area_harvested || !total_weight || !crop_purpose) {
       return res.status(400).json({ message: 'Missing required fields' });
   }
   try {
@@ -99,6 +99,7 @@ export const formD1_cih = async (req, res) => {
           record_id,
           harvest_start_date,
           harvest_end_date,
+          crop_purpose,
           total_area_harvested,
           total_weight,
           destination,
@@ -135,8 +136,8 @@ export const formD1_cin = async (req, res) => {
 // Step 4B: If selected BANANA, COFFEE or OTHERS and HARVESTING ang stage, ito next form na pupuntahan
 
 export const formD2_bc_ofh = async (req, res) => {
-  const { record_id, harvest_start_date, harvest_end_date, trees_harvested, total_weight, destination, mode_of_payment, mode_of_delivery } = req.body;
-  if (!record_id || !harvest_start_date || !harvest_end_date || !trees_harvested || !total_weight || !destination || !mode_of_payment || !mode_of_delivery) {
+  const { record_id, harvest_start_date, harvest_end_date, trees_harvested, total_weight, crop_purpose, destination, mode_of_payment, mode_of_delivery } = req.body;
+  if (!record_id || !harvest_start_date || !harvest_end_date || !trees_harvested || !total_weight || !crop_purpose) {
       return res.status(400).json({ message: 'Missing required fields' });
   }
   try {
@@ -146,6 +147,7 @@ export const formD2_bc_ofh = async (req, res) => {
           harvest_end_date,
           trees_harvested,
           total_weight,
+          crop_purpose,
           destination,
           mode_of_payment,
           mode_of_delivery,

@@ -91,7 +91,7 @@ const CropTypes = ({ onNext, onBack }) => {
                 borderLeftWidth="4px"
                 borderColor={accentColor}
               >
-                <Text fontWeight="bold" mb={3}>PAALALA:</Text> 
+                <Text fontWeight="bold" mb={3}>MULING PAALALA:</Text> 
                 <Text fontSize="sm">
                   Kung sakaling mayroon kayong higit sa isang klase ng tanim ay maaaring magsagot ulit sa link na ibinigay pagkatapos ninyong sagutan ang form na ito.
                 </Text>

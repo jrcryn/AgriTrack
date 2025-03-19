@@ -1,5 +1,7 @@
 import { Box } from '@chakra-ui/react';
 import { Routes, Route, useNavigate } from 'react-router-dom';
+import Instructions from '../formPages/Instructions.jsx';
+import DataPrivacyAct from '../formPages/DataPrivacyAct.jsx';
 import A_farmerInputs from '../formPages/A_farmerInputs.jsx';
 import B_cropTypes from '../formPages/B_cropTypes.jsx';
 import C1_cropRecordsIndus from '../formPages/C1_cropRecordsIndus.jsx';
@@ -33,8 +35,18 @@ const formApp = () => {
   return (
     <Box>
       <Routes>
+          <Route path='istcns' element={<Instructions
+          onNext={() => handleNext('/dpa')}
+          />} />
+
+          <Route path='dpa' element={<DataPrivacyAct
+          onNext={() => handleNext('/a_fi')}  
+          onBack={handleBack} 
+          />} />
+
           <Route path='a_fi' element={<A_farmerInputs
           onNext={() => handleNext('/b_ct')} 
+          onBack={handleBack}
           />} />
 
           <Route path='b_ct' element={<B_cropTypes

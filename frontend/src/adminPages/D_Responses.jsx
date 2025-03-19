@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Box,
   Heading,
@@ -29,6 +29,7 @@ import {
   Divider,
   Tag,
   Icon,
+  Spinner, // Import Spinner from Chakra UI
 } from '@chakra-ui/react';
 import { FaSearch, FaEye, FaSeedling, FaBoxes } from 'react-icons/fa';
 import { useAdminDashboard } from '../store/adminDashboard.store.js';
@@ -41,7 +42,7 @@ const Responses = () => {
   const [selectedResponse, setSelectedResponse] = useState(null);
   const { isOpen, onOpen, onClose } = useDisclosure();
   
-  //Unvalidated farmer inputs
+  // Unvalidated farmer inputs
   const { 
     unvalidatedInputs, 
     isLoading,
@@ -51,7 +52,6 @@ const Responses = () => {
     clearError
   } = useAdminDashboard();
 
-  
   // Filter responses based on search query
   const searchedResponses = unvalidatedInputs.filter((response) => {
     if (!response.farmerInput || !response.cropType || !response.cropRecord) {
@@ -67,10 +67,92 @@ const Responses = () => {
            location.includes(searchQuery.toLowerCase());
   });
 
-  //date format na ginamit sa harv_date, plant_date, at month_year puctha 
+  // Date format for harvest date, plantation date, and month-year
   const plnt_harvDate = { year: 'numeric', month: 'short', day: 'numeric' };
   const harvMonthYear = { year: 'numeric', month: 'short' };
 
+  // Refs for table scroll positions
+  const newlyPlantedTableRef = useRef(null);
+  const harvestingTableRef = useRef(null);
+  const [scrollPositions, setScrollPositions] = useState({ x: 0, y: 0, container: null });
+
+  // Handle modal open with response details and save scroll position
+  const handleViewDetails = (response) => {
+    // Save current scroll positions
+    let scrollX = 0;
+    let container = null;
+    
+    if (response.cropRecord.crop_stage === 'NEWLY PLANTED' && newlyPlantedTableRef.current) {
+      scrollX = newlyPlantedTableRef.current.scrollLeft;
+      container = 'newlyPlanted';
+    } else if (response.cropRecord.crop_stage === 'HARVESTING' && harvestingTableRef.current) {
+      scrollX = harvestingTableRef.current.scrollLeft;
+      container = 'harvesting';
+    }
+    
+    // First set the selected response
+    setSelectedResponse(response);
+    
+    // Then open the modal
+    onOpen();
+    
+    // Use a timeout to maintain the scroll position after the modal opens
+    setTimeout(() => {
+      if (container === 'newlyPlanted' && newlyPlantedTableRef.current) {
+        newlyPlantedTableRef.current.scrollLeft = scrollX;
+      } else if (container === 'harvesting' && harvestingTableRef.current) {
+        harvestingTableRef.current.scrollLeft = scrollX;
+      }
+      
+      // Save the position for later use when closing
+      setScrollPositions({
+        x: scrollX,
+        y: window.scrollY,
+        container: container
+      });
+    }, 0);
+  };
+
+  // Restore scroll positions after modal renders
+  useEffect(() => {
+    if (scrollPositions.container) {
+      // Use setTimeout to ensure the DOM has updated
+      setTimeout(() => {
+        // Restore vertical scroll
+        window.scrollTo(0, scrollPositions.y);
+        
+        // Restore horizontal scroll for the appropriate table
+        if (scrollPositions.container === 'newlyPlanted' && newlyPlantedTableRef.current) {
+          newlyPlantedTableRef.current.scrollLeft = scrollPositions.x;
+        } else if (scrollPositions.container === 'harvesting' && harvestingTableRef.current) {
+          harvestingTableRef.current.scrollLeft = scrollPositions.x;
+        }
+      }, 50);
+    }
+  }, [isOpen, scrollPositions]);
+
+  // Additional effect to maintain scroll position during modal interactions
+  useEffect(() => {
+    if (isOpen && scrollPositions.container) {
+      // Create an interval that repeatedly ensures scroll position is maintained
+      // This handles cases where the modal might cause scroll position loss
+      const intervalId = setInterval(() => {
+        if (scrollPositions.container === 'newlyPlanted' && newlyPlantedTableRef.current) {
+          if (newlyPlantedTableRef.current.scrollLeft !== scrollPositions.x) {
+            newlyPlantedTableRef.current.scrollLeft = scrollPositions.x;
+          }
+        } else if (scrollPositions.container === 'harvesting' && harvestingTableRef.current) {
+          if (harvestingTableRef.current.scrollLeft !== scrollPositions.x) {
+            harvestingTableRef.current.scrollLeft = scrollPositions.x;
+          }
+        }
+      }, 100); // Check every 100ms
+      
+      // Clean up interval when modal closes
+      return () => clearInterval(intervalId);
+    }
+  }, [isOpen, scrollPositions]);
+  
   // Split data into newly planted and harvesting
   const newlyPlantedResponses = searchedResponses.filter(
     response => response.cropRecord.crop_stage === 'NEWLY PLANTED'
@@ -88,15 +170,9 @@ const Responses = () => {
   const currentHarvesting = harvestingResponses.slice((harvestingPage - 1) * 5, harvestingPage * 5);
   const harvestingTotalPages = Math.ceil(harvestingResponses.length / 5);
   
-  // Handle modal open with response details
-  const handleViewDetails = (response) => {
-    setSelectedResponse(response);
-    onOpen();
-  };
-  
   // Table component to reuse for both sections
-  const ResponseTable = ({ data, status }) => (
-    <TableContainer>
+  const ResponseTable = ({ data, status, containerRef }) => (
+    <TableContainer ref={containerRef}>
       <Table variant="simple">
         <Thead bg="gray.50">
           <Tr>
@@ -130,19 +206,12 @@ const Responses = () => {
             data.map((response, index) => (
               <Tr key={response.farmerInput._id || index}>
                 <Td fontWeight="medium">
-                {`${response.farmerInput.first_name} ${response.farmerInput.middle_name ? response.farmerInput.middle_name.charAt(0).toUpperCase() + '.' : ''} 
-                  ${response.farmerInput.surname} 
-                  ${response.farmerInput.suffix || ''}`.trim()}
+                {`${response.farmerInput.first_name} ${response.farmerInput.middle_name ? response.farmerInput.middle_name.charAt(0).toUpperCase()+'.':''} ${response.farmerInput.surname} ${response.farmerInput.suffix || ''}`.trim()}
                 </Td>
                 <Td>{response.farmerInput.farm_location}</Td>
                 <Td>
                   {response.cropType.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS' ? ('INDUSTRIAL') : (response.cropType?.crop_type)}
                 </Td>
-
-
-
-
-
                 {status === 'NEWLY PLANTED' ? (
                   <>
                     <Td>{response.cropRecord ? response.cropRecord.crop_type : '-'}</Td> {/* uri ng tanim */}
@@ -159,11 +228,6 @@ const Responses = () => {
                     </Td> {/* harvest month and year */}
                   </>
                 ) : (
-
-
-
-
-
                   <>
                     <Td>{response.cropRecord ? response.cropRecord.crop_type : '-'}</Td> {/* uri ng tanim */}
                     <Td>{response.cropRecord ? response.cropRecord.crop_variety : '-'}</Td>
@@ -281,75 +345,97 @@ const PaginationControls = ({ currentPage, setCurrentPage, totalPages, totalItem
           </InputRightElement>
         </InputGroup>
       </Flex>
-      
-      {/* NEWLY PLANTED SECTION */}
-      <Box mb={8}>
-        <Flex 
-          justify="space-between" 
-          align="center" 
-          mb={4}
-          bg="green.50"
-          p={3}
-          borderRadius="md"
-          borderLeftWidth="4px"
-          borderLeftColor="green.500"
-        >
-          <Heading as="h2" size="md" display="flex" alignItems="center">
-            <Icon as={FaSeedling} mr={2} color="green.600" /> NEWLY PLANTED RESPONSES
-          </Heading>
-        </Flex>
-      
-        <Box overflowX="auto">
-          <ResponseTable 
-            data={currentNewlyPlanted} 
-            status="NEWLY PLANTED" 
-          />
-        </Box>
-        
-        <PaginationControls 
-          currentPage={newlyPlantedPage}
-          setCurrentPage={setNewlyPlantedPage}
-          totalPages={newlyPlantedTotalPages}
-          totalItems={newlyPlantedResponses.length}
-          colorScheme="green"
-        />
-      </Box>
-      
-      {/* HARVESTING SECTION */}
-      <Box mb={8}>
-        <Flex 
-          justify="space-between" 
-          align="center" 
-          mb={4}
-          bg="orange.50"
-          p={3}
-          borderRadius="md"
-          borderLeftWidth="4px"
-          borderLeftColor="orange.500"
-        >
-          <Heading as="h2" size="md" display="flex" alignItems="center">
-            <Icon as={FaBoxes} mr={2} color="orange.600" /> HARVESTING RESPONSES
-          </Heading>
-        </Flex>
-      
-        <Box overflowX="auto">
-          <ResponseTable 
-            data={currentHarvesting} 
-            status="HARVESTING" 
-          />
-        </Box>
-        
-        <PaginationControls 
-          currentPage={harvestingPage}
-          setCurrentPage={setHarvestingPage}
-          totalPages={harvestingTotalPages}
-          totalItems={harvestingResponses.length}
-          colorScheme="orange"
-        />
-      </Box>
+    
+        <>
+          {/* NEWLY PLANTED SECTION */}
+          <Box mb={8}>
+            <Flex 
+              justify="space-between" 
+              align="center" 
+              mb={4}
+              bg="green.50"
+              p={3}
+              borderRadius="md"
+              borderLeftWidth="4px"
+              borderLeftColor="green.500"
+            >
+              <Heading as="h2" size="md" display="flex" alignItems="center">
+                <Icon as={FaSeedling} mr={2} color="green.600" /> NEWLY PLANTED RESPONSES
+              </Heading>
+            </Flex>
+          
+            {isLoading ? (
+              <Flex justifyContent="center" alignItems="center" minH="200px">
+                <Spinner size="xl" color="blue.500" />
+              </Flex>
+            ) : (
+            <Box overflowX="auto" >
+              <ResponseTable 
+                data={currentNewlyPlanted} 
+                status="NEWLY PLANTED" 
+                containerRef={newlyPlantedTableRef}
+              />
+            </Box>
+            )}
+            
+            <PaginationControls 
+              currentPage={newlyPlantedPage}
+              setCurrentPage={setNewlyPlantedPage}
+              totalPages={newlyPlantedTotalPages}
+              totalItems={newlyPlantedResponses.length}
+              colorScheme="green"
+            />
+          </Box>
+          
+          {/* HARVESTING SECTION */}
+          <Box mb={8}>
+            <Flex 
+              justify="space-between" 
+              align="center" 
+              mb={4}
+              bg="orange.50"
+              p={3}
+              borderRadius="md"
+              borderLeftWidth="4px"
+              borderLeftColor="orange.500"
+            >
+              <Heading as="h2" size="md" display="flex" alignItems="center">
+                <Icon as={FaBoxes} mr={2} color="orange.600" /> HARVESTING RESPONSES
+              </Heading>
+            </Flex>
+          
+            {isLoading ? (
+              <Flex justifyContent="center" alignItems="center" minH="200px">
+                <Spinner size="xl" color="blue.500" />
+              </Flex>
+            ) : (
+            <Box overflowX="auto">
+              <ResponseTable 
+                data={currentHarvesting} 
+                status="HARVESTING" 
+                containerRef={harvestingTableRef}
+              />
+            </Box>
+            )}
+            <PaginationControls 
+              currentPage={harvestingPage}
+              setCurrentPage={setHarvestingPage}
+              totalPages={harvestingTotalPages}
+              totalItems={harvestingResponses.length}
+              colorScheme="orange"
+            />
+          </Box>
+        </>
             
       {/* Details Modal */}
-      <Modal isOpen={isOpen} onClose={onClose} size="lg">
+      <Modal 
+        isOpen={isOpen} 
+        onClose={onClose} 
+        size="lg"
+        scrollBehavior='inside'
+        blockScrollOnMount={false} // This can help prevent scroll jumps
+        preserveScrollBarGap={true} // This prevents layout shifts
+      >
         <ModalOverlay />
         <ModalContent>
           <ModalHeader bg="blue.50" borderBottomWidth="1px">

@@ -53,9 +53,9 @@ const SidebarContent = ({ onClose, ...rest }) => {
       <Box px="8" pb="5" pt="10" textAlign="center">
         <Image boxSize={'110px'} src={Logo} mx="auto" mb='3' />
         <Text mt="2" fontSize="smaller"  fontWeight="medium" color="white">
-          CITY AGRI. SERVICES OFFICE
+          CITY AGRI. SERVICES DEPT.
         </Text>
-        <Text fontSize="xl"  fontWeight="bold" color="white">
+        <Text fontSize="larger"  fontWeight="bold" color="white">
           HIGH-VALUE CROPS
         </Text>
       </Box>
