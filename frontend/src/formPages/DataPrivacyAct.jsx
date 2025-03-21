@@ -36,7 +36,7 @@ const DataPrivacyAct = ({ onNext, onBack }) => {
     setTimeout(() => {
       setIsLoading(false);
       onNext();
-    }, 1000); // Simulating a brief loading state
+    });
   };
 
   const handleConsentChange = (value) => {
