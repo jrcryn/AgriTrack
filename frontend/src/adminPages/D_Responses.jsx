@@ -178,27 +178,57 @@ const Responses = () => {
           <Tr>
             <Th>Farmer Name</Th>
             <Th>Barangay</Th>
-            <Th>Crop Type</Th>
+            <Th>Commodity</Th>
             {status === 'NEWLY PLANTED' ? (
               <>
                 <Th>Uri ng Tanim</Th>
                 <Th>Variety</Th>
-                <Th>D. of Plant.</Th>
-                <Th>D. of Harv.</Th>
+                <Th>
+                  <Text>Date of</Text>
+                  <Text>Plantation</Text>
+                </Th>
+                <Th>
+                  <Text>Date of</Text>
+                  <Text>Harvesting</Text>
+                </Th>
+                <Th position={{ base: 'static', md: 'sticky' }} right={0} bg="gray.50" zIndex={{ base: 0, md: 1 }} textAlign={'center'}>
+                  <Box display={{ base: 'none', md: 'block' }}>Scroll →</Box>
+                  <Box display={{ base: 'block', md: 'none' }}>Actions</Box>
+                </Th>
               </>
+              
             ) : (
               <>
                 <Th>Uri ng Tanim</Th>
                 <Th>Variety</Th>
-                <Th>D. of Harv.</Th>
-                <Th>T. Area Harv.</Th>
-                <Th>T. Weight. of Harv. Crops</Th>
+                <Th>
+                  <Text>Date of</Text>
+                  <Text>Harvesting</Text>
+                </Th>
+                <Th>
+                  <Text>Total Area</Text>
+                  <Text>Harvested</Text>
+                </Th>
+                <Th>
+                  <Text>Total Weight of</Text>
+                  <Text>Harvested Crops</Text>
+                </Th>
                 <Th>Destination</Th>
-                <Th>MOP</Th>
-                <Th>MOD</Th>
+                <Th>
+                  <Text>Mode of</Text>
+                  <Text>Payment</Text>
+                </Th>
+                <Th>
+                  <Text>Mode of</Text>
+                  <Text>Delivery</Text>
+                </Th>
+                <Th position={{ base: 'static', md: 'sticky' }} right={0} bg="gray.50" zIndex={{ base: 0, md: 1 }} textAlign={'center'}>
+                  <Box display={{ base: 'none', md: 'block' }}>Scroll →</Box>
+                  <Box display={{ base: 'block', md: 'none' }}>Actions</Box>
+                </Th>
               </>
             )}
-            <Th isNumeric></Th>
+            
           </Tr>
         </Thead>
         <Tbody>
@@ -216,16 +246,12 @@ const Responses = () => {
                   <>
                     <Td>{response.cropRecord ? response.cropRecord.crop_type : '-'}</Td> {/* uri ng tanim */}
                     <Td>{response.cropRecord ? response.cropRecord.crop_variety : '-'}</Td>
-                    <Td>
-                      {response.cropDetails && response.cropDetails.plantation_start_date && response.cropDetails.plantation_end_date ?
+                    <Td>{response.cropDetails && response.cropDetails.plantation_start_date && response.cropDetails.plantation_end_date ?
                       `${new Date(response.cropDetails.plantation_start_date).toLocaleDateString('en-US', plnt_harvDate)} to ${new Date(response.cropDetails.plantation_end_date).toLocaleDateString('en-US', plnt_harvDate)}`
-                       : '-'}
-                    </Td> {/* plantation date */}
-                    <Td>
-                      {response.cropDetails &&  response.cropDetails.harvest_month_year ?
+                       : '-'}</Td> {/* plantation date */}
+                    <Td>{response.cropDetails &&  response.cropDetails.harvest_month_year ?
                         new Date(response.cropDetails.harvest_month_year).toLocaleDateString('en-US', harvMonthYear)
-                         : '-'}
-                    </Td> {/* harvest month and year */}
+                         : '-'}</Td> {/* harvest month and year */}
                   </>
                 ) : (
                   <>
@@ -243,7 +269,7 @@ const Responses = () => {
                     <Td>{response.cropDetails ? response.cropDetails.mode_of_delivery : '-'}</Td>
                   </>
                 )}
-                <Td isNumeric>
+                <Td isNumeric position={{ base: 'static', md: 'sticky' }} right={0} bg={'white'} zIndex={1}>
                   <Button
                     size="sm"
                     colorScheme={status === 'NEWLY PLANTED' ? 'green' : 'orange'}

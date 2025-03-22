@@ -61,7 +61,7 @@ const Instructions = ({ onNext }) => {
                 <Text fontSize="md" fontWeight="bold" mb={3}>
                   GENERAL INSTRUCTIONS:
                 </Text>
-                <Text fontSize="sm" fontWeight={'medium'} mb={2}>
+                <Text fontSize="sm" fontWeight={'bold'} mb={2}>
                   • Pakisigurong tama ang mga impormasyong ibibigay.
                 </Text>
                 <Text fontSize="sm" mb={2}>
