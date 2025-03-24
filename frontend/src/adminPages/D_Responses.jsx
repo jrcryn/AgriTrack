@@ -14,7 +14,6 @@ import {
   Th,
   Td,
   TableContainer,
-  Badge,
   InputGroup,
   Input,
   InputRightElement,
@@ -30,6 +29,13 @@ import {
   Tag,
   Icon,
   Spinner, // Import Spinner from Chakra UI
+  FormControl,
+  FormLabel,
+  SimpleGrid,
+  Select,
+  Badge,
+  useToast,
+  FormErrorMessage,
 } from '@chakra-ui/react';
 import { FaSearch, FaEye, FaSeedling, FaBoxes } from 'react-icons/fa';
 import { useAdminDashboard } from '../store/adminDashboard.store.js';
@@ -178,10 +184,9 @@ const Responses = () => {
           <Tr>
             <Th>Farmer Name</Th>
             <Th>Barangay</Th>
-            <Th>Commodity</Th>
             {status === 'NEWLY PLANTED' ? (
               <>
-                <Th>Uri ng Tanim</Th>
+                <Th>Commodity</Th>
                 <Th>Variety</Th>
                 <Th>
                   <Text>Date of</Text>
@@ -191,7 +196,7 @@ const Responses = () => {
                   <Text>Date of</Text>
                   <Text>Harvesting</Text>
                 </Th>
-                <Th position={{ base: 'static', md: 'sticky' }} right={0} bg="gray.50" zIndex={{ base: 0, md: 1 }} textAlign={'center'}>
+                <Th position={{ base: 'static', md: 'sticky' }} right={0} bg="gray.50" zIndex={{ base: 0, md: 1 }} textAlign={'center'} shadow={'md'}>
                   <Box display={{ base: 'none', md: 'block' }}>Scroll →</Box>
                   <Box display={{ base: 'block', md: 'none' }}>Actions</Box>
                 </Th>
@@ -199,7 +204,7 @@ const Responses = () => {
               
             ) : (
               <>
-                <Th>Uri ng Tanim</Th>
+                <Th>Commodity</Th>
                 <Th>Variety</Th>
                 <Th>
                   <Text>Date of</Text>
@@ -239,9 +244,6 @@ const Responses = () => {
                 {`${response.farmerInput.first_name} ${response.farmerInput.middle_name ? response.farmerInput.middle_name.charAt(0).toUpperCase()+'.':''} ${response.farmerInput.surname} ${response.farmerInput.suffix || ''}`.trim()}
                 </Td>
                 <Td>{response.farmerInput.farm_location}</Td>
-                <Td>
-                  {response.cropType.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS' ? ('INDUSTRIAL') : (response.cropType?.crop_type)}
-                </Td>
                 {status === 'NEWLY PLANTED' ? (
                   <>
                     <Td>{response.cropRecord ? response.cropRecord.crop_type : '-'}</Td> {/* uri ng tanim */}

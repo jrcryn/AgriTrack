@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+import mongoose, { version } from 'mongoose';
 
 const FarmerAccountSchema = new mongoose.Schema({
     surname: { type: String, required: true, trim: true },
@@ -8,4 +8,6 @@ const FarmerAccountSchema = new mongoose.Schema({
     farm_location: { type: String, required: true, trim: true },
     mobile_number: { type: String,  trim: true },
     facebook: { type: String, trim: true },
-});
+}, { versionKey: false });
+
+export const FarmerAccount = mongoose.model('Farmer_Account', FarmerAccountSchema);
