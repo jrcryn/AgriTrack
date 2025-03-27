@@ -379,8 +379,8 @@ const E_Farmers = () => {
       </Box>
       
       {/* Add Farmer Modal - Empty for now */}
-      <Modal isOpen={isOpen} onClose={handleCloseModal} size="2xl" closeOnOverlayClick={false} scrollBehavior="inside">
-        <ModalOverlay />
+      <Modal isOpen={isOpen} onClose={handleCloseModal} size="2xl" closeOnOverlayClick={false} scrollBehavior="inside" motionPreset="none">
+        <ModalOverlay/>
         <ModalContent borderRadius="lg" overflow="hidden">
           <ModalHeader bg="blue.50" borderBottomWidth="1px" display="flex" alignItems="center">
             <Icon as={FaUserPlus} mr={2} color="blue.500" />

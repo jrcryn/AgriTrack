@@ -5,6 +5,7 @@ import {
   Text,
   Stack,
   HStack,
+  VStack,
   Flex,
   Button,
   Table,
@@ -33,9 +34,6 @@ import {
   FormLabel,
   SimpleGrid,
   Select,
-  Badge,
-  useToast,
-  FormErrorMessage,
 } from '@chakra-ui/react';
 import { FaSearch, FaEye, FaSeedling, FaBoxes } from 'react-icons/fa';
 import { useAdminDashboard } from '../store/adminDashboard.store.js';
@@ -57,6 +55,7 @@ const Responses = () => {
     updateFarmerInput,
     clearError
   } = useAdminDashboard();
+
 
   // Filter responses based on search query
   const searchedResponses = unvalidatedInputs.filter((response) => {
@@ -211,8 +210,9 @@ const Responses = () => {
                   <Text>Harvesting</Text>
                 </Th>
                 <Th>
-                  <Text>Total Area</Text>
-                  <Text>Harvested</Text>
+                  <Text fontSize={'10px'}>Total Area /</Text>
+                  <Text fontSize={'10px'}>Number of Trees</Text>
+                  <Text fontSize={'10px'}>Harvested</Text>
                 </Th>
                 <Th>
                   <Text>Total Weight of</Text>
@@ -264,7 +264,13 @@ const Responses = () => {
                     `${new Date(response.cropDetails.harvest_start_date).toLocaleDateString('en-US', plnt_harvDate)} to ${new Date(response.cropDetails.harvest_end_date).toLocaleDateString('en-US', plnt_harvDate)}` 
                       : '-'}
                     </Td> {/* harvest date */}
-                    <Td>{response.cropDetails ? `${response.cropDetails.total_area_harvested} ha` : '-'}</Td>
+                    <Td>
+                      {response.cropDetails && (
+                        response.cropType.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS' 
+                          ? `${response.cropDetails.total_area_harvested} ha` 
+                          : `${response.cropDetails.trees_harvested} trees`
+                      ) || '-'}
+                    </Td>
                     <Td>{response.cropDetails ? `${response.cropDetails.total_weight} kg` : '-'}</Td>
                     <Td>{response.cropDetails ? response.cropDetails.destination : '-'}</Td>
                     <Td>{response.cropDetails ? response.cropDetails.mode_of_payment : '-'}</Td>
@@ -296,41 +302,332 @@ const Responses = () => {
   );
 
   // Pagination component to reuse
-const PaginationControls = ({ currentPage, setCurrentPage, totalPages, totalItems, colorScheme }) => (
-  <Flex 
-    justifyContent="space-between" 
-    mt={4} 
-    alignItems="center"
-    direction={{ base: "column", md: "row" }}
-    gap={{ base: 3, md: 0 }}
-  >
-    <Text color="gray.600">
-      Page {currentPage} of {totalPages || 1} ({totalItems} total)
-    </Text>
-    
-    <HStack spacing={2}>
-      <Button
-        size="sm"
-        onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-        isDisabled={currentPage === 1}
-        colorScheme={colorScheme}
-        variant="outline"
-      >
-        Previous
-      </Button>
+  const PaginationControls = ({ currentPage, setCurrentPage, totalPages, totalItems, colorScheme }) => (
+    <Flex 
+      justifyContent="space-between" 
+      mt={4} 
+      alignItems="center"
+      direction={{ base: "column", md: "row" }}
+      gap={{ base: 3, md: 0 }}
+    >
+      <Text color="gray.600">
+        Page {currentPage} of {totalPages || 1} ({totalItems} total)
+      </Text>
       
-      <Button
-        size="sm"
-        onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-        isDisabled={currentPage >= totalPages}
-        colorScheme={colorScheme}
-        variant="outline"
-      >
-        Next
-      </Button>
-    </HStack>
-  </Flex>
-);
+      <HStack spacing={2}>
+        <Button
+          size="sm"
+          onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+          isDisabled={currentPage === 1}
+          colorScheme={colorScheme}
+          variant="outline"
+        >
+          Previous
+        </Button>
+        
+        <Button
+          size="sm"
+          onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+          isDisabled={currentPage >= totalPages}
+          colorScheme={colorScheme}
+          variant="outline"
+        >
+          Next
+        </Button>
+      </HStack>
+    </Flex>
+  );
+
+  // Add this component in the same file before your main component
+
+  const ResponseDetailForm = ({ response, onUpdate, hideSaveButton = false }) => {
+    const [formData, setFormData] = useState({
+      farmerInput: {
+        surname: response.farmerInput.surname || '',
+        first_name: response.farmerInput.first_name || '',
+        middle_name: response.farmerInput.middle_name || '',
+        suffix: response.farmerInput.suffix || '',
+        farm_location: response.farmerInput.farm_location || ''
+      },
+      cropType: response.cropType?.crop_type || '',
+      cropRecord: {
+        crop_type: response.cropRecord?.crop_type || '',
+        crop_variety: response.cropRecord?.crop_variety || '',
+        crop_stage: response.cropRecord?.crop_stage || ''
+      },
+      cropDetails: response.cropDetails || {}
+    });
+    
+    const isNewlyPlanted = response.cropRecord?.crop_stage === 'NEWLY PLANTED';
+    const isHarvesting = response.cropRecord?.crop_stage === 'HARVESTING';
+    const isIndustrialCrop = response.cropType?.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS';
+    
+    // For displaying dates nicely
+    const formatDate = (dateString) => {
+      if (!dateString) return '';
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    };
+
+    const handleChange = (section, field, value) => {
+      setFormData(prev => ({
+        ...prev,
+        [section]: {
+          ...prev[section],
+          [field]: value
+        }
+      }));
+    };
+
+    const handleSubmit = () => {
+      onUpdate(formData);
+    };
+
+    return (
+      <VStack spacing={4} align="stretch">
+        {/* Farmer Information - Read Only */}
+        <Box>
+          <Heading as="h4" size="md" mb={3} color="blue.600">
+            Farmer Information
+          </Heading>
+          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+            <FormControl>
+              <FormLabel>Full Name</FormLabel>
+              <Input 
+                value={`${formData.farmerInput.first_name} ${formData.farmerInput.middle_name ? formData.farmerInput.middle_name + ' ' : ''}${formData.farmerInput.surname} ${formData.farmerInput.suffix || ''}`}
+                isReadOnly
+                bg="gray.50"
+              />
+            </FormControl>
+            <FormControl>
+              <FormLabel>Farm Location</FormLabel>
+              <Input 
+                value={formData.farmerInput.farm_location}
+                isReadOnly
+                bg="gray.50"
+              />
+            </FormControl>
+          </SimpleGrid>
+        </Box>
+
+        <Divider />
+
+        {/* Crop Information - Some Editable */}
+        <Box>
+          <Heading as="h4" size="md" mb={3} color="blue.600">
+            Crop Information
+          </Heading>
+          
+          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mb={4}>
+            {isIndustrialCrop ? (
+              <FormControl>
+                <FormLabel>URI NG TANIM</FormLabel>
+                <Select
+                  value={formData.cropRecord.crop_type}
+                  onChange={(e) => handleChange('cropRecord', 'crop_type', e.target.value)}
+                >
+                  <option value="AMPALAYA">AMPALAYA</option>
+                  <option value="EGGPLANT">EGGPLANT</option>
+                  <option value="OKRA">OKRA</option>
+                  <option value="SQUASH">SQUASH</option>
+                  <option value="SITAO">SITAO</option>
+                  <option value="KALABASA">KALABASA</option>
+                  <option value="KAMATIS">KAMATIS</option>
+                  <option value="PECHAY">PECHAY</option>
+                  <option value="PIPINO">PIPINO</option>
+                  <option value="TALONG">TALONG</option>
+                  <option value="KAMOTE">KAMOTE</option>
+                  <option value="PATATAS">PATATAS</option>
+                </Select>
+              </FormControl>
+            ) : (
+              <FormControl>
+                <FormLabel>Crop Type</FormLabel>
+                <Input
+                  value={formData.cropType}
+                  isReadOnly
+                  bg="gray.50"
+                />
+              </FormControl>
+            )}
+            
+            <FormControl>
+              <FormLabel>Variety</FormLabel>
+              <Input
+                value={formData.cropRecord.crop_variety}
+                onChange={(e) => handleChange('cropRecord', 'crop_variety', e.target.value)}
+              />
+            </FormControl>
+          </SimpleGrid>
+
+          {/* Crop Stage-Specific Information */}
+          {isNewlyPlanted && (
+            <Box>
+              <Heading as="h5" size="sm" mb={3} color="green.600">
+                Newly Planted Details
+              </Heading>
+              
+              <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+                <FormControl>
+                  <FormLabel>Date of Plantation</FormLabel>
+                  <Input
+                    value={`${formatDate(response.cropDetails?.plantation_start_date)} to ${formatDate(response.cropDetails?.plantation_end_date)}`}
+                    isReadOnly
+                    bg="gray.50"
+                  />
+                </FormControl>
+                
+                <FormControl>
+                  <FormLabel>Expected Harvest Date</FormLabel>
+                  <Input
+                    type="date"
+                    value={formData.cropDetails?.harvest_month_year ? formData.cropDetails.harvest_month_year.split('T')[0] : ''}
+                    onChange={(e) => handleChange('cropDetails', 'harvest_month_year', e.target.value)}
+                  />
+                </FormControl>
+
+                {isIndustrialCrop ? (
+                  <FormControl>
+                    <FormLabel>Total Area Planted (ha)</FormLabel>
+                    <Input
+                      value={formData.cropDetails?.total_area_planted || ''}
+                      isReadOnly
+                      bg="gray.50"
+                    />
+                  </FormControl>
+                ) : (
+                  <FormControl>
+                    <FormLabel>Total Number of Trees</FormLabel>
+                    <Input
+                      value={formData.cropDetails?.total_trees || ''}
+                      isReadOnly
+                      bg="gray.50"
+                    />
+                  </FormControl>
+                )}
+              </SimpleGrid>
+            </Box>
+          )}
+
+          {isHarvesting && (
+            <Box>
+              <Heading as="h5" size="sm" mb={3} color="orange.600">
+                Harvesting Details
+              </Heading>
+              
+              <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mb={4}>
+                <FormControl>
+                  <FormLabel>Date of Harvest</FormLabel>
+                  <Input
+                    value={`${formatDate(response.cropDetails?.harvest_start_date)} to ${formatDate(response.cropDetails?.harvest_end_date)}`}
+                    isReadOnly
+                    bg="gray.50"
+                  />
+                </FormControl>
+                
+                {isIndustrialCrop ? (
+                  <FormControl>
+                    <FormLabel>Total Area Harvested (ha)</FormLabel>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={formData.cropDetails?.total_area_harvested || ''}
+                      onChange={(e) => handleChange('cropDetails', 'total_area_harvested', e.target.value)}
+                    />
+                  </FormControl>
+                ) : (
+                  <FormControl>
+                    <FormLabel>Total Number of Trees Harvested</FormLabel>
+                    <Input
+                      type="number"
+                      value={formData.cropDetails?.trees_harvested || ''}
+                      onChange={(e) => handleChange('cropDetails', 'trees_harvested', e.target.value)}
+                    />
+                  </FormControl>
+                )}
+                
+                <FormControl>
+                  <FormLabel>Total Weight (kg)</FormLabel>
+                  <Input
+                    type="number"
+                    value={formData.cropDetails?.total_weight || ''}
+                    onChange={(e) => handleChange('cropDetails', 'total_weight', e.target.value)}
+                  />
+                </FormControl>
+                
+                <FormControl>
+                  <FormLabel>Crop Purpose</FormLabel>
+                  <Input
+                    value={formData.cropDetails?.crop_purpose || ''}
+                    isReadOnly
+                    bg="gray.50"
+                  />
+                </FormControl>
+              </SimpleGrid>
+
+              {formData.cropDetails?.crop_purpose === 'PANG BENTA' && (
+                <Box>
+                  <Heading as="h5" size="sm" mb={3} color="purple.600">
+                    Selling Details
+                  </Heading>
+                  
+                  <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+                    <FormControl>
+                      <FormLabel>Destination</FormLabel>
+                      <Input
+                        value={formData.cropDetails?.destination || ''}
+                        onChange={(e) => handleChange('cropDetails', 'destination', e.target.value)}
+                      />
+                    </FormControl>
+                    
+                    <FormControl>
+                      <FormLabel>Mode of Payment</FormLabel>
+                      <Select
+                        value={formData.cropDetails?.mode_of_payment || ''}
+                        onChange={(e) => handleChange('cropDetails', 'mode_of_payment', e.target.value)}
+                      >
+                        <option value="CASH">CASH</option>
+                        <option value="GCASH">GCASH</option>
+                        <option value="CHECK (TSEKE)">CHECK (TSEKE)</option>
+                        <option value="OTHERS">OTHERS</option>
+                      </Select>
+                    </FormControl>
+                    
+                    <FormControl>
+                      <FormLabel>Mode of Delivery</FormLabel>
+                      <Select
+                        value={formData.cropDetails?.mode_of_delivery || ''}
+                        onChange={(e) => handleChange('cropDetails', 'mode_of_delivery', e.target.value)}
+                      >
+                        <option value="PICKUP">PICKUP</option>
+                        <option value="SUPPLIER DIRECT DELIVERY">SUPPLIER DIRECT DELIVERY</option>
+                        <option value="DROPOFF">DROPOFF</option>
+                        <option value="OTHERS">OTHERS</option>
+                      </Select>
+                    </FormControl>
+                  </SimpleGrid>
+                </Box>
+              )}
+            </Box>
+          )}
+        </Box>
+
+        {!hideSaveButton && (
+          <Button 
+            mt={4} 
+            colorScheme="green" 
+            onClick={handleSubmit}
+            isFullWidth
+          >
+            Save Changes
+          </Button>
+        )}
+      </VStack>
+    );
+  };
   
   return (
     <Box 
@@ -459,55 +756,77 @@ const PaginationControls = ({ currentPage, setCurrentPage, totalPages, totalItem
       <Modal 
         isOpen={isOpen} 
         onClose={onClose} 
-        size="lg"
-        scrollBehavior='inside'
-        blockScrollOnMount={false} // This can help prevent scroll jumps
-        preserveScrollBarGap={true} // This prevents layout shifts
+        size="2xl" 
+        closeOnOverlayClick={false} 
+        scrollBehavior="inside"
+        motionPreset="none"
       >
         <ModalOverlay />
-        <ModalContent>
-          <ModalHeader bg="blue.50" borderBottomWidth="1px">
+        <ModalContent borderRadius="lg" overflow="hidden">
+          <ModalHeader 
+            bg="blue.50" 
+            borderBottomWidth="1px"
+            borderColor="gray.200"
+            py={4}
+            display="flex" 
+            alignItems="center"
+          >
+            <Icon 
+              as={selectedResponse?.cropRecord?.crop_stage === 'NEWLY PLANTED' ? FaSeedling : FaBoxes} 
+              mr={2} 
+              color={selectedResponse?.cropRecord?.crop_stage === 'NEWLY PLANTED' ? "green.600" : "orange.600"} 
+            />
             Response Details
             {selectedResponse && (
               <Tag 
                 size="md" 
-                colorScheme={selectedResponse.status === 'NEWLY PLANTED' ? 'green' : 'orange'}
+                colorScheme={selectedResponse.cropRecord?.crop_stage === 'NEWLY PLANTED' ? 'green' : 'orange'}
                 ml={2}
+                borderRadius="full"
+                px={3}
               >
-                {selectedResponse.status}
+                {selectedResponse.cropRecord?.crop_stage}
               </Tag>
             )}
           </ModalHeader>
-          <ModalCloseButton />
           
           <ModalBody py={6}>
             {selectedResponse && (
-              <Stack spacing={4}>
-                <Box>
-                  <Text fontWeight="bold" fontSize="sm" color="gray.500">FARMER NAME</Text>
-                  <Text fontSize="md">{selectedResponse.farmerName}</Text>
-                </Box>
-                
-                <Divider />
-                
-                <Box>
-                  <Text fontWeight="bold" fontSize="sm" color="gray.500">FARMER DETAILS</Text>
-                  <Text fontSize="md">Details to be configured later</Text>
-                </Box>
-                
-                <Divider />
-                
-                <Box>
-                  <Text fontWeight="bold" fontSize="sm" color="gray.500">CROP INFORMATION</Text>
-                  <Text fontSize="md">Details to be configured later</Text>
-                </Box>
-              </Stack>
+              <ResponseDetailForm 
+                response={selectedResponse} 
+                onUpdate={(updateData) => {
+                  updateFarmerInput({
+                    farmerId: selectedResponse.farmerInput._id,
+                    updateData
+                  });
+                  onClose();
+                }}
+                // Remove the Save Changes button from the form component
+                hideSaveButton={true}
+              />
             )}
           </ModalBody>
           
-          <ModalFooter>
-            <Button colorScheme="blue" mr={3} onClick={onClose}>
+          <ModalFooter bg="gray.50" borderTopWidth="1px" borderColor="gray.200">
+            <Button variant="outline" mr={3} onClick={onClose}>
               Close
+            </Button>
+            <Button 
+              colorScheme="green" 
+              onClick={() => {
+                if (selectedResponse) {
+                  // Call the same update function that was passed to ResponseDetailForm
+                  updateFarmerInput({
+                    farmerId: selectedResponse.farmerInput._id,
+                    updateData: document.querySelector('form')?.formData
+                  });
+                  onClose();
+                }
+              }}
+              isLoading={isUpdating}
+              loadingText="Saving"
+            >
+              Save Changes
             </Button>
           </ModalFooter>
         </ModalContent>
