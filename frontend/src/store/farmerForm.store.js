@@ -6,6 +6,7 @@ const API_URL = import.meta.env.VITE_API_URL;
 export const useFarmerFormStore = create((set, get) => ({
   // Store the form data temporarily using Zustand
   formData: {
+    privacyConsent: '',
     farmerInput: {
       surname: '',
       first_name: '',
@@ -26,6 +27,11 @@ export const useFarmerFormStore = create((set, get) => ({
   error: null,
   success: false,
   
+
+  updatePrivacyConsent: (consent) => set((state) => ({
+    formData: { ...state.formData, privacyConsent: consent }
+  })),
+
   // Setter methods for updating form data
   updateFarmerInput: (data) => set((state) => ({
     formData: { ...state.formData, farmerInput: data }

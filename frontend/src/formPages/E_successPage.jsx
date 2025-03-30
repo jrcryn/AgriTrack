@@ -10,7 +10,7 @@ const SuccessPage = () => {
 
   const handleNewForm = () => {
     resetForm();
-    navigate('/form/a_fi');
+    navigate('/form/istcns');
   };
 
   const cardBg = 'white';

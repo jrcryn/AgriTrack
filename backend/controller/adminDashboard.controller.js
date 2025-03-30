@@ -7,6 +7,8 @@ import { D1_crop_indus_harvest } from '../models/D1_cropIndusHarvest.model.js';
 import { D2_bc_other_fct_new } from '../models/D2_bc-other-fctNew.model.js';
 import { D2_bc_other_fct_harvest } from '../models/D2_bc-other-fctHarvest.model.js';
 
+import { FarmerAccount } from '../models/farmerAccount.model.js';
+
 
 // Get all unvalidated farmer inputs with their referenced documents
 export const getUnvalidatedFarmerInputs = async (req, res) => {
@@ -320,6 +322,49 @@ const getCompleteRecordById = async (farmerId) => {
 
   return { farmerInput, cropType, cropRecord, cropDetails };
 };
+
+
+
+// Create a new farmer account
+export const createFarmerAccount = async (req, res) => {
+  const { surname, first_name, middle_name, suffix, farm_location, mobile_number, facebook } = req.body;
+  if (!surname || !first_name || !farm_location) {
+      return res.status(400).json({ message: 'Please provide all the required fields.' });
+  }
+
+  const farmerAlreadyExists = await FarmerAccount.findOne({ mobile_number });
+  if (farmerAlreadyExists) {
+    return res.status(400).json({ message: 'Farmer account already exists.' });
+  }
+
+  try {
+      const newFarmerAccount = await FarmerAccount.create({
+          surname,
+          first_name,
+          middle_name,
+          suffix,
+          farm_location,
+          mobile_number,
+          facebook,
+      });
+      return res.json(newFarmerAccount);
+  } catch (error) {
+      return res.status(500).json({ message: 'Error creating farmer account', error });
+  }
+};
+
+
+// Get all farmer accounts
+export const getFarmerAccounts = async (req, res) => {
+  try {
+    const farmerAccounts = await FarmerAccount.find().lean();
+    res.json(farmerAccounts);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching farmer accounts', error: error.message });
+  }
+};
+
+
 
 
 

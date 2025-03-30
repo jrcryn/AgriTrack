@@ -11,6 +11,7 @@ import {
   VStack,
   Radio,
   RadioGroup,
+  Select,
 } from '@chakra-ui/react';
 import Destination from '../components/destinations.js';
 import ModeOfDelivery from '../components/modeOfDelivery.js';
@@ -25,7 +26,6 @@ const bc_other_fctHarvest = ({ onNext, onBack }) => {
     {
       label: dateOptions[0].label,
       value: `${dateOptions[0].startDate}_to_${dateOptions[0].endDate}`,
-
     },
     {
       label: dateOptions[1].label,
@@ -38,20 +38,47 @@ const bc_other_fctHarvest = ({ onNext, onBack }) => {
     harvest_start_date: '',
     harvest_end_date: '',
     total_weight: '',
+    crop_purpose: '',
     destination: '',
     mode_of_payment: '',
     mode_of_delivery: '',
   });
 
+  const [otherPayment, setOtherPayment] = useState(localFormData.mode_of_payment);
+  const [otherDestination, setOtherDestination] = useState(localFormData.destination);
+  const [otherDelivery, setOtherDelivery] = useState(localFormData.mode_of_delivery);
+  
+  const [cropPurpose, setCropPurpose] = useState(localFormData.crop_purpose);
+
   const [isFormValid, setIsFormValid] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setLocalFormData((prevData) => ({ ...prevData, [name]: value }));
+    
+    if (name === 'destination_others') {
+      setOtherDestination(value);
+    } else if (name === 'mode_of_payment_others') {
+      setOtherPayment(value);
+    } else if (name === 'mode_of_delivery_others') {
+      setOtherDelivery(value);
+    } else {
+      setLocalFormData((prevData) => ({ ...prevData, [name]: value }));
+    }
   };
 
   const handleRadioChange = (name, value) => {
     setLocalFormData((prevData) => ({ ...prevData, [name]: value }));
+    
+    if (name === 'destination' && value !== 'OTHERS') {
+      setOtherDestination('');
+    }
+    if (name === 'mode_of_payment' && value !== 'OTHERS') {
+      setOtherPayment('');
+    }
+    if (name === 'mode_of_delivery' && value !== 'OTHERS') {
+      setOtherDelivery('');
+    }
   };
 
   const handleDateRadioChange = (value) => {
@@ -64,17 +91,45 @@ const bc_other_fctHarvest = ({ onNext, onBack }) => {
   };
 
   const handleSubmit = async () => {
-    updateCropOtherHarvest(localFormData);
+    setSubmitting(true);
+    
+    const formDataToSubmit = { ...localFormData };
+
+    if (formDataToSubmit.destination === 'OTHERS' && otherDestination) {
+      formDataToSubmit.destination = otherDestination;
+    }
+    if (formDataToSubmit.mode_of_payment === 'OTHERS' && otherPayment) {
+      formDataToSubmit.mode_of_payment = otherPayment;
+    }
+    if (formDataToSubmit.mode_of_delivery === 'OTHERS' && otherDelivery) {
+      formDataToSubmit.mode_of_delivery = otherDelivery;
+    }
+
+    updateCropOtherHarvest(formDataToSubmit);
     
     const success = await submitFarmerForm();
+    setSubmitting(false);
+    
     if (success) {
       onNext('/success');
     }
+    return formDataToSubmit;
   };
 
   useEffect(() => {
-    const { harvest_start_date, harvest_end_date, trees_harvested, total_weight, destination, mode_of_payment, mode_of_delivery } = localFormData;
-    setIsFormValid(harvest_start_date && harvest_end_date && trees_harvested && total_weight && destination && mode_of_payment && mode_of_delivery);
+    const { harvest_start_date, harvest_end_date, trees_harvested, total_weight, crop_purpose, destination, mode_of_payment, mode_of_delivery } = localFormData;
+    
+    const needsDestinationFields = crop_purpose === 'PANG BENTA';
+    const destinationFieldsValid = !needsDestinationFields || (destination && mode_of_payment && mode_of_delivery);
+    
+    setIsFormValid(
+      harvest_start_date && 
+      harvest_end_date && 
+      trees_harvested && 
+      total_weight && 
+      crop_purpose &&
+      destinationFieldsValid
+    );
   }, [localFormData]);
 
   const cardBg = 'white';
@@ -84,23 +139,9 @@ const bc_other_fctHarvest = ({ onNext, onBack }) => {
   return (
     <Box minH="100vh" py={10} px={4}>
       <VStack spacing={8} maxW="800px" mx="auto" w="full">
-        {/* Main Card */}
         <Box bg={cardBg} borderRadius="xl" shadow="xl" w="full" overflow="hidden">
-
-          {/* Header */}
-          <Box 
-            p={6}
-            borderBottomWidth="2px"
-            borderColor={headerBorder}
-            align="center"
-          >
-            <Heading 
-              size="lg"
-              color={accentColor}
-              fontWeight="semibold"
-              letterSpacing="tight"
-              mb={3}
-            >
+          <Box p={6} borderBottomWidth="2px" borderColor={headerBorder} align="center">
+            <Heading size="lg" color={accentColor} fontWeight="semibold" letterSpacing="tight" mb={3}>
               High Value Crop Planting and Harvesting Report
             </Heading>
             <Text fontSize="sm" color="gray.500" fontWeight="medium" mb={-2}>
@@ -108,40 +149,19 @@ const bc_other_fctHarvest = ({ onNext, onBack }) => {
             </Text>
           </Box>
 
-          {/* Form Content */}
           <Box p={8}>
             <VStack spacing={6} align="stretch">
-
-              {/* Section Header */}
-              <Box
-                bg="blue.50"
-                borderRadius="md"
-                p={4}
-                borderLeftWidth="4px"
-                borderColor="blue.600"
-              >
+              <Box bg="blue.50" borderRadius="md" p={4} borderLeftWidth="4px" borderColor="blue.600">
                 <Text fontSize="md" fontWeight="bold" color="blue.600">
                   OTHER FRUIT CROPS/TREES (HARVESTING)
                 </Text>
               </Box>
 
-              {/* DATE OF HARVEST */}
               <FormControl id="dateOfHarvest" isRequired>
-                <FormLabel
-                  fontSize="sm"
-                  fontWeight="bold"
-                  color="gray.600"
-                  textTransform="uppercase"
-                  letterSpacing="wide"
-                  mb={4}
-                >
+                <FormLabel fontSize="sm" fontWeight="bold" color="gray.600" textTransform="uppercase" letterSpacing="wide" mb={4}>
                   DATE OF HARVEST (PILIIN ANG PETSA KUNG KAILAN NAG-ANI)
                 </FormLabel>
-                <RadioGroup
-                  name="harvest_date"
-                  onChange={handleDateRadioChange}
-                  value={`${localFormData.harvest_start_date}_to_${localFormData.harvest_end_date}`}
-                >
+                <RadioGroup name="harvest_date" onChange={handleDateRadioChange} value={`${localFormData.harvest_start_date}_to_${localFormData.harvest_end_date}`}>
                   <Stack direction="column" spacing={4}>
                     {combinedOptions.map((option) => (
                       <Radio key={option.value} value={option.value} colorScheme="blue">
@@ -154,156 +174,119 @@ const bc_other_fctHarvest = ({ onNext, onBack }) => {
                 </RadioGroup>
               </FormControl>
 
-              {/* TOTAL NUMBER OF TREES HARVESTED */}
               <FormControl id="totalTreesHarvested" isRequired>
-                <FormLabel
-                  fontSize="sm"
-                  fontWeight="bold"
-                  color="gray.600"
-                  textTransform="uppercase"
-                  letterSpacing="wide"
-                  mb={4}
-                >
+                <FormLabel fontSize="sm" fontWeight="bold" color="gray.600" textTransform="uppercase" letterSpacing="wide" mb={4}>
                   TOTAL NUMBER OF TREES HARVESTED (ILAN ANG KABUUANG BILANG NG PUNO NA KINUHANAN NINYO NG ANI?)
                 </FormLabel>
-                <Input
-                  type="number"
-                  name="trees_harvested"
-                  value={localFormData.trees_harvested}
-                  onChange={handleChange}
-                  placeholder="Your answer"
-                />
+                <Input type="number" name="trees_harvested" value={localFormData.trees_harvested} onChange={handleChange} placeholder="Your answer" />
               </FormControl>
 
-              {/* TOTAL WEIGHT OF HARVESTED CROPS */}
               <FormControl id="totalWeightHarvested" isRequired>
-                <FormLabel
-                  fontSize="sm"
-                  fontWeight="bold"
-                  color="gray.600"
-                  textTransform="uppercase"
-                  letterSpacing="wide"
-                  mb={4}
-                >
+                <FormLabel fontSize="sm" fontWeight="bold" color="gray.600" textTransform="uppercase" letterSpacing="wide" mb={4}>
                   TOTAL WEIGHT OF HARVESTED CROPS (ILAN ANG KABUUANG TIMBANG NA INYONG NAANI?)
                 </FormLabel>
-                <Input
-                  type="number"
-                  name="total_weight"
-                  value={localFormData.total_weight}
-                  onChange={handleChange}
-                  placeholder="Your answer in kilograms"
-                />
+                <Input type="number" name="total_weight" value={localFormData.total_weight} onChange={handleChange} placeholder="Your answer in kilograms" />
               </FormControl>
 
-              {/* DESTINATION */}
-              <FormControl id="destination" isRequired>
-                <FormLabel
-                  fontSize="sm"
-                  fontWeight="bold"
-                  color="gray.600"
-                  textTransform="uppercase"
-                  letterSpacing="wide"
-                  mb={4}
-                >
-                  DESTINATION (SAAN NIYO DINADALA ANG INYONG MGA INANING GULAY?)
+              <FormControl id="cropPurpose" isRequired>
+                <FormLabel fontSize="sm" fontWeight="bold" color="gray.600" textTransform="uppercase" letterSpacing="wide" mb={4}>
+                  PURPOSE OF HARVEST (SAAN GAGAMITIN AND INYONG NAANI?)
                 </FormLabel>
-                <RadioGroup
-                  name="destination"
-                  onChange={(value) => handleRadioChange('destination', value)}
-                  value={localFormData.destination}
-                >
-                  <Stack direction="column" spacing={4}>
-                    {Destination.map((option) => (
-                      <Radio key={option} value={option} colorScheme="blue">
-                        <Text fontSize="md" color="gray.700">
-                          {option}
-                        </Text>
-                      </Radio>
-                    ))}
-                  </Stack>
-                </RadioGroup>
+                <Select name="crop_purpose" placeholder='Select purpose' value={cropPurpose} onChange={(e) => {
+                  const value = e.target.value;
+                  setCropPurpose(value);
+                  setLocalFormData((prevData) => ({
+                    ...prevData,
+                    crop_purpose: value
+                  }));
+                }}>
+                  <option value="PANG BENTA">PANG BENTA (FOR SELLING)</option>
+                  <option value="PANG SARILI LAMANG">PANG SARILI LAMANG (FOR PERSONAL USE)</option>
+                </Select>
               </FormControl>
 
-              {/* MODE OF PAYMENT */}
-              <FormControl id="modeOfPayment" isRequired>
-                <FormLabel
-                  fontSize="sm"
-                  fontWeight="bold"
-                  color="gray.600"
-                  textTransform="uppercase"
-                  letterSpacing="wide"
-                  mb={4}
-                >
-                  MODE OF PAYMENT (PAANO ANG MODE OF PAYMENT SA INYONG PRODUKTO?)
-                </FormLabel>
-                <RadioGroup
-                  name="mode_of_payment"
-                  onChange={(value) => handleRadioChange('mode_of_payment', value)}
-                  value={localFormData.mode_of_payment}
-                >
-                  <Stack direction="column" spacing={4}>
-                    <Radio colorScheme="blue" value="CASH">
-                      CASH
-                    </Radio>
-                    <Radio colorScheme="blue" value="GCASH">
-                      GCASH
-                    </Radio>
-                    <Radio colorScheme="blue" value="CHECK (TSEKE)">
-                      CHECK (TSEKE)
-                    </Radio>
-                    <Radio colorScheme="blue" value="OTHERS">
-                      OTHERS
-                    </Radio>
-                  </Stack>
-                </RadioGroup>
-              </FormControl>
+              {cropPurpose === 'PANG BENTA' && (
+                <>
+                  <FormControl id="destination" isRequired>
+                    <FormLabel fontSize="sm" fontWeight="bold" color="gray.600" mb={4}>
+                      DESTINATION (SAAN NIYO DINADALA ANG INYONG MGA INANING GULAY?)
+                    </FormLabel>
+                    <RadioGroup name="destination" onChange={(value) => handleRadioChange('destination', value)} value={localFormData.destination}>
+                      <Stack direction="column" spacing={4}>
+                        {Destination.map((option) => (
+                          <Radio key={option} value={option} colorScheme="blue">
+                            <Text fontSize="md" color="gray.700">
+                              {option}
+                            </Text>
+                          </Radio>
+                        ))}
+                      </Stack>
+                    </RadioGroup>
+                    {localFormData.destination === 'OTHERS' && (
+                      <Box mt={4}>
+                        <FormLabel fontSize="sm" fontWeight="bold" color="gray.600">
+                          SPECIFY OTHER MODE OF PAYMENT
+                        </FormLabel>
+                        <Input type="text" name="destination_others" value={otherDestination} onChange={handleChange} placeholder="Please specify" />
+                      </Box>
+                    )}
+                  </FormControl>
 
-              {/* MODE OF DELIVERY */}
-              <FormControl id="modeOfDelivery" isRequired>
-                <FormLabel
-                  fontSize="sm"
-                  fontWeight="bold"
-                  color="gray.600"
-                  textTransform="uppercase"
-                  letterSpacing="wide"
-                  mb={4}
-                >
-                  MODE OF DELIVERY (PAANO ANG MODE OF DELIVERY NG INYONG PRODUKTO?)
-                </FormLabel>
-                <RadioGroup
-                  name="mode_of_delivery"
-                  onChange={(value) => handleRadioChange('mode_of_delivery', value)}
-                  value={localFormData.mode_of_delivery}
-                >
-                  <Stack direction="column" spacing={4}>
-                    {ModeOfDelivery.map((option) => (
-                      <Radio key={option} value={option} colorScheme="blue">
-                        <Text fontSize="md" color="gray.700">
-                          {option}
-                        </Text>
-                      </Radio>
-                    ))}
-                  </Stack>
-                </RadioGroup>
-              </FormControl>
+                  <FormControl id="modeOfPayment" isRequired>
+                    <FormLabel fontSize="sm" fontWeight="bold" color="gray.600" mb={4}>
+                      MODE OF PAYMENT (PAANO ANG MODE OF PAYMENT SA INYONG PRODUKTO?)
+                    </FormLabel>
+                    <RadioGroup name="mode_of_payment" onChange={(value) => handleRadioChange('mode_of_payment', value)} value={localFormData.mode_of_payment}>
+                      <Stack direction="column" spacing={4}>
+                        <Radio colorScheme="blue" value="CASH">CASH</Radio>
+                        <Radio colorScheme="blue" value="GCASH">GCASH</Radio>
+                        <Radio colorScheme="blue" value="CHECK (TSEKE)">CHECK (TSEKE)</Radio>
+                        <Radio colorScheme="blue" value="OTHERS">OTHERS</Radio>
+                      </Stack>
+                    </RadioGroup>
+                    {localFormData.mode_of_payment === 'OTHERS' && (
+                      <Box mt={4}>
+                        <FormLabel fontSize="sm" fontWeight="bold" color="gray.600" textTransform="uppercase" letterSpacing="wide">
+                          SPECIFY OTHER MODE OF PAYMENT
+                        </FormLabel>
+                        <Input type="text" name="mode_of_payment_others" value={otherPayment} onChange={handleChange} placeholder="Please specify" />
+                      </Box>
+                    )}
+                  </FormControl>
+
+                  <FormControl id="modeOfDelivery" isRequired>
+                    <FormLabel fontSize="sm" fontWeight="bold" color="gray.600" mb={4}>
+                      MODE OF DELIVERY (PAANO ANG MODE OF DELIVERY NG INYONG PRODUKTO?)
+                    </FormLabel>
+                    <RadioGroup name="mode_of_delivery" onChange={(value) => handleRadioChange('mode_of_delivery', value)} value={localFormData.mode_of_delivery}>
+                      <Stack direction="column" spacing={4}>
+                        {ModeOfDelivery.map((option) => (
+                          <Radio key={option} value={option} colorScheme="blue">
+                            <Text fontSize="md" color="gray.700">
+                              {option}
+                            </Text>
+                          </Radio>
+                        ))}
+                      </Stack>
+                    </RadioGroup>
+                    {localFormData.mode_of_delivery === 'OTHERS' && (
+                      <Box mt={4}>
+                        <FormLabel fontSize="sm" fontWeight="bold" color="gray.600" textTransform="uppercase" letterSpacing="wide">
+                          SPECIFY OTHER MODE OF DELIVERY
+                        </FormLabel>
+                        <Input type="text" name="mode_of_delivery_others" value={otherDelivery} onChange={handleChange} placeholder="Please specify" />
+                      </Box>
+                    )}
+                  </FormControl>
+                </>
+              )}
             </VStack>
 
-            {/* Navigation Buttons */}
             <Stack direction={{ base: 'column', md: 'row' }} spacing={4} justify="flex-end" mt={12}>
               <Button variant="ghost" colorScheme="blue" onClick={onBack} px={8} borderRadius="md">
                 Back
               </Button>
-              <Button
-                bg={accentColor}
-                color="white"
-                _hover={{ bg: 'blue.700' }}
-                onClick={handleSubmit}
-                isLoading={isLoading}
-                px={8}
-                borderRadius="md"
-                isDisabled={!isFormValid}
-              >
+              <Button bg={accentColor} color="white" _hover={{ bg: 'blue.700' }} onClick={handleSubmit} isLoading={isLoading || submitting} px={8} borderRadius="md" isDisabled={!isFormValid}>
                 Submit
               </Button>
             </Stack>

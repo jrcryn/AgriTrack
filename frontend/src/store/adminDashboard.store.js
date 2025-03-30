@@ -42,6 +42,16 @@ export const useUpdateFarmerInputMutation = () => {
   });
 };
 
+export const useFarmerAccountsQuery = () => 
+  useQuery({
+    queryKey: ['farmerAccounts'],
+    queryFn: async () => {
+      const response = await axios.get(`${API_URL}/get-farmer-accounts`);
+      return response.data;
+    }
+  });
+
+
 // Zustand store for UI state management
 export const useAdminDashboardStore = create((set) => ({
   error: null,
@@ -57,19 +67,30 @@ export const useAdminDashboard = () => {
   const { data: unvalidatedInputs = [], isLoading: isLoadingUnvalidated, error: unvalidatedError } = useUnvalidatedInputsQuery();
   const { data: validatedInputs = [], isLoading: isLoadingValidated, error: validatedError } = useValidatedInputsQuery();
   const { mutate: updateFarmerInput, isPending: isUpdating, error: updateError } = useUpdateFarmerInputMutation();
+  const { data: farmerAccounts = [], isLoading: isLoadingAccounts, error: accountsError } = useFarmerAccountsQuery();
+
+  const createFarmerAccount = async (farmerData) => {
+    try {
+      await axios.post(`${API_URL}/create-farmer-account`, farmerData);
+    } catch (error) {
+      setError(error.message || 'Failed to create farmer account');
+    }
+  };
 
   // Combine errors from different sources
   if (unvalidatedError) setError(unvalidatedError.message || 'Failed to fetch unvalidated inputs');
   if (validatedError) setError(validatedError.message || 'Failed to fetch validated inputs');
   if (updateError) setError(updateError.message || 'Failed to update farmer input');
+  if (accountsError) setError(accountsError.message || 'Failed to fetch farmer accounts');
 
   return {
     // Data
     unvalidatedInputs,
     validatedInputs,
+    farmerAccounts,
     
     // Loading states
-    isLoading: isLoadingUnvalidated || isLoadingValidated,
+    isLoading: isLoadingUnvalidated || isLoadingValidated || isLoadingAccounts,
     isUpdating,
     
     // Error state
@@ -77,6 +98,7 @@ export const useAdminDashboard = () => {
     
     // Actions
     updateFarmerInput,
-    clearError
+    clearError,
+    createFarmerAccount
   };
 };

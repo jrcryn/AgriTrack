@@ -214,7 +214,6 @@ const FarmerInput = ({ onNext, onBack }) => {
                 variant="ghost"
                 colorScheme="blue"
                 onClick={onBack}
-                isDisabled
                 px={8}
                 borderRadius="md"
               >
