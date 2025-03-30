@@ -14,9 +14,9 @@ const D2BcOtherFctHarvestSchema = new mongoose.Schema({
   trees_harvested: { type: Number, required: true},
   total_weight: { type: Number, required: true },
   crop_purpose: { type: String, enum: ['PANG BENTA', 'PANG SARILI LAMANG'], required: true },
-  destination: { type: String },
-  mode_of_payment: { type: String },
-  mode_of_delivery: { type: String }
+  destination: { type: String, set: (value) => value.toUpperCase() },
+  mode_of_payment: { type: String, set: (value) => value.toUpperCase() },
+  mode_of_delivery: { type: String, set: (value) => value.toUpperCase() }
 }, { versionKey: false });
 
 export const D2_bc_other_fct_harvest = mongoose.model('D2_bc_other_fct_harvest', D2BcOtherFctHarvestSchema);

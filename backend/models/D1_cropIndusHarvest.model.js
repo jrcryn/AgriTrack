@@ -13,10 +13,14 @@ const D1CropIndusHarvestSchema = new mongoose.Schema({
 
   total_area_harvested: { type: Number, required: true },
   total_weight: { type: Number, required: true },
-  crop_purpose: { type: String, enum: ['PANG BENTA', 'PANG SARILI LAMANG'], required: true },
-  destination: { type: String },
-  mode_of_payment: { type: String },
-  mode_of_delivery: { type: String }
+  crop_purpose: { 
+    type: String, 
+    enum: ['PANG BENTA', 'PANG SARILI LAMANG'], 
+    required: true, 
+  },
+  destination: { type: String, set: (value) => value.toUpperCase() },
+  mode_of_payment: { type: String, set: (value) => value.toUpperCase() },
+  mode_of_delivery: { type: String, set: (value) => value.toUpperCase() }
 }, { versionKey: false });
 
 export const D1_crop_indus_harvest = mongoose.model('D1_crop_indus_harvest', D1CropIndusHarvestSchema);
