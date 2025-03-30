@@ -1,4 +1,4 @@
-const converstions = {
+const conversions = {
     "AVOCADO": 0.0064,
     "BARIBA": 0.0025,
     "CALAMANSI": 0.0016,
@@ -22,7 +22,7 @@ const converstions = {
     "LATUNDAN": 0.0016,
     "SABA": 0.0016,
     "SEÑORITA": 0.0016,
-    "LIBERCA": 0.0012,
+    "LIBERICA": 0.0012,
     "ROBUSTA": 0.0006,
 };
 
@@ -31,13 +31,13 @@ const converstions = {
 
 // Detailed file https://docs.google.com/spreadsheets/d/1SlKoYBoDK-b500udHOtl9CzslOclVOhh/edit?gid=1829562814#gid=1829562814
 
-const numOfTreesToHecatares = (commodity, treesHarvested) => {
-    const rate = converstions[commodity];
+const numOfTreesToHectares = (commodity, treesHarvested) => {
+    const rate = conversions[commodity];
     if (rate === undefined) {
-        console.error(`Conversion rate for crop type ${cropType} not found`);
+        console.error(`Conversion rate for crop type ${commodity} not found`);
         return null;
     }
     return treesHarvested * rate;
 };
 
-export default numOfTreesToHecatares;
+export default numOfTreesToHectares;

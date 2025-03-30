@@ -3,7 +3,6 @@ import {
   Box,
   Heading,
   Text,
-  Stack,
   HStack,
   VStack,
   Flex,
@@ -24,7 +23,6 @@ import {
   ModalHeader,
   ModalFooter,
   ModalBody,
-  ModalCloseButton,
   useDisclosure,
   Divider,
   Tag,
@@ -34,8 +32,10 @@ import {
   FormLabel,
   SimpleGrid,
   Select,
+  InputRightAddon
 } from '@chakra-ui/react';
-import { FaSearch, FaEye, FaSeedling, FaBoxes } from 'react-icons/fa';
+import numOfTreesToHectares from '../components/conversions.js';
+import { FaSearch, FaEye, FaSeedling, FaBoxes, FaUser, FaLeaf, FaMoneyBillWave, FaSave, FaTree } from 'react-icons/fa';
 import { useAdminDashboard } from '../store/adminDashboard.store.js';
 
 const Responses = () => {
@@ -75,88 +75,7 @@ const Responses = () => {
   // Date format for harvest date, plantation date, and month-year
   const plnt_harvDate = { year: 'numeric', month: 'short', day: 'numeric' };
   const harvMonthYear = { year: 'numeric', month: 'short' };
-
-  // Refs for table scroll positions
-  const newlyPlantedTableRef = useRef(null);
-  const harvestingTableRef = useRef(null);
-  const [scrollPositions, setScrollPositions] = useState({ x: 0, y: 0, container: null });
-
-  // Handle modal open with response details and save scroll position
-  const handleViewDetails = (response) => {
-    // Save current scroll positions
-    let scrollX = 0;
-    let container = null;
-    
-    if (response.cropRecord.crop_stage === 'NEWLY PLANTED' && newlyPlantedTableRef.current) {
-      scrollX = newlyPlantedTableRef.current.scrollLeft;
-      container = 'newlyPlanted';
-    } else if (response.cropRecord.crop_stage === 'HARVESTING' && harvestingTableRef.current) {
-      scrollX = harvestingTableRef.current.scrollLeft;
-      container = 'harvesting';
-    }
-    
-    // First set the selected response
-    setSelectedResponse(response);
-    
-    // Then open the modal
-    onOpen();
-    
-    // Use a timeout to maintain the scroll position after the modal opens
-    setTimeout(() => {
-      if (container === 'newlyPlanted' && newlyPlantedTableRef.current) {
-        newlyPlantedTableRef.current.scrollLeft = scrollX;
-      } else if (container === 'harvesting' && harvestingTableRef.current) {
-        harvestingTableRef.current.scrollLeft = scrollX;
-      }
-      
-      // Save the position for later use when closing
-      setScrollPositions({
-        x: scrollX,
-        y: window.scrollY,
-        container: container
-      });
-    }, 0);
-  };
-
-  // Restore scroll positions after modal renders
-  useEffect(() => {
-    if (scrollPositions.container) {
-      // Use setTimeout to ensure the DOM has updated
-      setTimeout(() => {
-        // Restore vertical scroll
-        window.scrollTo(0, scrollPositions.y);
-        
-        // Restore horizontal scroll for the appropriate table
-        if (scrollPositions.container === 'newlyPlanted' && newlyPlantedTableRef.current) {
-          newlyPlantedTableRef.current.scrollLeft = scrollPositions.x;
-        } else if (scrollPositions.container === 'harvesting' && harvestingTableRef.current) {
-          harvestingTableRef.current.scrollLeft = scrollPositions.x;
-        }
-      }, 50);
-    }
-  }, [isOpen, scrollPositions]);
-
-  // Additional effect to maintain scroll position during modal interactions
-  useEffect(() => {
-    if (isOpen && scrollPositions.container) {
-      // Create an interval that repeatedly ensures scroll position is maintained
-      // This handles cases where the modal might cause scroll position loss
-      const intervalId = setInterval(() => {
-        if (scrollPositions.container === 'newlyPlanted' && newlyPlantedTableRef.current) {
-          if (newlyPlantedTableRef.current.scrollLeft !== scrollPositions.x) {
-            newlyPlantedTableRef.current.scrollLeft = scrollPositions.x;
-          }
-        } else if (scrollPositions.container === 'harvesting' && harvestingTableRef.current) {
-          if (harvestingTableRef.current.scrollLeft !== scrollPositions.x) {
-            harvestingTableRef.current.scrollLeft = scrollPositions.x;
-          }
-        }
-      }, 100); // Check every 100ms
-      
-      // Clean up interval when modal closes
-      return () => clearInterval(intervalId);
-    }
-  }, [isOpen, scrollPositions]);
+  const harvMonthYearFull = { year: 'numeric', month: 'long' };
   
   // Split data into newly planted and harvesting
   const newlyPlantedResponses = searchedResponses.filter(
@@ -176,13 +95,13 @@ const Responses = () => {
   const harvestingTotalPages = Math.ceil(harvestingResponses.length / 5);
   
   // Table component to reuse for both sections
-  const ResponseTable = ({ data, status, containerRef }) => (
-    <TableContainer ref={containerRef}>
+  const ResponseTable = ({ data, status }) => (
+    <TableContainer>
       <Table variant="simple">
         <Thead bg="gray.50">
           <Tr>
             <Th>Farmer Name</Th>
-            <Th>Barangay</Th>
+            <Th>Farm Location</Th>
             {status === 'NEWLY PLANTED' ? (
               <>
                 <Th>Commodity</Th>
@@ -195,7 +114,7 @@ const Responses = () => {
                   <Text>Date of</Text>
                   <Text>Harvesting</Text>
                 </Th>
-                <Th position={{ base: 'static', md: 'sticky' }} right={0} bg="gray.50" zIndex={{ base: 0, md: 1 }} textAlign={'center'} shadow={'md'}>
+                <Th position={{ base: 'static', md: 'sticky' }} right={0} bg="gray.50" zIndex={{ base: 0, md: 1 }} textAlign={'center'}>
                   <Box display={{ base: 'none', md: 'block' }}>Scroll →</Box>
                   <Box display={{ base: 'block', md: 'none' }}>Actions</Box>
                 </Th>
@@ -213,19 +132,6 @@ const Responses = () => {
                   <Text fontSize={'10px'}>Total Area /</Text>
                   <Text fontSize={'10px'}>Number of Trees</Text>
                   <Text fontSize={'10px'}>Harvested</Text>
-                </Th>
-                <Th>
-                  <Text>Total Weight of</Text>
-                  <Text>Harvested Crops</Text>
-                </Th>
-                <Th>Destination</Th>
-                <Th>
-                  <Text>Mode of</Text>
-                  <Text>Payment</Text>
-                </Th>
-                <Th>
-                  <Text>Mode of</Text>
-                  <Text>Delivery</Text>
                 </Th>
                 <Th position={{ base: 'static', md: 'sticky' }} right={0} bg="gray.50" zIndex={{ base: 0, md: 1 }} textAlign={'center'}>
                   <Box display={{ base: 'none', md: 'block' }}>Scroll →</Box>
@@ -271,10 +177,6 @@ const Responses = () => {
                           : `${response.cropDetails.trees_harvested} trees`
                       ) || '-'}
                     </Td>
-                    <Td>{response.cropDetails ? `${response.cropDetails.total_weight} kg` : '-'}</Td>
-                    <Td>{response.cropDetails ? response.cropDetails.destination : '-'}</Td>
-                    <Td>{response.cropDetails ? response.cropDetails.mode_of_payment : '-'}</Td>
-                    <Td>{response.cropDetails ? response.cropDetails.mode_of_delivery : '-'}</Td>
                   </>
                 )}
                 <Td isNumeric position={{ base: 'static', md: 'sticky' }} right={0} bg={'white'} zIndex={1}>
@@ -282,7 +184,10 @@ const Responses = () => {
                     size="sm"
                     colorScheme={status === 'NEWLY PLANTED' ? 'green' : 'orange'}
                     leftIcon={<FaEye />}
-                    onClick={() => handleViewDetails(response)}
+                    onClick={() => {
+                      setSelectedResponse(response);
+                      onOpen();
+                    }}
                   >
                     Details
                   </Button>
@@ -338,25 +243,8 @@ const Responses = () => {
     </Flex>
   );
 
-  // Add this component in the same file before your main component
 
   const ResponseDetailForm = ({ response, onUpdate, hideSaveButton = false }) => {
-    const [formData, setFormData] = useState({
-      farmerInput: {
-        surname: response.farmerInput.surname || '',
-        first_name: response.farmerInput.first_name || '',
-        middle_name: response.farmerInput.middle_name || '',
-        suffix: response.farmerInput.suffix || '',
-        farm_location: response.farmerInput.farm_location || ''
-      },
-      cropType: response.cropType?.crop_type || '',
-      cropRecord: {
-        crop_type: response.cropRecord?.crop_type || '',
-        crop_variety: response.cropRecord?.crop_variety || '',
-        crop_stage: response.cropRecord?.crop_stage || ''
-      },
-      cropDetails: response.cropDetails || {}
-    });
     
     const isNewlyPlanted = response.cropRecord?.crop_stage === 'NEWLY PLANTED';
     const isHarvesting = response.cropRecord?.crop_stage === 'HARVESTING';
@@ -386,246 +274,400 @@ const Responses = () => {
       onUpdate(formData);
     };
 
+    console.log('Crop Record:', response.cropRecord.crop_variety); 
+    console.log('Total trees:', response.cropDetails.total_trees);
+
     return (
-      <VStack spacing={4} align="stretch">
-        {/* Farmer Information - Read Only */}
-        <Box>
-          <Heading as="h4" size="md" mb={3} color="blue.600">
-            Farmer Information
-          </Heading>
-          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-            <FormControl>
-              <FormLabel>Full Name</FormLabel>
-              <Input 
-                value={`${formData.farmerInput.first_name} ${formData.farmerInput.middle_name ? formData.farmerInput.middle_name + ' ' : ''}${formData.farmerInput.surname} ${formData.farmerInput.suffix || ''}`}
-                isReadOnly
-                bg="gray.50"
-              />
-            </FormControl>
-            <FormControl>
-              <FormLabel>Farm Location</FormLabel>
-              <Input 
-                value={formData.farmerInput.farm_location}
-                isReadOnly
-                bg="gray.50"
-              />
-            </FormControl>
-          </SimpleGrid>
-        </Box>
+    <VStack spacing={6} align="stretch">
+      {/* Farmer Information Section */}
+      <Box 
+        p={5} 
+        borderRadius="md" 
+        borderWidth="1px" 
+        borderColor="gray.200" 
+        bg="white"
+        boxShadow="sm"
+      >
+        <Heading as="h3" size="md" mb={4} color="blue.600" fontWeight="600">
+          <HStack>
+            <Icon as={FaUser} />
+            <Text>Farmer Information</Text>
+          </HStack>
+        </Heading>
 
-        <Divider />
+        <SimpleGrid columns={{ base: 1, md: 2 }} spacing={5}>
+          <FormControl>
+            <FormLabel fontWeight="medium">Full Name</FormLabel>
+            <Input 
+              value={`${response.farmerInput.first_name} ${response.farmerInput.middle_name ? response.farmerInput.middle_name + ' ' : ''}${response.farmerInput.surname} ${response.farmerInput.suffix || ''}`}
+              isReadOnly
+              bg="gray.50"
+              borderColor="gray.200"
+            />
+          </FormControl>
+          <FormControl>
+            <FormLabel fontWeight="medium">Farm Location</FormLabel>
+            <Input 
+              value={response.farmerInput.farm_location}
+              isReadOnly
+              bg="gray.50"
+              borderColor="gray.200"
+            />
+          </FormControl>
+        </SimpleGrid>
+      </Box>
 
-        {/* Crop Information - Some Editable */}
-        <Box>
-          <Heading as="h4" size="md" mb={3} color="blue.600">
-            Crop Information
-          </Heading>
-          
-          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mb={4}>
-            {isIndustrialCrop ? (
+      {/* Crop Information Section (Conditional)*/}
+      <Box 
+        p={5} 
+        borderRadius="md" 
+        borderWidth="1px" 
+        borderColor="gray.200" 
+        bg="white"
+        boxShadow="sm"
+      >
+        <Heading as="h3" size="md" mb={4} color="green.600" fontWeight="600">
+          <HStack>
+            <Icon as={FaSeedling} />
+            <Text>Crop Information</Text>
+          </HStack>
+        </Heading>
+        
+        <SimpleGrid columns={{ base: 1, md: 2 }} spacing={5}>
+          {isIndustrialCrop ? (
+            <>
               <FormControl>
-                <FormLabel>URI NG TANIM</FormLabel>
-                <Select
-                  value={formData.cropRecord.crop_type}
-                  onChange={(e) => handleChange('cropRecord', 'crop_type', e.target.value)}
-                >
-                  <option value="AMPALAYA">AMPALAYA</option>
-                  <option value="EGGPLANT">EGGPLANT</option>
-                  <option value="OKRA">OKRA</option>
-                  <option value="SQUASH">SQUASH</option>
-                  <option value="SITAO">SITAO</option>
-                  <option value="KALABASA">KALABASA</option>
-                  <option value="KAMATIS">KAMATIS</option>
-                  <option value="PECHAY">PECHAY</option>
-                  <option value="PIPINO">PIPINO</option>
-                  <option value="TALONG">TALONG</option>
-                  <option value="KAMOTE">KAMOTE</option>
-                  <option value="PATATAS">PATATAS</option>
-                </Select>
-              </FormControl>
-            ) : (
-              <FormControl>
-                <FormLabel>Crop Type</FormLabel>
+                <FormLabel fontWeight="medium">Crop Type</FormLabel>
                 <Input
-                  value={formData.cropType}
+                  value={response.cropType?.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS' ? 'INDUSTRIAL' : '-' }
                   isReadOnly
                   bg="gray.50"
+                  borderColor="gray.200"
                 />
               </FormControl>
-            )}
+
+              <FormControl>
+                <FormLabel fontWeight="medium">Commodity</FormLabel>
+                <Input
+                  value={response.cropRecord?.crop_type || '-'}
+                  isReadOnly
+                  bg="gray.50"
+                  borderColor="gray.200"
+                />
+              </FormControl>
+
+              <FormControl>
+                <FormLabel fontWeight="medium">Variety</FormLabel>
+                <Input
+                  value={response.cropRecord?.crop_variety || '-'}
+                  isReadOnly
+                  bg="gray.50"
+                  borderColor="gray.200"
+                />
+              </FormControl>
+            </>
+          ) : (
+            <>
+              <FormControl>
+                <FormLabel fontWeight="medium">Crop Type</FormLabel>
+                <Input
+                  value={response.cropType?.crop_type ? response.cropType.crop_type : '-'}
+                  isReadOnly
+                  bg="gray.50"
+                  borderColor="gray.200"
+                />
+              </FormControl>
+
+              <FormControl>
+                <FormLabel fontWeight="medium">Commodity</FormLabel>
+                <Input
+                  value={response.cropRecord?.crop_variety || '-'}
+                  isReadOnly
+                  bg="gray.50"
+                  borderColor="gray.200"
+                />
+              </FormControl>
+            </>
+          )}
+        </SimpleGrid>
+      </Box>
+
+      {/* Plantation Information */}
+      {isNewlyPlanted && (
+        <Box 
+          p={5} 
+          borderRadius="md" 
+          borderWidth="1px" 
+          borderColor="gray.200" 
+          bg="white"
+          boxShadow="sm"
+        >
+          <Heading as="h3" size="md" mb={4} color="teal.600" fontWeight="600">
+            <HStack>
+              <Icon as={FaLeaf} />
+              <Text>Plantation Details</Text>
+            </HStack>
+          </Heading>
+          
+          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={5} mb={4}>
+            <FormControl>
+              <FormLabel fontWeight="medium">Date of Plantation</FormLabel>
+              <Input
+                value={response.cropDetails && response.cropDetails.plantation_start_date && response.cropDetails.plantation_end_date ?
+                  `${formatDate(response.cropDetails.plantation_start_date)} to ${formatDate(response.cropDetails.plantation_end_date)}`
+                  : '-'}
+                isReadOnly
+                bg="gray.50"
+                borderColor="gray.200"
+              />
+            </FormControl>
             
             <FormControl>
-              <FormLabel>Variety</FormLabel>
+              <FormLabel fontWeight="medium">Date of Harvesting</FormLabel>
               <Input
-                value={formData.cropRecord.crop_variety}
-                onChange={(e) => handleChange('cropRecord', 'crop_variety', e.target.value)}
+                value={response.cropDetails && response.cropDetails.harvest_month_year ?
+                  new Date(response.cropDetails.harvest_month_year).toLocaleDateString('en-US', harvMonthYearFull)
+                  : '-'}
+                isReadOnly
+                bg="gray.50"
+                borderColor="gray.200"
               />
             </FormControl>
           </SimpleGrid>
 
-          {/* Crop Stage-Specific Information */}
-          {isNewlyPlanted && (
-            <Box>
-              <Heading as="h5" size="sm" mb={3} color="green.600">
-                Newly Planted Details
+          {isIndustrialCrop ? (
+            <FormControl mb={1}>
+              <FormLabel fontWeight="medium">Total Area Planted (ha)</FormLabel>
+              <InputGroup>
+                <Input
+                  value={response.cropDetails?.total_area_planted || ''}
+                  isReadOnly
+                  bg="gray.50"
+                  borderColor="gray.200"
+                />
+                <InputRightAddon children="hectares" bg="blue.100" color="blue.800" />
+              </InputGroup>
+            </FormControl>
+          ) : (
+            <Box 
+              p={4} 
+              borderRadius="md" 
+              borderWidth="1px" 
+              borderColor="blue.200" 
+              bg="blue.50"
+              
+              mt={5}
+            >
+              <Heading as="h4" size="sm" mb={4} color="blue.700">
+                <HStack>
+                  <Icon as={FaTree} />
+                  <Text>Land Utilization Metrics</Text>
+                </HStack>
               </Heading>
               
               <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
                 <FormControl>
-                  <FormLabel>Date of Plantation</FormLabel>
-                  <Input
-                    value={`${formatDate(response.cropDetails?.plantation_start_date)} to ${formatDate(response.cropDetails?.plantation_end_date)}`}
-                    isReadOnly
-                    bg="gray.50"
-                  />
-                </FormControl>
-                
-                <FormControl>
-                  <FormLabel>Expected Harvest Date</FormLabel>
-                  <Input
-                    type="date"
-                    value={formData.cropDetails?.harvest_month_year ? formData.cropDetails.harvest_month_year.split('T')[0] : ''}
-                    onChange={(e) => handleChange('cropDetails', 'harvest_month_year', e.target.value)}
-                  />
+                  <FormLabel fontWeight="medium" color="gray.700">Total Number of Trees</FormLabel>
+                  <InputGroup>
+                    <Input
+                      value={response.cropDetails?.total_trees || ''}
+                      isReadOnly
+                      bg="white"
+                      borderColor="gray.300"
+                    />
+                    <InputRightAddon children="trees" bg="blue.100" color="blue.800" />
+                  </InputGroup>
                 </FormControl>
 
-                {isIndustrialCrop ? (
-                  <FormControl>
-                    <FormLabel>Total Area Planted (ha)</FormLabel>
+                <FormControl>
+                  <FormLabel fontWeight="medium" color="gray.700">Equivalent Area</FormLabel>
+                  <InputGroup>
                     <Input
-                      value={formData.cropDetails?.total_area_planted || ''}
+                      value={response.cropDetails?.total_trees && response.cropRecord?.crop_variety ?
+                        `${numOfTreesToHectares(response.cropRecord.crop_variety, response.cropDetails.total_trees)?.toFixed(4) || '-'}`
+                        : '-'}
                       isReadOnly
-                      bg="gray.50"
+                      bg="white"
+                      borderColor="gray.300"
                     />
-                  </FormControl>
-                ) : (
-                  <FormControl>
-                    <FormLabel>Total Number of Trees</FormLabel>
-                    <Input
-                      value={formData.cropDetails?.total_trees || ''}
-                      isReadOnly
-                      bg="gray.50"
-                    />
-                  </FormControl>
-                )}
-              </SimpleGrid>
-            </Box>
-          )}
-
-          {isHarvesting && (
-            <Box>
-              <Heading as="h5" size="sm" mb={3} color="orange.600">
-                Harvesting Details
-              </Heading>
-              
-              <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mb={4}>
-                <FormControl>
-                  <FormLabel>Date of Harvest</FormLabel>
-                  <Input
-                    value={`${formatDate(response.cropDetails?.harvest_start_date)} to ${formatDate(response.cropDetails?.harvest_end_date)}`}
-                    isReadOnly
-                    bg="gray.50"
-                  />
-                </FormControl>
-                
-                {isIndustrialCrop ? (
-                  <FormControl>
-                    <FormLabel>Total Area Harvested (ha)</FormLabel>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={formData.cropDetails?.total_area_harvested || ''}
-                      onChange={(e) => handleChange('cropDetails', 'total_area_harvested', e.target.value)}
-                    />
-                  </FormControl>
-                ) : (
-                  <FormControl>
-                    <FormLabel>Total Number of Trees Harvested</FormLabel>
-                    <Input
-                      type="number"
-                      value={formData.cropDetails?.trees_harvested || ''}
-                      onChange={(e) => handleChange('cropDetails', 'trees_harvested', e.target.value)}
-                    />
-                  </FormControl>
-                )}
-                
-                <FormControl>
-                  <FormLabel>Total Weight (kg)</FormLabel>
-                  <Input
-                    type="number"
-                    value={formData.cropDetails?.total_weight || ''}
-                    onChange={(e) => handleChange('cropDetails', 'total_weight', e.target.value)}
-                  />
-                </FormControl>
-                
-                <FormControl>
-                  <FormLabel>Crop Purpose</FormLabel>
-                  <Input
-                    value={formData.cropDetails?.crop_purpose || ''}
-                    isReadOnly
-                    bg="gray.50"
-                  />
+                    <InputRightAddon children="hectares" bg="blue.100" color="blue.800" />
+                  </InputGroup>
                 </FormControl>
               </SimpleGrid>
-
-              {formData.cropDetails?.crop_purpose === 'PANG BENTA' && (
-                <Box>
-                  <Heading as="h5" size="sm" mb={3} color="purple.600">
-                    Selling Details
-                  </Heading>
-                  
-                  <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-                    <FormControl>
-                      <FormLabel>Destination</FormLabel>
-                      <Input
-                        value={formData.cropDetails?.destination || ''}
-                        onChange={(e) => handleChange('cropDetails', 'destination', e.target.value)}
-                      />
-                    </FormControl>
-                    
-                    <FormControl>
-                      <FormLabel>Mode of Payment</FormLabel>
-                      <Select
-                        value={formData.cropDetails?.mode_of_payment || ''}
-                        onChange={(e) => handleChange('cropDetails', 'mode_of_payment', e.target.value)}
-                      >
-                        <option value="CASH">CASH</option>
-                        <option value="GCASH">GCASH</option>
-                        <option value="CHECK (TSEKE)">CHECK (TSEKE)</option>
-                        <option value="OTHERS">OTHERS</option>
-                      </Select>
-                    </FormControl>
-                    
-                    <FormControl>
-                      <FormLabel>Mode of Delivery</FormLabel>
-                      <Select
-                        value={formData.cropDetails?.mode_of_delivery || ''}
-                        onChange={(e) => handleChange('cropDetails', 'mode_of_delivery', e.target.value)}
-                      >
-                        <option value="PICKUP">PICKUP</option>
-                        <option value="SUPPLIER DIRECT DELIVERY">SUPPLIER DIRECT DELIVERY</option>
-                        <option value="DROPOFF">DROPOFF</option>
-                        <option value="OTHERS">OTHERS</option>
-                      </Select>
-                    </FormControl>
-                  </SimpleGrid>
-                </Box>
-              )}
             </Box>
           )}
         </Box>
+      )}
 
-        {!hideSaveButton && (
-          <Button 
-            mt={4} 
-            colorScheme="green" 
-            onClick={handleSubmit}
-            isFullWidth
-          >
-            Save Changes
-          </Button>
-        )}
-      </VStack>
+      {/* Harvest Information (Conditional) */}
+      {isHarvesting && (
+        <Box 
+          p={5} 
+          borderRadius="md" 
+          borderWidth="1px" 
+          borderColor="gray.200" 
+          bg="white"
+          boxShadow="sm"
+        >
+          <Heading as="h3" size="md" mb={4} color="orange.600" fontWeight="600">
+            <HStack>
+              <Icon as={FaBoxes} />
+              <Text>Harvesting Details</Text>
+            </HStack>
+          </Heading>
+          
+          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={5} mb={4}>
+            <FormControl>
+              <FormLabel fontWeight="medium">Date of Harvest</FormLabel>
+              <Input
+                value={`${formatDate(response.cropDetails?.harvest_start_date)} to ${formatDate(response.cropDetails?.harvest_end_date)}`}
+                isReadOnly
+                bg="gray.50"
+                borderColor="gray.200"
+              />
+            </FormControl>
+            
+            {isIndustrialCrop ? (
+              <FormControl>
+                <FormLabel fontWeight="medium">Total Area Harvested</FormLabel>
+                <InputGroup>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={response.cropDetails?.total_area_harvested || ''}
+                    onChange={(e) => handleChange('cropDetails', 'total_area_harvested', e.target.value)}
+                    borderColor="gray.300"
+                    _focus={{ borderColor: "orange.400" }}
+                  />
+                  <InputRightAddon children="hectares" />
+                </InputGroup>
+              </FormControl>
+            ) : (
+              <FormControl>
+                <FormLabel fontWeight="medium">Total Number of Trees Harvested</FormLabel>
+                <InputGroup>
+                  <Input
+                    type="number"
+                    value={response.cropDetails?.trees_harvested || ''}
+                    onChange={(e) => handleChange('cropDetails', 'trees_harvested', e.target.value)}
+                    borderColor="gray.300"
+                    _focus={{ borderColor: "orange.400" }}
+                  />
+                  <InputRightAddon children="trees" />
+                </InputGroup>
+              </FormControl>
+            )}
+            
+            <FormControl>
+              <FormLabel fontWeight="medium">Total Weight</FormLabel>
+              <InputGroup>
+                <Input
+                  type="number"
+                  value={response.cropDetails?.total_weight || ''}
+                  onChange={(e) => handleChange('cropDetails', 'total_weight', e.target.value)}
+                  borderColor="gray.300"
+                  _focus={{ borderColor: "orange.400" }}
+                />
+                <InputRightAddon children="kg" />
+              </InputGroup>
+            </FormControl>
+            
+            <FormControl>
+              <FormLabel fontWeight="medium">Crop Purpose</FormLabel>
+              <Input
+                value={response.cropDetails?.crop_purpose || ''}
+                isReadOnly
+                bg="gray.50"
+                borderColor="gray.200"
+              />
+            </FormControl>
+          </SimpleGrid>
+
+          {/* Selling Details Nested Section (Conditional) */}
+          {response.cropDetails?.crop_purpose === 'PANG BENTA' && (
+            <Box 
+              p={4} 
+              borderRadius="md" 
+              borderWidth="1px" 
+              borderColor="gray.300" 
+              bg="gray.50"
+              mt={3}
+            >
+              <Heading as="h5" size="sm" mb={3} color="purple.600" fontWeight="600">
+                <HStack>
+                  <Icon as={FaMoneyBillWave} />
+                  <Text>Selling Details</Text>
+                </HStack>
+              </Heading>
+              
+              <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+                <FormControl>
+                  <FormLabel fontWeight="medium">Destination</FormLabel>
+                  <Input
+                    value={response.cropDetails?.destination || ''}
+                    onChange={(e) => handleChange('cropDetails', 'destination', e.target.value)}
+                    borderColor="gray.300"
+                    _focus={{ borderColor: "purple.400" }}
+                    bg="white"
+                  />
+                </FormControl>
+                
+                <FormControl>
+                  <FormLabel fontWeight="medium">Mode of Payment</FormLabel>
+                  <Select
+                    value={response.cropDetails?.mode_of_payment || ''}
+                    onChange={(e) => handleChange('cropDetails', 'mode_of_payment', e.target.value)}
+                    borderColor="gray.300"
+                    _focus={{ borderColor: "purple.400" }}
+                    bg="white"
+                  >
+                    <option value="CASH">CASH</option>
+                    <option value="GCASH">GCASH</option>
+                    <option value="CHECK (TSEKE)">CHECK (TSEKE)</option>
+                    <option value="OTHERS">OTHERS</option>
+                  </Select>
+                </FormControl>
+                
+                <FormControl>
+                  <FormLabel fontWeight="medium">Mode of Delivery</FormLabel>
+                  <Select
+                    value={response.cropDetails?.mode_of_delivery || ''}
+                    onChange={(e) => handleChange('cropDetails', 'mode_of_delivery', e.target.value)}
+                    borderColor="gray.300"
+                    _focus={{ borderColor: "purple.400" }}
+                    bg="white"
+                  >
+                    <option value="PICKUP">PICKUP</option>
+                    <option value="SUPPLIER DIRECT DELIVERY">SUPPLIER DIRECT DELIVERY</option>
+                    <option value="DROPOFF">DROPOFF</option>
+                    <option value="OTHERS">OTHERS</option>
+                  </Select>
+                </FormControl>
+              </SimpleGrid>
+            </Box>
+          )}
+        </Box>
+      )}
+
+      {/* Action Button */}
+      {!hideSaveButton && (
+        <Button 
+          mt={4} 
+          colorScheme="blue" 
+          onClick={handleSubmit}
+          isFullWidth
+          size="lg"
+          fontWeight="500"
+          boxShadow="md"
+          _hover={{ boxShadow: "lg", bg: "blue.600" }}
+        >
+          <HStack>
+            <Icon as={FaSave} />
+            <Text>Save Changes</Text>
+          </HStack>
+        </Button>
+      )}
+    </VStack>
     );
   };
   
@@ -698,7 +740,6 @@ const Responses = () => {
               <ResponseTable 
                 data={currentNewlyPlanted} 
                 status="NEWLY PLANTED" 
-                containerRef={newlyPlantedTableRef}
               />
             </Box>
             )}
@@ -738,7 +779,6 @@ const Responses = () => {
               <ResponseTable 
                 data={currentHarvesting} 
                 status="HARVESTING" 
-                containerRef={harvestingTableRef}
               />
             </Box>
             )}
@@ -756,7 +796,7 @@ const Responses = () => {
       <Modal 
         isOpen={isOpen} 
         onClose={onClose} 
-        size="2xl" 
+        size="3xl" 
         closeOnOverlayClick={false} 
         scrollBehavior="inside"
         motionPreset="none"

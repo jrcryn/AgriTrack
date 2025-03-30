@@ -35,7 +35,7 @@ import {
   Link,
   useToast
 } from "@chakra-ui/react";
-import { FaSearch, FaEye, FaEdit, FaUserPlus, FaUsers } from "react-icons/fa";
+import { FaSearch, FaEye, FaEdit, FaUserPlus, FaUsers, FaUser, FaAddressCard } from "react-icons/fa";
 import { useAdminDashboard } from '../store/adminDashboard.store';
 
 const E_Farmers = () => {
@@ -381,28 +381,40 @@ const E_Farmers = () => {
       {/* Add Farmer Modal - Empty for now */}
       <Modal isOpen={isOpen} onClose={handleCloseModal} size="2xl" closeOnOverlayClick={false} scrollBehavior="inside" motionPreset="none">
         <ModalOverlay/>
-        <ModalContent borderRadius="lg" overflow="hidden">
-          <ModalHeader bg="blue.50" borderBottomWidth="1px" display="flex" alignItems="center">
+        <ModalContent borderRadius="md" overflow="hidden" boxShadow="lg">
+          <ModalHeader bg="white" borderBottomWidth="1px" borderColor="gray.200" display="flex" alignItems="center" py={4}>
             <Icon as={FaUserPlus} mr={2} color="blue.500" />
             Register New Farmer
           </ModalHeader>
           
           <ModalBody py={6}>
-            <VStack spacing={5} align="stretch">
+            <VStack spacing={6} align="stretch">
               {/* Personal Information Section */}
-              <Box>
-                <Heading as="h3" size="sm" mb={3} color="blue.600">
-                  Personal Information
+              <Box 
+                p={5} 
+                borderRadius="md" 
+                borderWidth="1px" 
+                borderColor="gray.200" 
+                bg="white"
+                boxShadow="sm"
+              >
+                <Heading as="h3" size="md" mb={4} color="blue.600" fontWeight="600">
+                  <HStack>
+                    <Icon as={FaUser} />
+                    <Text>Personal Information</Text>
+                  </HStack>
                 </Heading>
                 
                 <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
                   <FormControl isRequired isInvalid={formErrors.first_name}>
-                    <FormLabel>First Name</FormLabel>
+                    <FormLabel fontWeight="medium">First Name</FormLabel>
                     <Input 
                       name="first_name"
                       value={formData.first_name}
                       onChange={handleInputChange}
                       placeholder="Enter first name"
+                      borderColor="gray.300"
+                      _focus={{ borderColor: "blue.400" }}
                     />
                     {formErrors.first_name && (
                       <FormErrorMessage>{formErrors.first_name}</FormErrorMessage>
@@ -410,24 +422,28 @@ const E_Farmers = () => {
                   </FormControl>
                   
                   <FormControl>
-                    <FormLabel>Middle Name</FormLabel>
+                    <FormLabel fontWeight="medium">Middle Name</FormLabel>
                     <Input 
                       name="middle_name"
                       value={formData.middle_name}
                       onChange={handleInputChange}
                       placeholder="Enter middle name (optional)"
+                      borderColor="gray.300"
+                      _focus={{ borderColor: "blue.400" }}
                     />
                   </FormControl>
                 </SimpleGrid>
                 
                 <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mt={4}>
                   <FormControl isRequired isInvalid={formErrors.surname}>
-                    <FormLabel>Surname</FormLabel>
+                    <FormLabel fontWeight="medium">Surname</FormLabel>
                     <Input 
                       name="surname"
                       value={formData.surname}
                       onChange={handleInputChange}
                       placeholder="Enter surname"
+                      borderColor="gray.300"
+                      _focus={{ borderColor: "blue.400" }}
                     />
                     {formErrors.surname && (
                       <FormErrorMessage>{formErrors.surname}</FormErrorMessage>
@@ -435,30 +451,44 @@ const E_Farmers = () => {
                   </FormControl>
                   
                   <FormControl>
-                    <FormLabel>Suffix</FormLabel>
+                    <FormLabel fontWeight="medium">Suffix</FormLabel>
                     <Input 
                       name="suffix"
                       value={formData.suffix}
                       onChange={handleInputChange}
                       placeholder="E.g., Jr., Sr., III (optional)"
+                      borderColor="gray.300"
+                      _focus={{ borderColor: "blue.400" }}
                     />
                   </FormControl>
                 </SimpleGrid>
               </Box>
               
               {/* Farm & Contact Information */}
-              <Box mt={3}>
-                <Heading as="h3" size="sm" mb={3} color="blue.600">
-                  Resident & Contact Information
+              <Box 
+                p={5} 
+                borderRadius="md" 
+                borderWidth="1px" 
+                borderColor="gray.200" 
+                bg="white"
+                boxShadow="sm"
+              >
+                <Heading as="h3" size="md" mb={4} color="blue.600" fontWeight="600">
+                  <HStack>
+                    <Icon as={FaAddressCard} />
+                    <Text>Resident & Contact Information</Text>
+                  </HStack>
                 </Heading>
                 
                 <FormControl isRequired isInvalid={formErrors.farm_location} mb={4}>
-                  <FormLabel>Farmer Resident Address</FormLabel>
+                  <FormLabel fontWeight="medium">Farmer Resident Address</FormLabel>
                   <Input 
                     name="farm_location"
                     value={formData.farm_location}
                     onChange={handleInputChange}
                     placeholder="Enter farmer's complete address"
+                    borderColor="gray.300"
+                    _focus={{ borderColor: "blue.400" }}
                   />
                   {formErrors.farm_location && (
                     <FormErrorMessage>{formErrors.farm_location}</FormErrorMessage>
@@ -467,15 +497,17 @@ const E_Farmers = () => {
                 
                 <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
                   <FormControl isInvalid={formErrors.mobile_number}>
-                    <FormLabel>Mobile Number</FormLabel>
+                    <FormLabel fontWeight="medium">Mobile Number</FormLabel>
                     <InputGroup>
-                      <InputLeftAddon>+63</InputLeftAddon>
+                      <InputLeftAddon bg="gray.100" color="gray.700">+63</InputLeftAddon>
                       <Input 
                         name="mobile_number"
                         value={formData.mobile_number}
                         onChange={handleInputChange}
                         placeholder="9XX XXX XXXX"
                         type="tel"
+                        borderColor="gray.300"
+                        _focus={{ borderColor: "blue.400" }}
                       />
                     </InputGroup>
                     {formErrors.mobile_number ? (
@@ -486,12 +518,14 @@ const E_Farmers = () => {
                   </FormControl>
                   
                   <FormControl>
-                    <FormLabel>Facebook Profile</FormLabel>
+                    <FormLabel fontWeight="medium">Facebook Profile</FormLabel>
                     <Input 
                       name="facebook"
                       value={formData.facebook}
                       onChange={handleInputChange}
                       placeholder="https://facebook.com/profile"
+                      borderColor="gray.300"
+                      _focus={{ borderColor: "blue.400" }}
                     />
                     <FormHelperText>Enter full URL</FormHelperText>
                   </FormControl>
@@ -500,8 +534,14 @@ const E_Farmers = () => {
             </VStack>
           </ModalBody>
           
-          <ModalFooter bg="gray.50">
-            <Button variant="outline" mr={3} onClick={handleCloseModal}>
+          <ModalFooter bg="gray.50" borderTopWidth="1px" borderColor="gray.200" py={4}>
+            <Button 
+              variant="outline" 
+              mr={3} 
+              onClick={handleCloseModal}
+              size="md"
+              _hover={{ bg: "gray.100" }}
+            >
               Cancel
             </Button>
             <Button 
@@ -509,6 +549,10 @@ const E_Farmers = () => {
               onClick={handleSubmit}
               isLoading={isSubmitting}
               loadingText="Registering"
+              size="md"
+              fontWeight="500"
+              boxShadow="sm"
+              _hover={{ boxShadow: "md", bg: "blue.600" }}
             >
               Register Farmer
             </Button>
