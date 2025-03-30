@@ -280,7 +280,7 @@ const E_Farmers = () => {
               <Thead bg="gray.50">
                 <Tr>
                   <Th>Full Name</Th>
-                  <Th>Farm Location</Th>
+                  <Th>Farmer Resident Address</Th>
                   <Th>Contact Number</Th>
                   <Th>Facebook</Th>
                   <Th position={{ base: 'static', md: 'sticky' }} right={0} bg="gray.50" zIndex={1} textAlign="center">

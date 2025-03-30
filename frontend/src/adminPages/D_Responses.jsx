@@ -299,7 +299,7 @@ const Responses = () => {
           <FormControl>
             <FormLabel fontWeight="medium">Full Name</FormLabel>
             <Input 
-              value={`${response.farmerInput.first_name} ${response.farmerInput.middle_name ? response.farmerInput.middle_name + ' ' : ''}${response.farmerInput.surname} ${response.farmerInput.suffix || ''}`}
+              value={`${response.farmerInput?.first_name} ${response.farmerInput.middle_name ? response.farmerInput.middle_name + ' ' : ''}${response.farmerInput?.surname} ${response.farmerInput.suffix || ''}`}
               isReadOnly
               bg="gray.50"
               borderColor="gray.200"
@@ -308,7 +308,7 @@ const Responses = () => {
           <FormControl>
             <FormLabel fontWeight="medium">Farm Location</FormLabel>
             <Input 
-              value={response.farmerInput.farm_location}
+              value={response.farmerInput?.farm_location || '-'}
               isReadOnly
               bg="gray.50"
               borderColor="gray.200"
@@ -371,7 +371,7 @@ const Responses = () => {
               <FormControl>
                 <FormLabel fontWeight="medium">Crop Type</FormLabel>
                 <Input
-                  value={response.cropType?.crop_type ? response.cropType.crop_type : '-'}
+                  value={response.cropType?.crop_type || '-'}
                   isReadOnly
                   bg="gray.50"
                   borderColor="gray.200"
@@ -413,7 +413,7 @@ const Responses = () => {
             <FormControl>
               <FormLabel fontWeight="medium">Date of Plantation</FormLabel>
               <Input
-                value={response.cropDetails && response.cropDetails.plantation_start_date && response.cropDetails.plantation_end_date ?
+                value={response.cropDetails && response.cropDetails?.plantation_start_date && response.cropDetails?.plantation_end_date ?
                   `${formatDate(response.cropDetails.plantation_start_date)} to ${formatDate(response.cropDetails.plantation_end_date)}`
                   : '-'}
                 isReadOnly
@@ -425,7 +425,7 @@ const Responses = () => {
             <FormControl>
               <FormLabel fontWeight="medium">Date of Harvesting</FormLabel>
               <Input
-                value={response.cropDetails && response.cropDetails.harvest_month_year ?
+                value={response.cropDetails && response.cropDetails?.harvest_month_year ?
                   new Date(response.cropDetails.harvest_month_year).toLocaleDateString('en-US', harvMonthYearFull)
                   : '-'}
                 isReadOnly
@@ -436,18 +436,27 @@ const Responses = () => {
           </SimpleGrid>
 
           {isIndustrialCrop ? (
-            <FormControl mb={1}>
-              <FormLabel fontWeight="medium">Total Area Planted (ha)</FormLabel>
-              <InputGroup>
-                <Input
-                  value={response.cropDetails?.total_area_planted || ''}
-                  isReadOnly
-                  bg="gray.50"
-                  borderColor="gray.200"
-                />
-                <InputRightAddon children="hectares" bg="blue.100" color="blue.800" />
-              </InputGroup>
-            </FormControl>
+            <Box 
+            p={4} 
+            borderRadius="md" 
+            borderWidth="1px" 
+            borderColor="blue.200" 
+            bg="blue.50"
+            mt={5}
+            >
+              <FormControl mb={1}>
+                <FormLabel fontWeight="medium">Total Area Planted (ha)</FormLabel>
+                <InputGroup>
+                  <Input
+                    value={response.cropDetails?.total_area_planted || ''}
+                    isReadOnly
+                    bg="gray.50"
+                    borderColor="gray.200"
+                  />
+                  <InputRightAddon children="hectares" bg="blue.100" color="blue.800" />
+                </InputGroup>
+              </FormControl>
+            </Box>
           ) : (
             <Box 
               p={4} 
@@ -455,22 +464,14 @@ const Responses = () => {
               borderWidth="1px" 
               borderColor="blue.200" 
               bg="blue.50"
-              
               mt={5}
             >
-              <Heading as="h4" size="sm" mb={4} color="blue.700">
-                <HStack>
-                  <Icon as={FaTree} />
-                  <Text>Land Utilization Metrics</Text>
-                </HStack>
-              </Heading>
-              
               <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
                 <FormControl>
                   <FormLabel fontWeight="medium" color="gray.700">Total Number of Trees</FormLabel>
                   <InputGroup>
                     <Input
-                      value={response.cropDetails?.total_trees || ''}
+                      value={response.cropDetails?.total_trees || '-'}
                       isReadOnly
                       bg="white"
                       borderColor="gray.300"
@@ -480,11 +481,11 @@ const Responses = () => {
                 </FormControl>
 
                 <FormControl>
-                  <FormLabel fontWeight="medium" color="gray.700">Equivalent Area</FormLabel>
+                  <FormLabel fontWeight="medium" color="gray.700">Equivalent Area - {response.cropRecord?.crop_variety}</FormLabel>
                   <InputGroup>
                     <Input
                       value={response.cropDetails?.total_trees && response.cropRecord?.crop_variety ?
-                        `${numOfTreesToHectares(response.cropRecord.crop_variety, response.cropDetails.total_trees)?.toFixed(4) || '-'}`
+                        `${numOfTreesToHectares(response.cropRecord.crop_variety, response.cropDetails.total_trees)?.toFixed(4) || 'invalid commodity'}`
                         : '-'}
                       isReadOnly
                       bg="white"
@@ -526,52 +527,20 @@ const Responses = () => {
                 borderColor="gray.200"
               />
             </FormControl>
-            
-            {isIndustrialCrop ? (
-              <FormControl>
-                <FormLabel fontWeight="medium">Total Area Harvested</FormLabel>
-                <InputGroup>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={response.cropDetails?.total_area_harvested || ''}
-                    onChange={(e) => handleChange('cropDetails', 'total_area_harvested', e.target.value)}
-                    borderColor="gray.300"
-                    _focus={{ borderColor: "orange.400" }}
-                  />
-                  <InputRightAddon children="hectares" />
-                </InputGroup>
-              </FormControl>
-            ) : (
-              <FormControl>
-                <FormLabel fontWeight="medium">Total Number of Trees Harvested</FormLabel>
-                <InputGroup>
-                  <Input
-                    type="number"
-                    value={response.cropDetails?.trees_harvested || ''}
-                    onChange={(e) => handleChange('cropDetails', 'trees_harvested', e.target.value)}
-                    borderColor="gray.300"
-                    _focus={{ borderColor: "orange.400" }}
-                  />
-                  <InputRightAddon children="trees" />
-                </InputGroup>
-              </FormControl>
-            )}
-            
+
             <FormControl>
               <FormLabel fontWeight="medium">Total Weight</FormLabel>
               <InputGroup>
                 <Input
-                  type="number"
                   value={response.cropDetails?.total_weight || ''}
-                  onChange={(e) => handleChange('cropDetails', 'total_weight', e.target.value)}
-                  borderColor="gray.300"
-                  _focus={{ borderColor: "orange.400" }}
+                  isReadOnly
+                  bg="gray.50"
+                  borderColor="gray.200"
                 />
-                <InputRightAddon children="kg" />
+                <InputRightAddon children="kg" bg="blue.100" color="blue.800" />
               </InputGroup>
             </FormControl>
-            
+
             <FormControl>
               <FormLabel fontWeight="medium">Crop Purpose</FormLabel>
               <Input
@@ -581,70 +550,106 @@ const Responses = () => {
                 borderColor="gray.200"
               />
             </FormControl>
-          </SimpleGrid>
+            </SimpleGrid>
+            
+            {isIndustrialCrop ? (
+              <Box 
+                p={4} 
+                borderRadius="md" 
+                borderWidth="1px" 
+                borderColor="blue.200" 
+                bg="blue.50"
+                mt={5}
+                >
+                  <FormControl mb={1}>
+                    <FormLabel fontWeight="medium">Total Area Harvested (Ha)</FormLabel>
+                    <InputGroup>
+                      <Input
+                        value={response.cropDetails?.total_area_harvested || ''}
+                        isReadOnly
+                        bg="gray.50"
+                        borderColor="gray.200"
+                      />
+                      <InputRightAddon children="hectares" bg="blue.100" color="blue.800" />
+                    </InputGroup>
+                  </FormControl>
+              </Box>
+              ) : (
+                <Box 
+                p={4} 
+                borderRadius="md" 
+                borderWidth="1px" 
+                borderColor="blue.200" 
+                bg="blue.50"
+                mt={5}
+                >
+                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+                  <FormControl>
+                    <FormLabel fontWeight="medium" color="gray.700">Total Number of Trees Harvested</FormLabel>
+                    <InputGroup>
+                      <Input
+                        value={response.cropDetails?.trees_harvested || '-'}
+                        isReadOnly
+                        bg="white"
+                        borderColor="gray.300"
+                      />
+                      <InputRightAddon children="trees" bg="blue.100" color="blue.800" />
+                    </InputGroup>
+                  </FormControl>
+
+                  <FormControl>
+                    <FormLabel fontWeight="medium" color="gray.700">Equivalent Area - {response.cropRecord?.crop_variety}</FormLabel>
+                    <InputGroup>
+                      <Input
+                        value={response.cropDetails?.trees_harvested && response.cropRecord?.crop_variety ?
+                          `${numOfTreesToHectares(response.cropRecord.crop_variety, response.cropDetails.trees_harvested)?.toFixed(4) || 'invalid commodity'}`
+                          : '-'}
+                        isReadOnly
+                        bg="white"
+                        borderColor="gray.300"
+                      />
+                      <InputRightAddon children="hectares" bg="blue.100" color="blue.800" />
+                    </InputGroup>
+                  </FormControl>
+                </SimpleGrid>
+             </Box>
+            )}
+          
 
           {/* Selling Details Nested Section (Conditional) */}
           {response.cropDetails?.crop_purpose === 'PANG BENTA' && (
-            <Box 
-              p={4} 
-              borderRadius="md" 
-              borderWidth="1px" 
-              borderColor="gray.300" 
-              bg="gray.50"
-              mt={3}
-            >
-              <Heading as="h5" size="sm" mb={3} color="purple.600" fontWeight="600">
-                <HStack>
-                  <Icon as={FaMoneyBillWave} />
-                  <Text>Selling Details</Text>
-                </HStack>
-              </Heading>
               
-              <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+              <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mt={4}>
                 <FormControl>
                   <FormLabel fontWeight="medium">Destination</FormLabel>
                   <Input
                     value={response.cropDetails?.destination || ''}
-                    onChange={(e) => handleChange('cropDetails', 'destination', e.target.value)}
-                    borderColor="gray.300"
-                    _focus={{ borderColor: "purple.400" }}
-                    bg="white"
+                    isReadOnly
+                    bg="gray.50"
+                    borderColor="gray.200"
                   />
                 </FormControl>
                 
                 <FormControl>
                   <FormLabel fontWeight="medium">Mode of Payment</FormLabel>
-                  <Select
+                  <Input
                     value={response.cropDetails?.mode_of_payment || ''}
-                    onChange={(e) => handleChange('cropDetails', 'mode_of_payment', e.target.value)}
-                    borderColor="gray.300"
-                    _focus={{ borderColor: "purple.400" }}
-                    bg="white"
-                  >
-                    <option value="CASH">CASH</option>
-                    <option value="GCASH">GCASH</option>
-                    <option value="CHECK (TSEKE)">CHECK (TSEKE)</option>
-                    <option value="OTHERS">OTHERS</option>
-                  </Select>
+                    isReadOnly
+                    bg="gray.50"
+                    borderColor="gray.200"
+                  />
                 </FormControl>
                 
                 <FormControl>
                   <FormLabel fontWeight="medium">Mode of Delivery</FormLabel>
-                  <Select
+                  <Input
                     value={response.cropDetails?.mode_of_delivery || ''}
-                    onChange={(e) => handleChange('cropDetails', 'mode_of_delivery', e.target.value)}
-                    borderColor="gray.300"
-                    _focus={{ borderColor: "purple.400" }}
-                    bg="white"
-                  >
-                    <option value="PICKUP">PICKUP</option>
-                    <option value="SUPPLIER DIRECT DELIVERY">SUPPLIER DIRECT DELIVERY</option>
-                    <option value="DROPOFF">DROPOFF</option>
-                    <option value="OTHERS">OTHERS</option>
-                  </Select>
+                    isReadOnly
+                    bg="gray.50"
+                    borderColor="gray.200"
+                  />
                 </FormControl>
               </SimpleGrid>
-            </Box>
           )}
         </Box>
       )}
@@ -866,7 +871,7 @@ const Responses = () => {
               isLoading={isUpdating}
               loadingText="Saving"
             >
-              Save Changes
+              Push to Records
             </Button>
           </ModalFooter>
         </ModalContent>
