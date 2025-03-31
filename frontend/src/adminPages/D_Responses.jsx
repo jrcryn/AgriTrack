@@ -53,7 +53,8 @@ const Responses = () => {
     isUpdating,
     error,
     updateFarmerInput,
-    clearError
+    clearError,
+    createUnifiedFarmerResponse,
   } = useAdminDashboard();
 
 
@@ -863,7 +864,7 @@ const Responses = () => {
                   // Call the same update function that was passed to ResponseDetailForm
                   updateFarmerInput({
                     farmerId: selectedResponse.farmerInput._id,
-                    updateData: document.querySelector('form')?.formData
+                    updateData: selectedResponse // Pass the selected response or maintain a controlled state for form data
                   });
                   onClose();
                 }

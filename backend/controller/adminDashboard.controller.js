@@ -7,6 +7,8 @@ import { D1_crop_indus_harvest } from '../models/D1_cropIndusHarvest.model.js';
 import { D2_bc_other_fct_new } from '../models/D2_bc-other-fctNew.model.js';
 import { D2_bc_other_fct_harvest } from '../models/D2_bc-other-fctHarvest.model.js';
 
+import { UnifiedFarmerRecord } from '../models/unifiedFarmerResponse.model.js';
+
 import { FarmerAccount } from '../models/farmerAccount.model.js';
 
 
@@ -365,6 +367,70 @@ export const getFarmerAccounts = async (req, res) => {
 };
 
 
+// Create unified farmer response
+export const createUnifiedFarmerResponse = async (req, res) => {
+
+  const { 
+    surname,
+    first_name,
+    middle_name,
+    suffix,
+    farm_location,
+    crop_type,
+    crop_variety,
+    crop_stage,
+    plantation_start_date,
+    plantation_end_date,
+    harvest_month_year,
+    total_area_planted,
+    total_area_trees_planted,
+    harvest_start_date,
+    harvest_end_date,
+    total_area_harvested,
+    total_area_trees_harvested,
+    total_weight,
+    crop_purpose,
+    destination,
+    mode_of_payment,
+    mode_of_delivery,
+   } = req.body;
+
+   if (!surname || !first_name || !farm_location || !crop_type || !crop_stage) {
+     return res.status(400).json({ message: `Required fields aren't provided.` });
+   }
+
+  try {
+    const newUnifiedRecord = await UnifiedFarmerRecord.create({
+      surname,
+      first_name,
+      middle_name,
+      suffix,
+      farm_location,
+      crop_type,
+      crop_variety,
+      crop_stage,
+      plantation_start_date,
+      plantation_end_date,
+      harvest_month_year,
+      total_area_planted,
+      total_area_trees_planted,
+      harvest_start_date,
+      harvest_end_date,
+      total_area_harvested,
+      total_area_trees_harvested,
+      total_weight,
+      crop_purpose,
+      destination,
+      mode_of_payment,
+      mode_of_delivery,
+    });
+
+    return res.json(newUnifiedRecord);
+
+  } catch (error) {
+    res.status(500).json({ message: 'Error pushing to the main records.', error: error });
+  }
+};
 
 
 

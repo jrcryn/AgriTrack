@@ -77,6 +77,14 @@ export const useAdminDashboard = () => {
     }
   };
 
+  const createUnifiedFarmerResponse = async (responseData) => {
+    try {
+      await axios.post(`${API_URL}/create-unified-farmer-response`, responseData);
+    } catch (error) {
+      setError(error.message || 'Failed to create unified farmer response');
+    }
+  };
+
   // Combine errors from different sources
   if (unvalidatedError) setError(unvalidatedError.message || 'Failed to fetch unvalidated inputs');
   if (validatedError) setError(validatedError.message || 'Failed to fetch validated inputs');

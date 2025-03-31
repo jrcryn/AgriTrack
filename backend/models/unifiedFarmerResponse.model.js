@@ -27,7 +27,7 @@ const UnifiedFarmerRecordSchema = new mongoose.Schema({
   total_area_planted: { type: Number },
   
   // For other crops (like fruit trees) specifically
-  total_trees: { type: Number },
+  total_area_trees_planted: { type: Number },
   
   // Fields for "HARVESTING" records
   // For both types of crops
@@ -46,7 +46,7 @@ const UnifiedFarmerRecordSchema = new mongoose.Schema({
   total_area_harvested: { type: Number },
   
   // For other crops specifically
-  trees_harvested: { type: Number },
+  total_area_trees_harvested: { type: Number },
 }, 
 { 
   timestamps: true,
