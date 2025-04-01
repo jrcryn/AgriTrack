@@ -12,7 +12,7 @@ const C1CropRecordsIndusSchema = new mongoose.Schema({
     required: true 
   },
   crop_type: { type: String, required: true }, //uri ng tanim
-  crop_variety: { type: String, trim: true }, //variety ng tanim 
+  crop_variety: { type: String, trim: true, set: (value) => value.toUpperCase() }, //variety ng tanim 
   crop_stage: { //yugto ng tanim
     type: String, 
     enum: ['NEWLY PLANTED', 'HARVESTING'], 
