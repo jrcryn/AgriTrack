@@ -307,17 +307,19 @@ const Responses = () => {
       }
       
       try {
-        // Create unified record (will be saved to year-based collection)
-        await createUnifiedFarmerResponse(responseData);
 
         // Invalidate the query to refresh the data
         queryClient.invalidateQueries({ queryKey: ['unvalidatedInputs'] });
 
+        // Create unified record (will be saved to year-based collection)
+        const responseResult = await createUnifiedFarmerResponse(responseData);
+
+
         toast({
           title: "Success",
-          description: "Response successfully pushed to records.",
+          description: responseResult.message || "Response successfully pushed to records.",
           status: "success",
-          duration: 5000,
+          duration: 10000,
           isClosable: true,
         });
         
@@ -325,13 +327,14 @@ const Responses = () => {
         onClose();
         
       } catch (error) {
-        console.error("Error creating unified response:", error);
+
+        queryClient.invalidateQueries({ queryKey: ['unvalidatedInputs'] });
         
         toast({
           title: "Error",
-          description: "Failed to push response to records. Please try again.",
+          description: error.response?.data?.message || "Failed to push response to records. Please try again.",
           status: "error",
-          duration: 5000,
+          duration: 10000,
           isClosable: true,
         });
 

@@ -336,7 +336,7 @@ export const createFarmerAccount = async (req, res) => {
 
   const farmerAlreadyExists = await FarmerAccount.findOne({ mobile_number });
   if (farmerAlreadyExists) {
-    return res.status(400).json({ message: 'Farmer account already exists.' });
+    return res.status(400).json({ message: 'Farmer already exists in the system.' });
   }
 
   try {
@@ -349,7 +349,10 @@ export const createFarmerAccount = async (req, res) => {
           mobile_number,
           facebook,
       });
-      return res.json(newFarmerAccount);
+      return res.status(201).json({
+          message: 'Farmer account created successfully',
+          data: newFarmerAccount,
+      });
   } catch (error) {
       return res.status(500).json({ message: 'Error creating farmer account', error });
   }
@@ -421,7 +424,7 @@ export const createUnifiedFarmerResponse = async (req, res) => {
       await deleteRelatedDocuments(original_farmer_input_id);
     }
 
-    return res.json({
+    return res.status(201).json({
       message: `Record successfully added to ${year} collection and original documents deleted`,
       data: newUnifiedRecord
     });

@@ -12,6 +12,8 @@ export const useUnvalidatedInputsQuery = () =>
       const response = await axios.get(`${API_URL}/get-unvalidated-inputs`);
       return response.data;
     },
+    staleTime: 0, // Data is always fresh
+    refetchInterval: 1000 // Refetch every second
   });
 
 export const useValidatedInputsQuery = () => 
@@ -71,19 +73,21 @@ export const useAdminDashboard = () => {
 
   const createFarmerAccount = async (farmerData) => {
     try {
-      await axios.post(`${API_URL}/create-farmer-account`, farmerData);
-      return farmerData;
+      const response =  await axios.post(`${API_URL}/create-farmer-account`, farmerData);
+      return response.data;
     } catch (error) {
       setError(error.message || 'Failed to create farmer account');
+      throw error;
     }
   };
 
   const createUnifiedFarmerResponse = async (responseData) => {
     try {
-      await axios.post(`${API_URL}/create-unified-farmer-response`, responseData);
-      return responseData;
+      const response = await axios.post(`${API_URL}/create-unified-farmer-response`, responseData);
+      return response.data; 
     } catch (error) {
       setError(error.message || 'Failed to create unified farmer response');
+      throw error; 
     }
   };
 

@@ -37,6 +37,7 @@ import {
 } from "@chakra-ui/react";
 import { FaSearch, FaEye, FaEdit, FaUserPlus, FaUsers, FaUser, FaAddressCard } from "react-icons/fa";
 import { useAdminDashboard } from '../store/adminDashboard.store';
+import { useQueryClient } from '@tanstack/react-query';
 
 const E_Farmers = () => {
 
@@ -54,7 +55,9 @@ const E_Farmers = () => {
 
   const [formErrors, setFormErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
   const toast = useToast();
+  const queryClient = useQueryClient();
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -105,11 +108,11 @@ const E_Farmers = () => {
     
     try {
       // Call API to create a farmer account
-      await createFarmerAccount(formData);
+      const responseResult = await createFarmerAccount(formData);
       
       toast({
         title: "Success",
-        description: "Farmer registered successfully",
+        description: responseResult.message || "Farmer registered successfully",
         status: "success",
         duration: 5000,
         isClosable: true,
@@ -125,12 +128,14 @@ const E_Farmers = () => {
         mobile_number: '',
         facebook: '',
       });
+
+      queryClient.invalidateQueries({ queryKey: ['farmerAccounts'] });
       
       onClose();
     } catch (error) {
       toast({
         title: "Error",
-        description: error.message || "Failed to register farmer",
+        description: error.response?.data?.message || "Failed to register farmer",
         status: "error",
         duration: 5000,
         isClosable: true,
@@ -504,8 +509,9 @@ const E_Farmers = () => {
                         name="mobile_number"
                         value={formData.mobile_number}
                         onChange={handleInputChange}
-                        placeholder="9XX XXX XXXX"
+                        placeholder="0991XXXXXX"
                         type="tel"
+                        maxLength={11}
                         borderColor="gray.300"
                         _focus={{ borderColor: "blue.400" }}
                       />
@@ -513,7 +519,7 @@ const E_Farmers = () => {
                     {formErrors.mobile_number ? (
                       <FormErrorMessage>{formErrors.mobile_number}</FormErrorMessage>
                     ) : (
-                      <FormHelperText>Format: 9XX XXX XXXX</FormHelperText>
+                      <FormHelperText>11 Digits - Format: 09123456789 </FormHelperText>
                     )}
                   </FormControl>
                   
