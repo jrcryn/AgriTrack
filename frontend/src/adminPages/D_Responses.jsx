@@ -32,11 +32,14 @@ import {
   FormLabel,
   SimpleGrid,
   Select,
-  InputRightAddon
+  InputRightAddon,
+  useToast,
 } from '@chakra-ui/react';
 import numOfTreesToHectares from '../components/conversions.js';
 import { FaSearch, FaEye, FaSeedling, FaBoxes, FaUser, FaLeaf, FaMoneyBillWave, FaSave, FaTree } from 'react-icons/fa';
 import { useAdminDashboard } from '../store/adminDashboard.store.js';
+import { useQueryClient } from '@tanstack/react-query';
+
 
 const Responses = () => {
   // States for search and pagination
@@ -56,6 +59,9 @@ const Responses = () => {
     clearError,
     createUnifiedFarmerResponse,
   } = useAdminDashboard();
+
+  const toast = useToast();
+  const queryClient = useQueryClient();
 
 
   // Filter responses based on search query
@@ -244,8 +250,96 @@ const Responses = () => {
     </Flex>
   );
 
+  const handleModalSubmit = async () => {
+    if (selectedResponse) {
+      // Format data for unified response
+      const isIndustrialCrop = selectedResponse.cropType?.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS';
+      const isNewlyPlanted = selectedResponse.cropRecord?.crop_stage === 'NEWLY PLANTED';
+      
+      const responseData = {
+        // Farmer details
+        surname: selectedResponse.farmerInput.surname,
+        first_name: selectedResponse.farmerInput.first_name,
+        middle_name: selectedResponse.farmerInput.middle_name,
+        suffix: selectedResponse.farmerInput.suffix,
+        farm_location: selectedResponse.farmerInput.farm_location,
+        
+        // Crop information
+        crop_type: isIndustrialCrop ? selectedResponse.cropRecord.crop_type : selectedResponse.cropType.crop_type,
+        crop_variety: selectedResponse.cropRecord.crop_variety,
+        crop_stage: selectedResponse.cropRecord.crop_stage,
 
-  const ResponseDetailForm = ({ response, onUpdate, hideSaveButton = false }) => {
+        // for deletion 
+        original_farmer_input_id: selectedResponse.farmerInput._id
+      };
+      
+      // Add stage-specific details
+      if (isNewlyPlanted) {
+        responseData.plantation_start_date = selectedResponse.cropDetails.plantation_start_date;
+        responseData.plantation_end_date = selectedResponse.cropDetails.plantation_end_date;
+        responseData.harvest_month_year = selectedResponse.cropDetails.harvest_month_year;
+        
+        if (isIndustrialCrop) {
+          responseData.total_area_planted = selectedResponse.cropDetails.total_area_planted;
+        } else {
+          const hectaresNew = numOfTreesToHectares(selectedResponse.cropRecord.crop_variety, selectedResponse.cropDetails.total_trees);
+          responseData.total_area_trees_planted = hectaresNew ? Number(hectaresNew.toFixed(4)) : null;
+        }
+      } else {
+        // Harvesting details
+        responseData.harvest_start_date = selectedResponse.cropDetails.harvest_start_date;
+        responseData.harvest_end_date = selectedResponse.cropDetails.harvest_end_date;
+        responseData.total_weight = selectedResponse.cropDetails.total_weight;
+        responseData.crop_purpose = selectedResponse.cropDetails.crop_purpose;
+        
+        if (selectedResponse.cropDetails.crop_purpose === 'PANG BENTA') {
+          responseData.destination = selectedResponse.cropDetails.destination;
+          responseData.mode_of_payment = selectedResponse.cropDetails.mode_of_payment;
+          responseData.mode_of_delivery = selectedResponse.cropDetails.mode_of_delivery;
+        }
+        
+        if (isIndustrialCrop) {
+          responseData.total_area_harvested = selectedResponse.cropDetails.total_area_harvested;
+        } else {
+          const hectaresHarv = numOfTreesToHectares(selectedResponse.cropRecord.crop_variety, selectedResponse.cropDetails.trees_harvested);
+          responseData.total_area_trees_harvested = hectaresHarv ? Number(hectaresHarv.toFixed(4)) : null;
+        }
+      }
+      
+      try {
+        // Create unified record (will be saved to year-based collection)
+        await createUnifiedFarmerResponse(responseData);
+
+        // Invalidate the query to refresh the data
+        queryClient.invalidateQueries({ queryKey: ['unvalidatedInputs'] });
+
+        toast({
+          title: "Success",
+          description: "Response successfully pushed to records.",
+          status: "success",
+          duration: 5000,
+          isClosable: true,
+        });
+        
+        // Close the modal after successful submission
+        onClose();
+        
+      } catch (error) {
+        console.error("Error creating unified response:", error);
+        
+        toast({
+          title: "Error",
+          description: "Failed to push response to records. Please try again.",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
+
+      }
+    }
+  };
+
+  const ResponseDetailForm = ({ response }) => {
     
     const isNewlyPlanted = response.cropRecord?.crop_stage === 'NEWLY PLANTED';
     const isHarvesting = response.cropRecord?.crop_stage === 'HARVESTING';
@@ -269,10 +363,6 @@ const Responses = () => {
           [field]: value
         }
       }));
-    };
-
-    const handleSubmit = () => {
-      onUpdate(formData);
     };
 
     console.log('Crop Record:', response.cropRecord.crop_variety); 
@@ -654,25 +744,6 @@ const Responses = () => {
           )}
         </Box>
       )}
-
-      {/* Action Button */}
-      {!hideSaveButton && (
-        <Button 
-          mt={4} 
-          colorScheme="blue" 
-          onClick={handleSubmit}
-          isFullWidth
-          size="lg"
-          fontWeight="500"
-          boxShadow="md"
-          _hover={{ boxShadow: "lg", bg: "blue.600" }}
-        >
-          <HStack>
-            <Icon as={FaSave} />
-            <Text>Save Changes</Text>
-          </HStack>
-        </Button>
-      )}
     </VStack>
     );
   };
@@ -859,16 +930,7 @@ const Responses = () => {
             </Button>
             <Button 
               colorScheme="green" 
-              onClick={() => {
-                if (selectedResponse) {
-                  // Call the same update function that was passed to ResponseDetailForm
-                  updateFarmerInput({
-                    farmerId: selectedResponse.farmerInput._id,
-                    updateData: selectedResponse // Pass the selected response or maintain a controlled state for form data
-                  });
-                  onClose();
-                }
-              }}
+              onClick={handleModalSubmit}
               isLoading={isUpdating}
               loadingText="Saving"
             >

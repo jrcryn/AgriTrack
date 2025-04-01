@@ -7,7 +7,7 @@ import { D1_crop_indus_harvest } from '../models/D1_cropIndusHarvest.model.js';
 import { D2_bc_other_fct_new } from '../models/D2_bc-other-fctNew.model.js';
 import { D2_bc_other_fct_harvest } from '../models/D2_bc-other-fctHarvest.model.js';
 
-import { UnifiedFarmerRecord } from '../models/unifiedFarmerResponse.model.js';
+import { getUnifiedFarmerRecordModel } from '../models/unifiedFarmerResponse.model.js';
 
 import { FarmerAccount } from '../models/farmerAccount.model.js';
 
@@ -369,67 +369,111 @@ export const getFarmerAccounts = async (req, res) => {
 
 // Create unified farmer response
 export const createUnifiedFarmerResponse = async (req, res) => {
-
   const { 
-    surname,
-    first_name,
-    middle_name,
-    suffix,
-    farm_location,
-    crop_type,
-    crop_variety,
-    crop_stage,
-    plantation_start_date,
-    plantation_end_date,
-    harvest_month_year,
-    total_area_planted,
-    total_area_trees_planted,
-    harvest_start_date,
-    harvest_end_date,
-    total_area_harvested,
-    total_area_trees_harvested,
-    total_weight,
-    crop_purpose,
-    destination,
-    mode_of_payment,
-    mode_of_delivery,
-   } = req.body;
+    surname, first_name, middle_name, suffix, farm_location,
+    crop_type, crop_variety, crop_stage,
+    plantation_start_date, plantation_end_date, harvest_month_year,
+    total_area_planted, total_area_trees_planted,
+    harvest_start_date, harvest_end_date, total_weight,
+    crop_purpose, destination, mode_of_payment, mode_of_delivery,
+    total_area_harvested, total_area_trees_harvested,
+    original_farmer_input_id
+  } = req.body;
 
-   if (!surname || !first_name || !farm_location || !crop_type || !crop_stage) {
-     return res.status(400).json({ message: `Required fields aren't provided.` });
-   }
+  if (!surname || !first_name || !farm_location || !crop_type || !crop_stage || !original_farmer_input_id) {
+    return res.status(400).json({ message: `Required data aren't provided.` });
+  }
 
   try {
-    const newUnifiedRecord = await UnifiedFarmerRecord.create({
-      surname,
-      first_name,
-      middle_name,
-      suffix,
-      farm_location,
-      crop_type,
-      crop_variety,
-      crop_stage,
-      plantation_start_date,
-      plantation_end_date,
-      harvest_month_year,
-      total_area_planted,
-      total_area_trees_planted,
-      harvest_start_date,
-      harvest_end_date,
-      total_area_harvested,
-      total_area_trees_harvested,
-      total_weight,
-      crop_purpose,
-      destination,
-      mode_of_payment,
-      mode_of_delivery,
+    // Determine the year based on available dates
+    let year;
+    if (crop_stage === 'NEWLY PLANTED') {
+      // For newly planted, use plantation start date year lang 
+      if (plantation_start_date) {
+        year = new Date(plantation_start_date).getFullYear();
+      } else {
+        year = new Date().getFullYear();
+      }
+    } else {
+      // For harvesting, use harvest date same sa taas
+      if (harvest_start_date) {
+        year = new Date(harvest_start_date).getFullYear();
+      } else {
+        year = new Date().getFullYear();
+      }
+    }
+    
+    // Get the appropriate model for this year
+    const UnifiedFarmerRecordModel = getUnifiedFarmerRecordModel(year);
+    
+    const newUnifiedRecord = await UnifiedFarmerRecordModel.create({
+      surname, first_name, middle_name, suffix, farm_location,
+      crop_type, crop_variety, crop_stage,
+      plantation_start_date, plantation_end_date, harvest_month_year,
+      total_area_planted, total_area_trees_planted,
+      harvest_start_date, harvest_end_date, total_weight,
+      crop_purpose, destination, mode_of_payment, mode_of_delivery,
+      total_area_harvested, total_area_trees_harvested
     });
 
-    return res.json(newUnifiedRecord);
+    if (original_farmer_input_id) {
+      // Delete all related documents
+      await deleteRelatedDocuments(original_farmer_input_id);
+    }
+
+    return res.json({
+      message: `Record successfully added to ${year} collection and original documents deleted`,
+      data: newUnifiedRecord
+    });
 
   } catch (error) {
-    res.status(500).json({ message: 'Error pushing to the main records.', error: error });
+    res.status(500).json({ message: 'Error pushing to the main records.', error: error.message });
   }
+};
+
+
+
+
+// helper controller for deleting initial farmer response and its related documents
+const deleteRelatedDocuments = async (farmerId) => {
+  // Find crop type to determine which documents to delete
+  const cropType = await B_crop_types.findOne({ farmer_input_id: farmerId });
+  
+  if (cropType) {
+    const isIndustrialCrop = cropType.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS';
+    
+    if (isIndustrialCrop) {
+      // Get crop record to determine if newly planted or harvesting
+      const cropRecord = await C_crop_records_indus.findOne({ farmer_input_id: farmerId });
+      
+      if (cropRecord) {
+        if (cropRecord.crop_stage === 'NEWLY PLANTED') {
+          await D1_crop_indus_new.deleteOne({ record_id: cropRecord._id });
+        } else {
+          await D1_crop_indus_harvest.deleteOne({ record_id: cropRecord._id });
+        }
+        await C_crop_records_indus.deleteOne({ _id: cropRecord._id });
+      }
+    } else {
+      // Similar process for non-industrial crops
+      const cropRecord = await C_crop_records_others.findOne({ farmer_input_id: farmerId });
+      
+      if (cropRecord) {
+        if (cropRecord.crop_stage === 'NEWLY PLANTED') {
+          await D2_bc_other_fct_new.deleteOne({ record_id: cropRecord._id });
+        } else {
+          await D2_bc_other_fct_harvest.deleteOne({ record_id: cropRecord._id });
+        }
+        await C_crop_records_others.deleteOne({ _id: cropRecord._id });
+      }
+    }
+    
+    // Delete crop type
+    await B_crop_types.deleteOne({ _id: cropType._id });
+  }
+  
+  // Finally delete the farmer input document
+  await A_farmer_inputs.deleteOne({ _id: farmerId });
 };
 
 

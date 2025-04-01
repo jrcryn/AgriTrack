@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 
+// Reuse the same schema definition
 const UnifiedFarmerRecordSchema = new mongoose.Schema({
   // Farmer details (required fields)
   surname: { type: String, required: true, trim: true },
@@ -9,7 +10,7 @@ const UnifiedFarmerRecordSchema = new mongoose.Schema({
   farm_location: { type: String, required: true, trim: true },
   isValidated: { type: Boolean, default: true },
   
-  // Crop information (crop_type is required)
+  // Crop information (requireded fields)
   crop_type: { type: String, required: true },
   crop_variety: { type: String, trim: true },
   crop_stage: { 
@@ -18,19 +19,13 @@ const UnifiedFarmerRecordSchema = new mongoose.Schema({
   },
   
   // Fields for "NEWLY PLANTED" records
-  // For both industrial crops and other crops
   plantation_start_date: { type: Date },
   plantation_end_date: { type: Date },
   harvest_month_year: { type: Date },
-  
-  // For industrial crops specifically
   total_area_planted: { type: Number },
-  
-  // For other crops (like fruit trees) specifically
   total_area_trees_planted: { type: Number },
   
   // Fields for "HARVESTING" records
-  // For both types of crops
   harvest_start_date: { type: Date },
   harvest_end_date: { type: Date },
   total_weight: { type: Number },
@@ -42,15 +37,24 @@ const UnifiedFarmerRecordSchema = new mongoose.Schema({
   mode_of_payment: { type: String },
   mode_of_delivery: { type: String },
   
-  // For industrial crops specifically
   total_area_harvested: { type: Number },
-  
-  // For other crops specifically
   total_area_trees_harvested: { type: Number },
-}, 
-{ 
+}, { 
   timestamps: true,
   versionKey: false 
 });
 
-export const UnifiedFarmerRecord = mongoose.model('UnifiedFarmerRecord', UnifiedFarmerRecordSchema);
+// Factory function that returns the appropriate year-based model
+export const getUnifiedFarmerRecordModel = (year) => {
+  // If year is not provided, use current year
+  if (!year) {
+    year = new Date().getFullYear();
+  }
+  
+  // Collection name with year suffix
+  const collectionName = `UnifiedFarmerRecord_${year}`;
+  
+  // Check if model already exists to prevent recompiling
+  return mongoose.models[collectionName] || 
+         mongoose.model(collectionName, UnifiedFarmerRecordSchema, `unified_farmer_records_${year}`);
+};
