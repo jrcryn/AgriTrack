@@ -334,27 +334,58 @@ export const createFarmerAccount = async (req, res) => {
       return res.status(400).json({ message: 'Please provide all the required fields.' });
   }
 
-  const farmerAlreadyExists = await FarmerAccount.findOne({ mobile_number });
-  if (farmerAlreadyExists) {
-    return res.status(400).json({ message: 'Farmer already exists in the system.' });
+  // If mobile number is provided, check if farmer exists
+  if (mobile_number) {
+    const farmerAlreadyExists = await FarmerAccount.findOne({ mobile_number });
+    if (farmerAlreadyExists) {
+      return res.status(400).json({ message: 'Farmer already exists in the system.' });
+    }
   }
 
   try {
-      const newFarmerAccount = await FarmerAccount.create({
-          surname,
-          first_name,
-          middle_name,
-          suffix,
-          farm_location,
-          mobile_number,
-          facebook,
-      });
-      return res.status(201).json({
-          message: 'Farmer account created successfully',
-          data: newFarmerAccount,
-      });
+    // Create initials first
+    const middleInitial = middle_name ? middle_name.charAt(0) : '';
+    const firstName = first_name.split(" ").map(word => word.charAt(0));
+    const initials = `${firstName.join("")}${middleInitial}${surname.charAt(0)}`;
+    
+    // Find the highest existing number with these initials
+    const existingFarmers = await FarmerAccount.find({
+      farmerId: new RegExp(`^F-${initials}-\\d{4}$`)
+    }).lean();
+    
+    let highestNumber = 0;
+    existingFarmers.forEach(farmer => {
+      const parts = farmer.farmerId.split('-');
+      if (parts.length === 3) {
+        const num = parseInt(parts[2], 10) || 0;
+        if (num > highestNumber) {
+          highestNumber = num;
+        }
+      }
+    });
+    
+    const newNumber = highestNumber + 1;
+    const formattedNumber = String(newNumber).padStart(4, "0");
+    const farmerId = `F-${initials}-${formattedNumber}`;
+
+    // Create the new farmer account
+    const newFarmerAccount = await FarmerAccount.create({
+        farmerId,
+        surname,
+        first_name,
+        middle_name,
+        suffix,
+        farm_location,
+        mobile_number,
+        facebook,
+    });
+    
+    return res.status(201).json({
+        message: 'Farmer account created successfully',
+        data: newFarmerAccount,
+    });
   } catch (error) {
-      return res.status(500).json({ message: 'Error creating farmer account', error });
+    return res.status(500).json({ message: 'Error creating farmer account', error: error.message });
   }
 };
 

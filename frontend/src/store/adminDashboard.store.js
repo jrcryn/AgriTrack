@@ -22,7 +22,9 @@ export const useValidatedInputsQuery = () =>
     queryFn: async () => {
       const response = await axios.get(`${API_URL}/get-validated-inputs`);
       return response.data;
-    }
+    },
+    staleTime: 0, // Data is always fresh
+    refetchInterval: 1000 // Refetch every second
   });
 
 export const useUpdateFarmerInputMutation = () => {
@@ -50,7 +52,9 @@ export const useFarmerAccountsQuery = () =>
     queryFn: async () => {
       const response = await axios.get(`${API_URL}/get-farmer-accounts`);
       return response.data;
-    }
+    },
+    staleTime: 0, // Data is always fresh
+    refetchInterval: 1000 // Refetch every second
   });
 
 

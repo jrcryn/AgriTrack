@@ -368,9 +368,6 @@ const Responses = () => {
       }));
     };
 
-    console.log('Crop Record:', response.cropRecord.crop_variety); 
-    console.log('Total trees:', response.cropDetails.total_trees);
-
     return (
     <VStack spacing={6} align="stretch">
       {/* Farmer Information Section */}

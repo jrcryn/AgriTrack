@@ -1,6 +1,7 @@
 import mongoose, { version } from 'mongoose';
 
 const FarmerAccountSchema = new mongoose.Schema({
+    farmerId: { type: String, required: true, unique: true },
     surname: { type: String, required: true, trim: true },
     first_name: { type: String, required: true, trim: true },
     middle_name: { type: String, trim: true },
