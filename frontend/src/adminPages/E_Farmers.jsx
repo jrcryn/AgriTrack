@@ -284,19 +284,21 @@ const E_Farmers = () => {
             <Table variant="simple">
               <Thead bg="gray.50">
                 <Tr>
+                  <Th>Farmer ID</Th>
                   <Th>Full Name</Th>
                   <Th>Farmer Resident Address</Th>
                   <Th>Contact Number</Th>
                   <Th>Facebook</Th>
-                  <Th position={{ base: 'static', md: 'sticky' }} right={0} bg="gray.50" zIndex={1} textAlign="center">
-                    <Box display={{ base: 'none', md: 'block' }}>Actions</Box>
-                  </Th>
+                <Th position={{ base: 'static', md: 'sticky' }} right={0} bg="gray.50" zIndex={{ base: 0, md: 1 }} textAlign={'center'}>
+                  <Box display={{ base: 'none', md: 'block' }}>Scroll →</Box>
+                </Th>
                 </Tr>
               </Thead>
               <Tbody>
                 {currentFarmers.length > 0 ? (
                   currentFarmers.map((farmers) => (
                     <Tr key={farmers._id}>
+                      <Td fontWeight="medium">{farmers.farmerId ? farmers.farmerId : '-'}</Td>
                       <Td fontWeight="medium">
                         {`${farmers.first_name} ${farmers.middle_name ? farmers.middle_name.charAt(0).toUpperCase()+'.' : ''} ${farmers.surname} ${farmers.suffix ? farmers.suffix : ''}`.trim()}
                       </Td>
@@ -317,13 +319,6 @@ const E_Farmers = () => {
                       </Td>
                       <Td position={{ base: 'static', md: 'sticky' }} right={0} bg="white" zIndex={1}>
                         <HStack spacing={2} justifyContent="center">
-                          <Button
-                            size="sm"
-                            colorScheme="blue"
-                            leftIcon={<FaEye />}
-                          >
-                            View
-                          </Button>
                           <Button
                             size="sm"
                             colorScheme="green"
@@ -510,7 +505,7 @@ const E_Farmers = () => {
                         value={formData.mobile_number}
                         onChange={handleInputChange}
                         placeholder="0991XXXXXX"
-                        type="tel"
+                        type="number"
                         maxLength={11}
                         borderColor="gray.300"
                         _focus={{ borderColor: "blue.400" }}
