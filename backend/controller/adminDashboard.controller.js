@@ -338,8 +338,8 @@ const getNextSequence = async (key) => {
 
 // Create a new farmer account
 export const createFarmerAccount = async (req, res) => {
-  const { surname, first_name, middle_name, suffix, farm_location, mobile_number, facebook } = req.body;
-  if (!surname || !first_name || !farm_location) {
+  const { surname, first_name, middle_name, suffix, farmer_address, mobile_number, facebook } = req.body;
+  if (!surname || !first_name || !farmer_address) {
     return res.status(400).json({ message: 'Please provide all the required fields.' });
   }
 
@@ -365,7 +365,7 @@ export const createFarmerAccount = async (req, res) => {
       first_name,
       middle_name,
       suffix,
-      farm_location,
+      farmer_address,
       mobile_number,
       facebook,
     });
@@ -386,6 +386,27 @@ export const getFarmerAccounts = async (req, res) => {
     res.json(farmerAccounts);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching farmer accounts', error: error.message });
+  }
+};
+
+
+// Get a single farmer account by ID
+export const getFarmerAccountById = async (req, res) => {
+  const {farmerId} = req.body;
+  if (!farmerId) {
+    return res.status(400).json({ message: 'Farmer ID is required' });
+  }
+
+  try {
+    const farmerAccount = await FarmerAccount.findOne({ farmerId: farmerId }).lean();
+    if (!farmerAccount) {
+      return res.status(404).json({ message: 'Farmer account not found' });
+    }
+    farmerAccount.farmer_address = '';
+    
+    res.json(farmerAccount);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching farmer account', error: error.message });
   }
 };
 

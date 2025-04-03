@@ -7,10 +7,11 @@ const formatProperCase = (name) => {
 };
 
 const AFarmerInputsSchema = new mongoose.Schema({
-  surname: { type: String, required: true, trim: true, set: formatProperCase },
-  first_name: { type: String, required: true, trim: true, set: formatProperCase },
-  middle_name: { type: String, trim: true, set: formatProperCase },
-  suffix: { type: String, trim: true },
+  farmer_account_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Farmer_Account',
+    required: true,
+  },
   farm_location: { type: String, required: true, trim: true },
   isValidated: { type: Boolean, default: false },
 }, { versionKey: false }, { timestamps: true });

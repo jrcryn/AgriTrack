@@ -49,7 +49,7 @@ const E_Farmers = () => {
     middle_name: '',
     surname: '',
     suffix: '',
-    farm_location: '',
+    farmer_address: '',
     mobile_number: '',
     facebook: '',
   });
@@ -86,8 +86,8 @@ const E_Farmers = () => {
       errors.surname = "Surname is required";
     }
     
-    if (!formData.farm_location.trim()) {
-      errors.farm_location = "Farm location is required";
+    if (!formData.farmer_address.trim()) {
+      errors.farmer_address = "Farmer address is required";
     }
     
     if (formData.mobile_number && !/^[0-9+\s-]{10,15}$/.test(formData.mobile_number)) {
@@ -108,7 +108,6 @@ const E_Farmers = () => {
     setIsSubmitting(true);
     
     try {
-      // Call API to create a farmer account
       const responseResult = await createFarmerAccount(formData);
       
       toast({
@@ -125,7 +124,7 @@ const E_Farmers = () => {
         middle_name: '',
         surname: '',
         suffix: '',
-        farm_location: '',
+        farmer_address: '',
         mobile_number: '',
         facebook: '',
       });
@@ -152,7 +151,7 @@ const E_Farmers = () => {
       middle_name: '',
       surname: '',
       suffix: '',
-      farm_location: '',
+      farmer_address: '',
       mobile_number: '',
       facebook: '',
     });
@@ -173,7 +172,7 @@ const E_Farmers = () => {
   const searchedFarmers = farmerAccounts.filter((farmers) => {
     const fullName = `${farmers.first_name} ${farmers.middle_name} ${farmers.last_name} ${farmers.suffix}`.toLowerCase();
     const farmerId = farmers.farmerId ? farmers.farmerId.toLowerCase() : '';
-    const location = farmers.farm_location ? farmers.farm_location.toLowerCase() : '';
+    const location = farmers.farmer_address ? farmers.farmer_address.toLowerCase() : '';
     const number = farmers.mobile_number ? farmers.mobile_number.toLowerCase() : '';
     
     // General search
@@ -377,7 +376,7 @@ const E_Farmers = () => {
                       <Td fontWeight="medium">
                         {`${farmers.first_name} ${farmers.middle_name ? farmers.middle_name.charAt(0).toUpperCase()+'.' : ''} ${farmers.surname} ${farmers.suffix ? farmers.suffix : ''}`.trim()}
                       </Td>
-                      <Td>{farmers.farm_location ? farmers.farm_location : '-'}</Td>
+                      <Td>{farmers.farmer_address ? farmers.farmer_address : '-'}</Td>
                       <Td>{farmers.mobile_number ? farmers.mobile_number : '-'}</Td>
                       <Td>
                         {farmers.facebook ? (
@@ -563,18 +562,18 @@ const E_Farmers = () => {
                   </HStack>
                 </Heading>
                 
-                <FormControl isRequired isInvalid={formErrors.farm_location} mb={4}>
+                <FormControl isRequired isInvalid={formErrors.farmer_address} mb={4}>
                   <FormLabel fontWeight="medium">Farmer Resident Address</FormLabel>
                   <Input 
-                    name="farm_location"
-                    value={formData.farm_location}
+                    name="farmer_address"
+                    value={formData.farmer_address}
                     onChange={handleInputChange}
                     placeholder="Enter farmer's complete address"
                     borderColor="gray.300"
                     _focus={{ borderColor: "blue.400" }}
                   />
-                  {formErrors.farm_location && (
-                    <FormErrorMessage>{formErrors.farm_location}</FormErrorMessage>
+                  {formErrors.farmer_address && (
+                    <FormErrorMessage>{formErrors.farmer_address}</FormErrorMessage>
                   )}
                 </FormControl>
                 

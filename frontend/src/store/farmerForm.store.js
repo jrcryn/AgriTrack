@@ -8,6 +8,7 @@ export const useFarmerFormStore = create((set, get) => ({
   formData: {
     privacyConsent: '',
     farmerInput: {
+      farmerId: '',
       surname: '',
       first_name: '',
       middle_name: '',
@@ -23,6 +24,7 @@ export const useFarmerFormStore = create((set, get) => ({
     cropOtherNew: null,
   },
   
+  formattedFarmerId: '',
   isLoading: false,
   error: null,
   success: false,
