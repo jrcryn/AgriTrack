@@ -154,7 +154,7 @@ const Responses = () => {
             data.map((response, index) => (
               <Tr key={response.farmerInput._id || index}>
                 <Td fontWeight="medium">
-                {`${response.farmerInput.first_name} ${response.farmerInput.middle_name ? response.farmerInput.middle_name.charAt(0).toUpperCase()+'.':''} ${response.farmerInput.surname} ${response.farmerInput.suffix || ''}`.trim()}
+                {`${response.farmerInput.farmer_account_id.first_name} ${response.farmerInput.farmer_account_id.middle_name ? response.farmerInput.farmer_account_id.middle_name.charAt(0).toUpperCase()+'.':''} ${response.farmerInput.farmer_account_id.surname} ${response.farmerInput.farmer_account_id.suffix || ''}`.trim()}
                 </Td>
                 <Td>{response.farmerInput.farm_location}</Td>
                 {status === 'NEWLY PLANTED' ? (
@@ -258,10 +258,7 @@ const Responses = () => {
       
       const responseData = {
         // Farmer details
-        surname: selectedResponse.farmerInput.surname,
-        first_name: selectedResponse.farmerInput.first_name,
-        middle_name: selectedResponse.farmerInput.middle_name,
-        suffix: selectedResponse.farmerInput.suffix,
+        farmer_account_id: selectedResponse.farmerInput.farmer_account_id._id,
         farm_location: selectedResponse.farmerInput.farm_location,
         
         // Crop information
@@ -390,7 +387,7 @@ const Responses = () => {
           <FormControl>
             <FormLabel fontWeight="medium">Full Name</FormLabel>
             <Input 
-              value={`${response.farmerInput?.first_name} ${response.farmerInput.middle_name ? response.farmerInput.middle_name + ' ' : ''}${response.farmerInput?.surname} ${response.farmerInput.suffix || ''}`}
+              value={`${response.farmerInput.farmer_account_id?.first_name} ${response.farmerInput.farmer_account_id?.middle_name ? response.farmerInput.farmer_account_id.middle_name + ' ' : ''}${response.farmerInput.farmer_account_id?.surname} ${response.farmerInput.farmer_account_id?.suffix || ''}`}
               isReadOnly
               bg="gray.50"
               borderColor="gray.200"

@@ -3,10 +3,11 @@ import mongoose from 'mongoose';
 // Reuse the same schema definition
 const UnifiedFarmerRecordSchema = new mongoose.Schema({
   // Farmer details (required fields)
-  surname: { type: String, required: true, trim: true },
-  first_name: { type: String, required: true, trim: true },
-  middle_name: { type: String, trim: true },
-  suffix: { type: String, trim: true },
+  farmer_account_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Farmer_Account',
+    required: true,
+  },
   farm_location: { type: String, required: true, trim: true },
   isValidated: { type: Boolean, default: true },
   
