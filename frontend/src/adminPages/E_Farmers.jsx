@@ -16,6 +16,7 @@ import {
   Input,
   InputGroup,
   InputRightElement,
+  Select,
   Icon,
   Modal,
   ModalOverlay,
@@ -48,7 +49,7 @@ const E_Farmers = () => {
     middle_name: '',
     surname: '',
     suffix: '',
-    farm_location: '',
+    farmer_address: '',
     mobile_number: '',
     facebook: '',
   });
@@ -85,8 +86,8 @@ const E_Farmers = () => {
       errors.surname = "Surname is required";
     }
     
-    if (!formData.farm_location.trim()) {
-      errors.farm_location = "Farm location is required";
+    if (!formData.farmer_address.trim()) {
+      errors.farmer_address = "Farmer address is required";
     }
     
     if (formData.mobile_number && !/^[0-9+\s-]{10,15}$/.test(formData.mobile_number)) {
@@ -107,7 +108,6 @@ const E_Farmers = () => {
     setIsSubmitting(true);
     
     try {
-      // Call API to create a farmer account
       const responseResult = await createFarmerAccount(formData);
       
       toast({
@@ -124,7 +124,7 @@ const E_Farmers = () => {
         middle_name: '',
         surname: '',
         suffix: '',
-        farm_location: '',
+        farmer_address: '',
         mobile_number: '',
         facebook: '',
       });
@@ -151,7 +151,7 @@ const E_Farmers = () => {
       middle_name: '',
       surname: '',
       suffix: '',
-      farm_location: '',
+      farmer_address: '',
       mobile_number: '',
       facebook: '',
     });
@@ -160,6 +160,8 @@ const E_Farmers = () => {
   };
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [farmerInitials, setFarmerInitials] = useState('');
+  const [farmerIdNumber, setFarmerIdNumber] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const tableRef = useRef(null);
   
@@ -169,12 +171,26 @@ const E_Farmers = () => {
   // Filter farmers based on search query
   const searchedFarmers = farmerAccounts.filter((farmers) => {
     const fullName = `${farmers.first_name} ${farmers.middle_name} ${farmers.last_name} ${farmers.suffix}`.toLowerCase();
-    const location = farmers.farm_location.toLowerCase();
-    const number = farmers.mobile_number.toLowerCase();
+    const farmerId = farmers.farmerId ? farmers.farmerId.toLowerCase() : '';
+    const location = farmers.farmer_address ? farmers.farmer_address.toLowerCase() : '';
+    const number = farmers.mobile_number ? farmers.mobile_number.toLowerCase() : '';
     
-    return fullName.includes(searchQuery.toLowerCase()) ||
-           location.includes(searchQuery.toLowerCase()) ||
-            number.includes(searchQuery.toLowerCase());
+    // General search
+    const matchesGeneralSearch = searchQuery ? (
+      fullName.includes(searchQuery.toLowerCase()) ||
+      location.includes(searchQuery.toLowerCase()) ||
+      number.includes(searchQuery.toLowerCase()) ||
+      farmerId.includes(searchQuery.toLowerCase())
+    ) : true;
+    
+    // Farmer ID specific search
+    let matchesFarmerId = true;
+    if (farmerInitials || farmerIdNumber) {
+      const farmerIdPattern = `f-${farmerInitials.toLowerCase()}-${farmerIdNumber.toLowerCase()}`;
+      matchesFarmerId = farmerId.includes(farmerIdPattern);
+    }
+    
+    return matchesGeneralSearch && matchesFarmerId;
   });
   
   // Pagination calculation
@@ -218,36 +234,93 @@ const E_Farmers = () => {
         alignItems="center"
         justifyContent="space-between"
       >
-
         <Flex 
           direction={{ base: "column", md: "row" }}
           width={{ base: "100%", md: "auto" }}
           mb={{ base: 4, md: 0 }}
           alignItems={{ base: "flex-start", md: "center" }}
         >
-
-          <HStack 
-            spacing={2} 
-            mb={{ base: 2, md: 0 }} 
-            width={{ base: "100%", md: "auto" }}
-            justifyContent={{ base: "center", md: "flex-start" }}
-          >
-            <Icon as={FaSearch} color="blue.500" />
-            <Text fontWeight="medium">Search:</Text>
-          </HStack>
+          {/* General Search */}
+          <Box width={{ base: "100%", md: "auto" }} mb={{ base: 4, md: 0 }}>
+            <HStack 
+              spacing={2} 
+              mb={2}
+              width={{ base: "100%", md: "auto" }}
+              justifyContent={{ base: "center", md: "flex-start" }}
+            >
+              <Icon as={FaSearch} color="blue.500" />
+              <Text fontWeight="medium">Search by:</Text>
+            </HStack>
+            
+            <InputGroup width={{ base: "100%", md: "sm" }}>
+              <Input 
+                placeholder="name or location..." 
+                bg="white"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                _focus={{ borderColor: "blue.400" }}
+              />
+              <InputRightElement pointerEvents="none">
+                <FaSearch color="gray.300" />
+              </InputRightElement>
+            </InputGroup>
+          </Box>
           
-          <InputGroup width={{ base: "100%", md: "sm" }} ml={{ base: 0, md: 4 }}>
-            <Input 
-              placeholder="Search by name or barangay..." 
-              bg="white"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              _focus={{ borderColor: "blue.400" }}
-            />
-            <InputRightElement pointerEvents="none">
-              <FaSearch color="gray.300" />
-            </InputRightElement>
-          </InputGroup>
+          {/* Farmer ID Search */}
+          <Box ml={{ base: 0, md: 5 }} width={{ base: "100%", md: "auto" }}>
+            <HStack 
+              spacing={2} 
+              mb={2}
+              width={{ base: "100%", md: "auto" }}
+              justifyContent={{ base: "center", md: "flex-start" }}
+            >
+              <Icon as={FaAddressCard} color="blue.500" />
+              <Text fontWeight="medium">Search by Farmer ID:</Text>
+            </HStack>
+            
+            <Flex>
+              <Box 
+                bg="gray.100" 
+                px={3} 
+                py={2} 
+                borderLeftRadius="md" 
+                display="flex" 
+                alignItems="center"
+                fontWeight="medium"
+              >
+                F-
+              </Box>
+              <Input 
+                placeholder="Initials" 
+                bg="white"
+                value={farmerInitials}
+                onChange={(e) => setFarmerInitials(e.target.value)}
+                borderRadius="0"
+                maxLength={4}
+                _focus={{ borderColor: "blue.400" }}
+              />
+              <Box 
+                bg="gray.100" 
+                px={2} 
+                py={2} 
+                display="flex" 
+                alignItems="center"
+                fontWeight="medium"
+              >
+                -
+              </Box>
+              <Input 
+                placeholder="Number" 
+                bg="white"
+                value={farmerIdNumber}
+                onChange={(e) => setFarmerIdNumber(e.target.value)}
+                borderRightRadius="md"
+                borderLeftRadius="0"
+                maxLength={4}
+                _focus={{ borderColor: "blue.400" }}
+              />
+            </Flex>
+          </Box>
         </Flex>
         
         <Button
@@ -256,6 +329,7 @@ const E_Farmers = () => {
           onClick={onOpen}
           size={{ base: "md", md: "md" }}
           width={{ base: "100%", md: "auto" }}
+          mt={{ base: 2, md: 0 }}
         >
           Add New Farmer
         </Button>
@@ -302,7 +376,7 @@ const E_Farmers = () => {
                       <Td fontWeight="medium">
                         {`${farmers.first_name} ${farmers.middle_name ? farmers.middle_name.charAt(0).toUpperCase()+'.' : ''} ${farmers.surname} ${farmers.suffix ? farmers.suffix : ''}`.trim()}
                       </Td>
-                      <Td>{farmers.farm_location ? farmers.farm_location : '-'}</Td>
+                      <Td>{farmers.farmer_address ? farmers.farmer_address : '-'}</Td>
                       <Td>{farmers.mobile_number ? farmers.mobile_number : '-'}</Td>
                       <Td>
                         {farmers.facebook ? (
@@ -452,14 +526,22 @@ const E_Farmers = () => {
                   
                   <FormControl>
                     <FormLabel fontWeight="medium">Suffix</FormLabel>
-                    <Input 
+                    <Select
                       name="suffix"
                       value={formData.suffix}
                       onChange={handleInputChange}
                       placeholder="E.g., Jr., Sr., III (optional)"
+                      textColor={formData.suffix ? "black" : "gray.500"}
                       borderColor="gray.300"
                       _focus={{ borderColor: "blue.400" }}
-                    />
+                    >
+                      <option value="Jr.">Jr.</option>
+                      <option value="Sr.">Sr.</option>
+                      <option value="II">II</option>
+                      <option value="III">III</option>
+                      <option value="IV">IV</option>
+                      <option value="V">V</option>
+                    </Select>
                   </FormControl>
                 </SimpleGrid>
               </Box>
@@ -480,18 +562,18 @@ const E_Farmers = () => {
                   </HStack>
                 </Heading>
                 
-                <FormControl isRequired isInvalid={formErrors.farm_location} mb={4}>
+                <FormControl isRequired isInvalid={formErrors.farmer_address} mb={4}>
                   <FormLabel fontWeight="medium">Farmer Resident Address</FormLabel>
                   <Input 
-                    name="farm_location"
-                    value={formData.farm_location}
+                    name="farmer_address"
+                    value={formData.farmer_address}
                     onChange={handleInputChange}
                     placeholder="Enter farmer's complete address"
                     borderColor="gray.300"
                     _focus={{ borderColor: "blue.400" }}
                   />
-                  {formErrors.farm_location && (
-                    <FormErrorMessage>{formErrors.farm_location}</FormErrorMessage>
+                  {formErrors.farmer_address && (
+                    <FormErrorMessage>{formErrors.farmer_address}</FormErrorMessage>
                   )}
                 </FormControl>
                 

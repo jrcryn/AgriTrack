@@ -10,6 +10,7 @@ import { D2_bc_other_fct_harvest } from '../models/D2_bc-other-fctHarvest.model.
 import { getUnifiedFarmerRecordModel } from '../models/unifiedFarmerResponse.model.js';
 
 import { FarmerAccount } from '../models/farmerAccount.model.js';
+import { Counter } from '../models/counter.model.js';
 
 
 // Get all unvalidated farmer inputs with their referenced documents
@@ -326,66 +327,54 @@ const getCompleteRecordById = async (farmerId) => {
 };
 
 
+const getNextSequence = async (key) => {
+  const counter = await Counter.findOneAndUpdate(
+    { _id: key },
+    { $inc: { seq: 1 } },
+    { new: true, upsert: true }
+  );
+  return counter.seq;
+}
 
 // Create a new farmer account
 export const createFarmerAccount = async (req, res) => {
-  const { surname, first_name, middle_name, suffix, farm_location, mobile_number, facebook } = req.body;
-  if (!surname || !first_name || !farm_location) {
-      return res.status(400).json({ message: 'Please provide all the required fields.' });
+  const { surname, first_name, middle_name, suffix, farmer_address, mobile_number, facebook } = req.body;
+  if (!surname || !first_name || !farmer_address) {
+    return res.status(400).json({ message: 'Please provide all the required fields.' });
   }
 
-  // If mobile number is provided, check if farmer exists
-  if (mobile_number) {
-    const farmerAlreadyExists = await FarmerAccount.findOne({ mobile_number });
+  // Check if farmer already exists
+  if (first_name || mobile_number) {
+    const farmerAlreadyExists = await FarmerAccount.findOne({ first_name }, { mobile_number });
     if (farmerAlreadyExists) {
       return res.status(400).json({ message: 'Farmer already exists in the system.' });
     }
-  }
+  };
 
   try {
-    // Create initials first
+    const newNumber = await getNextSequence('farmer_account');
     const middleInitial = middle_name ? middle_name.charAt(0) : '';
-    const firstName = first_name.split(" ").map(word => word.charAt(0));
-    const initials = `${firstName.join("")}${middleInitial}${surname.charAt(0)}`;
-    
-    // Find the highest existing number with these initials
-    const existingFarmers = await FarmerAccount.find({
-      farmerId: new RegExp(`^F-${initials}-\\d{4}$`)
-    }).lean();
-    
-    let highestNumber = 0;
-    existingFarmers.forEach(farmer => {
-      const parts = farmer.farmerId.split('-');
-      if (parts.length === 3) {
-        const num = parseInt(parts[2], 10) || 0;
-        if (num > highestNumber) {
-          highestNumber = num;
-        }
-      }
-    });
-    
-    const newNumber = highestNumber + 1;
-    const formattedNumber = String(newNumber).padStart(4, "0");
+    const firstInitials = first_name.split(' ').slice(0, 2).map(word => word.charAt(0)).join('');
+    const initials = `${firstInitials}${middleInitial}${surname.charAt(0)}`;
+    const formattedNumber = String(newNumber).padStart(4, '0');
     const farmerId = `F-${initials}-${formattedNumber}`;
 
-    // Create the new farmer account
     const newFarmerAccount = await FarmerAccount.create({
-        farmerId,
-        surname,
-        first_name,
-        middle_name,
-        suffix,
-        farm_location,
-        mobile_number,
-        facebook,
+      farmerId,
+      surname,
+      first_name,
+      middle_name,
+      suffix,
+      farmer_address,
+      mobile_number,
+      facebook,
     });
-    
     return res.status(201).json({
-        message: 'Farmer account created successfully',
-        data: newFarmerAccount,
+      message: 'Farmer account created successfully',
+      data: newFarmerAccount,
     });
   } catch (error) {
-    return res.status(500).json({ message: 'Error creating farmer account', error: error.message });
+    return res.status(500).json({ message: 'Error creating farmer account', error });
   }
 };
 
@@ -397,6 +386,27 @@ export const getFarmerAccounts = async (req, res) => {
     res.json(farmerAccounts);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching farmer accounts', error: error.message });
+  }
+};
+
+
+// Get a single farmer account by ID
+export const getFarmerAccountById = async (req, res) => {
+  const {farmerId} = req.body;
+  if (!farmerId) {
+    return res.status(400).json({ message: 'Farmer ID is required' });
+  }
+
+  try {
+    const farmerAccount = await FarmerAccount.findOne({ farmerId: farmerId }).lean();
+    if (!farmerAccount) {
+      return res.status(404).json({ message: 'Farmer account not found' });
+    }
+    farmerAccount.farmer_address = '';
+    
+    res.json(farmerAccount);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching farmer account', error: error.message });
   }
 };
 

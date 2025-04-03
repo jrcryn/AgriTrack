@@ -57,7 +57,6 @@ export const useFarmerAccountsQuery = () =>
     refetchInterval: 1000 // Refetch every second
   });
 
-
 // Zustand store for UI state management
 export const useAdminDashboardStore = create((set) => ({
   error: null,
@@ -95,6 +94,16 @@ export const useAdminDashboard = () => {
     }
   };
 
+  const getFarmerAccountById = async (farmerId) => {
+    try {
+      const response = await axios.post(`${API_URL}/get-farmer-account`, farmerId);
+      return response.data;
+    } catch (error) {
+      setError(error.message || 'Failed to fetch farmer account by ID');
+      throw error;
+    }
+  };
+
   // Combine errors from different sources
   if (unvalidatedError) setError(unvalidatedError.message || 'Failed to fetch unvalidated inputs');
   if (validatedError) setError(validatedError.message || 'Failed to fetch validated inputs');
@@ -106,6 +115,7 @@ export const useAdminDashboard = () => {
     unvalidatedInputs,
     validatedInputs,
     farmerAccounts,
+    getFarmerAccountById,
     
     // Loading states
     isLoading: isLoadingUnvalidated || isLoadingValidated || isLoadingAccounts,

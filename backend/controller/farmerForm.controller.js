@@ -10,16 +10,13 @@ import  { D2_bc_other_fct_harvest }  from '../models/D2_bc-other-fctHarvest.mode
 // Step 1: Create a new record input in the A_farmer_inputs collection
 
 export const formA_fi = async (req, res) => {
-  const { surname, first_name, middle_name, suffix, farm_location } = req.body;
-  if (!surname || !first_name || !farm_location) {
+  const { farmerId, farm_location } = req.body;
+  if (!farmerId || !farm_location) {
       return res.status(400).json({ message: 'Missing required fields' });
   }
   try {
       const newFarmerInput = await A_farmer_inputs.create({
-          surname,
-          first_name,
-          middle_name,
-          suffix,
+          farmer_account_id: farmerId,
           farm_location,
       });
       return res.json(newFarmerInput);
