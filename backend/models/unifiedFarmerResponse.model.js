@@ -13,7 +13,7 @@ const UnifiedFarmerRecordSchema = new mongoose.Schema({
   
   // Crop information (requireded fields)
   crop_type: { type: String, required: true },
-  crop_variety: { type: String, trim: true },
+  commodity: { type: String, required: true },
   crop_stage: { 
     type: String, 
     enum: ['NEWLY PLANTED', 'HARVESTING']

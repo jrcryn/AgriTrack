@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
 import {
   Box,
   Heading,
@@ -17,360 +16,355 @@ import {
   Spinner,
   Alert,
   AlertIcon,
+  AlertTitle,
+  AlertDescription,
 } from "@chakra-ui/react";
 import { FaChartLine, FaUsers, FaLeaf, FaSeedling, FaBoxes, FaCalendarAlt } from "react-icons/fa";
-
-const API_URL = import.meta.env.VITE_API_URL;
+import { useAdminDashboard } from "../store/adminDashboard.store";
 
 const Metrics = () => {
-  // State for available data
-  const [availableYears, setAvailableYears] = useState([]);
-  const [availableMonths, setAvailableMonths] = useState([]);
+  // Get available years from API
+  const { useUnifiedFarmerResponseYearQuery, useUnifiedFarmerResponseMonthsQuery } = useAdminDashboard();
+  const { data: availableYears = [], isLoading: isLoadingYears, error: yearsError } = useUnifiedFarmerResponseYearQuery();
   
-  // State for selected filters
+  // State for year and month filters
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+  const [selectedMonth, setSelectedMonth] = useState(null);
   
-  // State for metrics data
-  const [metricsData, setMetricsData] = useState(null);
+  // Fetch available months based on selected year
+  const { 
+    data: availableMonths = [], 
+    isLoading: isLoadingMonths 
+  } = useUnifiedFarmerResponseMonthsQuery(selectedYear);
   
-  // Loading and error states
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
+  // Set the first available month when months are loaded or when year changes
+  useEffect(() => {
+    if (availableMonths.length > 0) {
+      setSelectedMonth(availableMonths[0]);
+    } else {
+      // If no months available, reset selection
+      setSelectedMonth(null);
+    }
+  }, [availableMonths]);
   
-  // Array of month names for display
+  // Array of months (keeping this as it's just static data)
   const months = [
     "January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December"
   ];
   
-  // Fetch available years on component mount
-  useEffect(() => {
-    const fetchAvailableYears = async () => {
-      try {
-        setIsLoading(true);
-        const response = await axios.get(`${API_URL}/metrics/available-years`);
-        setAvailableYears(response.data);
-        
-        // Set the most recent year as default
-        if (response.data.length > 0) {
-          setSelectedYear(response.data[0]);
-        }
-      } catch (err) {
-        setError('Failed to fetch available years');
-        console.error(err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    fetchAvailableYears();
-  }, []);
-  
-  // Fetch available months when selected year changes
-  useEffect(() => {
-    const fetchAvailableMonths = async () => {
-      if (!selectedYear) return;
-      
-      try {
-        setIsLoading(true);
-        const response = await axios.get(`${API_URL}/metrics/available-months/${selectedYear}`);
-        setAvailableMonths(response.data);
-        
-        // If current selected month is not in available months, select first available month
-        if (response.data.length > 0 && !response.data.includes(selectedMonth)) {
-          setSelectedMonth(response.data[0]);
-        }
-      } catch (err) {
-        setError('Failed to fetch available months');
-        console.error(err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    fetchAvailableMonths();
-  }, [selectedYear]);
-  
-  // Fetch metrics data when year or month changes
-  useEffect(() => {
-    const fetchMetricsData = async () => {
-      if (!selectedYear || selectedMonth === null) return;
-      
-      try {
-        setIsLoading(true);
-        const response = await axios.get(`${API_URL}/metrics/data/${selectedYear}/${selectedMonth}`);
-        setMetricsData(response.data);
-      } catch (err) {
-        setError('Failed to fetch metrics data');
-        console.error(err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    fetchMetricsData();
-  }, [selectedYear, selectedMonth]);
-  
-  // Handler for year change
-  const handleYearChange = (e) => {
-    setSelectedYear(Number(e.target.value));
-  };
-  
-  // Handler for month change
-  const handleMonthChange = (e) => {
-    setSelectedMonth(Number(e.target.value));
-  };
-  
-  // Default data for display when loading or no data available
-  const newlyPlantedData = metricsData?.newlyPlanted || {
+  // Placeholder for real data - will be replaced with API call later
+  const newlyPlantedData = {
     farmers: 0,
-    areaPlanted: 0,
+    areaPlanted: 0, 
   };
   
-  const harvestingData = metricsData?.harvesting || {
+  const harvestingData = {
     farmers: 0,
     areaHarvested: 0,
     volumeProduction: 0,
   };
-  
-  return (
-    <Box 
-      overflow="hidden" 
-      bg="white" 
-      p={5} 
-      minH="100vh"
-    >
-      <Heading as="h1" size="xl" mb={2} color="black">
-        High-Value Crops Metrics
-      </Heading>
-      <Text color="gray.600" mb={5}>
-        Overview of planting and harvesting activities across Calamba. Data is sourced from validated farmer responses.
-      </Text>
-    
-      {/* Year and Month Selector */}
-      <Flex 
-        direction={{ base: "column", md: "row" }} 
-        mb={6} 
-        gap={4}
-        p={4}
-        bg="blue.50"
-        borderRadius="md"
+
+  // Show loading state
+  if (isLoadingYears) {
+    return (
+      <Box 
+        overflow="hidden" 
+        bg="white" 
+        p={5} 
+        minH="100vh"
+        display="flex"
         alignItems="center"
+        justifyContent="center"
+        flexDirection="column"
       >
-        <HStack spacing={2}>
-          <Icon as={FaCalendarAlt} color="blue.500" />
-          <Text fontWeight="medium">Filter by:</Text>
-        </HStack>
-        <HStack spacing={4} flex={1} wrap="wrap">
-          <Select 
-            value={selectedYear} 
-            onChange={handleYearChange}
-            width={{ base: "full", md: "xs" }}
-            bg="white"
-            isDisabled={isLoading || availableYears.length === 0}
-          >
-            {availableYears.map((year) => (
-              <option key={year} value={year}>
-                {year}
-              </option>
-            ))}
-          </Select>
-          <Select 
-            value={selectedMonth} 
-            onChange={handleMonthChange}
-            width={{ base: "full", md: "xs" }}
-            bg="white"
-            isDisabled={isLoading || availableMonths.length === 0}
-          >
-            {/* Only show months that have data */}
-            {availableMonths.length > 0 ? (
-              availableMonths.map((monthIndex) => (
-                <option key={monthIndex} value={monthIndex}>
-                  {months[monthIndex]}
-                </option>
-              ))
-            ) : (
-              <option value={selectedMonth}>{months[selectedMonth]}</option>
-            )}
-          </Select>
-        </HStack>
-      </Flex>
-      
-      {/* Error display */}
-      {error && (
-        <Alert status="error" mb={4}>
+        <Spinner size="xl" color="blue.500" mb={4} />
+        <Text>Loading metrics data...</Text>
+      </Box>
+    );
+  }
+
+  // Show error state
+  if (yearsError) {
+    return (
+      <Box 
+        overflow="hidden" 
+        bg="white" 
+        p={5} 
+        minH="100vh"
+      >
+        <Alert status="error" borderRadius="md">
           <AlertIcon />
-          {error}
+          <AlertTitle>Error loading data!</AlertTitle>
+          <AlertDescription>
+            {yearsError.message || "Unable to load metrics data. Please try again later."}
+          </AlertDescription>
         </Alert>
-      )}
-      
-      {/* Loading indicator */}
-      {isLoading && (
-        <Flex justify="center" my={8}>
-          <Spinner size="xl" color="blue.500" />
-        </Flex>
-      )}
-      
-      {/* NEWLY PLANTED SECTION */}
-      <Box mb={8}>
-        <Flex 
-          justify="space-between" 
-          align="center" 
-          mb={4}
-          bg="green.50"
-          p={3}
-          borderRadius="md"
-          borderLeftWidth="4px"
-          borderLeftColor="green.500"
-        >
-          <Heading as="h2" size="md" display="flex" alignItems="center">
-            <Icon as={FaSeedling} mr={2} color="green.600" /> NEWLY PLANTED
-          </Heading>
-        </Flex>
-      
-        <Stack 
-          direction={{ base: "column", md: "row" }} 
-          spacing={4} 
-          w="full"
-        >
-          {/* Number of Farmers */}
-          <Box 
-            p={5} 
-            flex={1} 
-            borderRadius="md" 
-            boxShadow="sm" 
-            bg="white"
-            borderWidth="1px"
-            borderColor="gray.200"
-          >
-            <Stat>
-              <StatLabel fontSize="md" display="flex" alignItems="center">
-                <Icon as={FaUsers} mr={2} color="blue.500" /> Number of Farmers
-              </StatLabel>
-              <StatNumber fontSize="3xl">{newlyPlantedData.farmers}</StatNumber>
-              <StatHelpText>
-                {months[selectedMonth]} {selectedYear}
-              </StatHelpText>
-            </Stat>
-          </Box>
-        
-          {/* Total Area Planted */}
-          <Box 
-            p={5} 
-            flex={1}
-            borderRadius="md"  
-            boxShadow="sm" 
-            bg="white"
-            borderWidth="1px"
-            borderColor="gray.200"
-          >
-            <Stat>
-              <StatLabel fontSize="md" display="flex" alignItems="center">
-                <Icon as={FaLeaf} mr={2} color="green.500" /> T. Area Planted
-              </StatLabel>
-              <StatNumber fontSize="3xl">
-                {newlyPlantedData.areaPlanted.toFixed(2)} <Text as="span" fontSize="lg">ha</Text>
-              </StatNumber>
-              <StatHelpText>
-                {months[selectedMonth]} {selectedYear}
-              </StatHelpText>
-            </Stat>
-          </Box>
-        </Stack>
       </Box>
-  
-      {/* HARVESTING SECTION */}
-      <Box mb={4}>
+    );
+  }
+
+  // Show fallback UI when no years data is available
+  if (availableYears.length === 0) {
+    return (
+      <Box 
+        overflow="hidden" 
+        bg="white" 
+        p={5} 
+        minH="100vh"
+      >
+        <Heading as="h1" size="xl" mb={2} color="black">
+          High-Value Crops Metrics
+        </Heading>
+        <Alert status="info" borderRadius="md" mt={4}>
+          <AlertIcon />
+          <AlertTitle>No data available!</AlertTitle>
+          <AlertDescription>
+            There are currently no metrics data available. Please check back later or add some farmer records.
+          </AlertDescription>
+        </Alert>
+      </Box>
+    );
+  }
+
+  return (
+      <Box 
+        overflow="hidden" 
+        bg="white" 
+        p={5} 
+        minH="100vh"
+      >
+        <Heading as="h1" size="xl" mb={2} color="black">
+          High-Value Crops Metrics
+        </Heading>
+        <Text color="gray.600" mb={5}>
+          Overview of planting and harvesting activities across calamba. Go to SEE MORE for farmer response sorting.
+        </Text>
+      
+        {/* Year and Month Selector */}
         <Flex 
-          justify="space-between" 
-          align="center" 
-          mb={4}
-          bg="orange.50"
-          p={3}
+          direction={{ base: "column", md: "row" }} 
+          mb={6} 
+          gap={4}
+          p={4}
+          bg="blue.50"
           borderRadius="md"
-          borderLeftWidth="4px"
-          borderLeftColor="orange.500"
+          alignItems="center"
         >
-          <Heading as="h2" size="md" display="flex" alignItems="center">
-            <Icon as={FaBoxes} mr={2} color="orange.600" /> HARVESTING
-          </Heading>
+          <HStack spacing={2}>
+            <Icon as={FaCalendarAlt} color="blue.500" />
+            <Text fontWeight="medium">Filter by:</Text>
+          </HStack>
+          <HStack spacing={4} flex={1} wrap="wrap">
+            <Select 
+              value={selectedYear} 
+              onChange={(e) => setSelectedYear(Number(e.target.value))}
+              width={{ base: "full", md: "xs" }}
+              bg="white"
+            >
+              {availableYears.map((year) => (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              ))}
+            </Select>
+            
+            <Select 
+              value={selectedMonth || ""}
+              onChange={(e) => setSelectedMonth(Number(e.target.value))}
+              width={{ base: "full", md: "xs" }}
+              bg="white"
+              isDisabled={isLoadingMonths || availableMonths.length === 0}
+            >
+              {isLoadingMonths ? (
+                <option value="">Loading months...</option>
+              ) : availableMonths.length === 0 ? (
+                <option value="">No months available</option>
+              ) : (
+                availableMonths.map((month) => (
+                  <option key={month} value={month}>
+                    {months[month - 1]}
+                  </option>
+                ))
+              )}
+            </Select>
+          </HStack>
         </Flex>
       
-        <Stack 
-          direction={{ base: "column", md: "row" }} 
-          spacing={4} 
-          w="full"
-        >
-          {/* Number of Farmers */}
-          <Box 
-            p={5} 
-            flex={1} 
-            borderRadius="md" 
-            boxShadow="sm" 
-            bg="white"
-            borderWidth="1px"
-            borderColor="gray.200"
+        {/* NEWLY PLANTED SECTION */}
+        <Box mb={8}>
+          <Flex 
+            justify="space-between" 
+            align="center" 
+            mb={4}
+            bg="green.50"
+            p={3}
+            borderRadius="md"
+            borderLeftWidth="4px"
+            borderLeftColor="green.500"
           >
-            <Stat>
-              <StatLabel fontSize="md" display="flex" alignItems="center">
-                <Icon as={FaUsers} mr={2} color="blue.500" /> Number of Farmers
-              </StatLabel>
-              <StatNumber fontSize="3xl">{harvestingData.farmers}</StatNumber>
-              <StatHelpText>
-                {months[selectedMonth]} {selectedYear}
-              </StatHelpText>
-            </Stat>
-          </Box>
+            <Heading as="h2" size="md" display="flex" alignItems="center">
+              <Icon as={FaSeedling} mr={2} color="green.600" /> NEWLY PLANTED
+            </Heading>
+          </Flex>
         
-          {/* Total Area Harvested */}
-          <Box 
-            p={5} 
-            flex={1} 
-            borderRadius="md" 
-            boxShadow="sm" 
-            bg="white"
-            borderWidth="1px"
-            borderColor="gray.200"
+          <Stack 
+            direction={{ base: "column", md: "row" }} 
+            spacing={4} 
+            w="full"
           >
-            <Stat>
-              <StatLabel fontSize="md" display="flex" alignItems="center">
-                <Icon as={FaLeaf} mr={2} color="green.500" /> T. Area Harv
-              </StatLabel>
-              <StatNumber fontSize="3xl">
-                {harvestingData.areaHarvested.toFixed(2)} <Text as="span" fontSize="lg">ha</Text>
-              </StatNumber>
-              <StatHelpText>
-                {months[selectedMonth]} {selectedYear}
-              </StatHelpText>
-            </Stat>
-          </Box>
+            {/* Number of Farmers */}
+            <Box 
+              p={5} 
+              flex={1} 
+              borderRadius="md" 
+              boxShadow="sm" 
+              bg="white"
+              borderWidth="1px"
+              borderColor="gray.200"
+            >
+              <Stat>
+                <StatLabel fontSize="md" display="flex" alignItems="center">
+                  <Icon as={FaUsers} mr={2} color="blue.500" /> Number of Farmers
+                </StatLabel>
+                <StatNumber fontSize="3xl">{newlyPlantedData.farmers}</StatNumber>
+                <StatHelpText>
+                  {selectedMonth && months[selectedMonth - 1]} {selectedYear}
+                </StatHelpText>
+              </Stat>
+            </Box>
+          
+            {/* Total Area Planted */}
+            <Box 
+              p={5} 
+              flex={1}
+              borderRadius="md"  
+              boxShadow="sm" 
+              bg="white"
+              borderWidth="1px"
+              borderColor="gray.200"
+            >
+              <Stat>
+                <StatLabel fontSize="md" display="flex" alignItems="center">
+                  <Icon as={FaLeaf} mr={2} color="green.500" /> T. Area Planted
+                </StatLabel>
+                <StatNumber fontSize="3xl">{newlyPlantedData.areaPlanted} <Text as="span" fontSize="lg">ha</Text></StatNumber>
+                <StatHelpText>
+                  {selectedMonth && months[selectedMonth - 1]} {selectedYear}
+                </StatHelpText>
+              </Stat>
+            </Box>
+          </Stack>
         
-          {/* Total Volume Production */}
-          <Box 
-            p={5} 
-            flex={1} 
-            borderRadius="md" 
-            boxShadow="sm" 
-            bg="white"
-            borderWidth="1px"
-            borderColor="gray.200"
+          <Flex justifyContent="flex-end" mt={3}>
+            <Button 
+              colorScheme="green" 
+              size="sm"
+              rightIcon={<FaChartLine />}
+            >
+              See more
+            </Button>
+          </Flex>
+        </Box>
+    
+      
+        {/* HARVESTING SECTION */}
+        <Box mb={4}>
+          <Flex 
+            justify="space-between" 
+            align="center" 
+            mb={4}
+            bg="orange.50"
+            p={3}
+            borderRadius="md"
+            borderLeftWidth="4px"
+            borderLeftColor="orange.500"
           >
-            <Stat>
-              <StatLabel fontSize="md" display="flex" alignItems="center">
-                <Icon as={FaBoxes} mr={2} color="orange.500" /> T. Volume Prod
-              </StatLabel>
-              <StatNumber fontSize="3xl">
-                {harvestingData.volumeProduction.toFixed(2)} <Text as="span" fontSize="lg">mt</Text>
-              </StatNumber>
-              <StatHelpText>
-                {months[selectedMonth]} {selectedYear}
-              </StatHelpText>
-            </Stat>
-          </Box>
-        </Stack>
+            <Heading as="h2" size="md" display="flex" alignItems="center">
+              <Icon as={FaBoxes} mr={2} color="orange.600" /> HARVESTING
+            </Heading>
+          </Flex>
+        
+          <Stack 
+            direction={{ base: "column", md: "row" }} 
+            spacing={4} 
+            w="full"
+          >
+            {/* Number of Farmers */}
+            <Box 
+              p={5} 
+              flex={1} 
+              borderRadius="md" 
+              boxShadow="sm" 
+              bg="white"
+              borderWidth="1px"
+              borderColor="gray.200"
+            >
+              <Stat>
+                <StatLabel fontSize="md" display="flex" alignItems="center">
+                  <Icon as={FaUsers} mr={2} color="blue.500" /> Number of Farmers
+                </StatLabel>
+                <StatNumber fontSize="3xl">{harvestingData.farmers}</StatNumber>
+                <StatHelpText>
+                  {selectedMonth && months[selectedMonth - 1]} {selectedYear}
+                </StatHelpText>
+              </Stat>
+            </Box>
+          
+            {/* Total Area Harvested */}
+            <Box 
+              p={5} 
+              flex={1} 
+              borderRadius="md" 
+              boxShadow="sm" 
+              bg="white"
+              borderWidth="1px"
+              borderColor="gray.200"
+            >
+              <Stat>
+                <StatLabel fontSize="md" display="flex" alignItems="center">
+                  <Icon as={FaLeaf} mr={2} color="green.500" /> T. Area Harv
+                </StatLabel>
+                <StatNumber fontSize="3xl">{harvestingData.areaHarvested} <Text as="span" fontSize="lg">ha</Text></StatNumber>
+                <StatHelpText>
+                  {selectedMonth && months[selectedMonth - 1]} {selectedYear}
+                </StatHelpText>
+              </Stat>
+            </Box>
+          
+            {/* Total Volume Production */}
+            <Box 
+              p={5} 
+              flex={1} 
+              borderRadius="md" 
+              boxShadow="sm" 
+              bg="white"
+              borderWidth="1px"
+              borderColor="gray.200"
+            >
+              <Stat>
+                <StatLabel fontSize="md" display="flex" alignItems="center">
+                  <Icon as={FaBoxes} mr={2} color="orange.500" /> T. Volume Prod
+                </StatLabel>
+                <StatNumber fontSize="3xl">{harvestingData.volumeProduction} <Text as="span" fontSize="lg">mt</Text></StatNumber>
+                <StatHelpText>
+                  {selectedMonth && months[selectedMonth - 1]} {selectedYear}
+                </StatHelpText>
+              </Stat>
+            </Box>
+          </Stack>
+        
+          <Flex justifyContent="flex-end" mt={3}>
+            <Button 
+              colorScheme="orange" 
+              size="sm"
+              rightIcon={<FaChartLine />}
+            >
+              See more
+            </Button>
+          </Flex>
+        </Box>
       </Box>
-    </Box>
   );
 };
 

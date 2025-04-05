@@ -7,8 +7,7 @@ import {
     getFarmerAccountById,
     createUnifiedFarmerResponse,
     getAvailableMetricsYears,
-    getAvailableMetricsMonths,
-    getMetricsData
+    getAvailableMonthsForYear,
  } from '../controller/adminDashboard.controller.js'; 
 
 const router = express.Router();
@@ -34,8 +33,8 @@ router.post('/create-unified-farmer-response', createUnifiedFarmerResponse);
 
 
 router.get('/metrics/available-years', getAvailableMetricsYears);
-router.get('/metrics/available-months/:year', getAvailableMetricsMonths);
-router.get('/metrics/data/:year/:month', getMetricsData);
+router.get('/metrics/available-months/:year', getAvailableMonthsForYear);
+
 
 
 export default router;

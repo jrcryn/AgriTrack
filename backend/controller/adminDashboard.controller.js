@@ -12,6 +12,8 @@ import { getUnifiedFarmerRecordModel } from '../models/unifiedFarmerResponse.mod
 import { FarmerAccount } from '../models/farmerAccount.model.js';
 import { Counter } from '../models/counter.model.js';
 
+import mongoose from 'mongoose';
+
 
 //________________________________ FARMERS NEW RESPONSES PAGE ____________________________________
 
@@ -335,8 +337,8 @@ const getNextSequence = async (key) => {
 
 // Create a new farmer account
 export const createFarmerAccount = async (req, res) => {
-  const { surname, first_name, middle_name, suffix, farmer_address, mobile_number, facebook } = req.body;
-  if (!surname || !first_name || !farmer_address) {
+  const { surname, first_name, middle_name, suffix, farmer_barangay, mobile_number, facebook, birthdate } = req.body;
+  if (!surname || !first_name || !farmer_barangay) {
     return res.status(400).json({ message: 'Please provide all the required fields.' });
   }
 
@@ -362,9 +364,10 @@ export const createFarmerAccount = async (req, res) => {
       first_name,
       middle_name,
       suffix,
-      farmer_address,
+      farmer_barangay,
       mobile_number,
       facebook,
+      birthdate
     });
     return res.status(201).json({
       message: 'Farmer account created successfully',
@@ -412,7 +415,7 @@ export const getFarmerAccountById = async (req, res) => {
 export const createUnifiedFarmerResponse = async (req, res) => {
   const { 
     farmer_account_id, farm_location,
-    crop_type, crop_variety, crop_stage,
+    crop_type, commodity, crop_stage,
     plantation_start_date, plantation_end_date, harvest_month_year,
     total_area_planted, total_area_trees_planted,
     harvest_start_date, harvest_end_date, total_weight,
@@ -421,7 +424,7 @@ export const createUnifiedFarmerResponse = async (req, res) => {
     original_farmer_input_id
   } = req.body;
 
-  if (!farmer_account_id || !farm_location || !crop_type || !crop_stage || !original_farmer_input_id) {
+  if (!farmer_account_id || !farm_location || !crop_type || !commodity || !crop_stage || !original_farmer_input_id) {
     return res.status(400).json({ message: `Required data aren't provided.` });
   }
 
@@ -449,7 +452,7 @@ export const createUnifiedFarmerResponse = async (req, res) => {
     
     const newUnifiedRecord = await UnifiedFarmerRecordModel.create({
       farmer_account_id, farm_location,
-      crop_type, crop_variety, crop_stage,
+      crop_type, commodity, crop_stage,
       plantation_start_date, plantation_end_date, harvest_month_year,
       total_area_planted, total_area_trees_planted,
       harvest_start_date, harvest_end_date, total_weight,
@@ -524,19 +527,18 @@ export const getAvailableMetricsYears = async (req, res) => {
   try {
     // Get all collection names from MongoDB
     const collections = await mongoose.connection.db.listCollections().toArray();
+
     
-    // Filter for unified farmer record collections and extract years
+    // putangina
     const yearPattern = /unified_farmer_records_(\d{4})/;
     const years = collections
       .map(collection => {
         const match = collection.name.match(yearPattern);
-        return match ? parseInt(match[1]) : null;
+        return match ? parseInt(match[1], 10) : null;
       })
       .filter(year => year !== null)
       .sort((a, b) => b - a); // Sort descending (newest first)
 
-    console.log(yearPattern);
-    
     // If no collections found, return current year as fallback
     if (years.length === 0) {
       years.push(new Date().getFullYear());
@@ -549,138 +551,81 @@ export const getAvailableMetricsYears = async (req, res) => {
 };
 
 
-// Get months that have data for a specific year
-export const getAvailableMetricsMonths = async (req, res) => {
+// Get available months for a specific year from unified farmer records
+export const getAvailableMonthsForYear = async (req, res) => {
   const { year } = req.params;
   
+  if (!year || isNaN(parseInt(year))) {
+    return res.status(400).json({ message: 'Valid year parameter is required' });
+  }
+  
   try {
-    // Get the appropriate model for this year
-    const UnifiedFarmerRecordModel = getUnifiedFarmerRecordModel(year);
+    const UnifiedFarmerRecordModel = getUnifiedFarmerRecordModel(parseInt(year));
     
-    // Aggregate to find months that have records
-    const result = await UnifiedFarmerRecordModel.aggregate([
+    // Check if collection exists by trying to count documents
+    const recordCount = await UnifiedFarmerRecordModel.countDocuments();
+    if (recordCount === 0) {
+      return res.json([]);
+    }
+    
+    // Get months from newly planted records (based on plantation_start_date)
+    const plantingMonths = await UnifiedFarmerRecordModel.aggregate([
+      { 
+        $match: { 
+          crop_stage: "NEWLY PLANTED",
+          plantation_start_date: { $ne: null }
+        } 
+      },
       {
         $project: {
-          newPlantedMonth: { $month: "$plantation_start_date" },
-          harvestMonth: { $month: "$harvest_start_date" }
+          month: { $month: "$plantation_start_date" }
         }
       },
       {
         $group: {
-          _id: null,
-          months: { 
-            $addToSet: { 
-              $concatArrays: [
-                ["$newPlantedMonth"], 
-                ["$harvestMonth"]
-              ]
-            }
-          }
+          _id: "$month"
         }
+      },
+      {
+        $sort: { _id: 1 }
       }
     ]);
     
-    // Extract and flatten months array, filter out null/undefined values
-    let months = [];
-    if (result.length > 0 && result[0].months) {
-      months = Array.from(
-        new Set(result[0].months.flat().filter(m => m !== null && m !== undefined))
-      ).sort((a, b) => a - b);
-    }
+    // Get months from harvesting records (based on harvest_start_date)
+    const harvestingMonths = await UnifiedFarmerRecordModel.aggregate([
+      { 
+        $match: { 
+          crop_stage: "HARVESTING",
+          harvest_start_date: { $ne: null }
+        } 
+      },
+      {
+        $project: {
+          month: { $month: "$harvest_start_date" }
+        }
+      },
+      {
+        $group: {
+          _id: "$month"
+        }
+      },
+      {
+        $sort: { _id: 1 }
+      }
+    ]);
     
-    // Convert from 1-12 to 0-11 for JavaScript
-    const jsMonths = months.map(m => m - 1);
+    // Combine and deduplicate months
+    const allMonths = [...plantingMonths, ...harvestingMonths]
+      .map(item => item._id)
+      .filter((value, index, self) => self.indexOf(value) === index)
+      .sort((a, b) => a - b);
     
-    // If no months found, return current month as fallback
-    if (jsMonths.length === 0) {
-      jsMonths.push(new Date().getMonth());
-    }
-    
-    res.json(jsMonths);
+    res.json(allMonths);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching available months', error: error.message });
   }
 };
 
-
-// Get metrics data for specific year and month
-export const getMetricsData = async (req, res) => {
-  const { year, month } = req.params;
-  const monthNum = parseInt(month) + 1; // Convert from 0-11 to 1-12
-  
-  try {
-    // Get the appropriate model for the selected year
-    const UnifiedFarmerRecordModel = getUnifiedFarmerRecordModel(year);
-    
-    // Calculate start and end dates for the month
-    const startDate = new Date(year, month, 1);
-    const endDate = new Date(year, parseInt(month) + 1, 0); // Last day of month
-    
-    // Newly planted metrics
-    const newlyPlantedResults = await UnifiedFarmerRecordModel.aggregate([
-      {
-        $match: {
-          crop_stage: "NEWLY PLANTED",
-          plantation_start_date: { $gte: startDate, $lte: endDate }
-        }
-      },
-      {
-        $group: {
-          _id: null,
-          farmers: { $count: {} },
-          areaPlanted: { 
-            $sum: { 
-              $add: [
-                { $ifNull: ["$total_area_planted", 0] }, 
-                { $ifNull: ["$total_area_trees_planted", 0] }
-              ]
-            } 
-          }
-        }
-      }
-    ]);
-    
-    // Harvesting metrics
-    const harvestingResults = await UnifiedFarmerRecordModel.aggregate([
-      {
-        $match: {
-          crop_stage: "HARVESTING",
-          harvest_start_date: { $gte: startDate, $lte: endDate }
-        }
-      },
-      {
-        $group: {
-          _id: null,
-          farmers: { $count: {} },
-          areaHarvested: { 
-            $sum: { 
-              $add: [
-                { $ifNull: ["$total_area_harvested", 0] }, 
-                { $ifNull: ["$total_area_trees_harvested", 0] }
-              ]
-            } 
-          },
-          volumeProduction: { $sum: { $ifNull: ["$total_weight", 0] } }
-        }
-      }
-    ]);
-    
-    // Format response
-    const newlyPlantedData = newlyPlantedResults[0] || { farmers: 0, areaPlanted: 0 };
-    const harvestingData = harvestingResults[0] || { farmers: 0, areaHarvested: 0, volumeProduction: 0 };
-    
-    // Remove _id field from results
-    delete newlyPlantedData._id;
-    delete harvestingData._id;
-    
-    res.json({
-      newlyPlanted: newlyPlantedData,
-      harvesting: harvestingData
-    });
-  } catch (error) {
-    res.status(500).json({ message: 'Error fetching metrics data', error: error.message });
-  }
-};
 
 
 

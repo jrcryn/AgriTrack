@@ -57,6 +57,29 @@ export const useFarmerAccountsQuery = () =>
     refetchInterval: 1000 // Refetch every second
   });
 
+export const useUnifiedFarmerResponseYearQuery = () =>
+  useQuery({
+    queryKey: ['unifiedFarmerResponseYear'],
+    queryFn: async () => {
+      const response = await axios.get(`${API_URL}/metrics/available-years`);
+      return response.data;
+    },
+    staleTime: 0, // Data is always fresh
+    refetchInterval: 1000 // Refetch every second
+  });
+
+export const useUnifiedFarmerResponseMonthsQuery = (year) => 
+  useQuery({
+    queryKey: ['unifiedFarmerResponseMonths', year],
+    queryFn: async () => {
+      const response = await axios.get(`${API_URL}/metrics/available-months/${year}`);
+      return response.data;
+    },
+    enabled: !!year, // Only run the query if year is provided
+    staleTime: 0, // Data is always fresh
+    refetchInterval: 1000 // Refetch every second
+  });
+
 // Zustand store for UI state management
 export const useAdminDashboardStore = create((set) => ({
   error: null,
@@ -73,6 +96,8 @@ export const useAdminDashboard = () => {
   const { data: validatedInputs = [], isLoading: isLoadingValidated, error: validatedError } = useValidatedInputsQuery();
   const { mutate: updateFarmerInput, isPending: isUpdating, error: updateError } = useUpdateFarmerInputMutation();
   const { data: farmerAccounts = [], isLoading: isLoadingAccounts, error: accountsError } = useFarmerAccountsQuery();
+
+  const { data: unifiedFarmerResponseYear = [], isLoading: isLoadingUnifiedFarmerResponseYear } = useUnifiedFarmerResponseYearQuery();
 
   const createFarmerAccount = async (farmerData) => {
     try {
@@ -116,6 +141,8 @@ export const useAdminDashboard = () => {
     validatedInputs,
     farmerAccounts,
     getFarmerAccountById,
+    useUnifiedFarmerResponseYearQuery,
+    useUnifiedFarmerResponseMonthsQuery,
     
     // Loading states
     isLoading: isLoadingUnvalidated || isLoadingValidated || isLoadingAccounts,

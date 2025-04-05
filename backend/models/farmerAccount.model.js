@@ -6,9 +6,10 @@ const FarmerAccountSchema = new mongoose.Schema({
     first_name: { type: String, required: true, trim: true },
     middle_name: { type: String, trim: true },
     suffix: { type: String, trim: true },
-    farmer_address: { type: String, required: true, trim: true },
+    farmer_barangay: { type: String, required: true, trim: true },
     mobile_number: { type: String,  trim: true },
     facebook: { type: String, trim: true },
+    birthdate: { type: Date },
 }, { versionKey: false });
 
 export const FarmerAccount = mongoose.model('Farmer_Account', FarmerAccountSchema);
