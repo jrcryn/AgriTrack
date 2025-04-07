@@ -23,50 +23,55 @@ import { FaChartLine, FaUsers, FaLeaf, FaSeedling, FaBoxes, FaCalendarAlt } from
 import { useAdminDashboard } from "../store/adminDashboard.store";
 
 const Metrics = () => {
-  // Get available years from API
-  const { useUnifiedFarmerResponseYearQuery, useUnifiedFarmerResponseMonthsQuery } = useAdminDashboard();
-  const { data: availableYears = [], isLoading: isLoadingYears, error: yearsError } = useUnifiedFarmerResponseYearQuery();
-  
-  // State for year and month filters
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [selectedMonth, setSelectedMonth] = useState(null);
-  
-  // Fetch available months based on selected year
+  // Get data from the store (similar to E_Farmers.jsx)
   const { 
-    data: availableMonths = [], 
-    isLoading: isLoadingMonths 
-  } = useUnifiedFarmerResponseMonthsQuery(selectedYear);
-  
-  // Set the first available month when months are loaded or when year changes
+    availableYears, 
+    availableMonths, 
+    selectedYear,
+    selectedMonth,
+    setSelectedYear,
+    setSelectedMonth,
+    metricsData,
+    isLoading, 
+    error 
+  } = useAdminDashboard();
+
   useEffect(() => {
-    if (availableMonths.length > 0) {
-      setSelectedMonth(availableMonths[0]);
-    } else {
-      // If no months available, reset selection
-      setSelectedMonth(null);
-    }
-  }, [availableMonths]);
+    console.log("Year:", selectedYear, "Month:", selectedMonth);
+    console.log("Metrics data:", metricsData);
+  }, [selectedYear, selectedMonth, metricsData]);
   
-  // Array of months (keeping this as it's just static data)
+  // Month names array for display purposes (converting numeric month to name)
   const months = [
     "January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December"
   ];
   
   // Placeholder for real data - will be replaced with API call later
-  const newlyPlantedData = {
+  const newlyPlantedData = metricsData ? {
+    farmers: metricsData.newlyPlanted?.farmers || 0,
+    areaPlanted: metricsData.newlyPlanted?.areaPlanted || 0
+  } : {
     farmers: 0,
-    areaPlanted: 0, 
+    areaPlanted: 0
   };
+
+  const volumeProduction = metricsData?.harvesting?.volumeProduction;
+  const convertedVP = volumeProduction / 10000; // Convert to metric tons (mt)
+
   
-  const harvestingData = {
+  const harvestingData = metricsData ? {
+    farmers: metricsData.harvesting?.farmers || 0,
+    areaHarvested: metricsData.harvesting?.areaHarvested || 0,
+    volumeProduction: convertedVP || 0
+  } : {
     farmers: 0,
     areaHarvested: 0,
-    volumeProduction: 0,
+    volumeProduction: 0
   };
 
   // Show loading state
-  if (isLoadingYears) {
+  if (isLoading) {
     return (
       <Box 
         overflow="hidden" 
@@ -85,7 +90,7 @@ const Metrics = () => {
   }
 
   // Show error state
-  if (yearsError) {
+  if (error) {
     return (
       <Box 
         overflow="hidden" 
@@ -97,7 +102,7 @@ const Metrics = () => {
           <AlertIcon />
           <AlertTitle>Error loading data!</AlertTitle>
           <AlertDescription>
-            {yearsError.message || "Unable to load metrics data. Please try again later."}
+            {error || "Unable to load metrics data. Please try again later."}
           </AlertDescription>
         </Alert>
       </Box>
@@ -171,14 +176,20 @@ const Metrics = () => {
             
             <Select 
               value={selectedMonth || ""}
-              onChange={(e) => setSelectedMonth(Number(e.target.value))}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (value === "") {
+                  setSelectedMonth(null);
+                } else {
+                  setSelectedMonth(Number(value));
+                  console.log("Month selected:", Number(value)); // Debug log
+                }
+              }}
               width={{ base: "full", md: "xs" }}
               bg="white"
-              isDisabled={isLoadingMonths || availableMonths.length === 0}
+              isDisabled={availableMonths.length === 0}
             >
-              {isLoadingMonths ? (
-                <option value="">Loading months...</option>
-              ) : availableMonths.length === 0 ? (
+              {availableMonths.length === 0 ? (
                 <option value="">No months available</option>
               ) : (
                 availableMonths.map((month) => (
@@ -246,9 +257,9 @@ const Metrics = () => {
             >
               <Stat>
                 <StatLabel fontSize="md" display="flex" alignItems="center">
-                  <Icon as={FaLeaf} mr={2} color="green.500" /> T. Area Planted
+                  <Icon as={FaLeaf} mr={2} color="green.500" /> Total Area Planted
                 </StatLabel>
-                <StatNumber fontSize="3xl">{newlyPlantedData.areaPlanted} <Text as="span" fontSize="lg">ha</Text></StatNumber>
+                <StatNumber fontSize="3xl">{newlyPlantedData.areaPlanted.toFixed(4)} <Text as="span" fontSize="lg">ha</Text></StatNumber>
                 <StatHelpText>
                   {selectedMonth && months[selectedMonth - 1]} {selectedYear}
                 </StatHelpText>
@@ -267,7 +278,6 @@ const Metrics = () => {
           </Flex>
         </Box>
     
-      
         {/* HARVESTING SECTION */}
         <Box mb={4}>
           <Flex 
@@ -323,9 +333,9 @@ const Metrics = () => {
             >
               <Stat>
                 <StatLabel fontSize="md" display="flex" alignItems="center">
-                  <Icon as={FaLeaf} mr={2} color="green.500" /> T. Area Harv
+                  <Icon as={FaLeaf} mr={2} color="green.500" /> Total Area Harvested
                 </StatLabel>
-                <StatNumber fontSize="3xl">{harvestingData.areaHarvested} <Text as="span" fontSize="lg">ha</Text></StatNumber>
+                <StatNumber fontSize="3xl">{harvestingData.areaHarvested.toFixed(4)} <Text as="span" fontSize="lg">ha</Text></StatNumber>
                 <StatHelpText>
                   {selectedMonth && months[selectedMonth - 1]} {selectedYear}
                 </StatHelpText>
@@ -344,9 +354,9 @@ const Metrics = () => {
             >
               <Stat>
                 <StatLabel fontSize="md" display="flex" alignItems="center">
-                  <Icon as={FaBoxes} mr={2} color="orange.500" /> T. Volume Prod
+                  <Icon as={FaBoxes} mr={2} color="orange.500" /> Total Volume of Production
                 </StatLabel>
-                <StatNumber fontSize="3xl">{harvestingData.volumeProduction} <Text as="span" fontSize="lg">mt</Text></StatNumber>
+                <StatNumber fontSize="3xl">{harvestingData.volumeProduction.toFixed(4)} <Text as="span" fontSize="lg">mt</Text></StatNumber>
                 <StatHelpText>
                   {selectedMonth && months[selectedMonth - 1]} {selectedYear}
                 </StatHelpText>

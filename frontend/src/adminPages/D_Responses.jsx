@@ -52,7 +52,7 @@ const Responses = () => {
   const { 
     unvalidatedInputs, 
     isLoading,
-    isUpdating,
+    isCreatingUnifiedResponse,
     error,
     updateFarmerInput,
     clearError,
@@ -981,7 +981,7 @@ const Responses = () => {
             <Button 
               colorScheme="green" 
               onClick={handleModalSubmit}
-              isLoading={isUpdating}
+              isLoading={isCreatingUnifiedResponse}
               loadingText="Saving"
             >
               Push to Records
