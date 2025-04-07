@@ -982,7 +982,6 @@ const Responses = () => {
               colorScheme="green" 
               onClick={handleModalSubmit}
               isLoading={isCreatingUnifiedResponse}
-              loadingText="Saving"
             >
               Push to Records
             </Button>
