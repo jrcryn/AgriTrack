@@ -297,7 +297,7 @@ export const generateExcelReport = async (req, res) => {
           const suffix = record.farmer_account_id?.suffix || '';
           
           const fullName = record.farmer_account_id 
-            ? `${firstName} ${middleName ? middleName + ' ' : ''}${surname} ${suffix}`
+            ? `${firstName} ${middleName ? middleName + '. ' : ''}${surname} ${suffix ? suffix + '.' : ''}`
             : 'Unknown Farmer';
             
           newRow.getCell('B').value = fullName;
