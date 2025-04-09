@@ -228,8 +228,8 @@ export const generateExcelReport = async (req, res) => {
       // if (!b.farmer_account_id) return -1; // null values go to the end
       
       // Get full names for comparison
-      const nameA = `${a.farmer_account_id.first_name || ''}`.toLowerCase();
-      const nameB = `${b.farmer_account_id.first_name || ''}`.toLowerCase();
+      const nameA = `${a.farmer_account_id.first_name || ''} ${a.commodity || ''}`.toLowerCase();
+      const nameB = `${b.farmer_account_id.first_name || ''} ${b.commodity || ''}`.toLowerCase();
       
       // Compare alphabetically
       return nameA.localeCompare(nameB);
@@ -260,16 +260,16 @@ export const generateExcelReport = async (req, res) => {
       newRow.getCell('D').value = record.commodity || '';
       newRow.getCell('U').value = record.crop_stage || '';
       
-      newRow.getCell('H').value = record.crop_stage === 'NEWLY PLANTED' && record.cropType === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS'
+      newRow.getCell('H').value = record.crop_stage === 'NEWLY PLANTED' && record.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS'
         ?  record.total_area_planted
-        : record.crop_stage === 'NEWLY PLANTED' && record.cropType !== 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS'
+        : record.crop_stage === 'NEWLY PLANTED' && record.crop_type === 'OTHER FRUIT CROPS/TREES' || 'BANANA' || 'COFFEE'
         ?  record.total_area_trees_planted : '';
       newRow.getCell('H').numFmt = '0.0000';
 
 
-      newRow.getCell('I').value = record.crop_stage === 'HARVESTING' && record.cropType !== 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS'
+      newRow.getCell('I').value = record.crop_stage === 'HARVESTING' && record.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS'
         ?  record.total_area_harvested
-        : record.crop_stage === 'HARVESTING' && record.cropType !== 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS'
+        : record.crop_stage === 'HARVESTING' && record.crop_type === 'OTHER FRUIT CROPS/TREES' || 'BANANA' || 'COFFEE'
         ?  record.total_area_trees_harvested : '';
       newRow.getCell('I').numFmt = '0.0000';
 
