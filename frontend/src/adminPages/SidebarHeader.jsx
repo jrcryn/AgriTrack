@@ -33,10 +33,10 @@ import { FaWpforms } from "react-icons/fa";
 import Logo from '../images/Calamba_Seal.png'
 
 const LinkItems = [
-  { name: 'Dashboard', icon: FiGrid, path : '/admin/metrics' },
-  { name: 'Generate Report', icon: FiFileText, path : '/admin/gen-reports' },
-  { name: 'New Responses', icon: FaWpforms, path : '/admin/responses' },
-  { name: 'Farmers', icon: FiUsers, path : '/admin/farmers' },
+  { name: 'Dashboard', icon: FiGrid, path : '/hvc/admin/metrics' },
+  { name: 'Generate Report', icon: FiFileText, path : '/hvc/admin/gen-reports' },
+  { name: 'New Responses', icon: FaWpforms, path : '/hvc/admin/responses' },
+  { name: 'Farmers', icon: FiUsers, path : '/hvc/admin/farmers' },
 ]
 
 const SidebarContent = ({ onClose, ...rest }) => {
