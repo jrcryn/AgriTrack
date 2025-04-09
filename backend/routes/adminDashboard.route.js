@@ -11,17 +11,20 @@ import {
     getMetricsForYearMonth
  } from '../controller/adminDashboard.controller.js'; 
 
+import { getAvailableDateRanges, generateExcelReport } from '../controller/genReports.controller.js';
+
+
 const router = express.Router();
 
 
-//________________________________ FARMERS NEW RESPONSES PAGE ____________________________________
+//________________________________ DASHBOARD (NEW REPONSES) PAGE ____________________________________
 
 
 router.get('/get-unvalidated-inputs', getUnvalidatedFarmerInputs);
 router.get('/get-validated-inputs', getValidatedFarmerInputs);
 
 
-//________________________________ FARMERS ACCOUNT MANAGEMENT PAGE ____________________________________
+//________________________________ DASHBOARD (FARMERS) PAGE ____________________________________
 
 
 router.post('/create-farmer-account', createFarmerAccount);
@@ -36,6 +39,13 @@ router.post('/create-unified-farmer-response', createUnifiedFarmerResponse);
 router.get('/metrics/available-years', getAvailableMetricsYears);
 router.get('/metrics/available-months/:year', getAvailableMonthsForYear);
 router.get('/metrics/data/:year/:month', getMetricsForYearMonth);
+
+
+//________________________________ DASHBOARD (GENERATE REPORTS) PAGE ____________________________________
+
+
+router.get('/report-date-ranges/:year/:month', getAvailableDateRanges);
+router.post('/generate-excel-report', generateExcelReport);
 
 
 
