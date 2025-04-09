@@ -30,7 +30,7 @@ import {
   FiMenu
 } from 'react-icons/fi'
 import { FaWpforms } from "react-icons/fa";
-import Logo from '../images/Calamba_Seal.png'
+import Logo from '../../images/Calamba_Seal.png'
 
 const LinkItems = [
   { name: 'Dashboard', icon: FiGrid, path : '/hvc/admin/metrics' },

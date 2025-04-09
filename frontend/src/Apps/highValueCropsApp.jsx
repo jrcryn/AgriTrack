@@ -3,25 +3,24 @@ import React, { useState } from 'react';
 import { Routes, Route, useNavigate } from 'react-router-dom';
 
 // Admin imports
-import Layout from '../adminPages/Layout.jsx';
-import Dashboard from '../adminPages/A_Dashboard.jsx';
-import Metrics from '../adminPages/B_Metrics.jsx';
-import GenReports from '../adminPages/C_GenReports.jsx';
-import Responses from '../adminPages/D_Responses.jsx';
-import Farmers from '../adminPages/E_Farmers.jsx';
+import Layout from '../high-value-crops/adminPages/Layout.jsx';
+import Metrics from '../high-value-crops/adminPages/B_Metrics.jsx';
+import GenReports from '../high-value-crops/adminPages/C_GenReports.jsx';
+import Responses from '../high-value-crops/adminPages/D_Responses.jsx';
+import Farmers from '../high-value-crops/adminPages/B_Metrics.jsx';
 
 // Form imports
-import Instructions from '../formPages/Instructions.jsx';
-import DataPrivacyAct from '../formPages/DataPrivacyAct.jsx';
-import A_farmerInputs from '../formPages/A_farmerInputs.jsx';
-import B_cropTypes from '../formPages/B_cropTypes.jsx';
-import C1_cropRecordsIndus from '../formPages/C1_cropRecordsIndus.jsx';
-import C2_cropRecordsOther from '../formPages/C2_cropRecordsOther.jsx';
-import D1_cropIndusHarvest from '../formPages/D1_cropIndusHarvest.jsx';
-import D1_cropIndusNew from '../formPages/D1_cropIndusNew.jsx';
-import D2_bc_Other_fctHarvest from '../formPages/D2_bc-other-fctHarvest.jsx';
-import D2_bc_Other_fctNew from '../formPages/D2_bc-other-fctNew.jsx';
-import SuccessPage from '../formPages/E_successPage.jsx';
+import Instructions from '../high-value-crops/formPages/Instructions.jsx';
+import DataPrivacyAct from '../high-value-crops/formPages/DataPrivacyAct.jsx';
+import A_farmerInputs from '../high-value-crops/formPages/A_farmerInputs.jsx';
+import B_cropTypes from '../high-value-crops/formPages/B_cropTypes.jsx';
+import C1_cropRecordsIndus from '../high-value-crops/formPages/C1_cropRecordsIndus.jsx';
+import C2_cropRecordsOther from '../high-value-crops/formPages/C2_cropRecordsOther.jsx';
+import D1_cropIndusHarvest from '../high-value-crops/formPages/D1_cropIndusHarvest.jsx';
+import D1_cropIndusNew from '../high-value-crops/formPages/D1_cropIndusNew.jsx';
+import D2_bc_Other_fctHarvest from '../high-value-crops/formPages/D2_bc-other-fctHarvest.jsx';
+import D2_bc_Other_fctNew from '../high-value-crops/formPages/D2_bc-other-fctNew.jsx';
+import SuccessPage from '../high-value-crops/formPages/E_successPage.jsx';
 
 const highValueCropsApp = () => {
   const navigate = useNavigate();
@@ -45,7 +44,6 @@ const highValueCropsApp = () => {
       <Routes>
         {/* Admin Routes */}
         <Route path="admin" element={<Layout />}>
-          <Route path="dashboard" element={<Dashboard />} />
           <Route path="metrics" element={<Metrics />} />
           <Route path="gen-reports" element={<GenReports />} />
           <Route path="responses" element={<Responses />} />
