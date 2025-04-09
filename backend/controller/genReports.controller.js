@@ -219,6 +219,10 @@ export const generateExcelReport = async (req, res) => {
     worksheet.getRow(7).getCell(2).value = dateRange;
 
 
+
+
+
+    
     //pang sort alpabetically by farmer name
     records.sort((a, b) => {
       // // Handle cases where farmer_account_id might be null
