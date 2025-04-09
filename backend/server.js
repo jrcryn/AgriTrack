@@ -3,8 +3,7 @@ import dotenv from 'dotenv';
 import cors from 'cors';
 
 import { connectDB } from './config/db.js';
-import farmerForm from './routes/farmerForm.route.js';
-import adminDashboard from './routes/adminDashboard.route.js';
+import highValueCropsRoutes from './routes/high-value-crops.routes.js';
 
 const app = express();
 dotenv.config();
@@ -25,8 +24,7 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization'],
   }));
 
-app.use('/', farmerForm);
-app.use('/', adminDashboard);
+app.use('/', highValueCropsRoutes);
 
 app.listen(process.env.PORT, () => {
     connectDB();

@@ -7,7 +7,7 @@ import Layout from '../high-value-crops/adminPages/Layout.jsx';
 import Metrics from '../high-value-crops/adminPages/B_Metrics.jsx';
 import GenReports from '../high-value-crops/adminPages/C_GenReports.jsx';
 import Responses from '../high-value-crops/adminPages/D_Responses.jsx';
-import Farmers from '../high-value-crops/adminPages/B_Metrics.jsx';
+import Farmers from '../high-value-crops/adminPages/E_Farmers.jsx';
 
 // Form imports
 import Instructions from '../high-value-crops/formPages/Instructions.jsx';
