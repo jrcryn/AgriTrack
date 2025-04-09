@@ -173,7 +173,7 @@ export const generateExcelReport = async (req, res) => {
     const templatePath = path.resolve(__dirname, '../templates/Supply and Market Profile Report Template.xlsx');
     console.log('Template path:', templatePath);
     
-    // Check if template exists
+    // Check if the template exists
     if (!fs.existsSync(templatePath)) {
       return res.status(404).json({ message: 'Template file not found' });
     }
@@ -185,7 +185,7 @@ export const generateExcelReport = async (req, res) => {
     // Assume the first worksheet is the target
     const worksheet = workbook.getWorksheet(1);
   
-    // Update date range in the template
+
     const dateRangeCell = worksheet.getCell('B7');
     if (dateRangeCell.value) {
       dateRangeCell.value = `${start.toLocaleDateString('en-US')} to ${end.toLocaleDateString('en-US')}`;
@@ -220,186 +220,87 @@ export const generateExcelReport = async (req, res) => {
       ]
     }).populate('farmer_account_id').lean();
 
-    // Validate retrieved data
-    console.log(`Found ${records.length} records for the selected date range`);
-    
-    if (records.length === 0) {
-      console.log('No records found for the selected date range');
-    }
-    
-    // Clone signatory block (rows after data rows)
-    const signatoryStartRow = 24; // Adjust based on your template
-    const signatoryEndRow = 40;   // Adjust based on your template
-    const signatoryBlock = [];
-    
-    for (let i = signatoryStartRow; i <= signatoryEndRow; i++) {
-      const row = worksheet.getRow(i);
-      // Clone the row's values and styles
-      const rowClone = {
-        values: [...row.values],
-        cells: []
-      };
-      
-      // Clone cell styles too
-      row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
-        rowClone.cells[colNumber] = {
-          style: { ...cell.style },
-          value: cell.value
-        };
-      });
-      
-      signatoryBlock.push(rowClone);
-    }
-    
-    // Remove original signatory rows so they don't duplicate
-    worksheet.spliceRows(signatoryStartRow, signatoryEndRow - signatoryStartRow + 1);
 
-    // Get template row
-    const templateRow = worksheet.getRow(11);
-    
-    // Starting row index for data
-    let currentRowIndex = 11;
-    
-    // Error tracking
-    let successCount = 0;
-    let errorCount = 0;
-    const errorRecords = [];
-
-    // Loop through records and insert data
-    for (const [index, record] of records.entries()) {
-      try {
-        // Get or create the row
-        const newRow = worksheet.getRow(currentRowIndex);
-        
-        // Copy template styling
-        templateRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
-          try {
-            newRow.getCell(colNumber).style = { ...cell.style };
-          } catch (cellError) {
-            console.error(`Error copying cell style at column ${colNumber}:`, cellError);
-          }
-        });
-        
-        // Validate record before attempting to use it
-        if (!record) {
-          console.error(`Record at index ${index} is null or undefined`);
-          errorCount++;
-          errorRecords.push({ index, error: 'Record is null or undefined' });
-          continue;
-        }
-        
-        // Safe property access with optional chaining and validation
-        try {
-          // Farmer name with validation
-          const firstName = record.farmer_account_id?.first_name || '';
-          const middleName = record.farmer_account_id?.middle_name || '';
-          const surname = record.farmer_account_id?.surname || '';
-          const suffix = record.farmer_account_id?.suffix || '';
-          
-          const fullName = record.farmer_account_id 
-            ? `${firstName} ${middleName ? middleName + '. ' : ''}${surname} ${suffix ? suffix + '.' : ''}`
-            : 'Unknown Farmer';
-            
-          newRow.getCell('B').value = fullName;
-          
-          // Other fields with validation
-          newRow.getCell('A').value = record.farm_location || '';
-          newRow.getCell('D').value = record.commodity || '';
-          newRow.getCell('U').value = record.crop_stage || '';
-          
-          // Ensure crop_stage and cropType exist before using in conditions
-          const cropStage = record.crop_stage || '';
-          const cropType = record.cropType || '';
-          
-          // Area calculations with validation
-          if (cropStage === 'NEWLY PLANTED') {
-            if (cropType === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS') {
-              newRow.getCell('H').value = record.total_area_planted || 0;
-            } else {
-              newRow.getCell('H').value = record.total_area_trees_planted || 0;
-            }
-          } else {
-            newRow.getCell('H').value = ''; // Not newly planted
-          }
-          
-          if (cropStage === 'HARVESTING') {
-            if (cropType !== 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS') {
-              newRow.getCell('I').value = record.total_area_harvested || 0;
-            } else {
-              newRow.getCell('I').value = ''; // Not applicable
-            }
-          } else if (cropStage === 'NEWLY PLANTED' && cropType !== 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS') {
-            newRow.getCell('I').value = record.total_area_trees_harvested || 0;
-          } else {
-            newRow.getCell('I').value = ''; // Not applicable
-          }
-          
-          // Weight calculation with validation
-          if (cropStage === 'HARVESTING') {
-            const weight = record.total_weight || 0;
-            newRow.getCell('L').value = weight / 10000; // Convert to appropriate unit
-          } else {
-            newRow.getCell('L').value = '';
-          }
-          
-          // Other harvesting-related fields
-          newRow.getCell('Q').value = cropStage === 'HARVESTING' ? (record.destination || '') : '';
-          newRow.getCell('S').value = cropStage === 'HARVESTING' ? (record.mode_of_payment || '') : '';
-          newRow.getCell('T').value = cropStage === 'HARVESTING' ? (record.mode_of_delivery || '') : '';
-          
-          // Commit the row
-          newRow.commit();
-          
-          // Increment row index for next record
-          currentRowIndex++;
-          successCount++;
-          
-        } catch (recordError) {
-          console.error(`Error processing record at index ${index}:`, recordError, record);
-          errorCount++;
-          errorRecords.push({ index, error: recordError.message, record: JSON.stringify(record) });
-        }
-      } catch (rowError) {
-        console.error(`Error processing row at index ${index}:`, rowError);
-        errorCount++;
-        errorRecords.push({ index, error: rowError.message });
-      }
-    }
-    
-    // Log processing summary
-    console.log(`Data processing complete. Success: ${successCount}, Errors: ${errorCount}`);
-    if (errorCount > 0) {
-      console.error('Error records:', errorRecords);
-    }
-    
-    // Optionally add two blank rows
-    worksheet.spliceRows(currentRowIndex, 0, [], []);
-    currentRowIndex += 2;
-    
-    // Insert signatory block back at the bottom
-    signatoryBlock.forEach((rowData, idx) => {
-      const newRow = worksheet.getRow(currentRowIndex + idx);
+    //pang sort alpabetically by farmer name
+    records.sort((a, b) => {
+      // // Handle cases where farmer_account_id might be null
+      // if (!a.farmer_account_id) return 1;  // null values go to the end
+      // if (!b.farmer_account_id) return -1; // null values go to the end
       
-      // Restore values
-      newRow.values = [...rowData.values];
+      // Get full names for comparison
+      const nameA = `${a.farmer_account_id.first_name || ''}`.toLowerCase();
+      const nameB = `${b.farmer_account_id.first_name || ''}`.toLowerCase();
       
-      // Restore styles
-      rowData.cells.forEach((cellData, colNumber) => {
-        if (cellData && cellData.style) {
-          newRow.getCell(colNumber).style = { ...cellData.style };
-        }
-        if (cellData && cellData.value !== undefined) {
-          newRow.getCell(colNumber).value = cellData.value;
-        }
-      });
-      
-      newRow.commit();
+      // Compare alphabetically
+      return nameA.localeCompare(nameB);
     });
+
+
+
+
+    const templateRow = worksheet.getRow(11);
+
+    let currentRowIndex = 11;
+
+    // Loop through records and insert new rows by cloning the template row design
+    for (const record of records) {
+      // Insert a new row at the current index
+     
+      const newRow = worksheet.getRow(currentRowIndex);
+
+      templateRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+        newRow.getCell(colNumber).style = { ...cell.style };
+      });
+      
+      newRow.getCell('B').value = record.farmer_account_id 
+        ? `${record.farmer_account_id.first_name}, ${record.farmer_account_id?.middle_name || ''}, ${record.farmer_account_id?.surname} ${record.farmer_account_id?.suffix || ''}` 
+        : 'Unknown Farmer';
+
+      newRow.getCell('A').value = record.farm_location || '';
+      newRow.getCell('D').value = record.commodity || '';
+      newRow.getCell('U').value = record.crop_stage || '';
+      
+      newRow.getCell('H').value = record.crop_stage === 'NEWLY PLANTED' && record.cropType === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS'
+        ?  record.total_area_planted
+        : record.crop_stage === 'NEWLY PLANTED' && record.cropType !== 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS'
+        ?  record.total_area_trees_planted : '';
+      newRow.getCell('H').numFmt = '0.0000';
+
+
+      newRow.getCell('I').value = record.crop_stage === 'HARVESTING' && record.cropType !== 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS'
+        ?  record.total_area_harvested
+        : record.crop_stage === 'HARVESTING' && record.cropType !== 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS'
+        ?  record.total_area_trees_harvested : '';
+      newRow.getCell('I').numFmt = '0.0000';
+
+
+      
+      newRow.getCell('L').value = record.crop_stage === 'HARVESTING' ? record.total_weight / 10000 : '';
+      newRow.getCell('L').numFmt = '0.0000';
+
+      newRow.getCell('Q').value = record.crop_stage === 'HARVESTING' ? record.destination : '';
+      newRow.getCell('S').value = record.crop_stage === 'HARVESTING' ? record.mode_of_payment : '' ;
+      newRow.getCell('T').value = record.crop_stage === 'HARVESTING' ? record.mode_of_delivery : '' ;
+      
+      // Commit the row
+      newRow.commit();
+      
+      // Increment row index so the next row is inserted below
+      currentRowIndex++;
+    }
+
+
+
+
+
+
+
+
     
     // Create the workbook buffer
     const buffer = await workbook.xlsx.writeBuffer();
     
-    // Set headers for file download
+    // Set headers for file download using res.attachment to avoid duplicate Content-Disposition
     const filename = `HVC_Report_${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}_to_${end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}.xlsx`;
     res.attachment(filename);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -411,8 +312,7 @@ export const generateExcelReport = async (req, res) => {
     console.error('Error generating Excel report:', error);
     res.status(500).json({ 
       message: 'Error generating report', 
-      error: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      error: error.message 
     });
   }
 };
