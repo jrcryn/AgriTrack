@@ -4,7 +4,7 @@ const destinations = [
     "DIVISORIA",
     "ALABANG",
     "CALAMBA",
-    "BALITAWAK",
+    "BALINTAWAK",
     "PASIG",
     "OTHERS"
 ];

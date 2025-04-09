@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Box,
   Heading,
@@ -34,24 +34,54 @@ import {
   FormHelperText,
   FormErrorMessage,
   Link,
-  useToast
+  useToast,
+  
 } from "@chakra-ui/react";
 import { FaSearch, FaEye, FaEdit, FaUserPlus, FaUsers, FaUser, FaAddressCard } from "react-icons/fa";
 import { useAdminDashboard } from '../store/adminDashboard.store';
 import { useQueryClient } from '@tanstack/react-query';
+import Barangays from '../components/barangays';
+
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+
 
 const E_Farmers = () => {
 
   const { farmerAccounts, isLoading, error, createFarmerAccount } = useAdminDashboard();
+
+  useEffect(() => {
+    // Apply styles directly to the DOM
+    const style = document.createElement('style');
+    style.innerHTML = `
+      .date-picker-wrapper {
+        width: 100% !important;
+      }
+      .react-datepicker__input-container {
+        width: 100% !important;
+      }
+      .react-datepicker-wrapper {
+        width: 100% !important;
+      }
+    `;
+    document.head.appendChild(style);
+  
+    // Cleanup
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
+  
 
   const [formData, setFormData] = useState({
     first_name: '',
     middle_name: '',
     surname: '',
     suffix: '',
-    farmer_address: '',
+    farmer_barangay: '',
     mobile_number: '',
     facebook: '',
+    birthdate: null, // Add birthdate field initialized as null
   });
 
   const [formErrors, setFormErrors] = useState({});
@@ -75,6 +105,21 @@ const E_Farmers = () => {
     }
   };
 
+  // Handle date change specifically
+  const handleDateChange = (date) => {
+    setFormData({
+      ...formData,
+      birthdate: date
+    });
+    
+    if (formErrors.birthdate) {
+      setFormErrors({
+        ...formErrors,
+        birthdate: null,
+      });
+    }
+  };
+
   const validateFarmerAccountCreationForm = () => {
     const errors = {};
     
@@ -86,8 +131,8 @@ const E_Farmers = () => {
       errors.surname = "Surname is required";
     }
     
-    if (!formData.farmer_address.trim()) {
-      errors.farmer_address = "Farmer address is required";
+    if (!formData.farmer_barangay.trim()) {
+      errors.farmer_barangay = "Farmer address is required";
     }
     
     if (formData.mobile_number && !/^[0-9+\s-]{10,15}$/.test(formData.mobile_number)) {
@@ -108,7 +153,13 @@ const E_Farmers = () => {
     setIsSubmitting(true);
     
     try {
-      const responseResult = await createFarmerAccount(formData);
+      // Format date as ISO string for backend if a date exists
+      const formattedData = {
+        ...formData,
+        birthdate: formData.birthdate ? formData.birthdate.toISOString() : null
+      };
+      
+      const responseResult = await createFarmerAccount(formattedData);
       
       toast({
         title: "Success",
@@ -124,9 +175,10 @@ const E_Farmers = () => {
         middle_name: '',
         surname: '',
         suffix: '',
-        farmer_address: '',
+        farmer_barangay: '',
         mobile_number: '',
         facebook: '',
+        birthdate: null, // Reset birthdate
       });
 
       queryClient.invalidateQueries({ queryKey: ['farmerAccounts'] });
@@ -151,9 +203,10 @@ const E_Farmers = () => {
       middle_name: '',
       surname: '',
       suffix: '',
-      farmer_address: '',
+      farmer_barangay: '',
       mobile_number: '',
       facebook: '',
+      birthdate: null, // Reset birthdate
     });
     setFormErrors({});
     onClose();
@@ -172,7 +225,7 @@ const E_Farmers = () => {
   const searchedFarmers = farmerAccounts.filter((farmers) => {
     const fullName = `${farmers.first_name} ${farmers.middle_name} ${farmers.last_name} ${farmers.suffix}`.toLowerCase();
     const farmerId = farmers.farmerId ? farmers.farmerId.toLowerCase() : '';
-    const location = farmers.farmer_address ? farmers.farmer_address.toLowerCase() : '';
+    const location = farmers.farmer_barangay ? farmers.farmer_barangay.toLowerCase() : '';
     const number = farmers.mobile_number ? farmers.mobile_number.toLowerCase() : '';
     
     // General search
@@ -208,6 +261,23 @@ const E_Farmers = () => {
       month: 'short', 
       day: 'numeric'
     });
+  };
+
+  // Custom styles for datepicker to match Chakra UI
+  const datepickerWrapperStyle = {
+    width: '100%'
+  };
+
+  const datepickerInputStyle = {
+    width: '100%',
+    height: '40px',
+    padding: '0 16px',
+    fontSize: '16px',
+    borderRadius: '0.375rem',
+    border: '1px solid',
+    borderColor: 'var(--chakra-colors-gray-300)',
+    backgroundColor: 'white',
+    outline: 'none'
   };
 
   return (
@@ -360,7 +430,8 @@ const E_Farmers = () => {
                 <Tr>
                   <Th>Farmer ID</Th>
                   <Th>Full Name</Th>
-                  <Th>Farmer Resident Address</Th>
+                  <Th>Farmer Resident Barangay</Th>
+                  <Th>Birth Date</Th>
                   <Th>Contact Number</Th>
                   <Th>Facebook</Th>
                 <Th position={{ base: 'static', md: 'sticky' }} right={0} bg="gray.50" zIndex={{ base: 0, md: 1 }} textAlign={'center'}>
@@ -374,9 +445,10 @@ const E_Farmers = () => {
                     <Tr key={farmers._id}>
                       <Td fontWeight="medium">{farmers.farmerId ? farmers.farmerId : '-'}</Td>
                       <Td fontWeight="medium">
-                        {`${farmers.first_name} ${farmers.middle_name ? farmers.middle_name.charAt(0).toUpperCase()+'.' : ''} ${farmers.surname} ${farmers.suffix ? farmers.suffix : ''}`.trim()}
+                        {`${farmers.first_name} ${farmers.middle_name ? farmers.middle_name +'.' : ''} ${farmers.surname} ${farmers.suffix ? farmers.suffix : ''}`.trim()}
                       </Td>
-                      <Td>{farmers.farmer_address ? farmers.farmer_address : '-'}</Td>
+                      <Td>{farmers.farmer_barangay ? farmers.farmer_barangay : '-'}</Td>
+                      <Td>{farmers.birthdate ? formatDate(new Date(farmers.birthdate)) : '-'}</Td>
                       <Td>{farmers.mobile_number ? farmers.mobile_number : '-'}</Td>
                       <Td>
                         {farmers.facebook ? (
@@ -388,7 +460,7 @@ const E_Farmers = () => {
                             {farmers.facebook}
                           </Link>
                         ) : (
-                          'N/A'
+                          '-'
                         )}
                       </Td>
                       <Td position={{ base: 'static', md: 'sticky' }} right={0} bg="white" zIndex={1}>
@@ -452,7 +524,7 @@ const E_Farmers = () => {
         </Flex>
       </Box>
       
-      {/* Add Farmer Modal - Empty for now */}
+      {/* Add Farmer Modal */}
       <Modal isOpen={isOpen} onClose={handleCloseModal} size="2xl" closeOnOverlayClick={false} scrollBehavior="inside" motionPreset="none">
         <ModalOverlay/>
         <ModalContent borderRadius="md" overflow="hidden" boxShadow="lg">
@@ -562,18 +634,24 @@ const E_Farmers = () => {
                   </HStack>
                 </Heading>
                 
-                <FormControl isRequired isInvalid={formErrors.farmer_address} mb={4}>
-                  <FormLabel fontWeight="medium">Farmer Resident Address</FormLabel>
-                  <Input 
-                    name="farmer_address"
-                    value={formData.farmer_address}
+                <FormControl isRequired isInvalid={formErrors.farmer_barangay} mb={4}>
+                  <FormLabel fontWeight="medium">Farmer Resident Barangay</FormLabel>
+                  <Select 
+                    name="farmer_barangay"
+                    value={formData.farmer_barangay}
                     onChange={handleInputChange}
-                    placeholder="Enter farmer's complete address"
+                    placeholder="Select farmer's resident barangay"
                     borderColor="gray.300"
                     _focus={{ borderColor: "blue.400" }}
-                  />
-                  {formErrors.farmer_address && (
-                    <FormErrorMessage>{formErrors.farmer_address}</FormErrorMessage>
+                  >
+                    {Barangays.map((barangay) => (
+                      <option key={barangay} value={barangay}>
+                        {barangay}
+                      </option>
+                    ))}
+                  </Select>
+                  {formErrors.farmer_barangay && (
+                    <FormErrorMessage>{formErrors.farmer_barangay}</FormErrorMessage>
                   )}
                 </FormControl>
                 
@@ -583,12 +661,12 @@ const E_Farmers = () => {
                     <InputGroup>
                       <InputLeftAddon bg="gray.100" color="gray.700">+63</InputLeftAddon>
                       <Input 
+                        type="tel"
+                        maxLength={11}
                         name="mobile_number"
                         value={formData.mobile_number}
                         onChange={handleInputChange}
                         placeholder="0991XXXXXX"
-                        type="number"
-                        maxLength={11}
                         borderColor="gray.300"
                         _focus={{ borderColor: "blue.400" }}
                       />
@@ -600,6 +678,35 @@ const E_Farmers = () => {
                     )}
                   </FormControl>
                   
+                  <FormControl>
+                    <FormLabel fontWeight="medium">Birth Date</FormLabel>
+                    <div style={{ width: '100%' }}>
+                      <DatePicker
+                        selected={formData.birthdate}
+                        onChange={handleDateChange}
+                        dateFormat="MM/dd/yyyy"
+                        placeholderText="MM/DD/YYYY"
+                        className="datepicker-input"
+                        isClearable
+                        showYearDropdown
+                        scrollableYearDropdown
+                        yearDropdownItemNumber={100}
+                        maxDate={new Date()}
+                        customInput={
+                          <Input
+                            borderColor="gray.300"
+                            _focus={{ borderColor: "blue.400" }}
+                            width="100%"
+                          />
+                        }
+                        wrapperClassName="date-picker-wrapper"
+                      />
+                    </div>
+                    {formErrors.birthdate && (
+                      <FormErrorMessage>{formErrors.birthdate}</FormErrorMessage>
+                    )}
+                  </FormControl>
+
                   <FormControl>
                     <FormLabel fontWeight="medium">Facebook Profile</FormLabel>
                     <Input 

@@ -36,10 +36,9 @@ import {
   useToast,
 } from '@chakra-ui/react';
 import numOfTreesToHectares from '../components/conversions.js';
-import { FaSearch, FaEye, FaSeedling, FaBoxes, FaUser, FaLeaf, FaMoneyBillWave, FaSave, FaTree } from 'react-icons/fa';
+import { FaSearch, FaEye, FaSeedling, FaBoxes, FaUser, FaLeaf } from 'react-icons/fa';
 import { useAdminDashboard } from '../store/adminDashboard.store.js';
 import { useQueryClient } from '@tanstack/react-query';
-
 
 const Responses = () => {
   // States for search and pagination
@@ -53,7 +52,7 @@ const Responses = () => {
   const { 
     unvalidatedInputs, 
     isLoading,
-    isUpdating,
+    isCreatingUnifiedResponse,
     error,
     updateFarmerInput,
     clearError,
@@ -112,14 +111,13 @@ const Responses = () => {
             {status === 'NEWLY PLANTED' ? (
               <>
                 <Th>Commodity</Th>
-                <Th>Variety</Th>
                 <Th>
                   <Text>Date of</Text>
                   <Text>Plantation</Text>
                 </Th>
                 <Th>
-                  <Text>Date of</Text>
-                  <Text>Harvesting</Text>
+                  <Text>Total Area</Text>
+                  <Text>Planted</Text>
                 </Th>
                 <Th position={{ base: 'static', md: 'sticky' }} right={0} bg="gray.50" zIndex={{ base: 0, md: 1 }} textAlign={'center'}>
                   <Box display={{ base: 'none', md: 'block' }}>Scroll →</Box>
@@ -130,15 +128,13 @@ const Responses = () => {
             ) : (
               <>
                 <Th>Commodity</Th>
-                <Th>Variety</Th>
                 <Th>
                   <Text>Date of</Text>
                   <Text>Harvesting</Text>
                 </Th>
                 <Th>
-                  <Text fontSize={'10px'}>Total Area /</Text>
-                  <Text fontSize={'10px'}>Number of Trees</Text>
-                  <Text fontSize={'10px'}>Harvested</Text>
+                  <Text>Total Area</Text>
+                  <Text>Harvested</Text>
                 </Th>
                 <Th position={{ base: 'static', md: 'sticky' }} right={0} bg="gray.50" zIndex={{ base: 0, md: 1 }} textAlign={'center'}>
                   <Box display={{ base: 'none', md: 'block' }}>Scroll →</Box>
@@ -154,38 +150,40 @@ const Responses = () => {
             data.map((response, index) => (
               <Tr key={response.farmerInput._id || index}>
                 <Td fontWeight="medium">
-                {`${response.farmerInput.first_name} ${response.farmerInput.middle_name ? response.farmerInput.middle_name.charAt(0).toUpperCase()+'.':''} ${response.farmerInput.surname} ${response.farmerInput.suffix || ''}`.trim()}
+                {`${response.farmerInput?.farmer_account_id?.first_name} ${response.farmerInput?.farmer_account_id?.middle_name ? response.farmerInput?.farmer_account_id?.middle_name +'.':''} ${response.farmerInput?.farmer_account_id?.surname} ${response.farmerInput?.farmer_account_id?.suffix || ''}`.trim()}
                 </Td>
                 <Td>{response.farmerInput.farm_location}</Td>
                 {status === 'NEWLY PLANTED' ? (
-                  <>
-                    <Td>{response.cropRecord ? response.cropRecord.crop_type : '-'}</Td> {/* uri ng tanim */}
-                    <Td>{response.cropRecord ? response.cropRecord.crop_variety : '-'}</Td>
-                    <Td>{response.cropDetails && response.cropDetails.plantation_start_date && response.cropDetails.plantation_end_date ?
-                      `${new Date(response.cropDetails.plantation_start_date).toLocaleDateString('en-US', plnt_harvDate)} to ${new Date(response.cropDetails.plantation_end_date).toLocaleDateString('en-US', plnt_harvDate)}`
-                       : '-'}</Td> {/* plantation date */}
-                    <Td>{response.cropDetails &&  response.cropDetails.harvest_month_year ?
-                        new Date(response.cropDetails.harvest_month_year).toLocaleDateString('en-US', harvMonthYear)
-                         : '-'}</Td> {/* harvest month and year */}
-                  </>
-                ) : (
-                  <>
-                    <Td>{response.cropRecord ? response.cropRecord.crop_type : '-'}</Td> {/* uri ng tanim */}
-                    <Td>{response.cropRecord ? response.cropRecord.crop_variety : '-'}</Td>
-                    <Td>
-                    {response.cropDetails && response.cropDetails.harvest_start_date && response.cropDetails.harvest_end_date ?
-                    `${new Date(response.cropDetails.harvest_start_date).toLocaleDateString('en-US', plnt_harvDate)} to ${new Date(response.cropDetails.harvest_end_date).toLocaleDateString('en-US', plnt_harvDate)}` 
-                      : '-'}
-                    </Td> {/* harvest date */}
-                    <Td>
-                      {response.cropDetails && (
-                        response.cropType.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS' 
-                          ? `${response.cropDetails.total_area_harvested} ha` 
-                          : `${response.cropDetails.trees_harvested} trees`
-                      ) || '-'}
-                    </Td>
-                  </>
-                )}
+                    <>
+                      <Td>{response.cropRecord &&  
+                            (response.cropType.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS' 
+                              ? response.cropRecord.crop_type
+                              : response.cropRecord.crop_variety) || '-' }</Td> {/* commodity */}
+
+                      <Td>{response.cropDetails && response.cropDetails?.plantation_start_date && response.cropDetails?.plantation_end_date ?
+                        `${new Date(response.cropDetails.plantation_start_date).toLocaleDateString('en-US', plnt_harvDate)} to ${new Date(response.cropDetails.plantation_end_date).toLocaleDateString('en-US', plnt_harvDate)}`
+                        : '-'}</Td> {/* plantation date */}
+
+                      <Td>{response.cropDetails && response.cropDetails?.total_trees && response.cropRecord?.crop_variety ?
+                          `${numOfTreesToHectares(response.cropRecord.crop_variety, response.cropDetails.total_trees)?.toFixed(4) || 'invalid commodity'}`
+                          : (response.cropDetails?.total_area_planted || '-')}</Td> {/* total area planted */}
+                    </>
+                  ) : (
+                    <>
+                      <Td>{response.cropRecord &&  
+                            (response.cropType.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS' 
+                              ? response.cropRecord.crop_type
+                              : response.cropRecord.crop_variety) || '-' }</Td> {/* commodity */}
+                      <Td>
+                      {response.cropDetails && response.cropDetails?.harvest_start_date && response.cropDetails?.harvest_end_date ?
+                      `${new Date(response.cropDetails.harvest_start_date).toLocaleDateString('en-US', plnt_harvDate)} to ${new Date(response.cropDetails.harvest_end_date).toLocaleDateString('en-US', plnt_harvDate)}` 
+                        : '-'}
+                      </Td> {/* harvest date */}
+                      <Td>{response.cropDetails && response.cropDetails?.trees_harvested && response.cropRecord?.crop_variety ?
+                          `${numOfTreesToHectares(response.cropRecord.crop_variety, response.cropDetails.trees_harvested)?.toFixed(4) || 'invalid commodity'}`
+                          : (response.cropDetails?.total_area_harvested || '-')}</Td>
+                    </>
+                  )}
                 <Td isNumeric position={{ base: 'static', md: 'sticky' }} right={0} bg={'white'} zIndex={1}>
                   <Button
                     size="sm"
@@ -251,94 +249,146 @@ const Responses = () => {
   );
 
   const handleModalSubmit = async () => {
-    if (selectedResponse) {
-      // Format data for unified response
+    if (!selectedResponse) {
+      toast({
+        title: "Error",
+        description: "No response data available to process.",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+      return;
+    }
+  
+    try {
+      // Validate critical data exists before proceeding
+      if (!selectedResponse.farmerInput?.farmer_account_id?._id) {
+        throw new Error("Missing farmer account information");
+      }
+  
+      if (!selectedResponse.cropType?.crop_type || !selectedResponse.cropRecord?.crop_stage) {
+        throw new Error("Missing crop information");
+      }
+  
+      // Format data for unified response with safe access
       const isIndustrialCrop = selectedResponse.cropType?.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS';
       const isNewlyPlanted = selectedResponse.cropRecord?.crop_stage === 'NEWLY PLANTED';
       
       const responseData = {
         // Farmer details
-        surname: selectedResponse.farmerInput.surname,
-        first_name: selectedResponse.farmerInput.first_name,
-        middle_name: selectedResponse.farmerInput.middle_name,
-        suffix: selectedResponse.farmerInput.suffix,
-        farm_location: selectedResponse.farmerInput.farm_location,
+        farmer_account_id: selectedResponse.farmerInput.farmer_account_id._id,
+        farm_location: selectedResponse.farmerInput.farm_location || "",
         
         // Crop information
-        crop_type: isIndustrialCrop ? selectedResponse.cropRecord.crop_type : selectedResponse.cropType.crop_type,
-        crop_variety: selectedResponse.cropRecord.crop_variety,
+        crop_type: selectedResponse.cropType.crop_type,
+        commodity: isIndustrialCrop ? 
+          (selectedResponse.cropRecord.crop_type || "") : 
+          (selectedResponse.cropRecord.crop_variety || ""),
         crop_stage: selectedResponse.cropRecord.crop_stage,
-
+  
         // for deletion 
         original_farmer_input_id: selectedResponse.farmerInput._id
       };
       
-      // Add stage-specific details
+      // Add stage-specific details safely
       if (isNewlyPlanted) {
-        responseData.plantation_start_date = selectedResponse.cropDetails.plantation_start_date;
-        responseData.plantation_end_date = selectedResponse.cropDetails.plantation_end_date;
-        responseData.harvest_month_year = selectedResponse.cropDetails.harvest_month_year;
+        // Add plantation dates if they exist
+        if (selectedResponse.cropDetails?.plantation_start_date) {
+          responseData.plantation_start_date = selectedResponse.cropDetails.plantation_start_date;
+        }
         
+        if (selectedResponse.cropDetails?.plantation_end_date) {
+          responseData.plantation_end_date = selectedResponse.cropDetails.plantation_end_date;
+        }
+        
+        if (selectedResponse.cropDetails?.harvest_month_year) {
+          responseData.harvest_month_year = selectedResponse.cropDetails.harvest_month_year;
+        }
+        
+        // Handle area calculation based on crop type
         if (isIndustrialCrop) {
-          responseData.total_area_planted = selectedResponse.cropDetails.total_area_planted;
+          responseData.total_area_planted = selectedResponse.cropDetails?.total_area_planted || 0;
         } else {
-          const hectaresNew = numOfTreesToHectares(selectedResponse.cropRecord.crop_variety, selectedResponse.cropDetails.total_trees);
-          responseData.total_area_trees_planted = hectaresNew ? Number(hectaresNew.toFixed(4)) : null;
+          // Safe tree calculation with complete null checking
+          if (selectedResponse.cropDetails?.total_trees && 
+              selectedResponse.cropRecord?.crop_variety && 
+              typeof selectedResponse.cropDetails.total_trees === 'number') {
+            const hectaresNew = numOfTreesToHectares(
+              selectedResponse.cropRecord.crop_variety, 
+              selectedResponse.cropDetails.total_trees
+            );
+            responseData.total_area_trees_planted = hectaresNew ? Number(hectaresNew.toFixed(4)) : null;
+          } else {
+            responseData.total_area_trees_planted = null;
+          }
         }
       } else {
-        // Harvesting details
-        responseData.harvest_start_date = selectedResponse.cropDetails.harvest_start_date;
-        responseData.harvest_end_date = selectedResponse.cropDetails.harvest_end_date;
-        responseData.total_weight = selectedResponse.cropDetails.total_weight;
-        responseData.crop_purpose = selectedResponse.cropDetails.crop_purpose;
-        
-        if (selectedResponse.cropDetails.crop_purpose === 'PANG BENTA') {
-          responseData.destination = selectedResponse.cropDetails.destination;
-          responseData.mode_of_payment = selectedResponse.cropDetails.mode_of_payment;
-          responseData.mode_of_delivery = selectedResponse.cropDetails.mode_of_delivery;
+        // Harvesting details with safe access
+        if (selectedResponse.cropDetails?.harvest_start_date) {
+          responseData.harvest_start_date = selectedResponse.cropDetails.harvest_start_date;
         }
         
+        if (selectedResponse.cropDetails?.harvest_end_date) {
+          responseData.harvest_end_date = selectedResponse.cropDetails.harvest_end_date;
+        }
+        
+        responseData.total_weight = selectedResponse.cropDetails?.total_weight || 0;
+        responseData.crop_purpose = selectedResponse.cropDetails?.crop_purpose || "UNKNOWN";
+        
+        // Only add selling details if purpose is PANG BENTA
+        if (selectedResponse.cropDetails?.crop_purpose === 'PANG BENTA') {
+          responseData.destination = selectedResponse.cropDetails?.destination || "";
+          responseData.mode_of_payment = selectedResponse.cropDetails?.mode_of_payment || "";
+          responseData.mode_of_delivery = selectedResponse.cropDetails?.mode_of_delivery || "";
+        }
+        
+        // Handle area calculation for harvest based on crop type
         if (isIndustrialCrop) {
-          responseData.total_area_harvested = selectedResponse.cropDetails.total_area_harvested;
+          responseData.total_area_harvested = selectedResponse.cropDetails?.total_area_harvested || 0;
         } else {
-          const hectaresHarv = numOfTreesToHectares(selectedResponse.cropRecord.crop_variety, selectedResponse.cropDetails.trees_harvested);
-          responseData.total_area_trees_harvested = hectaresHarv ? Number(hectaresHarv.toFixed(4)) : null;
+          // Safe tree calculation for harvesting
+          if (selectedResponse.cropDetails?.trees_harvested && 
+              selectedResponse.cropRecord?.crop_variety &&
+              typeof selectedResponse.cropDetails.trees_harvested === 'number') {
+            const hectaresHarv = numOfTreesToHectares(
+              selectedResponse.cropRecord.crop_variety, 
+              selectedResponse.cropDetails.trees_harvested
+            );
+            responseData.total_area_trees_harvested = hectaresHarv ? Number(hectaresHarv.toFixed(4)) : null;
+          } else {
+            responseData.total_area_trees_harvested = null;
+          }
         }
       }
       
-      try {
-
-        // Invalidate the query to refresh the data
-        queryClient.invalidateQueries({ queryKey: ['unvalidatedInputs'] });
-
-        // Create unified record (will be saved to year-based collection)
-        const responseResult = await createUnifiedFarmerResponse(responseData);
-
-
-        toast({
-          title: "Success",
-          description: responseResult.message || "Response successfully pushed to records.",
-          status: "success",
-          duration: 10000,
-          isClosable: true,
-        });
-        
-        // Close the modal after successful submission
-        onClose();
-        
-      } catch (error) {
-
-        queryClient.invalidateQueries({ queryKey: ['unvalidatedInputs'] });
-        
-        toast({
-          title: "Error",
-          description: error.response?.data?.message || "Failed to push response to records. Please try again.",
-          status: "error",
-          duration: 10000,
-          isClosable: true,
-        });
-
-      }
+      // Invalidate the query to refresh the data
+      queryClient.invalidateQueries({ queryKey: ['unvalidatedInputs'] });
+  
+      // Create unified record (will be saved to year-based collection)
+      const responseResult = await createUnifiedFarmerResponse(responseData);
+  
+      toast({
+        title: "Success",
+        description: responseResult.message || "Response successfully pushed to records.",
+        status: "success",
+        duration: 10000,
+        isClosable: true,
+      });
+      
+      // Close the modal after successful submission
+      onClose();
+      
+    } catch (error) {
+      console.error("Error submitting response:", error);
+      queryClient.invalidateQueries({ queryKey: ['unvalidatedInputs'] });
+      
+      toast({
+        title: "Error",
+        description: error.message || error.response?.data?.message || "Failed to push response to records. Please try again.",
+        status: "error",
+        duration: 10000,
+        isClosable: true,
+      });
     }
   };
 
@@ -390,7 +440,7 @@ const Responses = () => {
           <FormControl>
             <FormLabel fontWeight="medium">Full Name</FormLabel>
             <Input 
-              value={`${response.farmerInput?.first_name} ${response.farmerInput.middle_name ? response.farmerInput.middle_name + ' ' : ''}${response.farmerInput?.surname} ${response.farmerInput.suffix || ''}`}
+              value={`${response.farmerInput.farmer_account_id?.first_name} ${response.farmerInput.farmer_account_id?.middle_name ? response.farmerInput.farmer_account_id.middle_name + ' ' : ''}${response.farmerInput.farmer_account_id?.surname} ${response.farmerInput.farmer_account_id?.suffix || ''}`}
               isReadOnly
               bg="gray.50"
               borderColor="gray.200"
@@ -931,8 +981,7 @@ const Responses = () => {
             <Button 
               colorScheme="green" 
               onClick={handleModalSubmit}
-              isLoading={isUpdating}
-              loadingText="Saving"
+              isLoading={isCreatingUnifiedResponse}
             >
               Push to Records
             </Button>
