@@ -186,11 +186,6 @@ export const generateExcelReport = async (req, res) => {
     const worksheet = workbook.getWorksheet(1);
   
 
-    const dateRangeCell = worksheet.getCell('B7');
-    if (dateRangeCell.value) {
-      dateRangeCell.value = `${start.toLocaleDateString('en-US')} to ${end.toLocaleDateString('en-US')}`;
-    }
-
     // Query data from the database based on the date range
     const UnifiedFarmerRecordModel = getUnifiedFarmerRecordModel(year);
     const records = await UnifiedFarmerRecordModel.find({
@@ -219,6 +214,9 @@ export const generateExcelReport = async (req, res) => {
         }
       ]
     }).populate('farmer_account_id').lean();
+
+    const dateRange = `${start.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}-${end.toLocaleDateString('en-US', { day: 'numeric'})}, ${end.toLocaleDateString('en-US', { year: 'numeric' })}`;
+    worksheet.getRow(7).getCell(2).value = dateRange;
 
 
     //pang sort alpabetically by farmer name
