@@ -78,8 +78,7 @@ const C_GenReports = () => {
         `${API_URL}/generate-excel-report`, 
         { 
           startDate, 
-          endDate,
-          reportType: 'weekly' // Always using weekly report type
+          endDate
         },
         { responseType: 'blob' } // Important for file download
       );

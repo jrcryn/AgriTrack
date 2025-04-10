@@ -1,8 +1,9 @@
 import React from 'react';
 import { Box, Flex } from '@chakra-ui/react';
+import { Outlet } from 'react-router-dom';
 import SidebarHeader from './SidebarHeader';
 
-const Layout = ({ children }) => {
+const Layout = () => {
   return (
     <Flex minH="100vh" direction="column">
       {/* SidebarHeader - already has fixed positioning */}
@@ -16,7 +17,7 @@ const Layout = ({ children }) => {
         p={4}
         overflowY="auto"
       >
-        {children}
+        <Outlet />
       </Box>
     </Flex>
   );

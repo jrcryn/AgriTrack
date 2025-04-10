@@ -2,7 +2,7 @@ import ExcelJS from 'exceljs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
-import { getUnifiedFarmerRecordModel } from '../models/unifiedFarmerResponse.model.js';
+import { getUnifiedFarmerRecordModel } from '../../models/unifiedFarmerResponse.model.js';
 
 // Get directory name in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -154,9 +154,9 @@ export const getAvailableDateRanges = async (req, res) => {
 
 // Generate Excel report based on date range
 export const generateExcelReport = async (req, res) => {
-  const { startDate, endDate, reportType } = req.body;
+  const { startDate, endDate } = req.body;
   
-  if (!startDate || !endDate) {
+  if (!startDate || !endDate ) {
     return res.status(400).json({ message: 'Start date and end date are required' });
   }
   
@@ -170,8 +170,7 @@ export const generateExcelReport = async (req, res) => {
     const year = start.getFullYear();
 
     // Build the template file path
-    const templatePath = path.resolve(__dirname, '../templates/Supply and Market Profile Report Template.xlsx');
-    console.log('Template path:', templatePath);
+    const templatePath = path.resolve(__dirname, '../../templates/Supply and Market Profile Report Template.xlsx');
     
     // Check if the template exists
     if (!fs.existsSync(templatePath)) {
