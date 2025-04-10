@@ -24,7 +24,7 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization'],
   }));
 
-app.use('/', highValueCropsRoutes);
+app.use(highValueCropsRoutes);
 
 app.listen(process.env.PORT, () => {
     connectDB();
