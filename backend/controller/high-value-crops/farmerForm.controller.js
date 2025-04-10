@@ -1,11 +1,3 @@
-import  { A_farmer_inputs } from '../../models/high-value-crops/A_farmerInputs.model.js';
-import  { B_crop_types }  from '../../models/high-value-crops/B_cropTypes.model.js';
-import  { C_crop_records_indus }  from '../../models/high-value-crops/C1_cropRecordsIndus.model.js';
-import  { C_crop_records_others }  from '../../models/high-value-crops/C2_cropRecordsOthers.model.js';
-import  { D1_crop_indus_new }  from '../../models/high-value-crops/D1_cropIndusNew.model.js';
-import  { D1_crop_indus_harvest }  from '../../models/high-value-crops/D1_cropIndusHarvest.model.js';
-import  { D2_bc_other_fct_new }  from '../../models/high-value-crops/D2_bc-other-fctNew.model.js';
-import  { D2_bc_other_fct_harvest }  from '../../models/high-value-crops/D2_bc-other-fctHarvest.model.js';
 
 // Step 1: Create a new record input in the A_farmer_inputs collection
 
@@ -15,7 +7,7 @@ export const formA_fi = async (req, res) => {
       return res.status(400).json({ message: 'Missing required fields' });
   }
   try {
-      const newFarmerInput = await A_farmer_inputs.create({
+      const newFarmerInput = await global.highValueCropsModels.A_farmer_inputs.create({
           farmer_account_id: farmerId,
           farm_location,
       });
@@ -33,7 +25,7 @@ export const formB_ct = async (req, res) => {
       return res.status(400).json({ message: 'Missing required fields' });
   }
   try {
-      const newCropType = await B_crop_types.create({
+      const newCropType = await global.highValueCropsModels.B_crop_types.create({
           farmer_input_id,
           crop_type,
       });
@@ -51,7 +43,7 @@ export const formC1_cri = async (req, res) => {
       return res.status(400).json({ message: 'Missing required fields' });
   }
   try {
-      const newIndusRecord = await C_crop_records_indus.create({
+      const newIndusRecord = await global.highValueCropsModels.C_crop_records_indus.create({
           farmer_input_id,
           crop_type_id,
           crop_type,
@@ -72,7 +64,7 @@ export const formC2_cro = async (req, res) => {
       return res.status(400).json({ message: 'Missing required fields' });
   }
   try {
-      const newOthersRecord = await C_crop_records_others.create({
+      const newOthersRecord = await global.highValueCropsModels.C_crop_records_others.create({
           farmer_input_id,
           crop_type_id,
           crop_variety,
@@ -92,7 +84,7 @@ export const formD1_cih = async (req, res) => {
       return res.status(400).json({ message: 'Missing required fields' });
   }
   try {
-      const newIndusHarvest = await D1_crop_indus_harvest.create({
+      const newIndusHarvest = await global.highValueCropsModels.D1_crop_indus_harvest.create({
           record_id,
           harvest_start_date,
           harvest_end_date,
@@ -117,7 +109,7 @@ export const formD1_cin = async (req, res) => {
       return res.status(400).json({ message: 'Missing required fields' });
   }
   try {
-      const newIndusNew = await D1_crop_indus_new.create({
+      const newIndusNew = await global.highValueCropsModels.D1_crop_indus_new.create({
           record_id,
           plantation_start_date,
           plantation_end_date,
@@ -138,7 +130,7 @@ export const formD2_bc_ofh = async (req, res) => {
       return res.status(400).json({ message: 'Missing required fields' });
   }
   try {
-      const newOthersHarvest = await D2_bc_other_fct_harvest.create({
+      const newOthersHarvest = await global.highValueCropsModels.D2_bc_other_fct_harvest.create({
           record_id,
           harvest_start_date,
           harvest_end_date,
@@ -163,7 +155,7 @@ export const formD2_bc_ofn = async (req, res) => {
       return res.status(400).json({ message: 'Missing required fields' });
   }
   try {
-      const newOthersNew = await D2_bc_other_fct_new.create({
+      const newOthersNew = await global.highValueCropsModels.D2_bc_other_fct_new.create({
           record_id,
           plantation_start_date,
           plantation_end_date,

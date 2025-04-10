@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 
-const D1CropIndusHarvestSchema = new mongoose.Schema({
+export const D1CropIndusHarvestSchema = new mongoose.Schema({
   record_id: { 
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'C1_crop_records_indus', 
@@ -23,4 +23,3 @@ const D1CropIndusHarvestSchema = new mongoose.Schema({
   mode_of_delivery: { type: String, set: (value) => value.toUpperCase() }
 }, { versionKey: false });
 
-export const D1_crop_indus_harvest = mongoose.model('D1_crop_indus_harvest', D1CropIndusHarvestSchema);

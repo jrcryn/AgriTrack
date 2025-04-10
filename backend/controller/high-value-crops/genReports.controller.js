@@ -2,7 +2,6 @@ import ExcelJS from 'exceljs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
-import { getUnifiedFarmerRecordModel } from '../../models/high-value-crops/unifiedFarmerResponse.model.js';
 
 // Get directory name in ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -21,7 +20,7 @@ export const getAvailableDateRanges = async (req, res) => {
     const monthNum = parseInt(month);
     
     // Get the appropriate model for this year
-    const UnifiedFarmerRecordModel = getUnifiedFarmerRecordModel(yearNum);
+    const UnifiedFarmerRecordModel = global.getUnifiedFarmerRecordModel(yearNum);
     
     // Define month boundaries
     const startOfMonth = new Date(yearNum, monthNum - 1, 1);
@@ -186,7 +185,7 @@ export const generateExcelReport = async (req, res) => {
   
 
     // Query data from the database based on the date range
-    const UnifiedFarmerRecordModel = getUnifiedFarmerRecordModel(year);
+    const UnifiedFarmerRecordModel = global.getUnifiedFarmerRecordModel(year);
     const records = await UnifiedFarmerRecordModel.find({
       $or: [
         {

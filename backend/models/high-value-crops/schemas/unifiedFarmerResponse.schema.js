@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 
 // Reuse the same schema definition
-const UnifiedFarmerRecordSchema = new mongoose.Schema({
+export const UnifiedFarmerRecordSchema = new mongoose.Schema({
   // Farmer details (required fields)
   farmer_account_id: {
     type: mongoose.Schema.Types.ObjectId,
@@ -44,18 +44,3 @@ const UnifiedFarmerRecordSchema = new mongoose.Schema({
   timestamps: true,
   versionKey: false 
 });
-
-// Factory function that returns the appropriate year-based model
-export const getUnifiedFarmerRecordModel = (year) => {
-  // If year is not provided, use current year
-  if (!year) {
-    year = new Date().getFullYear();
-  }
-  
-  // Collection name with year suffix
-  const collectionName = `UnifiedFarmerRecord_${year}`;
-  
-  // Check if model already exists to prevent recompiling
-  return mongoose.models[collectionName] || 
-         mongoose.model(collectionName, UnifiedFarmerRecordSchema, `unified_farmer_records_${year}`);
-};

@@ -1,6 +1,6 @@
 import mongoose, { version } from 'mongoose';
 
-const FarmerAccountSchema = new mongoose.Schema({
+export const FarmerAccountSchema = new mongoose.Schema({
     farmerId: { type: String, required: true, unique: true },
     surname: { type: String, required: true, trim: true },
     first_name: { type: String, required: true, trim: true },
@@ -12,4 +12,3 @@ const FarmerAccountSchema = new mongoose.Schema({
     birthdate: { type: Date },
 }, { versionKey: false });
 
-export const FarmerAccount = mongoose.model('Farmer_Account', FarmerAccountSchema);
