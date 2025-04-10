@@ -1,11 +1,11 @@
-import  { A_farmer_inputs } from '../../models/A_farmerInputs.model.js';
-import  { B_crop_types }  from '../../models/B_cropTypes.model.js';
-import  { C_crop_records_indus }  from '../../models/C1_cropRecordsIndus.model.js';
-import  { C_crop_records_others }  from '../../models/C2_cropRecordsOthers.model.js';
-import  { D1_crop_indus_new }  from '../../models/D1_cropIndusNew.model.js';
-import  { D1_crop_indus_harvest }  from '../../models/D1_cropIndusHarvest.model.js';
-import  { D2_bc_other_fct_new }  from '../../models/D2_bc-other-fctNew.model.js';
-import  { D2_bc_other_fct_harvest }  from '../../models/D2_bc-other-fctHarvest.model.js';
+import  { A_farmer_inputs } from '../../models/high-value-crops/A_farmerInputs.model.js';
+import  { B_crop_types }  from '../../models/high-value-crops/B_cropTypes.model.js';
+import  { C_crop_records_indus }  from '../../models/high-value-crops/C1_cropRecordsIndus.model.js';
+import  { C_crop_records_others }  from '../../models/high-value-crops/C2_cropRecordsOthers.model.js';
+import  { D1_crop_indus_new }  from '../../models/high-value-crops/D1_cropIndusNew.model.js';
+import  { D1_crop_indus_harvest }  from '../../models/high-value-crops/D1_cropIndusHarvest.model.js';
+import  { D2_bc_other_fct_new }  from '../../models/high-value-crops/D2_bc-other-fctNew.model.js';
+import  { D2_bc_other_fct_harvest }  from '../../models/high-value-crops/D2_bc-other-fctHarvest.model.js';
 
 // Step 1: Create a new record input in the A_farmer_inputs collection
 

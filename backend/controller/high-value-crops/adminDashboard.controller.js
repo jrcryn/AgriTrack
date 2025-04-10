@@ -1,16 +1,16 @@
-import { A_farmer_inputs } from '../../models/A_farmerInputs.model.js';
-import { B_crop_types } from '../../models/B_cropTypes.model.js';
-import { C_crop_records_indus } from '../../models/C1_cropRecordsIndus.model.js';
-import { C_crop_records_others } from '../../models/C2_cropRecordsOthers.model.js';
-import { D1_crop_indus_new } from '../../models/D1_cropIndusNew.model.js';
-import { D1_crop_indus_harvest } from '../../models/D1_cropIndusHarvest.model.js';
-import { D2_bc_other_fct_new } from '../../models/D2_bc-other-fctNew.model.js';
-import { D2_bc_other_fct_harvest } from '../../models/D2_bc-other-fctHarvest.model.js';
+import { A_farmer_inputs } from '../../models/high-value-crops/A_farmerInputs.model.js';
+import { B_crop_types } from '../../models/high-value-crops/B_cropTypes.model.js';
+import { C_crop_records_indus } from '../../models/high-value-crops/C1_cropRecordsIndus.model.js';
+import { C_crop_records_others } from '../../models/high-value-crops/C2_cropRecordsOthers.model.js';
+import { D1_crop_indus_new } from '../../models/high-value-crops/D1_cropIndusNew.model.js';
+import { D1_crop_indus_harvest } from '../../models/high-value-crops/D1_cropIndusHarvest.model.js';
+import { D2_bc_other_fct_new } from '../../models/high-value-crops/D2_bc-other-fctNew.model.js';
+import { D2_bc_other_fct_harvest } from '../../models/high-value-crops/D2_bc-other-fctHarvest.model.js';
 
-import { getUnifiedFarmerRecordModel } from '../../models/unifiedFarmerResponse.model.js';
+import { getUnifiedFarmerRecordModel } from '../../models/high-value-crops/unifiedFarmerResponse.model.js';
 
-import { FarmerAccount } from '../../models/farmerAccount.model.js';
-import { Counter } from '../../models/counter.model.js';
+import { FarmerAccount } from '../../models/high-value-crops/farmerAccount.model.js';
+import { Counter } from '../../models/high-value-crops/counter.model.js';
 
 import mongoose from 'mongoose';
 
