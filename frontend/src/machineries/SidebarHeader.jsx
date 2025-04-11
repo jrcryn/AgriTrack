@@ -21,23 +21,25 @@ import {
   Divider,
   Image
 } from '@chakra-ui/react'
-import {
-  FiGrid,
-  FiDownload,
-  FiUsers,
-  FiChevronDown,
-  FiMenu
-} from 'react-icons/fi'
+import { 
+  FiGrid,          
+  FiBox,          
+  FiDownload,      
+  FiPlusSquare,    
+  FiRepeat,         
+  FiMenu,
+  FiChevronDown
+} from 'react-icons/fi';
 import { FaWpforms } from "react-icons/fa";
-import Logo from '../../images/Calamba_Seal.png'
+import Logo from '../images/Calamba_Seal.png'
 
 const LinkItems = [
-  { name: 'Dashboard', icon: FiGrid, path : '/hvc/admin/metrics' },
-  { name: 'Generate Report', icon: FiDownload, path : '/hvc/admin/gen-reports' },
-  { name: 'New Responses', icon: FaWpforms, path : '/hvc/admin/responses' },
-  { name: 'Farmers', icon: FiUsers, path : '/hvc/admin/farmers' },
-]
-
+  { name: 'Dashboard', icon: FiGrid, path: '/machineries/admin/metrics' },
+  { name: 'Machinery Inventory', icon: FiBox, path: '/machineries/admin/gen-reports' },
+  { name: 'Generate Report', icon: FiDownload, path: '/machineries/admin/farmers' },
+  { name: 'Add Machinery', icon: FiPlusSquare, path: '/machineries/admin/responses' },
+  { name: 'Transfer Units', icon: FiRepeat, path: '/machineries/admin/farmers' },
+];
 const SidebarContent = ({ onClose, ...rest }) => {
   return (
     <Box
@@ -54,7 +56,7 @@ const SidebarContent = ({ onClose, ...rest }) => {
           CITY AGRI. SERVICES DEPT.
         </Text>
         <Text fontSize="larger"  fontWeight="bold" color="white">
-          HIGH-VALUE CROPS
+          MACHINERIES
         </Text>
       </Box>
       {/* Mobile Close Button */}

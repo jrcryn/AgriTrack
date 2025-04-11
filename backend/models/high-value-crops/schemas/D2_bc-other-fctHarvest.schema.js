@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 
-const D2BcOtherFctHarvestSchema = new mongoose.Schema({
+export const D2BcOtherFctHarvestSchema = new mongoose.Schema({
   record_id: { 
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'C2_crop_records_others', 
@@ -19,4 +19,3 @@ const D2BcOtherFctHarvestSchema = new mongoose.Schema({
   mode_of_delivery: { type: String, set: (value) => value.toUpperCase() }
 }, { versionKey: false });
 
-export const D2_bc_other_fct_harvest = mongoose.model('D2_bc_other_fct_harvest', D2BcOtherFctHarvestSchema);
