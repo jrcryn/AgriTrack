@@ -137,6 +137,7 @@ export const useAdminDashboard = () => {
 
   const [isCreatingUnifiedResponse, setIsCreatingUnifiedResponse] = useState(false);
   const [isCreatingFarmerAccount, setIsCreatingFarmerAccount] = useState(false);
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
 
 
   useEffect(() => {
@@ -188,6 +189,27 @@ export const useAdminDashboard = () => {
     }
   };
 
+  const generateExcelReport = async (startDate, endDate) => {
+    setIsGeneratingReport(true);
+    try {
+      const response = await axios.post(
+        `${API_URL}/generate-excel-report`, 
+        { 
+          startDate, 
+          endDate
+        },
+        { responseType: 'blob' } // Important for file download
+      );
+      return response.data;
+    } catch (error) {
+      setError(error.message || 'Failed to generate Excel report');
+      throw error;
+    } finally {
+      setIsGeneratingReport(false);
+    }
+  };
+
+
   // Combine errors from different sources
   if (unvalidatedError) setError(unvalidatedError.message || 'Failed to fetch unvalidated inputs');
   if (validatedError) setError(validatedError.message || 'Failed to fetch validated inputs');
@@ -215,13 +237,16 @@ export const useAdminDashboard = () => {
     isUpdating,
     isCreatingUnifiedResponse,
     isCreatingFarmerAccount,
+    isGeneratingReport,
     
     // Error state
     error: unvalidatedError || validatedError || updateError || accountsError || dateRangesError,
-    
+    clearError: () => setError(null),
+
     // Actions
     updateFarmerInput,
     createFarmerAccount,
-    createUnifiedFarmerResponse
+    createUnifiedFarmerResponse,
+    generateExcelReport
   };
 };

@@ -9,7 +9,6 @@ import axios from 'axios';
 import { useAdminDashboard } from '../store/adminDashboard.store';
 
 const C_GenReports = () => {
-  const [isLoadingGen, setIsLoadingGen] = useState(false);
   const [selectedRange, setSelectedRange] = useState('');
   
   const { 
@@ -21,6 +20,8 @@ const C_GenReports = () => {
     setSelectedMonth,
     dateRanges,
     isLoading,
+    isGeneratingReport, 
+    generateExcelReport, 
     error,
   } = useAdminDashboard();
   
@@ -88,20 +89,12 @@ const C_GenReports = () => {
     
     const [startDate, endDate] = selectedRange.split('_');
     
-    
-    
     try {
-      const response = await axios.post(
-        `${API_URL}/generate-excel-report`, 
-        { 
-          startDate, 
-          endDate
-        },
-        { responseType: 'blob' } // Important for file download
-      );
+      // Now use the function from the store
+      const reportData = await generateExcelReport(startDate, endDate);
       
-      // Create a download link
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      // Handle the download in the component (UI concern)
+      const url = window.URL.createObjectURL(new Blob([reportData]));
       const link = document.createElement('a');
       
       // Format filename with date range
@@ -132,7 +125,7 @@ const C_GenReports = () => {
         duration: 5000,
         isClosable: true,
       });
-    } 
+    }
   };
 
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -336,7 +329,7 @@ const C_GenReports = () => {
               colorScheme="green"
               leftIcon={<FaDownload />}
               onClick={handleGenerateReport}
-              isLoading={isLoadingGen}
+              isLoading={isGeneratingReport}
               loadingText="Generating..."
               size="lg"
               width="100%"
