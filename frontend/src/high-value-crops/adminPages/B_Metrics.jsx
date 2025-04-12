@@ -18,8 +18,9 @@ import {
   AlertIcon,
   AlertTitle,
   AlertDescription,
+  Center,
 } from "@chakra-ui/react";
-import { FaChartLine, FaUsers, FaLeaf, FaSeedling, FaBoxes, FaCalendarAlt } from "react-icons/fa";
+import { FaChartLine, FaUsers, FaLeaf, FaSeedling, FaBoxes, FaCalendarAlt, FaWifi } from "react-icons/fa";
 import { useAdminDashboard } from "../store/adminDashboard.store";
 
 const Metrics = () => {
@@ -40,6 +41,7 @@ const Metrics = () => {
     console.log("Year:", selectedYear, "Month:", selectedMonth);
     console.log("Metrics data:", metricsData);
   }, [selectedYear, selectedMonth, metricsData]);
+  
   
   // Month names array for display purposes (converting numeric month to name)
   const months = [
@@ -70,21 +72,39 @@ const Metrics = () => {
     volumeProduction: 0
   };
 
-  // Show loading state
-  if (isLoading) {
+  // state for internet connection status
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  // Show offline state
+  if (!isOnline) {
     return (
       <Box 
         overflow="hidden" 
         bg="white" 
         p={5} 
         minH="100vh"
-        display="flex"
-        alignItems="center"
-        justifyContent="center"
-        flexDirection="column"
       >
-        <Spinner size="xl" color="blue.500" mb={4} />
-        <Text>Loading metrics data...</Text>
+        <Heading as="h1" size="xl" mb={2} color="black">
+          High-Value Crops Metrics
+        </Heading>
+        <Alert status="warning" borderRadius="md" mt={4}>
+          <AlertIcon />
+          <Box>
+            <AlertTitle display="flex" alignItems="center">
+              <Icon as={FaWifi} mr={2} /> No Internet Connection
+            </AlertTitle>
+            <AlertDescription>
+              You appear to be offline. Please check your internet connection and try again.
+            </AlertDescription>
+          </Box>
+        </Alert>
+        <Button 
+          mt={4} 
+          colorScheme="blue" 
+          onClick={() => window.location.reload()}
+        >
+          Retry Connection
+        </Button>
       </Box>
     );
   }
@@ -238,7 +258,13 @@ const Metrics = () => {
                 <StatLabel fontSize="md" display="flex" alignItems="center">
                   <Icon as={FaUsers} mr={2} color="blue.500" /> Number of Farmers
                 </StatLabel>
-                <StatNumber fontSize="3xl">{newlyPlantedData.farmers}</StatNumber>
+                {isLoading ? (
+                  <Center h="65px">
+                    <Spinner size="lg" thickness="3px" color="blue.500" />
+                  </Center>
+                ) : (
+                  <StatNumber fontSize="4xl">{newlyPlantedData.farmers}</StatNumber>
+                )}
                 <StatHelpText>
                   {selectedMonth && months[selectedMonth - 1]} {selectedYear}
                 </StatHelpText>
@@ -259,7 +285,13 @@ const Metrics = () => {
                 <StatLabel fontSize="md" display="flex" alignItems="center">
                   <Icon as={FaLeaf} mr={2} color="green.500" /> Total Area Planted
                 </StatLabel>
-                <StatNumber fontSize="3xl">{newlyPlantedData.areaPlanted.toFixed(4)} <Text as="span" fontSize="lg">ha</Text></StatNumber>
+                {isLoading ? (
+                  <Center h="65px">
+                    <Spinner size="lg" thickness="3px" color="green.500" />
+                  </Center>
+                ) : (
+                  <StatNumber fontSize="4xl">{newlyPlantedData.areaPlanted.toFixed(4)} <Text as="span" fontSize="lg">ha</Text></StatNumber>
+                )}
                 <StatHelpText>
                   {selectedMonth && months[selectedMonth - 1]} {selectedYear}
                 </StatHelpText>
@@ -314,7 +346,13 @@ const Metrics = () => {
                 <StatLabel fontSize="md" display="flex" alignItems="center">
                   <Icon as={FaUsers} mr={2} color="blue.500" /> Number of Farmers
                 </StatLabel>
-                <StatNumber fontSize="3xl">{harvestingData.farmers}</StatNumber>
+                {isLoading ? (
+                  <Center h="65px">
+                    <Spinner size="lg" thickness="3px" color="blue.500" />
+                  </Center>
+                ) : (
+                  <StatNumber fontSize="4xl">{harvestingData.farmers}</StatNumber>
+                )}
                 <StatHelpText>
                   {selectedMonth && months[selectedMonth - 1]} {selectedYear}
                 </StatHelpText>
@@ -335,7 +373,13 @@ const Metrics = () => {
                 <StatLabel fontSize="md" display="flex" alignItems="center">
                   <Icon as={FaLeaf} mr={2} color="green.500" /> Total Area Harvested
                 </StatLabel>
-                <StatNumber fontSize="3xl">{harvestingData.areaHarvested.toFixed(4)} <Text as="span" fontSize="lg">ha</Text></StatNumber>
+                {isLoading ? (
+                  <Center h="65px">
+                    <Spinner size="lg" thickness="3px" color="green.500" />
+                  </Center>
+                ) : (
+                  <StatNumber fontSize="4xl">{harvestingData.areaHarvested.toFixed(4)} <Text as="span" fontSize="lg">ha</Text></StatNumber>
+                )}
                 <StatHelpText>
                   {selectedMonth && months[selectedMonth - 1]} {selectedYear}
                 </StatHelpText>
@@ -356,7 +400,13 @@ const Metrics = () => {
                 <StatLabel fontSize="md" display="flex" alignItems="center">
                   <Icon as={FaBoxes} mr={2} color="orange.500" /> Total Volume of Production
                 </StatLabel>
-                <StatNumber fontSize="3xl">{harvestingData.volumeProduction.toFixed(4)} <Text as="span" fontSize="lg">mt</Text></StatNumber>
+                {isLoading ? (
+                  <Center h="65px">
+                    <Spinner size="lg" thickness="3px" color="orange.500" />
+                  </Center>
+                ) : (
+                  <StatNumber fontSize="4xl">{harvestingData.volumeProduction.toFixed(4)} <Text as="span" fontSize="lg">mt</Text></StatNumber>
+                )}
                 <StatHelpText>
                   {selectedMonth && months[selectedMonth - 1]} {selectedYear}
                 </StatHelpText>

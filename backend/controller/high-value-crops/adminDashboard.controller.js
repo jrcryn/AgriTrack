@@ -1,5 +1,6 @@
 
 import mongoose from 'mongoose';
+import { getHighValueCropsDB } from '../../config/dbAccessHelper.js'; // import hcv db access
 
 
 //________________________________ FARMERS NEW RESPONSES PAGE ____________________________________
@@ -509,31 +510,49 @@ const deleteRelatedDocuments = async (farmerId) => {
 //________________________________ DASHBOARD (METRICS) PAGE ____________________________________
 
 
+
+
 // Get available years from unified farmer record collections
 export const getAvailableMetricsYears = async (req, res) => {
   try {
-    // Get all collection names from MongoDB
-    const collections = await mongoose.connection.db.listCollections().toArray();
+    // Get the specific database connection for high-value-crops
+    const db = getHighValueCropsDB();
 
-    
-    // Define a regex pattern to extract years from collection names
-    const yearPattern = /unified_farmer_records_(\d{4})/;
-    const years = collections
-      .map(collection => {
-        const match = collection.name.match(yearPattern);
-        return match ? parseInt(match[1], 10) : null;
-      })
-      .filter(year => year !== null)
-      .sort((a, b) => b - a); // Sort descending (newest first)
+    // Get all collection names from the correct MongoDB database using the native driver's Db object (makikita parin kahit walang laman yung collection)
+    const collections = await db.db.listCollections({}, { nameOnly: true }).toArray(); 
+    // Define a case-insensitive regex pattern to extract years from collection names
+    const yearPattern = /unified_farmer_records_(\d{4})/i;
+
+    // Extract and validate years
+    let years = [];
+    for (const collection of collections) {
+      const match = collection.name.match(yearPattern);
+      if (match) {
+        const year = parseInt(match[1], 10);
+        // Validate it's a reasonable year (between 2000 and 2100)
+        if (year >= 2000 && year <= 2100) {
+          years.push(year);
+        }
+      }
+    }
+
+    // Sort years descending (newest first)
+    years.sort((a, b) => b - a);
 
     // If no collections found, return current year as fallback
     if (years.length === 0) {
-      years.push(new Date().getFullYear());
+      const currentYear = new Date().getFullYear();
+      years.push(currentYear);
+      console.log('No matching collections found, using current year fallback:', currentYear);
     }
-    
+
     res.json(years);
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching available years', error: error.message });
+    console.error('Error fetching available years:', error);
+    res.status(500).json({
+      message: 'Error fetching available years',
+      error: error.message
+    });
   }
 };
 

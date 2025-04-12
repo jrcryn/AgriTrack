@@ -35,9 +35,13 @@ import {
   FormErrorMessage,
   Link,
   useToast,
-  
+  Alert,
+  AlertIcon,
+  AlertTitle,
+  AlertDescription,
+  Center
 } from "@chakra-ui/react";
-import { FaSearch, FaEye, FaEdit, FaUserPlus, FaUsers, FaUser, FaAddressCard } from "react-icons/fa";
+import { FaSearch, FaEye, FaEdit, FaUserPlus, FaUsers, FaUser, FaAddressCard, FaWifi } from "react-icons/fa";
 import { useAdminDashboard } from '../store/adminDashboard.store';
 import { useQueryClient } from '@tanstack/react-query';
 import Barangays from '../components/barangays';
@@ -48,7 +52,7 @@ import "react-datepicker/dist/react-datepicker.css";
 
 const E_Farmers = () => {
 
-  const { farmerAccounts, isLoading, error, createFarmerAccount } = useAdminDashboard();
+  const { farmerAccounts, isCreatingFarmerAccount, error, createFarmerAccount, isLoading } = useAdminDashboard();
 
   useEffect(() => {
     // Apply styles directly to the DOM
@@ -85,7 +89,6 @@ const E_Farmers = () => {
   });
 
   const [formErrors, setFormErrors] = useState({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const toast = useToast();
   const queryClient = useQueryClient();
@@ -97,7 +100,7 @@ const E_Farmers = () => {
       [name]: value,
     });
 
-  if (formErrors[name]) {
+    if (formErrors[name]) {
       setFormErrors({
         ...formErrors,
         [name]: null,
@@ -149,8 +152,7 @@ const E_Farmers = () => {
       setFormErrors(errors);
       return;
     }
-    
-    setIsSubmitting(true);
+  
     
     try {
       // Format date as ISO string for backend if a date exists
@@ -192,8 +194,6 @@ const E_Farmers = () => {
         duration: 5000,
         isClosable: true,
       });
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -279,6 +279,61 @@ const E_Farmers = () => {
     backgroundColor: 'white',
     outline: 'none'
   };
+
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  if (!isOnline) {
+    return (
+      <Box 
+        overflow="hidden" 
+        bg="white" 
+        p={5} 
+        minH="100vh"
+      >
+        <Heading as="h1" size="xl" mb={2} color="black">
+          Farmers Management
+        </Heading>
+        <Alert status="warning" borderRadius="md" mt={4}>
+          <AlertIcon />
+          <Box>
+            <AlertTitle display="flex" alignItems="center">
+              <Icon as={FaWifi} mr={2} /> No Internet Connection
+            </AlertTitle>
+            <AlertDescription>
+              You appear to be offline. Please check your internet connection and try again.
+            </AlertDescription>
+          </Box>
+        </Alert>
+        <Button 
+          mt={4} 
+          colorScheme="blue" 
+          onClick={() => window.location.reload()}
+        >
+          Retry Connection
+        </Button>
+      </Box>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <Box 
+        overflow="hidden" 
+        bg="white" 
+        p={5} 
+        minH="100vh"
+      >
+        <Alert status="error" borderRadius="md">
+          <AlertIcon />
+          <AlertTitle>Error loading data!</AlertTitle>
+          <AlertDescription>
+            {error || "Unable to load registered farmers. Please try again later."}
+          </AlertDescription>
+        </Alert>
+      </Box>
+    );
+  }
 
   return (
     <Box 
@@ -422,106 +477,115 @@ const E_Farmers = () => {
           </Heading>
         </Flex>
         
-        {/* Farmers Table */}
-        <Box overflowX="auto">
-          <TableContainer ref={tableRef}>
-            <Table variant="simple">
-              <Thead bg="gray.50">
-                <Tr>
-                  <Th>Farmer ID</Th>
-                  <Th>Full Name</Th>
-                  <Th>Farmer Resident Barangay</Th>
-                  <Th>Birth Date</Th>
-                  <Th>Contact Number</Th>
-                  <Th>Facebook</Th>
-                <Th position={{ base: 'static', md: 'sticky' }} right={0} bg="gray.50" zIndex={{ base: 0, md: 1 }} textAlign={'center'}>
-                  <Box display={{ base: 'none', md: 'block' }}>Scroll →</Box>
-                </Th>
-                </Tr>
-              </Thead>
-              <Tbody>
-                {currentFarmers.length > 0 ? (
-                  currentFarmers.map((farmers) => (
-                    <Tr key={farmers._id}>
-                      <Td fontWeight="medium">{farmers.farmerId ? farmers.farmerId : '-'}</Td>
-                      <Td fontWeight="medium">
-                        {`${farmers.first_name} ${farmers.middle_name ? farmers.middle_name +'.' : ''} ${farmers.surname} ${farmers.suffix ? farmers.suffix : ''}`.trim()}
-                      </Td>
-                      <Td>{farmers.farmer_barangay ? farmers.farmer_barangay : '-'}</Td>
-                      <Td>{farmers.birthdate ? formatDate(new Date(farmers.birthdate)) : '-'}</Td>
-                      <Td>{farmers.mobile_number ? farmers.mobile_number : '-'}</Td>
-                      <Td>
-                        {farmers.facebook ? (
-                          <Link
-                            href={farmers.facebook.startsWith("http") ? farmers.facebook : `https://${farmers.facebook}`}
-                            color={'blue.500'}
-                            isExternal
-                          >
-                            {farmers.facebook}
-                          </Link>
-                        ) : (
-                          '-'
-                        )}
-                      </Td>
-                      <Td position={{ base: 'static', md: 'sticky' }} right={0} bg="white" zIndex={1}>
-                        <HStack spacing={2} justifyContent="center">
-                          <Button
-                            size="sm"
-                            colorScheme="green"
-                            leftIcon={<FaEdit />}
-                          >
-                            Edit
-                          </Button>
-                        </HStack>
+        {/* Farmers Table with Loading State */}
+        {isLoading ? (
+              <Flex justifyContent="center" alignItems="center" minH="200px">
+                <Spinner size="lg" color="blue.500" thickness="3px" />
+                <Text ml={5}>Loading farmer accounts...</Text>
+              </Flex>
+        ) : (
+          <Box overflowX="auto">
+            <TableContainer ref={tableRef}>
+              <Table variant="simple">
+                <Thead bg="gray.50">
+                  <Tr>
+                    <Th>Farmer ID</Th>
+                    <Th>Full Name</Th>
+                    <Th>Farmer Resident Barangay</Th>
+                    <Th>Birth Date</Th>
+                    <Th>Contact Number</Th>
+                    <Th>Facebook</Th>
+                    <Th position={{ base: 'static', md: 'sticky' }} right={0} bg="gray.50" zIndex={{ base: 0, md: 1 }} textAlign={'center'}>
+                      <Box display={{ base: 'none', md: 'block' }}>Scroll →</Box>
+                    </Th>
+                  </Tr>
+                </Thead>
+                <Tbody>
+                  {currentFarmers.length > 0 ? (
+                    currentFarmers.map((farmers) => (
+                      <Tr key={farmers._id}>
+                        <Td fontWeight="medium">{farmers.farmerId ? farmers.farmerId : '-'}</Td>
+                        <Td fontWeight="medium">
+                          {`${farmers.first_name} ${farmers.middle_name ? farmers.middle_name +'.' : ''} ${farmers.surname} ${farmers.suffix ? farmers.suffix : ''}`.trim()}
+                        </Td>
+                        <Td>{farmers.farmer_barangay ? farmers.farmer_barangay : '-'}</Td>
+                        <Td>{farmers.birthdate ? formatDate(new Date(farmers.birthdate)) : '-'}</Td>
+                        <Td>{farmers.mobile_number ? farmers.mobile_number : '-'}</Td>
+                        <Td>
+                          {farmers.facebook ? (
+                            <Link
+                              href={farmers.facebook.startsWith("http") ? farmers.facebook : `https://${farmers.facebook}`}
+                              color={'blue.500'}
+                              isExternal
+                            >
+                              {farmers.facebook}
+                            </Link>
+                          ) : (
+                            '-'
+                          )}
+                        </Td>
+                        <Td position={{ base: 'static', md: 'sticky' }} right={0} bg="white" zIndex={1}>
+                          <HStack spacing={2} justifyContent="center">
+                            <Button
+                              size="sm"
+                              colorScheme="green"
+                              leftIcon={<FaEdit />}
+                            >
+                              Edit
+                            </Button>
+                          </HStack>
+                        </Td>
+                      </Tr>
+                    ))
+                  ) : (
+                    <Tr>
+                      <Td colSpan={8} textAlign="center" py={8}>
+                        <Text color="gray.500">No registered farmers found.</Text>
                       </Td>
                     </Tr>
-                  ))
-                ) : (
-                  <Tr>
-                    <Td colSpan={8} textAlign="center" py={8}>
-                      <Text color="gray.500">No registered farmers found.</Text>
-                    </Td>
-                  </Tr>
-                )}
-              </Tbody>
-            </Table>
-          </TableContainer>
-        </Box>
+                  )}
+                </Tbody>
+              </Table>
+            </TableContainer>
+          </Box>
+        )}
         
-        {/* Pagination Controls */}
-        <Flex 
-          justifyContent="space-between" 
-          mt={4} 
-          alignItems="center"
-          direction={{ base: "column", md: "row" }}
-          gap={{ base: 3, md: 0 }}
-        >
-          <Text color="gray.600">
-            Page {currentPage} of {totalPages || 1} ({searchedFarmers.length} total)
-          </Text>
-          
-          <HStack spacing={2}>
-            <Button
-              size="sm"
-              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-              isDisabled={currentPage === 1}
-              colorScheme="green"
-              variant="outline"
-            >
-              Previous
-            </Button>
+        {/* Pagination Controls (only shown when not loading) */}
+        {!isLoading && (
+          <Flex 
+            justifyContent="space-between" 
+            mt={4} 
+            alignItems="center"
+            direction={{ base: "column", md: "row" }}
+            gap={{ base: 3, md: 0 }}
+          >
+            <Text color="gray.600">
+              Page {currentPage} of {totalPages || 1} ({searchedFarmers.length} total)
+            </Text>
             
-            <Button
-              size="sm"
-              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-              isDisabled={currentPage >= totalPages}
-              colorScheme="green"
-              variant="outline"
-            >
-              Next
-            </Button>
-          </HStack>
-        </Flex>
+            <HStack spacing={2}>
+              <Button
+                size="sm"
+                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                isDisabled={currentPage === 1}
+                colorScheme="green"
+                variant="outline"
+              >
+                Previous
+              </Button>
+              
+              <Button
+                size="sm"
+                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                isDisabled={currentPage >= totalPages}
+                colorScheme="green"
+                variant="outline"
+              >
+                Next
+              </Button>
+            </HStack>
+          </Flex>
+        )}
       </Box>
       
       {/* Add Farmer Modal */}
@@ -737,8 +801,7 @@ const E_Farmers = () => {
             <Button 
               colorScheme="blue"
               onClick={handleSubmit}
-              isLoading={isSubmitting}
-              loadingText="Registering"
+              isLoading={isCreatingFarmerAccount}
               size="md"
               fontWeight="500"
               boxShadow="sm"
@@ -749,7 +812,7 @@ const E_Farmers = () => {
           </ModalFooter>
         </ModalContent>
       </Modal>
-      </Box>
+    </Box>
   );
 };
 

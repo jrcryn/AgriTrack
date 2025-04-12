@@ -10,6 +10,10 @@ export const useUnvalidatedInputsQuery = () =>
   useQuery({
     queryKey: ['unvalidatedInputs'],
     queryFn: async () => {
+
+      //remove in production
+      await new Promise(resolve => setTimeout(resolve, 5000));
+
       const response = await axios.get(`${API_URL}/get-unvalidated-inputs`);
       return response.data;
     },
@@ -51,6 +55,9 @@ export const useFarmerAccountsQuery = () =>
   useQuery({
     queryKey: ['farmerAccounts'],
     queryFn: async () => {
+      //remove in production
+      await new Promise(resolve => setTimeout(resolve, 5000));
+
       const response = await axios.get(`${API_URL}/get-farmer-accounts`);
       return response.data;
     },
@@ -90,17 +97,25 @@ export const useMetricsForYearMonthQuery = (year, month) =>
       return response.data;
     },
     enabled: !!(year && month), // Only run if both year and month are provided
+    staleTime: 0, // Data is always fresh
+    refetchInterval: 1000 // Refetch every second
   });
 
+//for report generation, date ranges
+export const useDateRangesQuery = (year, month) => 
+  useQuery({
+    queryKey: ['dateRanges', year, month],
+    queryFn: async () => {
+      if (!year || !month) return [];
 
-// Zustand store for UI state management
-export const useAdminDashboardStore = create((set) => ({
-  error: null,
-  
-  // Error handling
-  setError: (error) => set({ error }),
-  clearError: () => set({ error: null })
-}));
+      const response = await axios.get(`${API_URL}/report-date-ranges/${year}/${month}`);
+      return response.data;
+    },
+    enabled: !!(year && month), // Only run if both year and month are provided
+    staleTime: 0, // Data is always fresh
+    refetchInterval: 1000 // Refetch every second
+  });
+
 
 
 // Composite hook that combines React Query and Zustand
@@ -109,7 +124,6 @@ export const useAdminDashboard = () => {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(null);
 
-  const { error, setError, clearError } = useAdminDashboardStore();
   const { data: unvalidatedInputs = [], isLoading: isLoadingUnvalidated, error: unvalidatedError } = useUnvalidatedInputsQuery();
   const { data: validatedInputs = [], isLoading: isLoadingValidated, error: validatedError } = useValidatedInputsQuery();
   const { mutate: updateFarmerInput, isPending: isUpdating, error: updateError } = useUpdateFarmerInputMutation();
@@ -118,6 +132,8 @@ export const useAdminDashboard = () => {
   const { data: availableYears = [], isLoading: isLoadingUFRY } = useUnifiedFarmerResponseYearQuery();
   const { data: availableMonths = [], isLoading: isLoadingUFRM } = useUnifiedFarmerResponseMonthsQuery(selectedYear);
   const { data: metricsData, isLoading: isLoadingMetrics } = useMetricsForYearMonthQuery(selectedYear, selectedMonth);
+
+  const { data: dateRanges = [], isLoading: isLoadingDateRanges, error: dateRangesError } = useDateRangesQuery(selectedYear, selectedMonth);
 
   const [isCreatingUnifiedResponse, setIsCreatingUnifiedResponse] = useState(false);
   const [isCreatingFarmerAccount, setIsCreatingFarmerAccount] = useState(false);
@@ -177,6 +193,7 @@ export const useAdminDashboard = () => {
   if (validatedError) setError(validatedError.message || 'Failed to fetch validated inputs');
   if (updateError) setError(updateError.message || 'Failed to update farmer input');
   if (accountsError) setError(accountsError.message || 'Failed to fetch farmer accounts');
+  if (dateRangesError) setError(dateRangesError.message || 'Failed to fetch date ranges');
 
   return {
     // Data
@@ -191,19 +208,19 @@ export const useAdminDashboard = () => {
     selectedMonth,
     setSelectedYear,
     setSelectedMonth,
+    dateRanges,
     
     // Loading states
-    isLoading: isLoadingUnvalidated || isLoadingValidated || isLoadingAccounts || isLoadingMetrics || isLoadingUFRY || isLoadingUFRM,
+    isLoading: isLoadingUnvalidated || isLoadingValidated || isLoadingAccounts || isLoadingMetrics || isLoadingUFRY || isLoadingUFRM || isLoadingDateRanges,
     isUpdating,
     isCreatingUnifiedResponse,
     isCreatingFarmerAccount,
     
     // Error state
-    error,
+    error: unvalidatedError || validatedError || updateError || accountsError || dateRangesError,
     
     // Actions
     updateFarmerInput,
-    clearError,
     createFarmerAccount,
     createUnifiedFarmerResponse
   };
