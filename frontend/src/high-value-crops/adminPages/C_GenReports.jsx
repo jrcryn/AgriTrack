@@ -1,19 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Box, Container, Heading, Text, VStack, Button, FormControl, FormLabel, 
-  Select, HStack, useToast, Flex, Icon, SimpleGrid, Card, CardHeader,
-  CardBody, Divider, Spinner, Alert, AlertIcon, Badge
+  Box, Heading, Text, VStack, Button, FormControl, FormLabel, 
+  Select, HStack, useToast, Flex, Icon, SimpleGrid, Divider, 
+  Spinner, Alert, AlertIcon, Badge, AlertTitle, AlertDescription
 } from "@chakra-ui/react";
-import { FaFileExcel, FaDownload, FaCalendarAlt, FaChartBar } from 'react-icons/fa';
+import { FaFileExcel, FaDownload, FaCalendarAlt, FaChartBar, FaWifi } from 'react-icons/fa';
 import axios from 'axios';
 import { useAdminDashboard } from '../store/adminDashboard.store';
 
 const C_GenReports = () => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [loadingRanges, setLoadingRanges] = useState(false);
-  const [dateRanges, setDateRanges] = useState([]);
   const [selectedRange, setSelectedRange] = useState('');
-  const [error, setError] = useState(null);
   
   const { 
     availableYears, 
@@ -21,41 +17,52 @@ const C_GenReports = () => {
     selectedYear, 
     selectedMonth,
     setSelectedYear,
-    setSelectedMonth
+    setSelectedMonth,
+    dateRanges,
+    isLoading,
+    isGeneratingReport, 
+    generateExcelReport, 
+    error,
   } = useAdminDashboard();
   
   const toast = useToast();
   const API_URL = import.meta.env.VITE_API_URL;
 
-  // Fetch available date ranges when year and month change
+  // Reset selectedMonth when year changes
   useEffect(() => {
-    const fetchDateRanges = async () => {
-      if (!selectedYear || !selectedMonth) return;
-      
-      setLoadingRanges(true);
-      setError(null);
-      
-      try {
-        const response = await axios.get(`${API_URL}/report-date-ranges/${selectedYear}/${selectedMonth}`);
-        setDateRanges(response.data);
-        // Auto-select the first date range if available
-        if (response.data.length > 0) {
-          setSelectedRange(`${response.data[0].startDate}_${response.data[0].endDate}`);
-        } else {
-          setSelectedRange('');
-        }
-      } catch (err) {
-        console.error("Error fetching date ranges:", err);
-        setError("Failed to load available date ranges. Please try again.");
-        setDateRanges([]);
-        setSelectedRange('');
-      } finally {
-        setLoadingRanges(false);
-      }
-    };
-    
-    fetchDateRanges();
-  }, [selectedYear, selectedMonth, API_URL]);
+    // Reset month selection when year changes
+    setSelectedMonth(null);
+    // Also reset the selected range
+    setSelectedRange('');
+  }, [selectedYear, setSelectedMonth]);
+
+  // Auto-select the first available month when availableMonths changes and there's no month selected
+  useEffect(() => {
+    if (availableMonths && availableMonths.length > 0 && !selectedMonth) {
+      setSelectedMonth(availableMonths[0]);
+    }
+  }, [availableMonths, selectedMonth, setSelectedMonth]);
+
+  // Update selected range when date ranges change
+  useEffect(() => {
+    if (dateRanges && dateRanges.length > 0) {
+      setSelectedRange(`${dateRanges[0].startDate}_${dateRanges[0].endDate}`);
+    } else {
+      setSelectedRange('');
+    }
+  }, [dateRanges]);
+
+  // Handle year change 
+  const handleYearChange = (e) => {
+    const newYear = Number(e.target.value);
+    setSelectedYear(newYear);
+  };
+
+  // Handle month change
+  const handleMonthChange = (e) => {
+    const newMonth = Number(e.target.value);
+    setSelectedMonth(newMonth);
+  };
 
   const handleGenerateReport = async () => {
     if (!selectedRange) {
@@ -69,22 +76,25 @@ const C_GenReports = () => {
       return;
     }
     
+    if (dateRanges.length === 0) {
+      toast({
+        title: "No data available",
+        description: "There are no date ranges available for the selected period",
+        status: "warning",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+    
     const [startDate, endDate] = selectedRange.split('_');
     
-    setIsLoading(true);
-    
     try {
-      const response = await axios.post(
-        `${API_URL}/generate-excel-report`, 
-        { 
-          startDate, 
-          endDate
-        },
-        { responseType: 'blob' } // Important for file download
-      );
+      // Now use the function from the store
+      const reportData = await generateExcelReport(startDate, endDate);
       
-      // Create a download link
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      // Handle the download in the component (UI concern)
+      const url = window.URL.createObjectURL(new Blob([reportData]));
       const link = document.createElement('a');
       
       // Format filename with date range
@@ -115,79 +125,179 @@ const C_GenReports = () => {
         duration: 5000,
         isClosable: true,
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
-  return (
-    <Box bg="white" p={5}>
-      <Heading as="h1" size="xl" mb={2}>
-        Generate Reports
-      </Heading>
-      <Text color="gray.600" mb={5}>
-        Generate Excel reports based on farmer submissions.
-      </Text>
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
 
-      <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={8}>
-        {/* Excel Report Generation Card */}
-        <Card borderRadius="lg" boxShadow="md" borderWidth="1px" borderColor="gray.200">
-          <CardHeader bg="green.50" borderBottomWidth="1px" borderColor="gray.200">
-            <Flex align="center">
-              <Icon as={FaFileExcel} color="green.500" boxSize={6} mr={3} />
-              <Heading size="md">HVC Supply and Market Profile Report</Heading>
-            </Flex>
-          </CardHeader>
-          
-          <CardBody p={6}>
-            <VStack spacing={6} align="stretch">
-              <Text>Generate weekly reports using the HVC template with data from farmer submissions.</Text>
-              
-              <HStack spacing={4} align="flex-start">
-                <FormControl>
-                  <FormLabel fontWeight="medium">Year</FormLabel>
-                  <Select
-                    value={selectedYear || ''}
-                    onChange={(e) => setSelectedYear(Number(e.target.value))}
-                    isDisabled={!availableYears || availableYears.length === 0}
-                  >
-                    {availableYears && availableYears.map(year => (
-                      <option key={year} value={year}>{year}</option>
-                    ))}
-                  </Select>
-                </FormControl>
-                
-                <FormControl>
-                  <FormLabel fontWeight="medium">Month</FormLabel>
-                  <Select
-                    value={selectedMonth || ''}
-                    onChange={(e) => setSelectedMonth(Number(e.target.value))}
-                    isDisabled={!availableMonths || availableMonths.length === 0}
-                  >
-                    {availableMonths && availableMonths.map(month => (
-                      <option key={month} value={month}>
-                        {new Date(0, month - 1).toLocaleString('default', { month: 'long' })}
-                      </option>
-                    ))}
-                  </Select>
-                </FormControl>
-              </HStack>
+  if (!isOnline) {
+    return (
+      <Box 
+        overflow="hidden" 
+        bg="white" 
+        p={5} 
+        minH="100vh"
+      >
+        <Heading as="h1" size="xl" mb={2} color="black">
+          Generate Reports
+        </Heading>
+        <Alert status="warning" borderRadius="md" mt={4}>
+          <AlertIcon />
+          <Box>
+            <AlertTitle display="flex" alignItems="center">
+              <Icon as={FaWifi} mr={2} /> No Internet Connection
+            </AlertTitle>
+            <AlertDescription>
+              You appear to be offline. Please check your internet connection and try again.
+            </AlertDescription>
+          </Box>
+        </Alert>
+        <Button 
+          mt={4} 
+          colorScheme="blue" 
+          onClick={() => window.location.reload()}
+        >
+          Retry Connection
+        </Button>
+      </Box>
+    );
+  }
+
+    // Show fallback UI when no years data is available
+    if (availableYears.length === 0) {
+      return (
+        <Box 
+          overflow="hidden" 
+          bg="white" 
+          p={5} 
+          minH="100vh"
+        >
+          <Heading as="h1" size="xl" mb={2} color="black">
+            High-Value Crops Metrics
+          </Heading>
+          <Alert status="info" borderRadius="md" mt={4}>
+            <AlertIcon />
+            <AlertTitle>No data available!</AlertTitle>
+            <AlertDescription>
+              There are currently no metrics data available. Please check back later or add some farmer records.
+            </AlertDescription>
+          </Alert>
+        </Box>
+      );
+    }
+
+  // Show error state
+  if (error) {
+    return (
+      <Box 
+        overflow="hidden" 
+        bg="white" 
+        p={5} 
+        minH="100vh"
+      >
+        <Alert status="error" borderRadius="md">
+          <AlertIcon />
+          <AlertTitle>Error loading data!</AlertTitle>
+          <AlertDescription>
+            {error || "Unable to load metrics data. Please try again later."}
+          </AlertDescription>
+        </Alert>
+      </Box>
+    );
+  }
+
+  return (
+    <Box 
+    overflow="hidden" 
+    bg="white" 
+    p={5} 
+    minH="100vh"
+  >
+    <Heading as="h1" size="xl" mb={2}>
+      Generate Reports
+    </Heading>
+    <Text color="gray.600" mb={5}>
+      Generate Excel reports based on farmer submissions.
+    </Text>
+
+    <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={8}>
+      {/* Excel Report Generation Section */}
+      <Box>
+        <Flex 
+          justify="space-between" 
+          align="center" 
+          mb={4}
+          bg="green.50"
+          p={3}
+          borderRadius="md"
+          borderLeftWidth="4px"
+          borderLeftColor="green.500"
+        >
+          <Heading as="h2" size="md" display="flex" alignItems="center">
+            <Icon as={FaFileExcel} mr={2} color="green.600" /> HVC SUPPLY AND MARKET PROFILE REPORT
+          </Heading>
+        </Flex>
+        
+        <Box 
+          p={6}
+          borderRadius="lg" 
+          boxShadow="sm" 
+          borderWidth="1px" 
+          borderColor="gray.200"
+        >
+          <VStack spacing={6} align="stretch">
+            <Text>Generate bi-weekly reports using the HVC template with data from farmer submissions.</Text>
+            
+            <HStack spacing={4} align="flex-start">
+              <FormControl>
+                <FormLabel fontWeight="medium">Year</FormLabel>
+                <Select
+                  value={selectedYear || ''}
+                  onChange={handleYearChange}
+                  isDisabled={!availableYears || availableYears.length === 0}
+                >
+                  {availableYears && availableYears.map(year => (
+                    <option key={year} value={year}>{year}</option>
+                  ))}
+                </Select>
+              </FormControl>
               
               <FormControl>
-                <FormLabel fontWeight="medium" display="flex" alignItems="center">
-                  <Icon as={FaCalendarAlt} mr={2} color="gray.600" />
-                  Date Range
-                </FormLabel>
+                <FormLabel fontWeight="medium">Month</FormLabel>
+                {availableMonths && availableMonths.length !== 0 ? (
+                  <Select
+                  value={selectedMonth || ''}
+                  onChange={handleMonthChange}
+                  isDisabled={!availableMonths || availableMonths.length === 0}
+                >
+                  {availableMonths && availableMonths.map(month => (
+                    <option key={month} value={month}>
+                      {new Date(0, month - 1).toLocaleString('default', { month: 'long' })}
+                    </option>
+                  ))}
+                </Select>
+                ) : (
+                  <Select
+                  isDisabled={!availableMonths || availableMonths.length === 0}
+                  placeholder='No months available'
+                  />
+                )}
                 
-                {loadingRanges ? (
+              </FormControl>
+            </HStack>
+            
+            <FormControl>
+              <FormLabel fontWeight="medium" display="flex" alignItems="center">
+                <Icon as={FaCalendarAlt} mr={2} color="gray.600" />
+                Date Range
+              </FormLabel>
+              
+              {selectedYear && selectedMonth ? (
+                isLoading ? (
                   <Flex justify="center" py={4}>
-                    <Spinner />
+                    <Spinner color="green.500" size="md" thickness="3px" />
+                    <Text ml={3}>Loading available date ranges...</Text>
                   </Flex>
-                ) : error ? (
-                  <Alert status="error" borderRadius="md">
-                    <AlertIcon />
-                    {error}
-                  </Alert>
                 ) : dateRanges.length === 0 ? (
                   <Alert status="info" borderRadius="md">
                     <AlertIcon />
@@ -204,41 +314,61 @@ const C_GenReports = () => {
                       </option>
                     ))}
                   </Select>
-                )}
-              </FormControl>
-              
-              <Divider my={2} />
-              
-              <Button
-                colorScheme="green"
-                leftIcon={<FaDownload />}
-                onClick={handleGenerateReport}
-                isLoading={isLoading}
-                loadingText="Generating..."
-                size="lg"
-                width="100%"
-                isDisabled={!selectedRange || loadingRanges}
-              >
-                Generate Weekly Report
-              </Button>
-            </VStack>
-          </CardBody>
-        </Card>
+                )
+              ) : (
+                <Alert status="info" borderRadius="md">
+                  <AlertIcon />
+                  Please select both a year and month first
+                </Alert>
+              )}
+            </FormControl>
+            
+            <Divider my={2} />
+            
+            <Button
+              colorScheme="green"
+              leftIcon={<FaDownload />}
+              onClick={handleGenerateReport}
+              isLoading={isGeneratingReport}
+              loadingText="Generating..."
+              size="lg"
+              width="100%"
+              isDisabled={!selectedMonth || dateRanges.length === 0 || isLoading}
+            >
+              Generate Report
+            </Button>
+          </VStack>
+        </Box>
+      </Box>
         
-        {/* Information Card */}
-        <Card borderRadius="lg" boxShadow="md" borderWidth="1px" borderColor="gray.200">
-          <CardHeader bg="blue.50" borderBottomWidth="1px" borderColor="gray.200">
-            <Flex align="center">
-              <Icon as={FaChartBar} color="blue.500" boxSize={6} mr={3} />
-              <Heading size="md">Report Information</Heading>
-            </Flex>
-          </CardHeader>
+        {/* Information Section */}
+        <Box>
+          <Flex 
+            justify="space-between" 
+            align="center" 
+            mb={4}
+            bg="blue.50"
+            p={3}
+            borderRadius="md"
+            borderLeftWidth="4px"
+            borderLeftColor="blue.500"
+          >
+            <Heading as="h2" size="md" display="flex" alignItems="center">
+              <Icon as={FaChartBar} mr={2} color="blue.600" /> REPORT INFORMATION
+            </Heading>
+          </Flex>
           
-          <CardBody p={6}>
+          <Box 
+            p={6}
+            borderRadius="lg" 
+            boxShadow="sm" 
+            borderWidth="1px" 
+            borderColor="gray.200"
+          >
             <VStack spacing={5} align="stretch">
               <Text>
                 These reports contain data from farmer submissions that have been validated and processed 
-                into the unified records system.
+                into the records system.
               </Text>
               
               <Box>
@@ -266,8 +396,8 @@ const C_GenReports = () => {
                 Generated Excel files can be edited after download if additional customization is needed.
               </Text>
             </VStack>
-          </CardBody>
-        </Card>
+          </Box>
+        </Box>
       </SimpleGrid>
     </Box>
   );

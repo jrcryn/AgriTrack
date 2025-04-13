@@ -34,9 +34,13 @@ import {
   Select,
   InputRightAddon,
   useToast,
+  Alert,
+  AlertIcon,
+  AlertTitle,
+  AlertDescription
 } from '@chakra-ui/react';
 import numOfTreesToHectares from '../components/conversions.js';
-import { FaSearch, FaEye, FaSeedling, FaBoxes, FaUser, FaLeaf } from 'react-icons/fa';
+import { FaSearch, FaEye, FaSeedling, FaBoxes, FaUser, FaLeaf, FaWifi } from 'react-icons/fa';
 import { useAdminDashboard } from '../store/adminDashboard.store.js';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -100,6 +104,63 @@ const Responses = () => {
   const currentHarvesting = harvestingResponses.slice((harvestingPage - 1) * 5, harvestingPage * 5);
   const harvestingTotalPages = Math.ceil(harvestingResponses.length / 5);
   
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  // Show offline state
+    if (!isOnline) {
+      return (
+        <Box 
+          overflow="hidden" 
+          bg="white" 
+          p={5} 
+          minH="100vh"
+        >
+          <Heading as="h1" size="xl" mb={2} color="black">
+            New Responses
+          </Heading>
+          <Alert status="warning" borderRadius="md" mt={4}>
+            <AlertIcon />
+            <Box>
+              <AlertTitle display="flex" alignItems="center">
+                <Icon as={FaWifi} mr={2} /> No Internet Connection
+              </AlertTitle>
+              <AlertDescription>
+                You appear to be offline. Please check your internet connection and try again.
+              </AlertDescription>
+            </Box>
+          </Alert>
+          <Button 
+            mt={4} 
+            colorScheme="blue" 
+            onClick={() => window.location.reload()}
+          >
+            Retry Connection
+          </Button>
+        </Box>
+      );
+    }
+  
+    // Show error state
+    if (error) {
+      return (
+        <Box 
+          overflow="hidden" 
+          bg="white" 
+          p={5} 
+          minH="100vh"
+        >
+          <Alert status="error" borderRadius="md">
+            <AlertIcon />
+            <AlertTitle>Error loading data!</AlertTitle>
+            <AlertDescription>
+              {error || "Unable to load new farmer responses. Please try again later."}
+            </AlertDescription>
+          </Alert>
+        </Box>
+      );
+    }
+
+
   // Table component to reuse for both sections
   const ResponseTable = ({ data, status }) => (
     <TableContainer>
@@ -860,7 +921,8 @@ const Responses = () => {
           
             {isLoading ? (
               <Flex justifyContent="center" alignItems="center" minH="200px">
-                <Spinner size="xl" color="blue.500" />
+                <Spinner size="lg" color="green.500" thickness="3px" />
+                <Text ml={5}>Loading newly planted responses...</Text>
               </Flex>
             ) : (
             <Box overflowX="auto" >
@@ -899,7 +961,8 @@ const Responses = () => {
           
             {isLoading ? (
               <Flex justifyContent="center" alignItems="center" minH="200px">
-                <Spinner size="xl" color="blue.500" />
+                <Spinner size="lg" color="orange.500" thickness="3px" />
+                <Text ml={5}>Loading harvesting responses...</Text>
               </Flex>
             ) : (
             <Box overflowX="auto">

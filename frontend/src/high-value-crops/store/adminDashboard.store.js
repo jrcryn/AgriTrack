@@ -10,6 +10,7 @@ export const useUnvalidatedInputsQuery = () =>
   useQuery({
     queryKey: ['unvalidatedInputs'],
     queryFn: async () => {
+
       const response = await axios.get(`${API_URL}/get-unvalidated-inputs`);
       return response.data;
     },
@@ -51,6 +52,7 @@ export const useFarmerAccountsQuery = () =>
   useQuery({
     queryKey: ['farmerAccounts'],
     queryFn: async () => {
+
       const response = await axios.get(`${API_URL}/get-farmer-accounts`);
       return response.data;
     },
@@ -90,17 +92,25 @@ export const useMetricsForYearMonthQuery = (year, month) =>
       return response.data;
     },
     enabled: !!(year && month), // Only run if both year and month are provided
+    staleTime: 0, // Data is always fresh
+    refetchInterval: 1000 // Refetch every second
   });
 
+//for report generation, date ranges
+export const useDateRangesQuery = (year, month) => 
+  useQuery({
+    queryKey: ['dateRanges', year, month],
+    queryFn: async () => {
+      if (!year || !month) return [];
 
-// Zustand store for UI state management
-export const useAdminDashboardStore = create((set) => ({
-  error: null,
-  
-  // Error handling
-  setError: (error) => set({ error }),
-  clearError: () => set({ error: null })
-}));
+      const response = await axios.get(`${API_URL}/report-date-ranges/${year}/${month}`);
+      return response.data;
+    },
+    enabled: !!(year && month), // Only run if both year and month are provided
+    staleTime: 0, // Data is always fresh
+    refetchInterval: 1000 // Refetch every second
+  });
+
 
 
 // Composite hook that combines React Query and Zustand
@@ -109,7 +119,6 @@ export const useAdminDashboard = () => {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(null);
 
-  const { error, setError, clearError } = useAdminDashboardStore();
   const { data: unvalidatedInputs = [], isLoading: isLoadingUnvalidated, error: unvalidatedError } = useUnvalidatedInputsQuery();
   const { data: validatedInputs = [], isLoading: isLoadingValidated, error: validatedError } = useValidatedInputsQuery();
   const { mutate: updateFarmerInput, isPending: isUpdating, error: updateError } = useUpdateFarmerInputMutation();
@@ -119,8 +128,12 @@ export const useAdminDashboard = () => {
   const { data: availableMonths = [], isLoading: isLoadingUFRM } = useUnifiedFarmerResponseMonthsQuery(selectedYear);
   const { data: metricsData, isLoading: isLoadingMetrics } = useMetricsForYearMonthQuery(selectedYear, selectedMonth);
 
+  const { data: dateRanges = [], isLoading: isLoadingDateRanges, error: dateRangesError } = useDateRangesQuery(selectedYear, selectedMonth);
+
   const [isCreatingUnifiedResponse, setIsCreatingUnifiedResponse] = useState(false);
   const [isCreatingFarmerAccount, setIsCreatingFarmerAccount] = useState(false);
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [isUpdatingFarmerAccount, setIsUpdatingFarmerAccount] = useState(false);
 
 
   useEffect(() => {
@@ -172,11 +185,50 @@ export const useAdminDashboard = () => {
     }
   };
 
+  const generateExcelReport = async (startDate, endDate) => {
+    setIsGeneratingReport(true);
+    try {
+      const response = await axios.post(
+        `${API_URL}/generate-excel-report`, 
+        { 
+          startDate, 
+          endDate
+        },
+        { responseType: 'blob' } // Important for file download
+      );
+      return response.data;
+    } catch (error) {
+      setError(error.message || 'Failed to generate Excel report');
+      throw error;
+    } finally {
+      setIsGeneratingReport(false);
+    }
+  };
+
+  const updateFarmerAccount = async (farmerId, updateData) => {
+    setIsUpdatingFarmerAccount(true);
+    try {
+      const response = await axios.put(`${API_URL}/farmer-accounts/update`, { 
+        farmerId,
+        ...updateData
+      });
+      return response.data;
+    } catch (error) {
+      setError(error.message || 'Failed to update farmer account');
+      throw error;
+    }
+    finally {
+      setIsUpdatingFarmerAccount(false);
+    }
+  };
+
+
   // Combine errors from different sources
   if (unvalidatedError) setError(unvalidatedError.message || 'Failed to fetch unvalidated inputs');
   if (validatedError) setError(validatedError.message || 'Failed to fetch validated inputs');
   if (updateError) setError(updateError.message || 'Failed to update farmer input');
   if (accountsError) setError(accountsError.message || 'Failed to fetch farmer accounts');
+  if (dateRangesError) setError(dateRangesError.message || 'Failed to fetch date ranges');
 
   return {
     // Data
@@ -191,20 +243,25 @@ export const useAdminDashboard = () => {
     selectedMonth,
     setSelectedYear,
     setSelectedMonth,
+    dateRanges,
     
     // Loading states
-    isLoading: isLoadingUnvalidated || isLoadingValidated || isLoadingAccounts || isLoadingMetrics || isLoadingUFRY || isLoadingUFRM,
+    isLoading: isLoadingUnvalidated || isLoadingValidated || isLoadingAccounts || isLoadingMetrics || isLoadingUFRY || isLoadingUFRM || isLoadingDateRanges,
     isUpdating,
     isCreatingUnifiedResponse,
     isCreatingFarmerAccount,
+    isGeneratingReport,
+    isUpdatingFarmerAccount,
     
     // Error state
-    error,
-    
+    error: unvalidatedError || validatedError || updateError || accountsError || dateRangesError,
+    clearError: () => setError(null),
+
     // Actions
     updateFarmerInput,
-    clearError,
     createFarmerAccount,
-    createUnifiedFarmerResponse
+    createUnifiedFarmerResponse,
+    generateExcelReport,
+    updateFarmerAccount
   };
 };

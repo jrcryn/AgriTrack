@@ -1,5 +1,6 @@
 
 import mongoose from 'mongoose';
+import { getHighValueCropsDB } from '../../config/dbAccessHelper.js'; // import hcv db access
 
 
 //________________________________ FARMERS NEW RESPONSES PAGE ____________________________________
@@ -310,94 +311,6 @@ const getCompleteRecordById = async (farmerId) => {
 };
 
 
-//________________________________ FARMERS ACCOUNT MANAGEMENT PAGE ____________________________________
-
-
-const getNextSequence = async (key) => {
-  const counter = await global.highValueCropsModels.Counter.findOneAndUpdate(
-    { _id: key },
-    { $inc: { seq: 1 } },
-    { new: true, upsert: true }
-  );
-  return counter.seq;
-}
-
-// Create a new farmer account
-export const createFarmerAccount = async (req, res) => {
-  const { surname, first_name, middle_name, suffix, farmer_barangay, mobile_number, facebook, birthdate } = req.body;
-  if (!surname || !first_name || !farmer_barangay) {
-    return res.status(400).json({ message: 'Please provide all the required fields.' });
-  }
-
-  // Check if farmer already exists
-  if (first_name || mobile_number) {
-    const farmerAlreadyExists = await global.highValueCropsModels.FarmerAccount.findOne({ first_name }, { mobile_number });
-    if (farmerAlreadyExists) {
-      return res.status(400).json({ message: 'Farmer already exists in the system.' });
-    }
-  };
-
-  try {
-    const newNumber = await getNextSequence('farmer_account');
-    const middleInitial = middle_name ? middle_name.charAt(0) : '';
-    const firstInitials = first_name.split(' ').slice(0, 2).map(word => word.charAt(0)).join('');
-    const initials = `${firstInitials}${middleInitial}${surname.charAt(0)}`;
-    const formattedNumber = String(newNumber).padStart(4, '0');
-    const farmerId = `F-${initials}-${formattedNumber}`;
-
-    const newFarmerAccount = await global.highValueCropsModels.FarmerAccount.create({
-      farmerId,
-      surname,
-      first_name,
-      middle_name,
-      suffix,
-      farmer_barangay,
-      mobile_number,
-      facebook,
-      birthdate
-    });
-    return res.status(201).json({
-      message: 'Farmer account created successfully',
-      data: newFarmerAccount,
-    });
-  } catch (error) {
-    return res.status(500).json({ message: 'Error creating farmer account', error });
-  }
-};
-
-
-// Get all farmer accounts
-export const getFarmerAccounts = async (req, res) => {
-  try {
-    const farmerAccounts = await global.highValueCropsModels.FarmerAccount.find().lean();
-    res.json(farmerAccounts);
-  } catch (error) {
-    res.status(500).json({ message: 'Error fetching farmer accounts', error: error.message });
-  }
-};
-
-
-// Get a single farmer account by ID
-export const getFarmerAccountById = async (req, res) => {
-  const {farmerId} = req.body;
-  if (!farmerId) {
-    return res.status(400).json({ message: 'Farmer ID is required' });
-  }
-
-  try {
-    const farmerAccount = await global.highValueCropsModels.FarmerAccount.findOne({ farmerId: farmerId }).lean();
-    if (!farmerAccount) {
-      return res.status(404).json({ message: 'Farmer account not found' });
-    }
-    farmerAccount.farmer_address = '';
-
-    res.json(farmerAccount);
-  } catch (error) {
-    res.status(500).json({ message: 'Error fetching farmer account', error: error.message });
-  }
-};
-
-
 // Create unified farmer response
 export const createUnifiedFarmerResponse = async (req, res) => {
   const { 
@@ -506,34 +419,182 @@ const deleteRelatedDocuments = async (farmerId) => {
 };
 
 
+//________________________________ FARMERS ACCOUNT MANAGEMENT PAGE ____________________________________
+
+
+const getNextSequence = async (key) => {
+  const counter = await global.highValueCropsModels.Counter.findOneAndUpdate(
+    { _id: key },
+    { $inc: { seq: 1 } },
+    { new: true, upsert: true }
+  );
+  return counter.seq;
+}
+
+// Create a new farmer account
+export const createFarmerAccount = async (req, res) => {
+  const { surname, first_name, middle_name, suffix, farmer_barangay, mobile_number, facebook, birthdate } = req.body;
+  if (!surname || !first_name || !farmer_barangay) {
+    return res.status(400).json({ message: 'Please provide all the required fields.' });
+  }
+
+  // Check if farmer already exists
+  if (first_name || mobile_number) {
+    const farmerAlreadyExists = await global.highValueCropsModels.FarmerAccount.findOne({ first_name }, { mobile_number });
+    if (farmerAlreadyExists) {
+      return res.status(400).json({ message: 'Farmer already exists in the system.' });
+    }
+  };
+
+  try {
+    const newNumber = await getNextSequence('farmer_account');
+    const middleInitial = middle_name ? middle_name.charAt(0) : '';
+    const firstInitials = first_name.split(' ').slice(0, 2).map(word => word.charAt(0)).join('');
+    const initials = `${firstInitials}${middleInitial}${surname.charAt(0)}`;
+    const formattedNumber = String(newNumber).padStart(4, '0');
+    const farmerId = `F-${initials}-${formattedNumber}`;
+
+    const newFarmerAccount = await global.highValueCropsModels.FarmerAccount.create({
+      farmerId,
+      surname,
+      first_name,
+      middle_name,
+      suffix,
+      farmer_barangay,
+      mobile_number,
+      facebook,
+      birthdate
+    });
+    return res.status(201).json({
+      message: 'Farmer account created successfully',
+      data: newFarmerAccount,
+    });
+  } catch (error) {
+    return res.status(500).json({ message: 'Error creating farmer account', error });
+  }
+};
+
+
+// Get all farmer accounts
+export const getFarmerAccounts = async (req, res) => {
+  try {
+    const farmerAccounts = await global.highValueCropsModels.FarmerAccount.find().lean();
+    res.json(farmerAccounts);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching farmer accounts', error: error.message });
+  }
+};
+
+
+// Get a single farmer account by ID
+export const getFarmerAccountById = async (req, res) => {
+  const {farmerId} = req.body;
+  if (!farmerId) {
+    return res.status(400).json({ message: 'Farmer ID is required' });
+  }
+
+  try {
+    const farmerAccount = await global.highValueCropsModels.FarmerAccount.findOne({ farmerId: farmerId }).lean();
+    if (!farmerAccount) {
+      return res.status(404).json({ message: 'Farmer account not found' });
+    }
+    farmerAccount.farmer_address = '';
+
+    res.json(farmerAccount);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching farmer account', error: error.message });
+  }
+};
+
+
+// Update a farmer account by ID
+export const updateFarmerAccount = async (req, res) => {
+  const { farmerId, surname, first_name, middle_name, suffix, farmer_barangay, mobile_number, facebook, birthdate } = req.body;
+  
+  if (!farmerId) {
+    return res.status(400).json({ message: 'Farmer ID is required' });
+  }
+
+  try {
+    // Find the farmer by ID
+    const farmerAccount = await global.highValueCropsModels.FarmerAccount.findOne({ farmerId });
+    
+    if (!farmerAccount) {
+      return res.status(404).json({ message: 'Farmer account not found' });
+    }
+
+    // Update only the fields that are provided
+    if (surname) farmerAccount.surname = surname;
+    if (first_name) farmerAccount.first_name = first_name;
+    if (middle_name !== undefined) farmerAccount.middle_name = middle_name;
+    if (suffix !== undefined) farmerAccount.suffix = suffix;
+    if (farmer_barangay) farmerAccount.farmer_barangay = farmer_barangay;
+    if (mobile_number !== undefined) farmerAccount.mobile_number = mobile_number;
+    if (facebook !== undefined) farmerAccount.facebook = facebook;
+    if (birthdate !== undefined) farmerAccount.birthdate = birthdate;
+
+    // Save the updated farmer account
+    const updatedFarmer = await farmerAccount.save();
+    
+    return res.status(200).json({
+      message: 'Farmer account updated successfully',
+      data: updatedFarmer
+    });
+  } catch (error) {
+    return res.status(500).json({ 
+      message: 'Error updating farmer account', 
+      error: error.message 
+    });
+  }
+};
+
+
 //________________________________ DASHBOARD (METRICS) PAGE ____________________________________
+
+
 
 
 // Get available years from unified farmer record collections
 export const getAvailableMetricsYears = async (req, res) => {
   try {
-    // Get all collection names from MongoDB
-    const collections = await mongoose.connection.db.listCollections().toArray();
+    // Get the specific database connection for high-value-crops
+    const db = getHighValueCropsDB();
 
-    
-    // Define a regex pattern to extract years from collection names
-    const yearPattern = /unified_farmer_records_(\d{4})/;
-    const years = collections
-      .map(collection => {
-        const match = collection.name.match(yearPattern);
-        return match ? parseInt(match[1], 10) : null;
-      })
-      .filter(year => year !== null)
-      .sort((a, b) => b - a); // Sort descending (newest first)
+    // Get all collection names from the correct MongoDB database using the native driver's Db object (makikita parin kahit walang laman yung collection)
+    const collections = await db.db.listCollections({}, { nameOnly: true }).toArray(); 
+    // Define a case-insensitive regex pattern to extract years from collection names
+    const yearPattern = /unified_farmer_records_(\d{4})/i;
+
+    // Extract and validate years
+    let years = [];
+    for (const collection of collections) {
+      const match = collection.name.match(yearPattern);
+      if (match) {
+        const year = parseInt(match[1], 10);
+        // Validate it's a reasonable year (between 2000 and 2100)
+        if (year >= 2000 && year <= 2100) {
+          years.push(year);
+        }
+      }
+    }
+
+    // Sort years descending (newest first)
+    years.sort((a, b) => b - a);
 
     // If no collections found, return current year as fallback
     if (years.length === 0) {
-      years.push(new Date().getFullYear());
+      const currentYear = new Date().getFullYear();
+      years.push(currentYear);
+      console.log('No matching collections found, using current year fallback:', currentYear);
     }
-    
+
     res.json(years);
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching available years', error: error.message });
+    console.error('Error fetching available years:', error);
+    res.status(500).json({
+      message: 'Error fetching available years',
+      error: error.message
+    });
   }
 };
 
