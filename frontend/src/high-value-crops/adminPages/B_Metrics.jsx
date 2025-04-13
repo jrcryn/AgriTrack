@@ -32,6 +32,7 @@ import { FaChartLine, FaUsers, FaLeaf, FaSeedling, FaBoxes, FaCalendarAlt, FaWif
 import { useAdminDashboard } from "../store/adminDashboard.store";
 import Barangays from "../../components/barangays.js";
 import Commodities from "../../components/commodities.js";
+import NetworkStatusAlert from "../../components/networkStatusAlert.jsx";
 
 const Metrics = () => {
   // Get data from the store (similar to E_Farmers.jsx)
@@ -85,43 +86,6 @@ const Metrics = () => {
     areaHarvested: 0,
     volumeProduction: 0
   };
-
-  // state for internet connection status
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
-
-  // Show offline state
-  if (!isOnline) {
-    return (
-      <Box 
-        overflow="hidden" 
-        bg="white" 
-        p={5} 
-        minH="100vh"
-      >
-        <Heading as="h1" size="xl" mb={2} color="black">
-          High-Value Crops Metrics
-        </Heading>
-        <Alert status="warning" borderRadius="md" mt={4}>
-          <AlertIcon />
-          <Box>
-            <AlertTitle display="flex" alignItems="center">
-              <Icon as={FaWifi} mr={2} /> No Internet Connection
-            </AlertTitle>
-            <AlertDescription>
-              You appear to be offline. Please check your internet connection and try again.
-            </AlertDescription>
-          </Box>
-        </Alert>
-        <Button 
-          mt={4} 
-          colorScheme="blue" 
-          onClick={() => window.location.reload()}
-        >
-          Retry Connection
-        </Button>
-      </Box>
-    );
-  }
 
   // Show error state
   if (error) {
