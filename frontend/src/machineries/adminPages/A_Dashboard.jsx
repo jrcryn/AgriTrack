@@ -1,7 +1,7 @@
 import React from 'react'
 import { Box, Container, Heading, Text, VStack, Button } from "@chakra-ui/react";
 
-const TestPage = () => {
+const Dashboard = () => {
   return (
     <Container maxW="container.md" py={10}>
       <VStack spacing={5} align="stretch">
@@ -33,4 +33,4 @@ const TestPage = () => {
   )
 }
 
-export default TestPage
+export default Dashboard

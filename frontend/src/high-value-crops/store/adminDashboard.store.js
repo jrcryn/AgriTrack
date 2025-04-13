@@ -64,6 +64,8 @@ export const useUnifiedFarmerResponseYearQuery = () =>
   useQuery({
     queryKey: ['availableYears'],
     queryFn: async () => {
+      await new Promise(resolve => setTimeout(resolve, 5000));
+
       const response = await axios.get(`${API_URL}/metrics/available-years`);
       return response.data;
     },
