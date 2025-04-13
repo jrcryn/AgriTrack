@@ -40,7 +40,7 @@ import {
   AlertDescription,
   Checkbox,
 } from '@chakra-ui/react';
-import numOfTreesToHectares from '../components/conversions.js';
+import numOfTreesToHectares from '../../components/conversions.js';
 import { FaSearch, FaEye, FaSeedling, FaBoxes, FaUser, FaLeaf, FaWifi, FaUpload } from 'react-icons/fa';
 import { useAdminDashboard } from '../store/adminDashboard.store.js';
 import { useQueryClient } from '@tanstack/react-query';

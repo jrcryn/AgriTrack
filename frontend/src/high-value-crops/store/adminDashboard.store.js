@@ -85,18 +85,35 @@ export const useUnifiedFarmerResponseMonthsQuery = (year) =>
     refetchInterval: 1000 // Refetch every second
   });
 
-export const useMetricsForYearMonthQuery = (year, month) => 
-  useQuery({
-    queryKey: ['metricsData', year, month],
-    queryFn: async () => {
-      if (!year || !month) return null;
-      const response = await axios.get(`${API_URL}/metrics/data/${year}/${month}`);
-      return response.data;
-    },
-    enabled: !!(year && month), // Only run if both year and month are provided
-    staleTime: 0, // Data is always fresh
-    refetchInterval: 1000 // Refetch every second
-  });
+  export const useMetricsForYearMonthQuery = (year, month, barangay, commodity) => 
+    useQuery({
+      queryKey: ['metricsData', year, month, barangay, commodity],
+      queryFn: async () => {
+        if (!year || !month) return null;
+        
+        let url = `${API_URL}/metrics/data/${year}/${month}`;
+        const params = new URLSearchParams();
+        
+        if (barangay) {
+          params.append('farm_location', barangay);
+        }
+        
+        if (commodity) {
+          params.append('commodity', commodity);
+        }
+        
+        // Append query params if any exist
+        if (params.toString()) {
+          url += `?${params.toString()}`;
+        }
+        
+        const response = await axios.get(url);
+        return response.data;
+      },
+      enabled: !!(year && month), // Only run if both year and month are provided
+      staleTime: 0,
+      refetchInterval: 1000
+    });
 
 //for report generation, date ranges
 export const useDateRangesQuery = (year, month) => 
@@ -120,6 +137,8 @@ export const useAdminDashboard = () => {
 
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(null);
+  const [selectedBarangay, setSelectedBarangay] = useState('');
+  const [selectedCommodity, setSelectedCommodity] = useState('');
 
   const { data: unvalidatedInputs = [], isLoading: isLoadingUnvalidated, error: unvalidatedError } = useUnvalidatedInputsQuery();
   const { data: validatedInputs = [], isLoading: isLoadingValidated, error: validatedError } = useValidatedInputsQuery();
@@ -128,8 +147,12 @@ export const useAdminDashboard = () => {
 
   const { data: availableYears = [], isLoading: isLoadingUFRY } = useUnifiedFarmerResponseYearQuery();
   const { data: availableMonths = [], isLoading: isLoadingUFRM } = useUnifiedFarmerResponseMonthsQuery(selectedYear);
-  const { data: metricsData, isLoading: isLoadingMetrics } = useMetricsForYearMonthQuery(selectedYear, selectedMonth);
-
+  const { data: metricsData, isLoading: isLoadingMetrics } = useMetricsForYearMonthQuery(
+    selectedYear, 
+    selectedMonth,
+    selectedBarangay || null,  // Pass as null if empty string
+    selectedCommodity || null  // Pass as null if empty string
+  );
   const { data: dateRanges = [], isLoading: isLoadingDateRanges, error: dateRangesError } = useDateRangesQuery(selectedYear, selectedMonth);
 
   const [isCreatingUnifiedResponse, setIsCreatingUnifiedResponse] = useState(false);
@@ -245,6 +268,10 @@ export const useAdminDashboard = () => {
     selectedMonth,
     setSelectedYear,
     setSelectedMonth,
+    selectedBarangay,
+    setSelectedBarangay,
+    selectedCommodity,
+    setSelectedCommodity,
     dateRanges,
     
     // Loading states

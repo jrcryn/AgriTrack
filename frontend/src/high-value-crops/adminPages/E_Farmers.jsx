@@ -44,7 +44,7 @@ import {
 import { FaSearch, FaEye, FaEdit, FaUserPlus, FaUsers, FaUser, FaAddressCard, FaWifi } from "react-icons/fa";
 import { useAdminDashboard } from '../store/adminDashboard.store';
 import { useQueryClient } from '@tanstack/react-query';
-import Barangays from '../components/barangays';
+import Barangays from '../../components/barangays';
 
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";

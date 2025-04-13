@@ -13,7 +13,7 @@ import {
   Select,
   Input
 } from '@chakra-ui/react';
-import IndusCrops from '../components/indusCrops.js';
+import IndusCrops from '../../components/indusCrops.js';
 import { useFarmerFormStore } from '../store/farmerForm.store.js';
 
 const CropRecordsIndus = ({ onNext, onBack }) => {

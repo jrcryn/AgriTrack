@@ -19,10 +19,19 @@ import {
   AlertTitle,
   AlertDescription,
   Center,
+  FormLabel,
+  Tag,
+  TagLabel,
+  TagCloseButton,
+  Divider,
+  SimpleGrid,
+  FormControl
 } from "@chakra-ui/react";
 import { InfoIcon } from "@chakra-ui/icons";
 import { FaChartLine, FaUsers, FaLeaf, FaSeedling, FaBoxes, FaCalendarAlt, FaWifi } from "react-icons/fa";
 import { useAdminDashboard } from "../store/adminDashboard.store";
+import Barangays from "../../components/barangays.js";
+import Commodities from "../../components/commodities.js";
 
 const Metrics = () => {
   // Get data from the store (similar to E_Farmers.jsx)
@@ -33,6 +42,10 @@ const Metrics = () => {
     selectedMonth,
     setSelectedYear,
     setSelectedMonth,
+    selectedBarangay,     
+    setSelectedBarangay,  
+    selectedCommodity,    
+    setSelectedCommodity, 
     metricsData,
     isLoading,
     isLoadingUFRY,
@@ -43,7 +56,6 @@ const Metrics = () => {
     console.log("Year:", selectedYear, "Month:", selectedMonth);
     console.log("Metrics data:", metricsData);
   }, [selectedYear, selectedMonth, metricsData]);
-  
   
   // Month names array for display purposes (converting numeric month to name)
   const months = [
@@ -182,6 +194,12 @@ const Metrics = () => {
     );
   }
 
+  // Handle filter reset
+  const handleResetFilters = () => {
+    setSelectedBarangay('');
+    setSelectedCommodity('');
+  };
+
   return (
       <Box 
         overflow="hidden" 
@@ -196,61 +214,153 @@ const Metrics = () => {
           Overview of planting and harvesting activities across calamba. Go to SEE MORE for farmer response sorting.
         </Text>
       
-        {/* Year and Month Selector */}
-        <Flex 
-          direction={{ base: "column", md: "row" }} 
-          mb={6} 
+        <Flex
+          direction="column"
+          mb={6}
           gap={4}
           p={4}
           bg="blue.50"
           borderRadius="md"
-          alignItems="center"
+          boxShadow="sm"
         >
-          <HStack spacing={2}>
-            <Icon as={FaCalendarAlt} color="blue.500" />
-            <Text fontWeight="medium">Filter by:</Text>
-          </HStack>
-          <HStack spacing={4} flex={1} wrap="wrap">
-            <Select 
-              value={selectedYear} 
-              onChange={(e) => setSelectedYear(Number(e.target.value))}
-              width={{ base: "full", md: "xs" }}
-              bg="white"
-            >
-              {availableYears.map((year) => (
-                <option key={year} value={year}>
-                  {year}
-                </option>
-              ))}
-            </Select>
-            
-            <Select 
-              value={selectedMonth || ""}
-              onChange={(e) => {
-                const value = e.target.value;
-                if (value === "") {
-                  setSelectedMonth(null);
-                } else {
-                  setSelectedMonth(Number(value));
-                  console.log("Month selected:", Number(value)); // Debug log
-                }
-              }}
-              width={{ base: "full", md: "xs" }}
-              bg="white"
-              isDisabled={availableMonths.length === 0}
-            >
-              {availableMonths.length === 0 ? (
-                <option value="">No months available</option>
-              ) : (
-                availableMonths.map((month) => (
-                  <option key={month} value={month}>
-                    {months[month - 1]}
+          {/* Header: "Filter by:" */}
+          <Flex direction={{ base: "column", md: "row" }} alignItems="center">
+            <Icon as={FaCalendarAlt} boxSize={5} color="blue.500" mr={2} />
+            <Text fontWeight="medium" mr={2} minW={{ base: "auto", md: "80px" }}>
+              Filter by:
+            </Text>
+          </Flex>
+
+          {/* Filter controls section (using SimpleGrid for responsive layout) */}
+          <SimpleGrid columns={{ base: 1, md: 4 }} spacing={4}>
+            <FormControl>
+              <FormLabel fontSize="sm" fontWeight="medium">
+                Year
+              </FormLabel>
+              <Select
+                value={selectedYear}
+                onChange={(e) => {
+                  setSelectedYear(Number(e.target.value));
+                  setSelectedBarangay("");
+                  setSelectedCommodity("");
+                }}
+                bg="white"
+                size="md"
+              >
+                {availableYears.map((year) => (
+                  <option key={year} value={year}>
+                    {year}
                   </option>
-                ))
-              )}
-            </Select>
-          </HStack>
+                ))}
+              </Select>
+            </FormControl>
+
+            <FormControl>
+              <FormLabel fontSize="sm" fontWeight="medium">
+                Month
+              </FormLabel>
+              <Select
+                value={selectedMonth || ""}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setSelectedMonth(value === "" ? null : Number(value));
+                }}
+                bg="white"
+                size="md"
+                isDisabled={availableMonths.length === 0}
+              >
+                {availableMonths.length === 0 ? (
+                  <option value="">No months available</option>
+                ) : (
+                  <>
+                    <option value="">All Months</option>
+                    {availableMonths.map((month) => (
+                      <option key={month} value={month}>
+                        {months[month - 1]}
+                      </option>
+                    ))}
+                  </>
+                )}
+              </Select>
+            </FormControl>
+
+            <FormControl>
+              <FormLabel fontSize="sm" fontWeight="medium">
+                Barangay
+              </FormLabel>
+              <Select
+                placeholder="All Barangays"
+                value={selectedBarangay}
+                onChange={(e) => setSelectedBarangay(e.target.value)}
+                bg="white"
+                size="md"
+              >
+                {Barangays.map((barangay) => (
+                  <option key={barangay} value={barangay}>
+                    {barangay}
+                  </option>
+                ))}
+              </Select>
+            </FormControl>
+
+            <FormControl>
+              <FormLabel fontSize="sm" fontWeight="medium">
+                Commodity
+              </FormLabel>
+              <Select
+                placeholder="All Commodities"
+                value={selectedCommodity}
+                onChange={(e) => setSelectedCommodity(e.target.value)}
+                bg="white"
+                size="md"
+              >
+                {Commodities.map((commodity) => (
+                  <option key={commodity} value={commodity}>
+                    {commodity}
+                  </option>
+                ))}
+              </Select>
+            </FormControl>
+          </SimpleGrid>
+
+          {/* Active filters and reset button row */}
+          {(selectedBarangay || selectedCommodity) && (
+            <Flex direction={{ base: "column", md: "row" }} align="center" mt={1}>
+              {/* Active Filters Group */}
+              <Flex align="center" gap={2} wrap="wrap">
+                <Text fontWeight="medium">Active filters:</Text>
+                <Flex wrap="wrap" gap={2}>
+                  {selectedBarangay && (
+                    <Tag size="md" borderRadius="full" variant="subtle" colorScheme="blue">
+                      <TagLabel>Barangay: {selectedBarangay}</TagLabel>
+                      <TagCloseButton onClick={() => setSelectedBarangay("")} />
+                    </Tag>
+                  )}
+                  {selectedCommodity && (
+                    <Tag size="md" borderRadius="full" variant="subtle" colorScheme="green">
+                      <TagLabel>Commodity: {selectedCommodity}</TagLabel>
+                      <TagCloseButton onClick={() => setSelectedCommodity("")} />
+                    </Tag>
+                  )}
+                </Flex>
+              </Flex>
+
+              {/* Reset Button */}
+              <Button
+                colorScheme="blue"
+                variant="outline"
+                size="sm"
+                onClick={handleResetFilters}
+                ml={{ base: 0, md: "auto" }}
+                mt={{ base: 2, md: 0 }}
+              >
+                Reset Filters
+              </Button>
+            </Flex>
+          )}
         </Flex>
+
+
       
         {/* NEWLY PLANTED SECTION */}
         <Box mb={8}>

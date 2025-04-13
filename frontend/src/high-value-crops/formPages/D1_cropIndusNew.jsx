@@ -13,7 +13,7 @@ import {
   RadioGroup,
   Select,
 } from '@chakra-ui/react';
-import DateMonthOptions from '../components/dateMonthOptions.js';
+import DateMonthOptions from '../../components/dateMonthOptions.js';
 import { useFarmerFormStore } from '../store/farmerForm.store.js';
 
 const CropIndusNew = ({ onNext, onBack }) => {

@@ -20,7 +20,7 @@ import {
 } from '@chakra-ui/react';
 import { useFarmerFormStore } from '../store/farmerForm.store.js';
 import { useAdminDashboard } from '../store/adminDashboard.store.js';
-import Barangays from '../components/barangays';
+import Barangays from '../../components/barangays';
 import { FaUserCheck, FaSearch } from 'react-icons/fa';
 
 const FarmerInput = ({ onNext, onBack }) => {
