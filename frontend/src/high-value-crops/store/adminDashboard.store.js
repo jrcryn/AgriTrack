@@ -11,9 +11,6 @@ export const useUnvalidatedInputsQuery = () =>
     queryKey: ['unvalidatedInputs'],
     queryFn: async () => {
 
-      //remove in production
-      await new Promise(resolve => setTimeout(resolve, 5000));
-
       const response = await axios.get(`${API_URL}/get-unvalidated-inputs`);
       return response.data;
     },
@@ -55,8 +52,6 @@ export const useFarmerAccountsQuery = () =>
   useQuery({
     queryKey: ['farmerAccounts'],
     queryFn: async () => {
-      //remove in production
-      await new Promise(resolve => setTimeout(resolve, 5000));
 
       const response = await axios.get(`${API_URL}/get-farmer-accounts`);
       return response.data;
@@ -138,6 +133,7 @@ export const useAdminDashboard = () => {
   const [isCreatingUnifiedResponse, setIsCreatingUnifiedResponse] = useState(false);
   const [isCreatingFarmerAccount, setIsCreatingFarmerAccount] = useState(false);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [isUpdatingFarmerAccount, setIsUpdatingFarmerAccount] = useState(false);
 
 
   useEffect(() => {
@@ -209,6 +205,23 @@ export const useAdminDashboard = () => {
     }
   };
 
+  const updateFarmerAccount = async (farmerId, updateData) => {
+    setIsUpdatingFarmerAccount(true);
+    try {
+      const response = await axios.put(`${API_URL}/farmer-accounts/update`, { 
+        farmerId,
+        ...updateData
+      });
+      return response.data;
+    } catch (error) {
+      setError(error.message || 'Failed to update farmer account');
+      throw error;
+    }
+    finally {
+      setIsUpdatingFarmerAccount(false);
+    }
+  };
+
 
   // Combine errors from different sources
   if (unvalidatedError) setError(unvalidatedError.message || 'Failed to fetch unvalidated inputs');
@@ -238,6 +251,7 @@ export const useAdminDashboard = () => {
     isCreatingUnifiedResponse,
     isCreatingFarmerAccount,
     isGeneratingReport,
+    isUpdatingFarmerAccount,
     
     // Error state
     error: unvalidatedError || validatedError || updateError || accountsError || dateRangesError,
@@ -247,6 +261,7 @@ export const useAdminDashboard = () => {
     updateFarmerInput,
     createFarmerAccount,
     createUnifiedFarmerResponse,
-    generateExcelReport
+    generateExcelReport,
+    updateFarmerAccount
   };
 };

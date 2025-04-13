@@ -6,6 +6,7 @@ import {
     createFarmerAccount, 
     getFarmerAccounts,
     getFarmerAccountById,
+    updateFarmerAccount,
     createUnifiedFarmerResponse,
     getAvailableMetricsYears,
     getAvailableMonthsForYear,
@@ -46,6 +47,7 @@ router.post('/create-farmer-account', createFarmerAccount);
 router.get('/get-farmer-accounts', getFarmerAccounts);
 router.post('/get-farmer-account', getFarmerAccountById);
 router.post('/create-unified-farmer-response', createUnifiedFarmerResponse);
+router.put('/farmer-accounts/update', updateFarmerAccount);
 
 
 //________________________________ DASHBOARD (METRICS) PAGE ____________________________________

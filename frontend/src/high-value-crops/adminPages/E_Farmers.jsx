@@ -52,7 +52,12 @@ import "react-datepicker/dist/react-datepicker.css";
 
 const E_Farmers = () => {
 
-  const { farmerAccounts, isCreatingFarmerAccount, error, createFarmerAccount, isLoading } = useAdminDashboard();
+  const { farmerAccounts, isCreatingFarmerAccount, error, createFarmerAccount, isLoading, isUpdatingFarmerAccount, updateFarmerAccount } = useAdminDashboard();
+
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [originalFormData, setOriginalFormData] = useState(null);
+  const [selectedFarmerId, setSelectedFarmerId] = useState(null);
+  const [hasChanges, setHasChanges] = useState(false);
 
   useEffect(() => {
     // Apply styles directly to the DOM
@@ -92,6 +97,27 @@ const E_Farmers = () => {
 
   const toast = useToast();
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (isEditMode && originalFormData) {
+      // Compare current form data with original data
+      const hasFormChanged = 
+        formData.first_name !== originalFormData.first_name ||
+        formData.middle_name !== originalFormData.middle_name ||
+        formData.surname !== originalFormData.surname ||
+        formData.suffix !== originalFormData.suffix ||
+        formData.farmer_barangay !== originalFormData.farmer_barangay ||
+        formData.mobile_number !== originalFormData.mobile_number ||
+        formData.facebook !== originalFormData.facebook ||
+        // Special handling for dates since they're objects
+        ((formData.birthdate && !originalFormData.birthdate) || 
+         (!formData.birthdate && originalFormData.birthdate) ||
+         (formData.birthdate && originalFormData.birthdate && 
+          formData.birthdate.getTime() !== originalFormData.birthdate.getTime()));
+      
+      setHasChanges(hasFormChanged);
+    }
+  }, [formData, originalFormData, isEditMode]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -145,6 +171,35 @@ const E_Farmers = () => {
     return errors;
   };
 
+
+   // Function to handle edit button click
+  const handleEditClick = (farmer) => {
+    setIsEditMode(true);
+    setSelectedFarmerId(farmer.farmerId);
+    
+    // Convert birthdate string to Date object if it exists
+    const birthdateObject = farmer.birthdate ? new Date(farmer.birthdate) : null;
+    
+    // Set form data with the selected farmer's data
+    const farmerFormData = {
+      first_name: farmer.first_name,
+      middle_name: farmer.middle_name || '',
+      surname: farmer.surname,
+      suffix: farmer.suffix || '',
+      farmer_barangay: farmer.farmer_barangay,
+      mobile_number: farmer.mobile_number || '',
+      facebook: farmer.facebook || '',
+      birthdate: birthdateObject,
+    };
+    
+    setFormData(farmerFormData);
+    // Store original data for comparison
+    setOriginalFormData(farmerFormData);
+    setHasChanges(false);
+    onOpen();
+  };
+
+
   const handleSubmit = async () => {
     const errors = validateFarmerAccountCreationForm();
     
@@ -161,35 +216,41 @@ const E_Farmers = () => {
         birthdate: formData.birthdate ? formData.birthdate.toISOString() : null
       };
       
-      const responseResult = await createFarmerAccount(formattedData);
+      let responseResult;
       
-      toast({
-        title: "Success",
-        description: responseResult.message || "Farmer registered successfully",
-        status: "success",
-        duration: 5000,
-        isClosable: true,
-      });
+      if (isEditMode) {
+        // Update existing farmer account
+        responseResult = await updateFarmerAccount(selectedFarmerId, formattedData);
+        toast({
+          title: "Success",
+          description: "Farmer information updated successfully",
+          status: "success",
+          duration: 5000,
+          isClosable: true,
+        });
+      } else {
+        // Create new farmer account
+        responseResult = await createFarmerAccount(formattedData);
+        toast({
+          title: "Success",
+          description: responseResult.message || "Farmer registered successfully",
+          status: "success",
+          duration: 5000,
+          isClosable: true,
+        });
+      }
       
       // Reset form and close modal
-      setFormData({
-        first_name: '',
-        middle_name: '',
-        surname: '',
-        suffix: '',
-        farmer_barangay: '',
-        mobile_number: '',
-        facebook: '',
-        birthdate: null, // Reset birthdate
-      });
-
+      resetForm();
+      
+      // Refetch farmer accounts data
       queryClient.invalidateQueries({ queryKey: ['farmerAccounts'] });
       
       onClose();
     } catch (error) {
       toast({
         title: "Error",
-        description: error.response?.data?.message || "Failed to register farmer",
+        description: error.response?.data?.message || `Failed to ${isEditMode ? 'update' : 'register'} farmer`,
         status: "error",
         duration: 5000,
         isClosable: true,
@@ -197,7 +258,7 @@ const E_Farmers = () => {
     }
   };
 
-  const handleCloseModal = () => {
+  const resetForm = () => {
     setFormData({
       first_name: '',
       middle_name: '',
@@ -206,9 +267,17 @@ const E_Farmers = () => {
       farmer_barangay: '',
       mobile_number: '',
       facebook: '',
-      birthdate: null, // Reset birthdate
+      birthdate: null,
     });
     setFormErrors({});
+    setIsEditMode(false);
+    setSelectedFarmerId(null);
+    setOriginalFormData(null);
+    setHasChanges(false);
+  };
+
+  const handleCloseModal = () => {
+    resetForm();
     onClose();
   };
 
@@ -334,6 +403,12 @@ const E_Farmers = () => {
       </Box>
     );
   }
+
+  //modal header based on mode (edit mode or register mode)
+  const modalTitle = isEditMode ? "Edit Farmer Information" : "Register New Farmer";
+  const modalIcon = isEditMode ? FaEdit : FaUserPlus;
+  const submitButtonText = isEditMode ? "Update Farmer" : "Register Farmer";
+  const isSubmitting = isEditMode ? isUpdatingFarmerAccount : isCreatingFarmerAccount;
 
   return (
     <Box 
@@ -530,6 +605,7 @@ const E_Farmers = () => {
                               size="sm"
                               colorScheme="green"
                               leftIcon={<FaEdit />}
+                              onClick={() => handleEditClick(farmers)}
                             >
                               Edit
                             </Button>
@@ -588,13 +664,13 @@ const E_Farmers = () => {
         )}
       </Box>
       
-      {/* Add Farmer Modal */}
+      {/* Add/Edit Farmer Modal */}
       <Modal isOpen={isOpen} onClose={handleCloseModal} size="2xl" closeOnOverlayClick={false} scrollBehavior="inside" motionPreset="none">
         <ModalOverlay/>
         <ModalContent borderRadius="md" overflow="hidden" boxShadow="lg">
           <ModalHeader bg="white" borderBottomWidth="1px" borderColor="gray.200" display="flex" alignItems="center" py={4}>
-            <Icon as={FaUserPlus} mr={2} color="blue.500" />
-            Register New Farmer
+            <Icon as={modalIcon} mr={2} color="blue.500" />
+            {modalTitle}
           </ModalHeader>
           
           <ModalBody py={6}>
@@ -801,13 +877,14 @@ const E_Farmers = () => {
             <Button 
               colorScheme="blue"
               onClick={handleSubmit}
-              isLoading={isCreatingFarmerAccount}
+              isLoading={isSubmitting}
+              isDisabled={isEditMode && !hasChanges}
               size="md"
               fontWeight="500"
               boxShadow="sm"
               _hover={{ boxShadow: "md", bg: "blue.600" }}
             >
-              Register Farmer
+              {submitButtonText}
             </Button>
           </ModalFooter>
         </ModalContent>

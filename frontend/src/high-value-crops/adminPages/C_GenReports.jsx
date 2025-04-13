@@ -246,7 +246,7 @@ const C_GenReports = () => {
           borderColor="gray.200"
         >
           <VStack spacing={6} align="stretch">
-            <Text>Generate weekly reports using the HVC template with data from farmer submissions.</Text>
+            <Text>Generate bi-weekly reports using the HVC template with data from farmer submissions.</Text>
             
             <HStack spacing={4} align="flex-start">
               <FormControl>
@@ -368,7 +368,7 @@ const C_GenReports = () => {
             <VStack spacing={5} align="stretch">
               <Text>
                 These reports contain data from farmer submissions that have been validated and processed 
-                into the unified records system.
+                into the records system.
               </Text>
               
               <Box>
