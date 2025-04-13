@@ -224,6 +224,7 @@ const FarmerInput = ({ onNext, onBack }) => {
                         <Input
                           placeholder="Initials"
                           bg="white"
+                          type="text"
                           borderRadius="0"
                           maxLength={4}
                           value={farmerInitials}
@@ -245,6 +246,7 @@ const FarmerInput = ({ onNext, onBack }) => {
                         <Input
                           placeholder="Number"
                           bg="white"
+                          type="number"
                           borderRightRadius="md"
                           borderLeftRadius="0"
                           maxLength={4}
