@@ -366,7 +366,7 @@ export const createUnifiedFarmerResponse = async (req, res) => {
     }
 
     return res.status(201).json({
-      message: `Record successfully added to ${year} collection and original documents deleted`,
+      message: `Successfully pushed to the main records.`,
       data: newUnifiedRecord
     });
 
