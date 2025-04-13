@@ -20,6 +20,7 @@ const C_GenReports = () => {
     setSelectedMonth,
     dateRanges,
     isLoading,
+    isLoadingUFRY,
     isGeneratingReport, 
     generateExcelReport, 
     error,
@@ -163,7 +164,7 @@ const C_GenReports = () => {
     );
   }
 
-  if (isLoading) {
+  if (isLoadingUFRY) {
       return (
         <Box 
           overflow="hidden" 

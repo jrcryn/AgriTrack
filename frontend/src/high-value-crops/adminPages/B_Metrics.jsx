@@ -35,6 +35,7 @@ const Metrics = () => {
     setSelectedMonth,
     metricsData,
     isLoading,
+    isLoadingUFRY,
     error 
   } = useAdminDashboard();
 
@@ -130,7 +131,7 @@ const Metrics = () => {
     );
   }
 
-  if (isLoading) {
+  if (isLoadingUFRY) {
     return (
       <Box 
         overflow="hidden" 

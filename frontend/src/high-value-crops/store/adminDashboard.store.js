@@ -248,7 +248,8 @@ export const useAdminDashboard = () => {
     dateRanges,
     
     // Loading states
-    isLoading: isLoadingUnvalidated || isLoadingValidated || isLoadingAccounts || isLoadingMetrics || isLoadingUFRY || isLoadingUFRM || isLoadingDateRanges,
+    isLoading: isLoadingUnvalidated || isLoadingValidated || isLoadingAccounts || isLoadingMetrics || isLoadingUFRM || isLoadingDateRanges,
+    isLoadingUFRY,
     isUpdating,
     isCreatingUnifiedResponse,
     isCreatingFarmerAccount,
