@@ -163,6 +163,34 @@ const C_GenReports = () => {
     );
   }
 
+  if (isLoading) {
+      return (
+        <Box 
+          overflow="hidden" 
+          bg="white" 
+          p={5} 
+          minH="100vh"
+        >
+          <Heading as="h1" size="xl" mb={2} color="black">
+            Generate Reports
+          </Heading>
+          <Alert 
+            bgColor={"green.100"}
+            borderRadius="md" 
+            mt={4}
+            display="flex"
+            alignItems="center"
+            py={3}
+          >
+            <AlertIcon color="green.500"/>
+            <Text fontWeight="medium" mr={3}>Please Wait:</Text>
+            <Spinner size="md" thickness="3px" color="green.500" mr={3} />
+            <Text>Loading Metrics Data...</Text>
+          </Alert>
+        </Box>
+      );
+    }
+
     // Show fallback UI when no years data is available
     if (availableYears.length === 0) {
       return (

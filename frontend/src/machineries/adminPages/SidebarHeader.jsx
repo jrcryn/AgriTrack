@@ -30,15 +30,14 @@ import {
   FiMenu,
   FiChevronDown
 } from 'react-icons/fi';
-import { FaWpforms } from "react-icons/fa";
-import Logo from '../images/Calamba_Seal.png'
+import Logo from '../../images/Calamba_Seal.png'
 
 const LinkItems = [
-  { name: 'Dashboard', icon: FiGrid, path: '/machineries/admin/metrics' },
-  { name: 'Machinery Inventory', icon: FiBox, path: '/machineries/admin/gen-reports' },
-  { name: 'Generate Report', icon: FiDownload, path: '/machineries/admin/farmers' },
-  { name: 'Add Machinery', icon: FiPlusSquare, path: '/machineries/admin/responses' },
-  { name: 'Transfer Units', icon: FiRepeat, path: '/machineries/admin/farmers' },
+  { name: 'Dashboard', icon: FiGrid, path: '/machineries/admin/dashboard' },
+  { name: 'Machinery Inventory', icon: FiBox, path: '/machineries/admin/machine-inventory' },
+  { name: 'Generate Report', icon: FiDownload, path: '/machineries/admin/gen-reports' },
+  { name: 'Add Machinery', icon: FiPlusSquare, path: '/machineries/admin/add-machinery' },
+  { name: 'Transfer Units', icon: FiRepeat, path: '/machineries/admin/transfer-units' },
 ];
 const SidebarContent = ({ onClose, ...rest }) => {
   return (

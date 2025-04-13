@@ -20,6 +20,7 @@ import {
   AlertDescription,
   Center,
 } from "@chakra-ui/react";
+import { InfoIcon } from "@chakra-ui/icons";
 import { FaChartLine, FaUsers, FaLeaf, FaSeedling, FaBoxes, FaCalendarAlt, FaWifi } from "react-icons/fa";
 import { useAdminDashboard } from "../store/adminDashboard.store";
 
@@ -33,7 +34,7 @@ const Metrics = () => {
     setSelectedYear,
     setSelectedMonth,
     metricsData,
-    isLoading, 
+    isLoading,
     error 
   } = useAdminDashboard();
 
@@ -124,6 +125,34 @@ const Metrics = () => {
           <AlertDescription>
             {error || "Unable to load metrics data. Please try again later."}
           </AlertDescription>
+        </Alert>
+      </Box>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <Box 
+        overflow="hidden" 
+        bg="white" 
+        p={5} 
+        minH="100vh"
+      >
+        <Heading as="h1" size="xl" mb={2} color="black">
+          High-Value Crops Metrics
+        </Heading>
+        <Alert 
+          bgColor={"blue.100"} 
+          borderRadius="md" 
+          mt={4}
+          display="flex"
+          alignItems="center"
+          py={3}
+        >
+            <AlertIcon color="blue.500"/>
+          <Text fontWeight="medium" mr={3}>Please Wait:</Text>
+          <Spinner size="md" thickness="3px" color="blue.500" mr={3} />
+          <Text>Loading Metrics Data...</Text>
         </Alert>
       </Box>
     );
