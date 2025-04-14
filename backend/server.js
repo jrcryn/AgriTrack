@@ -5,6 +5,7 @@ import cors from 'cors';
 dotenv.config();
 
 import './config/hvcAppInitializer.js';
+import './config/machineriesAppInitializer.js';
 import highValueCropsRoutes from './routes/high-value-crops.routes.js';
 
 const app = express();

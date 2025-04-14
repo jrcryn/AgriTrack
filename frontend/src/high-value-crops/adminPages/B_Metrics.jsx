@@ -315,7 +315,6 @@ const Metrics = () => {
               {/* Reset Button */}
               <Button
                 colorScheme="blue"
-                variant="outline"
                 size="sm"
                 onClick={handleResetFilters}
                 ml={{ base: 0, md: "auto" }}
