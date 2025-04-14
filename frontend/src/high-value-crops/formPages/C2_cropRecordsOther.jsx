@@ -12,7 +12,7 @@ import {
   Radio,
   Select,
 } from '@chakra-ui/react';
-import OtherFCT from '../components/otherFCT.js';
+import OtherFCT from '../../components/otherFCT.js';
 import { useFarmerFormStore } from '../store/farmerForm.store.js';
 
 const CropRecordsOther = ({ onNext, onBack, cropType }) => {

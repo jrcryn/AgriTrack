@@ -44,7 +44,7 @@ import {
 import { FaSearch, FaEye, FaEdit, FaUserPlus, FaUsers, FaUser, FaAddressCard, FaWifi } from "react-icons/fa";
 import { useAdminDashboard } from '../store/adminDashboard.store';
 import { useQueryClient } from '@tanstack/react-query';
-import Barangays from '../components/barangays';
+import Barangays from '../../components/barangays';
 
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
@@ -348,41 +348,6 @@ const E_Farmers = () => {
     backgroundColor: 'white',
     outline: 'none'
   };
-
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
-
-  if (!isOnline) {
-    return (
-      <Box 
-        overflow="hidden" 
-        bg="white" 
-        p={5} 
-        minH="100vh"
-      >
-        <Heading as="h1" size="xl" mb={2} color="black">
-          Farmers Management
-        </Heading>
-        <Alert status="warning" borderRadius="md" mt={4}>
-          <AlertIcon />
-          <Box>
-            <AlertTitle display="flex" alignItems="center">
-              <Icon as={FaWifi} mr={2} /> No Internet Connection
-            </AlertTitle>
-            <AlertDescription>
-              You appear to be offline. Please check your internet connection and try again.
-            </AlertDescription>
-          </Box>
-        </Alert>
-        <Button 
-          mt={4} 
-          colorScheme="blue" 
-          onClick={() => window.location.reload()}
-        >
-          Retry Connection
-        </Button>
-      </Box>
-    );
-  }
 
   // Show error state
   if (error) {

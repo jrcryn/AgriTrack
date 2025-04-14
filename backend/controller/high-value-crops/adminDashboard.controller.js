@@ -366,7 +366,7 @@ export const createUnifiedFarmerResponse = async (req, res) => {
     }
 
     return res.status(201).json({
-      message: `Record successfully added to ${year} collection and original documents deleted`,
+      message: `Successfully pushed to the main records.`,
       data: newUnifiedRecord
     });
 
@@ -676,8 +676,10 @@ export const getAvailableMonthsForYear = async (req, res) => {
 
 
 // Get metrics data for a specific year and month
+// Get metrics data for a specific year and month
 export const getMetricsForYearMonth = async (req, res) => {
   const { year, month } = req.params;
+  const { farm_location, commodity } = req.query; // Get filters from query parameters
   
   if (!year || isNaN(parseInt(year)) || !month || isNaN(parseInt(month))) {
     return res.status(400).json({ message: 'Valid year and month parameters are required' });
@@ -694,11 +696,24 @@ export const getMetricsForYearMonth = async (req, res) => {
     const startOfMonth = new Date(yearNum, monthNum - 1, 1);
     const endOfMonth = new Date(yearNum, monthNum, 0, 23, 59, 59, 999); // Last day of the month
     
+    // Base filters that will be applied to both queries
+    const baseFilters = {};
+    
+    // Add optional filters if provided
+    if (farm_location) {
+      baseFilters.farm_location = farm_location;
+    }
+    
+    if (commodity) {
+      baseFilters.commodity = commodity;
+    }
+    
     // 1. Newly Planted Metrics
     // A crop is considered planted in the month if:
     // - The plantation_start_date is in this month OR
     // - The plantation period (start to end) overlaps with this month
     const newlyPlantedFilter = {
+      ...baseFilters, // Include base filters
       crop_stage: "NEWLY PLANTED",
       $or: [
         // Plantation starts in this month
@@ -744,6 +759,7 @@ export const getMetricsForYearMonth = async (req, res) => {
     // - The harvest_start_date is in this month OR
     // - The harvest period (start to end) overlaps with this month
     const harvestingFilter = {
+      ...baseFilters, // Include base filters
       crop_stage: "HARVESTING",
       $or: [
         // Harvest starts in this month
@@ -794,6 +810,12 @@ export const getMetricsForYearMonth = async (req, res) => {
     
     // Prepare the response
     const response = {
+      filters: {
+        year: yearNum,
+        month: monthNum,
+        farm_location: farm_location || null,
+        commodity: commodity || null
+      },
       newlyPlanted: {
         farmers: newlyPlantedFarmers,
         areaPlanted: areaPlanted

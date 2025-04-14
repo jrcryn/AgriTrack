@@ -20,7 +20,7 @@ import {
 } from '@chakra-ui/react';
 import { useFarmerFormStore } from '../store/farmerForm.store.js';
 import { useAdminDashboard } from '../store/adminDashboard.store.js';
-import Barangays from '../components/barangays';
+import Barangays from '../../components/barangays';
 import { FaUserCheck, FaSearch } from 'react-icons/fa';
 
 const FarmerInput = ({ onNext, onBack }) => {
@@ -224,6 +224,7 @@ const FarmerInput = ({ onNext, onBack }) => {
                         <Input
                           placeholder="Initials"
                           bg="white"
+                          type="text"
                           borderRadius="0"
                           maxLength={4}
                           value={farmerInitials}
@@ -245,6 +246,7 @@ const FarmerInput = ({ onNext, onBack }) => {
                         <Input
                           placeholder="Number"
                           bg="white"
+                          type="number"
                           borderRightRadius="md"
                           borderLeftRadius="0"
                           maxLength={4}

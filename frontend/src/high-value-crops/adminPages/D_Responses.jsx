@@ -27,7 +27,7 @@ import {
   Divider,
   Tag,
   Icon,
-  Spinner, // Import Spinner from Chakra UI
+  Spinner,
   FormControl,
   FormLabel,
   SimpleGrid,
@@ -37,10 +37,11 @@ import {
   Alert,
   AlertIcon,
   AlertTitle,
-  AlertDescription
+  AlertDescription,
+  Checkbox,
 } from '@chakra-ui/react';
-import numOfTreesToHectares from '../components/conversions.js';
-import { FaSearch, FaEye, FaSeedling, FaBoxes, FaUser, FaLeaf, FaWifi } from 'react-icons/fa';
+import numOfTreesToHectares from '../../components/conversions.js';
+import { FaSearch, FaEye, FaSeedling, FaBoxes, FaUser, FaLeaf, FaWifi, FaUpload } from 'react-icons/fa';
 import { useAdminDashboard } from '../store/adminDashboard.store.js';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -51,6 +52,10 @@ const Responses = () => {
   const [harvestingPage, setHarvestingPage] = useState(1);
   const [selectedResponse, setSelectedResponse] = useState(null);
   const { isOpen, onOpen, onClose } = useDisclosure();
+
+  const [selectedNewlyPlanted, setSelectedNewlyPlanted] = useState([]);
+  const [selectedHarvesting, setSelectedHarvesting] = useState([]);
+  const [isBatchProcessing, setIsBatchProcessing] = useState(false);
   
   // Unvalidated farmer inputs
   const { 
@@ -104,42 +109,6 @@ const Responses = () => {
   const currentHarvesting = harvestingResponses.slice((harvestingPage - 1) * 5, harvestingPage * 5);
   const harvestingTotalPages = Math.ceil(harvestingResponses.length / 5);
   
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
-
-  // Show offline state
-    if (!isOnline) {
-      return (
-        <Box 
-          overflow="hidden" 
-          bg="white" 
-          p={5} 
-          minH="100vh"
-        >
-          <Heading as="h1" size="xl" mb={2} color="black">
-            New Responses
-          </Heading>
-          <Alert status="warning" borderRadius="md" mt={4}>
-            <AlertIcon />
-            <Box>
-              <AlertTitle display="flex" alignItems="center">
-                <Icon as={FaWifi} mr={2} /> No Internet Connection
-              </AlertTitle>
-              <AlertDescription>
-                You appear to be offline. Please check your internet connection and try again.
-              </AlertDescription>
-            </Box>
-          </Alert>
-          <Button 
-            mt={4} 
-            colorScheme="blue" 
-            onClick={() => window.location.reload()}
-          >
-            Retry Connection
-          </Button>
-        </Box>
-      );
-    }
-  
     // Show error state
     if (error) {
       return (
@@ -160,117 +129,307 @@ const Responses = () => {
       );
     }
 
+    const handleSelectNewlyPlanted = (id) => {
+      setSelectedNewlyPlanted(prev => 
+        prev.includes(id) ? prev.filter(itemId => itemId !== id) : [...prev, id]
+      );
+    };
+    
+    const handleSelectAllNewlyPlanted = (items) => {
+      if (selectedNewlyPlanted.length === currentNewlyPlanted.length) {
+        setSelectedNewlyPlanted([]);
+      } else {
+        setSelectedNewlyPlanted(items.map(item => item.farmerInput._id));
+      }
+    };
+    
+    const handleSelectHarvesting = (id) => {
+      setSelectedHarvesting(prev => 
+        prev.includes(id) ? prev.filter(itemId => itemId !== id) : [...prev, id]
+      );
+    };
+    
+    const handleSelectAllHarvesting = (items) => {
+      if (selectedHarvesting.length === currentHarvesting.length) {
+        setSelectedHarvesting([]);
+      } else {
+        setSelectedHarvesting(items.map(item => item.farmerInput._id));
+      }
+    };
+  
+    // Function to handle batch processing of responses
+    const handleBatchPush = async (selectedIds, responses, type) => {
+      if (selectedIds.length === 0) {
+        toast({
+          title: "No items selected",
+          description: "Please select at least one response to push to records.",
+          status: "warning",
+          duration: 3000,
+          isClosable: true,
+        });
+        return;
+      }
+
+      setIsBatchProcessing(true);
+      
+      try {
+        let successCount = 0;
+        let failCount = 0;
+        
+        // Find selected responses
+        const selectedResponses = responses.filter(response => 
+          selectedIds.includes(response.farmerInput._id)
+        );
+        
+        // Process each response
+        for (const response of selectedResponses) {
+          try {
+            const responseData = formatResponseDataForPush(response);
+            await createUnifiedFarmerResponse(responseData);
+            successCount++;
+          } catch (error) {
+            console.error(`Error processing response ${response.farmerInput._id}:`, error);
+            failCount++;
+          }
+        }
+        
+        // Show results
+        toast({
+          title: "Batch processing complete",
+          description: `Successfully pushed ${successCount} responses. Failed: ${failCount}.`,
+          status: successCount > 0 ? "success" : "error",
+          duration: 5000,
+          isClosable: true,
+        });
+        
+        // Clear selections after processing
+        if (type === 'NEWLY_PLANTED') {
+          setSelectedNewlyPlanted([]);
+        } else {
+          setSelectedHarvesting([]);
+        }
+        
+        // Refresh the data
+        queryClient.invalidateQueries({ queryKey: ['unvalidatedInputs'] });
+        
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "An error occurred during batch processing.",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
+        console.error("Batch processing error:", error);
+      } finally {
+        setIsBatchProcessing(false);
+      }
+    };
+
+    // Helper function to format response data for pushing
+    const formatResponseDataForPush = (selectedResponse) => {
+      const isIndustrialCrop = selectedResponse.cropType?.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS';
+      const isNewlyPlanted = selectedResponse.cropRecord?.crop_stage === 'NEWLY PLANTED';
+      
+      // Format response data
+      const responseData = {
+        farmer_account_id: selectedResponse.farmerInput.farmer_account_id._id,
+        farm_location: selectedResponse.farmerInput.farm_location || "",
+        crop_type: selectedResponse.cropType.crop_type,
+        commodity: isIndustrialCrop ? 
+          (selectedResponse.cropRecord.crop_type || "") : 
+          (selectedResponse.cropRecord.crop_variety || ""),
+        crop_stage: selectedResponse.cropRecord.crop_stage,
+        original_farmer_input_id: selectedResponse.farmerInput._id
+      };
+      
+      // Add stage-specific details
+      if (isNewlyPlanted) {
+        // Add newly planted details
+        if (selectedResponse.cropDetails?.plantation_start_date) {
+          responseData.plantation_start_date = selectedResponse.cropDetails.plantation_start_date;
+        }
+        
+        if (selectedResponse.cropDetails?.plantation_end_date) {
+          responseData.plantation_end_date = selectedResponse.cropDetails.plantation_end_date;
+        }
+        
+        if (selectedResponse.cropDetails?.harvest_month_year) {
+          responseData.harvest_month_year = selectedResponse.cropDetails.harvest_month_year;
+        }
+        
+        if (isIndustrialCrop) {
+          responseData.total_area_planted = selectedResponse.cropDetails?.total_area_planted || 0;
+        } else if (selectedResponse.cropDetails?.total_trees && selectedResponse.cropRecord?.crop_variety) {
+          const hectaresNew = numOfTreesToHectares(
+            selectedResponse.cropRecord.crop_variety, 
+            selectedResponse.cropDetails.total_trees
+          );
+          responseData.total_area_trees_planted = hectaresNew ? Number(hectaresNew.toFixed(4)) : null;
+        }
+      } else {
+        // Add harvesting details
+        if (selectedResponse.cropDetails?.harvest_start_date) {
+          responseData.harvest_start_date = selectedResponse.cropDetails.harvest_start_date;
+        }
+        
+        if (selectedResponse.cropDetails?.harvest_end_date) {
+          responseData.harvest_end_date = selectedResponse.cropDetails.harvest_end_date;
+        }
+        
+        responseData.total_weight = selectedResponse.cropDetails?.total_weight || 0;
+        responseData.crop_purpose = selectedResponse.cropDetails?.crop_purpose || "UNKNOWN";
+        
+        if (selectedResponse.cropDetails?.crop_purpose === 'PANG BENTA') {
+          responseData.destination = selectedResponse.cropDetails?.destination || "";
+          responseData.mode_of_payment = selectedResponse.cropDetails?.mode_of_payment || "";
+          responseData.mode_of_delivery = selectedResponse.cropDetails?.mode_of_delivery || "";
+        }
+        
+        if (isIndustrialCrop) {
+          responseData.total_area_harvested = selectedResponse.cropDetails?.total_area_harvested || 0;
+        } else if (selectedResponse.cropDetails?.trees_harvested && selectedResponse.cropRecord?.crop_variety) {
+          const hectaresHarv = numOfTreesToHectares(
+            selectedResponse.cropRecord.crop_variety, 
+            selectedResponse.cropDetails.trees_harvested
+          );
+          responseData.total_area_trees_harvested = hectaresHarv ? Number(hectaresHarv.toFixed(4)) : null;
+        }
+      }
+      
+      return responseData;
+    };
 
   // Table component to reuse for both sections
-  const ResponseTable = ({ data, status }) => (
-    <TableContainer>
-      <Table variant="simple">
-        <Thead bg="gray.50">
-          <Tr>
-            <Th>Farmer Name</Th>
-            <Th>Farm Location</Th>
-            {status === 'NEWLY PLANTED' ? (
-              <>
-                <Th>Commodity</Th>
-                <Th>
-                  <Text>Date of</Text>
-                  <Text>Plantation</Text>
+  const ResponseTable = ({ data, status, selectedItems, onSelectItem, onSelectAll }) => {
+
+    const isNewlyPlanted = status === 'NEWLY PLANTED';
+    const allSelected = data.length > 0 && data.every(item => selectedItems?.includes(item.farmerInput._id));
+
+    return(
+        <TableContainer>
+          <Table variant="simple">
+            <Thead bg="gray.50">
+              <Tr>
+                <Th width="50px">
+                  <Checkbox 
+                    isChecked={allSelected}
+                    onChange={() => onSelectAll(data)}
+                    colorScheme={isNewlyPlanted ? "green" : "orange"}
+                  />
                 </Th>
-                <Th>
-                  <Text>Total Area</Text>
-                  <Text>Planted</Text>
-                </Th>
-                <Th position={{ base: 'static', md: 'sticky' }} right={0} bg="gray.50" zIndex={{ base: 0, md: 1 }} textAlign={'center'}>
-                  <Box display={{ base: 'none', md: 'block' }}>Scroll →</Box>
-                  <Box display={{ base: 'block', md: 'none' }}>Actions</Box>
-                </Th>
-              </>
-              
-            ) : (
-              <>
-                <Th>Commodity</Th>
-                <Th>
-                  <Text>Date of</Text>
-                  <Text>Harvesting</Text>
-                </Th>
-                <Th>
-                  <Text>Total Area</Text>
-                  <Text>Harvested</Text>
-                </Th>
-                <Th position={{ base: 'static', md: 'sticky' }} right={0} bg="gray.50" zIndex={{ base: 0, md: 1 }} textAlign={'center'}>
-                  <Box display={{ base: 'none', md: 'block' }}>Scroll →</Box>
-                  <Box display={{ base: 'block', md: 'none' }}>Actions</Box>
-                </Th>
-              </>
-            )}
-            
-          </Tr>
-        </Thead>
-        <Tbody>
-          {data.length > 0 ? (
-            data.map((response, index) => (
-              <Tr key={response.farmerInput._id || index}>
-                <Td fontWeight="medium">
-                {`${response.farmerInput?.farmer_account_id?.first_name} ${response.farmerInput?.farmer_account_id?.middle_name ? response.farmerInput?.farmer_account_id?.middle_name +'.':''} ${response.farmerInput?.farmer_account_id?.surname} ${response.farmerInput?.farmer_account_id?.suffix || ''}`.trim()}
-                </Td>
-                <Td>{response.farmerInput.farm_location}</Td>
+                <Th>Farmer Name</Th>
+                <Th>Farm Location</Th>
                 {status === 'NEWLY PLANTED' ? (
-                    <>
-                      <Td>{response.cropRecord &&  
-                            (response.cropType.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS' 
-                              ? response.cropRecord.crop_type
-                              : response.cropRecord.crop_variety) || '-' }</Td> {/* commodity */}
-
-                      <Td>{response.cropDetails && response.cropDetails?.plantation_start_date && response.cropDetails?.plantation_end_date ?
-                        `${new Date(response.cropDetails.plantation_start_date).toLocaleDateString('en-US', plnt_harvDate)} to ${new Date(response.cropDetails.plantation_end_date).toLocaleDateString('en-US', plnt_harvDate)}`
-                        : '-'}</Td> {/* plantation date */}
-
-                      <Td>{response.cropDetails && response.cropDetails?.total_trees && response.cropRecord?.crop_variety ?
-                          `${numOfTreesToHectares(response.cropRecord.crop_variety, response.cropDetails.total_trees)?.toFixed(4) || 'invalid commodity'}`
-                          : (response.cropDetails?.total_area_planted || '-')}</Td> {/* total area planted */}
-                    </>
-                  ) : (
-                    <>
-                      <Td>{response.cropRecord &&  
-                            (response.cropType.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS' 
-                              ? response.cropRecord.crop_type
-                              : response.cropRecord.crop_variety) || '-' }</Td> {/* commodity */}
-                      <Td>
-                      {response.cropDetails && response.cropDetails?.harvest_start_date && response.cropDetails?.harvest_end_date ?
-                      `${new Date(response.cropDetails.harvest_start_date).toLocaleDateString('en-US', plnt_harvDate)} to ${new Date(response.cropDetails.harvest_end_date).toLocaleDateString('en-US', plnt_harvDate)}` 
-                        : '-'}
-                      </Td> {/* harvest date */}
-                      <Td>{response.cropDetails && response.cropDetails?.trees_harvested && response.cropRecord?.crop_variety ?
-                          `${numOfTreesToHectares(response.cropRecord.crop_variety, response.cropDetails.trees_harvested)?.toFixed(4) || 'invalid commodity'}`
-                          : (response.cropDetails?.total_area_harvested || '-')}</Td>
-                    </>
-                  )}
-                <Td isNumeric position={{ base: 'static', md: 'sticky' }} right={0} bg={'white'} zIndex={1}>
-                  <Button
-                    size="sm"
-                    colorScheme={status === 'NEWLY PLANTED' ? 'green' : 'orange'}
-                    leftIcon={<FaEye />}
-                    onClick={() => {
-                      setSelectedResponse(response);
-                      onOpen();
-                    }}
-                  >
-                    Details
-                  </Button>
-                </Td>
+                  <>
+                    <Th>Commodity</Th>
+                    <Th>
+                      <Text>Date of</Text>
+                      <Text>Plantation</Text>
+                    </Th>
+                    <Th>
+                      <Text>Total Area</Text>
+                      <Text>Planted</Text>
+                    </Th>
+                    <Th position={{ base: 'static', md: 'sticky' }} right={0} bg="gray.50" zIndex={{ base: 0, md: 1 }} textAlign={'center'}>
+                      <Box display={{ base: 'none', md: 'block' }}>Scroll →</Box>
+                      <Box display={{ base: 'block', md: 'none' }}>Actions</Box>
+                    </Th>
+                  </>
+                  
+                ) : (
+                  <>
+                    <Th>Commodity</Th>
+                    <Th>
+                      <Text>Date of</Text>
+                      <Text>Harvesting</Text>
+                    </Th>
+                    <Th>
+                      <Text>Total Area</Text>
+                      <Text>Harvested</Text>
+                    </Th>
+                    <Th position={{ base: 'static', md: 'sticky' }} right={0} bg="gray.50" zIndex={{ base: 0, md: 1 }} textAlign={'center'}>
+                      <Box display={{ base: 'none', md: 'block' }}>Scroll →</Box>
+                      <Box display={{ base: 'block', md: 'none' }}>Actions</Box>
+                    </Th>
+                  </>
+                )}
+                
               </Tr>
-            ))
-          ) : (
-            <Tr>
-              <Td colSpan={6} textAlign="center" py={8}>
-                <Text color="gray.500">No responses found.</Text>
-              </Td>
-            </Tr>
-          )}
-        </Tbody>
-      </Table>
-    </TableContainer>
-  );
+            </Thead>
+            <Tbody>
+              {data.length > 0 ? (
+                data.map((response, index) => (
+                  <Tr key={response.farmerInput._id || index}>
+                    <Td>
+                      <Checkbox
+                        isChecked={selectedItems?.includes(response.farmerInput._id)}
+                        onChange={() => onSelectItem(response.farmerInput._id)}
+                        colorScheme={isNewlyPlanted ? "green" : "orange"}
+                      />
+                    </Td>
+                    <Td fontWeight="medium">
+                    {`${response.farmerInput?.farmer_account_id?.first_name} ${response.farmerInput?.farmer_account_id?.middle_name ? response.farmerInput?.farmer_account_id?.middle_name +'.':''} ${response.farmerInput?.farmer_account_id?.surname} ${response.farmerInput?.farmer_account_id?.suffix || ''}`.trim()}
+                    </Td>
+                    <Td>{response.farmerInput.farm_location}</Td>
+                    {status === 'NEWLY PLANTED' ? (
+                        <>
+                          <Td>{response.cropRecord &&  
+                                (response.cropType.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS' 
+                                  ? response.cropRecord.crop_type
+                                  : response.cropRecord.crop_variety) || '-' }</Td> {/* commodity */}
+
+                          <Td>{response.cropDetails && response.cropDetails?.plantation_start_date && response.cropDetails?.plantation_end_date ?
+                            `${new Date(response.cropDetails.plantation_start_date).toLocaleDateString('en-US', plnt_harvDate)} to ${new Date(response.cropDetails.plantation_end_date).toLocaleDateString('en-US', plnt_harvDate)}`
+                            : '-'}</Td> {/* plantation date */}
+
+                          <Td>{response.cropDetails && response.cropDetails?.total_trees && response.cropRecord?.crop_variety ?
+                              `${numOfTreesToHectares(response.cropRecord.crop_variety, response.cropDetails.total_trees)?.toFixed(4) || 'invalid commodity'}`
+                              : (response.cropDetails?.total_area_planted || '-')}</Td> {/* total area planted */}
+                        </>
+                      ) : (
+                        <>
+                          <Td>{response.cropRecord &&  
+                                (response.cropType.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS' 
+                                  ? response.cropRecord.crop_type
+                                  : response.cropRecord.crop_variety) || '-' }</Td> {/* commodity */}
+                          <Td>
+                          {response.cropDetails && response.cropDetails?.harvest_start_date && response.cropDetails?.harvest_end_date ?
+                          `${new Date(response.cropDetails.harvest_start_date).toLocaleDateString('en-US', plnt_harvDate)} to ${new Date(response.cropDetails.harvest_end_date).toLocaleDateString('en-US', plnt_harvDate)}` 
+                            : '-'}
+                          </Td> {/* harvest date */}
+                          <Td>{response.cropDetails && response.cropDetails?.trees_harvested && response.cropRecord?.crop_variety ?
+                              `${numOfTreesToHectares(response.cropRecord.crop_variety, response.cropDetails.trees_harvested)?.toFixed(4) || 'invalid commodity'}`
+                              : (response.cropDetails?.total_area_harvested || '-')}</Td>
+                        </>
+                      )}
+                    <Td isNumeric position={{ base: 'static', md: 'sticky' }} right={0} bg={'white'} zIndex={1}>
+                      <Button
+                        size="sm"
+                        colorScheme={status === 'NEWLY PLANTED' ? 'green' : 'orange'}
+                        leftIcon={<FaEye />}
+                        onClick={() => {
+                          setSelectedResponse(response);
+                          onOpen();
+                        }}
+                      >
+                        Details
+                      </Button>
+                    </Td>
+                  </Tr>
+                ))
+              ) : (
+                <Tr>
+                  <Td colSpan={7} textAlign="center" py={8}>
+                    <Text color="gray.500">No responses found.</Text>
+                  </Td>
+                </Tr>
+              )}
+            </Tbody>
+          </Table>
+        </TableContainer>
+    )
+  }
 
   // Pagination component to reuse
   const PaginationControls = ({ currentPage, setCurrentPage, totalPages, totalItems, colorScheme }) => (
@@ -280,12 +439,13 @@ const Responses = () => {
       alignItems="center"
       direction={{ base: "column", md: "row" }}
       gap={{ base: 3, md: 0 }}
+      width={"100%"}
     >
-      <Text color="gray.600">
+      <Text color="gray.600" fontSize="md">
         Page {currentPage} of {totalPages || 1} ({totalItems} total)
       </Text>
       
-      <HStack spacing={2}>
+      <HStack spacing={2} >
         <Button
           size="sm"
           onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
@@ -910,6 +1070,7 @@ const Responses = () => {
               mb={4}
               bg="green.50"
               p={3}
+              height={"60px"}
               borderRadius="md"
               borderLeftWidth="4px"
               borderLeftColor="green.500"
@@ -917,6 +1078,19 @@ const Responses = () => {
               <Heading as="h2" size="md" display="flex" alignItems="center">
                 <Icon as={FaSeedling} mr={2} color="green.600" /> NEWLY PLANTED RESPONSES
               </Heading>
+              {selectedNewlyPlanted.length > 0 && (
+                <Button
+                  colorScheme="green"
+                  leftIcon={<Icon as={FaUpload} />}
+                  onClick={() => handleBatchPush(selectedNewlyPlanted, newlyPlantedResponses, 'NEWLY_PLANTED')}
+                  isLoading={isBatchProcessing}
+                  ml={4}
+                  p={3}
+                  size="sm"
+                >
+                  Push {selectedNewlyPlanted.length} Selected
+                </Button>
+              )}
             </Flex>
           
             {isLoading ? (
@@ -929,17 +1103,22 @@ const Responses = () => {
               <ResponseTable 
                 data={currentNewlyPlanted} 
                 status="NEWLY PLANTED" 
+                selectedItems={selectedNewlyPlanted}
+                onSelectItem={handleSelectNewlyPlanted}
+                onSelectAll={handleSelectAllNewlyPlanted}
               />
             </Box>
             )}
             
-            <PaginationControls 
-              currentPage={newlyPlantedPage}
-              setCurrentPage={setNewlyPlantedPage}
-              totalPages={newlyPlantedTotalPages}
-              totalItems={newlyPlantedResponses.length}
-              colorScheme="green"
-            />
+            <Flex justifyContent="space-between" alignItems="center" mt={4}>
+              <PaginationControls 
+                currentPage={newlyPlantedPage}
+                setCurrentPage={setNewlyPlantedPage}
+                totalPages={newlyPlantedTotalPages}
+                totalItems={newlyPlantedResponses.length}
+                colorScheme="green"
+              />
+            </Flex>
           </Box>
           
           {/* HARVESTING SECTION */}
@@ -950,6 +1129,7 @@ const Responses = () => {
               mb={4}
               bg="orange.50"
               p={3}
+              height={"60px"}
               borderRadius="md"
               borderLeftWidth="4px"
               borderLeftColor="orange.500"
@@ -957,6 +1137,20 @@ const Responses = () => {
               <Heading as="h2" size="md" display="flex" alignItems="center">
                 <Icon as={FaBoxes} mr={2} color="orange.600" /> HARVESTING RESPONSES
               </Heading>
+
+              {selectedHarvesting.length > 0 && (
+                <Button
+                  colorScheme="orange"
+                  leftIcon={<Icon as={FaUpload} />}
+                  onClick={() => handleBatchPush(selectedHarvesting, harvestingResponses, 'HARVESTING')}
+                  isLoading={isBatchProcessing}
+                  ml={4}
+                  p={3}
+                  size="sm"
+                >
+                  Push {selectedHarvesting.length} Selected
+                </Button>
+              )}
             </Flex>
           
             {isLoading ? (
@@ -969,16 +1163,22 @@ const Responses = () => {
               <ResponseTable 
                 data={currentHarvesting} 
                 status="HARVESTING" 
+                selectedItems={selectedHarvesting}
+                onSelectItem={handleSelectHarvesting}
+                onSelectAll={handleSelectAllHarvesting}
               />
             </Box>
             )}
-            <PaginationControls 
-              currentPage={harvestingPage}
-              setCurrentPage={setHarvestingPage}
-              totalPages={harvestingTotalPages}
-              totalItems={harvestingResponses.length}
-              colorScheme="orange"
-            />
+            <Flex justifyContent="space-between" alignItems="center" mt={4}>
+              <PaginationControls 
+                currentPage={harvestingPage}
+                setCurrentPage={setHarvestingPage}
+                totalPages={harvestingTotalPages}
+                totalItems={harvestingResponses.length}
+                colorScheme="orange"
+              />
+              
+            </Flex>
           </Box>
         </>
             

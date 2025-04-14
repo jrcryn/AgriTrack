@@ -13,9 +13,9 @@ import {
   RadioGroup,
   Select,
 } from '@chakra-ui/react';
-import Destination from '../components/destinations.js';
-import ModeOfDelivery from '../components/modeOfDelivery.js';
-import DateMonthOptions from '../components/dateMonthOptions.js';
+import Destination from '../../components/destinations.js';
+import ModeOfDelivery from '../../components/modeOfDelivery.js';
+import DateMonthOptions from '../../components/dateMonthOptions.js';
 import { useFarmerFormStore } from '../store/farmerForm.store.js';
 
 const bc_other_fctHarvest = ({ onNext, onBack }) => {
