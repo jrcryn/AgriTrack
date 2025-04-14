@@ -50,6 +50,7 @@ const Metrics = () => {
     metricsData,
     isLoading,
     isLoadingUFRY,
+    isLoadingUFRM,
     error 
   } = useAdminDashboard();
 
@@ -231,9 +232,11 @@ const Metrics = () => {
                 }}
                 bg="white"
                 size="md"
-                isDisabled={availableMonths.length === 0}
+                isDisabled={isLoadingUFRM || availableMonths.length === 0}
               >
-                {availableMonths.length === 0 ? (
+                {isLoadingUFRM ? (
+                  <option value="">Loading months...</option>
+                ) : availableMonths.length === 0 ? (
                   <option value="">No months available</option>
                 ) : (
                   <>

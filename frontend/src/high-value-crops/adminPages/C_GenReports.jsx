@@ -21,6 +21,7 @@ const C_GenReports = () => {
     dateRanges,
     isLoading,
     isLoadingUFRY,
+    isLoadingUFRM,
     isGeneratingReport, 
     generateExcelReport, 
     error,
@@ -258,25 +259,23 @@ const C_GenReports = () => {
               
               <FormControl>
                 <FormLabel fontWeight="medium">Month</FormLabel>
-                {availableMonths && availableMonths.length !== 0 ? (
-                  <Select
+                <Select
                   value={selectedMonth || ''}
                   onChange={handleMonthChange}
-                  isDisabled={!availableMonths || availableMonths.length === 0}
+                  isDisabled={isLoadingUFRM || !availableMonths || availableMonths.length === 0}
                 >
-                  {availableMonths && availableMonths.map(month => (
-                    <option key={month} value={month}>
-                      {new Date(0, month - 1).toLocaleString('default', { month: 'long' })}
-                    </option>
-                  ))}
+                  {isLoadingUFRM ? (
+                    <option value="">Loading months...</option>
+                  ) : availableMonths && availableMonths.length > 0 ? (
+                    availableMonths.map(month => (
+                      <option key={month} value={month}>
+                        {new Date(0, month - 1).toLocaleString('default', { month: 'long' })}
+                      </option>
+                    ))
+                  ) : (
+                    <option value="">No months available</option>
+                  )}
                 </Select>
-                ) : (
-                  <Select
-                  isDisabled={!availableMonths || availableMonths.length === 0}
-                  placeholder='No months available'
-                  />
-                )}
-                
               </FormControl>
             </HStack>
             

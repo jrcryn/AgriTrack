@@ -64,7 +64,7 @@ export const useUnifiedFarmerResponseYearQuery = () =>
   useQuery({
     queryKey: ['availableYears'],
     queryFn: async () => {
-      await new Promise(resolve => setTimeout(resolve, 5000));
+      //await new Promise(resolve => setTimeout(resolve, 5000));
 
       const response = await axios.get(`${API_URL}/metrics/available-years`);
       return response.data;
@@ -275,8 +275,9 @@ export const useAdminDashboard = () => {
     dateRanges,
     
     // Loading states
-    isLoading: isLoadingUnvalidated || isLoadingValidated || isLoadingAccounts || isLoadingMetrics || isLoadingUFRM || isLoadingDateRanges,
+    isLoading: isLoadingUnvalidated || isLoadingValidated || isLoadingAccounts || isLoadingMetrics || isLoadingDateRanges,
     isLoadingUFRY,
+    isLoadingUFRM,
     isUpdating,
     isCreatingUnifiedResponse,
     isCreatingFarmerAccount,
