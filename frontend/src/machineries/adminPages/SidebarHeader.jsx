@@ -36,8 +36,6 @@ const LinkItems = [
   { name: 'Dashboard', icon: FiGrid, path: '/machineries/admin/dashboard' },
   { name: 'Machinery Inventory', icon: FiBox, path: '/machineries/admin/machine-inventory' },
   { name: 'Generate Report', icon: FiDownload, path: '/machineries/admin/gen-reports' },
-  { name: 'Add Machinery', icon: FiPlusSquare, path: '/machineries/admin/add-machinery' },
-  { name: 'Transfer Units', icon: FiRepeat, path: '/machineries/admin/transfer-units' },
 ];
 const SidebarContent = ({ onClose, ...rest }) => {
   return (

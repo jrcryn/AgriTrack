@@ -6,7 +6,6 @@ export const MachineriesUnitSchema = new mongoose.Schema({
     barangay_allocations: [
         {
             barangay: {type: String, required: true, trim: true },
-            total_units: { type: Number, required: true },
             functional_units: { type: Number },
             non_functional_units: { type: Number },
         }
