@@ -50,16 +50,9 @@ const MachineryInventory = () => {
     setSearchQuery(e.target.value);
   };
 
-  // Filter machinery units based on search query and selected barangay
+  // Filter machinery units based on search query
   const filteredMachineryUnits = machineryUnits.filter(unit => {
-    // Filter by name
-    const matchesSearch = unit.unit_name.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    // Filter by barangay if one is selected
-    const matchesBarangay = !selectedBarangay || 
-      unit.barangay_allocations.some(allocation => allocation.barangay === selectedBarangay);
-    
-    return matchesSearch && matchesBarangay;
+    return unit.unit_name.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
   // Calculate totals for a unit
@@ -76,16 +69,6 @@ const MachineryInventory = () => {
     );
   };
 
-  // Utility to compute a dynamic minWidth based on longest word in a label
-  const computeMinWidth = (label) => {
-    const base = 20; // minimum padding
-    const perChar = 8; // pixels per character
-    const max = 150;
-    const words = label.split(" ");
-    const longest = Math.max(...words.map((w) => w.length));
-    const width = Math.min(base + longest * perChar, max);
-    return `${width}px`;
-  };
 
   // Render label with line breaks for multi-word strings
   const renderLabel = (label) => {
@@ -101,6 +84,18 @@ const MachineryInventory = () => {
     );
   };
 
+  //column widths for machineru, units, functional, non-functional
+  const getColumnWidth = (type) => {
+    switch(type) {
+      case "machinery": return "150px";
+      case "units": return "50px";
+      case "functional": return "80px";
+      case "nonFunctional": return "100px";
+      case "barangay": return "100px";
+      default: return "100px";
+    }
+  };
+
   return (
     <Box 
       overflow="hidden" 
@@ -111,8 +106,8 @@ const MachineryInventory = () => {
       <Heading as="h1" size="xl" mb={2} color="black">
         Machinery Inventory
       </Heading>
-      <Text color="gray.600" mb={5}>
-        View and manage all agricultural machinery units available in Calamba City.
+      <Text color="gray.600" mb={5} >
+        View and manage all agricultural machinery units available in Calamba City. Click the MACHINE NAME to view remarks.
       </Text>
       
       {/* Filter Box */}
@@ -154,7 +149,6 @@ const MachineryInventory = () => {
               onChange={(e) => setSelectedBarangay(e.target.value)}
               bg="white"
               size="md"
-              _focus={{ borderColor: "blue.400", boxShadow: "0 0 0 1px blue.400" }}
             >
               {Barangays.map((barangay) => (
                 <option key={barangay} value={barangay}>
@@ -213,35 +207,103 @@ const MachineryInventory = () => {
         ) : (
           <Box overflowX="auto" border="1px solid" borderColor="gray.200">
             <TableContainer>
-              <Table variant="simple" size="xs">
-              <Thead bg="gray.100" borderBottom="2px solid" borderColor="gray.300">
+              <Table variant="simple" size="xs" tableLayout="fixed" w="auto">
+
+                {/* Table Header */}
+              <Thead borderBottom="2px solid" borderColor="gray.300">
                 <Tr>
-                  <Th px={2} py={1} fontSize="2xs" textTransform="uppercase" borderRight="1px solid" borderColor="gray.300" textAlign={"center"}>
+                  <Th 
+                    px={2} py={1} 
+                    fontSize="2xs" 
+                    textTransform="uppercase" 
+                    borderRight="1px solid" 
+                    borderColor="green.300" 
+                    textAlign={"center"} 
+                    bg={"green.100"}
+                    width={getColumnWidth("machinery")}
+                    maxW={getColumnWidth("machinery")}
+                  >
                     Machinery
                   </Th>
-                  <Th px={2} py={1} fontSize="2xs" textTransform="uppercase" borderRight="1px solid" borderColor="gray.300" textAlign={"center"}>
+                  <Th 
+                    px={2} py={1} 
+                    fontSize="2xs" 
+                    textTransform="uppercase" 
+                    borderRight="1px solid" 
+                    borderColor="green.300" 
+                    textAlign={"center"} 
+                    bg={"green.100"}
+                    width={getColumnWidth("units")}
+                    maxW={getColumnWidth("units")}
+                  >
                     Units
                   </Th>
-                  <Th px={2} py={1} fontSize="2xs" textTransform="uppercase" borderRight="1px solid" borderColor="gray.300" textAlign={"center"}>
+                  <Th 
+                    px={2} py={1} 
+                    fontSize="2xs" 
+                    textTransform="uppercase" 
+                    borderRight="1px solid" 
+                    borderColor="green.300" 
+                    textAlign={"center"} 
+                    bg={"green.100"}
+                    width={getColumnWidth("functional")}
+                    maxW={getColumnWidth("functional")}
+                  >
                     Functional
                   </Th>
-                  <Th px={2} py={1} fontSize="2xs" textTransform="uppercase" borderRight="1px solid" borderColor="gray.300" textAlign={"center"}>
+                  <Th 
+                    px={2} py={1} 
+                    fontSize="2xs" 
+                    textTransform="uppercase" 
+                    borderRight="1px solid" 
+                    borderColor="green.300" 
+                    textAlign={"center"} 
+                    bg={"green.100"}
+                    width={getColumnWidth("nonFunctional")}
+                    maxW={getColumnWidth("nonFunctional")}
+                  >
                     <Text>Non-</Text>
                     <Text>Functional</Text>
                   </Th>
-                  {Barangays.map((barangay) => {
-                    const minW = computeMinWidth(barangay);
-                    return (
+                  {selectedBarangay ? (
+                    // Only show the selected barangay column
+                    <Th
+                      key={selectedBarangay}
+                      px={2}
+                      py={1}
+                      bg={"orange.100"}
+                      fontSize="2xs"
+                      textTransform="uppercase"
+                      borderRight="1px solid"
+                      borderColor="orange.300"
+                      width={getColumnWidth("barangay")}
+                      maxW={getColumnWidth("barangay")}
+                      textAlign="center"
+                      whiteSpace="normal"
+                    >
+                      <Tooltip label={selectedBarangay} placement="top">
+                        <Box>
+                          {renderLabel(selectedBarangay)}
+                        </Box>
+                      </Tooltip>
+                    </Th>
+                  ) : (
+
+                    // Table Header ng Barangays (dynamic)
+                    Barangays.map((barangay) => (
                       <Th
                         key={barangay}
                         px={2}
                         py={1}
+                        bg={"orange.100"}
                         fontSize="2xs"
                         textTransform="uppercase"
                         borderRight="1px solid"
-                        borderColor="gray.300"
-                        minW={minW}
+                        borderColor="orange.300"
+                        width={getColumnWidth("barangay")}
+                        maxW={getColumnWidth("barangay")}
                         textAlign="center"
+                        whiteSpace="normal"
                       >
                         <Tooltip label={barangay} placement="top">
                           <Box>
@@ -249,14 +311,16 @@ const MachineryInventory = () => {
                           </Box>
                         </Tooltip>
                       </Th>
-                    );
-                  })}
+                    ))
+                  )}
                 </Tr>
               </Thead>
+
+              {/* Table Body */}
                 <Tbody>
                   {filteredMachineryUnits.length === 0 ? (
                     <Tr>
-                      <Td colSpan={4 + Barangays.length} textAlign="center" py={4}>
+                      <Td colSpan={4 + (selectedBarangay ? 1 : Barangays.length)} textAlign="center" py={4}>
                         No machinery units found
                       </Td>
                     </Tr>
@@ -292,51 +356,138 @@ const MachineryInventory = () => {
                           </Td>
                           
                           {/* Barangay Allocations */}
-                          {Barangays.map((barangay) => {
-                            // Find allocation for this barangay
-                            const allocation = unit.barangay_allocations.find(
-                              (alloc) => alloc.barangay === barangay
-                            );
-                            
-                            // If no allocation found, return empty cell
-                            if (!allocation) {
+                          {selectedBarangay ? (
+                            (() => {
+                              // Find allocation for selected barangay
+                              const allocation = unit.barangay_allocations.find(
+                                (alloc) => alloc.barangay === selectedBarangay
+                              );
+                              
+                              // If no allocation found, return empty cell
+                              if (!allocation) {
+                                return (
+                                  <Td 
+                                    key={selectedBarangay} 
+                                    borderRight="1px solid" 
+                                    borderColor="gray.300"
+                                    textAlign="center"
+                                    px={2}
+                                    py={1}
+                                  >
+                                    -
+                                  </Td>
+                                );
+                              }
+                              
+                              // If both functional and non-functional units are 0, show dash
+                              const functionalUnits = allocation.functional_units || 0;
+                              const nonFunctionalUnits = allocation.non_functional_units || 0;
+                              
+                              if (functionalUnits === 0 && nonFunctionalUnits === 0) {
+                                return (
+                                  <Td 
+                                    key={selectedBarangay} 
+                                    borderRight="1px solid" 
+                                    borderColor="gray.300"
+                                    textAlign="center"
+                                    px={2}
+                                    py={1}
+                                  >
+                                    -
+                                  </Td>
+                                );
+                              }
+                              
+                              // Show allocation details if there are units
+                              return (
+                                <Td 
+                                  key={selectedBarangay} 
+                                  borderRight="1px solid" 
+                                  borderColor="gray.300"
+                                  textAlign="center"
+                                  px={1}
+                                  py={1}
+                                  fontSize="sm"
+                                >
+                                  <HStack spacing={1} justify="center">
+                                    <Tag size="sm" variant="subtle" colorScheme="green">
+                                      <TagLabel>{functionalUnits}</TagLabel>
+                                    </Tag>
+                                    <Text>/</Text>
+                                    <Tag size="sm" variant="subtle" colorScheme="red">
+                                      <TagLabel>{nonFunctionalUnits}</TagLabel>
+                                    </Tag>
+                                  </HStack>
+                                </Td>
+                              );
+                            })()
+                          ) : (
+                            // When no filter is selected, show all barangay columns
+                            Barangays.map((barangay) => {
+                              // Find allocation for this barangay
+                              const allocation = unit.barangay_allocations.find(
+                                (alloc) => alloc.barangay === barangay
+                              );
+                              
+                              // If no allocation found, return empty cell
+                              if (!allocation) {
+                                return (
+                                  <Td 
+                                    key={barangay} 
+                                    borderRight="1px solid" 
+                                    borderColor="gray.300"
+                                    textAlign="center"
+                                    px={2}
+                                    py={1}
+                                  >
+                                    -
+                                  </Td>
+                                );
+                              }
+                              
+                              // If both functional and non-functional units are 0, show dash
+                              const functionalUnits = allocation.functional_units || 0;
+                              const nonFunctionalUnits = allocation.non_functional_units || 0;
+                              
+                              if (functionalUnits === 0 && nonFunctionalUnits === 0) {
+                                return (
+                                  <Td 
+                                    key={barangay} 
+                                    borderRight="1px solid" 
+                                    borderColor="gray.300"
+                                    textAlign="center"
+                                    px={2}
+                                    py={1}
+                                  >
+                                    -
+                                  </Td>
+                                );
+                              }
+                              
+                              // Show allocation details if there are units
                               return (
                                 <Td 
                                   key={barangay} 
                                   borderRight="1px solid" 
                                   borderColor="gray.300"
                                   textAlign="center"
-                                  px={2}
+                                  px={1}
                                   py={1}
+                                  fontSize="xs"
                                 >
-                                  -
+                                  <HStack spacing={1} justify="center">
+                                    <Tag size="sm" variant="subtle" colorScheme="green">
+                                      <TagLabel>{functionalUnits}</TagLabel>
+                                    </Tag>
+                                    <Text>/</Text>
+                                    <Tag size="sm" variant="subtle" colorScheme="red">
+                                      <TagLabel>{nonFunctionalUnits}</TagLabel>
+                                    </Tag>
+                                  </HStack>
                                 </Td>
                               );
-                            }
-                            
-                            // Show allocation details
-                            return (
-                              <Td 
-                                key={barangay} 
-                                borderRight="1px solid" 
-                                borderColor="gray.300"
-                                textAlign="center"
-                                px={1}
-                                py={1}
-                                fontSize="sm"
-                              >
-                                <HStack spacing={1} justify="center">
-                                  <Tag size="sm" variant="subtle" colorScheme="green">
-                                    <TagLabel>{allocation.functional_units || 0}</TagLabel>
-                                  </Tag>
-                                  <Text>/</Text>
-                                  <Tag size="sm" variant="subtle" colorScheme="red">
-                                    <TagLabel>{allocation.non_functional_units || 0}</TagLabel>
-                                  </Tag>
-                                </HStack>
-                              </Td>
-                            );
-                          })}
+                            })
+                          )}
                         </Tr>
                       );
                     })
@@ -346,9 +497,7 @@ const MachineryInventory = () => {
             </TableContainer>
           </Box>
         )}
-
       </Box>
-
     </Box>
   );
 };
