@@ -1,4 +1,4 @@
-import mongoose, { version } from 'mongoose';
+import mongoose from 'mongoose';
 
 export const FarmerAccountSchema = new mongoose.Schema({
     farmerId: { type: String, required: true, unique: true },

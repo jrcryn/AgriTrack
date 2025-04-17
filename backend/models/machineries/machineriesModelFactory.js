@@ -6,6 +6,6 @@ export const initializeMachineriesModels = () => {
     const db = getMachineriesDB();
 
     return {
-        MachineriesUnitSchema: db.model("Machineries_Unit", MachineriesUnitSchema),
+        MachineriesUnit: db.model("Machineries_Unit", MachineriesUnitSchema),
     }
 };

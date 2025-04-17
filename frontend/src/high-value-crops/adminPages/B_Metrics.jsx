@@ -23,16 +23,22 @@ import {
   Tag,
   TagLabel,
   TagCloseButton,
-  Divider,
   SimpleGrid,
   FormControl
 } from "@chakra-ui/react";
-import { InfoIcon } from "@chakra-ui/icons";
-import { FaChartLine, FaUsers, FaLeaf, FaSeedling, FaBoxes, FaCalendarAlt, FaWifi } from "react-icons/fa";
+import { 
+  FaCalendarAlt,     
+  FaCalendarDay,     
+  FaMapMarkerAlt,  
+  FaSeedling,        
+  FaLeaf,            
+  FaBoxes,
+  FaChartLine,
+  FaUsers      
+} from "react-icons/fa";
 import { useAdminDashboard } from "../store/adminDashboard.store";
 import Barangays from "../../components/barangays.js";
 import Commodities from "../../components/commodities.js";
-import NetworkStatusAlert from "../../components/networkStatusAlert.jsx";
 
 const Metrics = () => {
   // Get data from the store (similar to E_Farmers.jsx)
@@ -188,19 +194,12 @@ const Metrics = () => {
           borderRadius="md"
           boxShadow="sm"
         >
-          {/* Header: "Filter by:" */}
-          <Flex direction={{ base: "column", md: "row" }} alignItems="center">
-            <Icon as={FaCalendarAlt} boxSize={5} color="blue.500" mr={2} />
-            <Text fontWeight="medium" mr={2} minW={{ base: "auto", md: "80px" }}>
-              Filter by:
-            </Text>
-          </Flex>
 
           {/* Filter controls section (using SimpleGrid for responsive layout) */}
           <SimpleGrid columns={{ base: 1, md: 4 }} spacing={4}>
             <FormControl>
-              <FormLabel fontSize="sm" fontWeight="medium">
-                Year
+              <FormLabel fontSize="sm" fontWeight="medium" display="flex" alignItems="center" gap={2}>
+                 <Icon as={FaCalendarAlt} color="blue.500" /> Year
               </FormLabel>
               <Select
                 value={selectedYear}
@@ -221,8 +220,8 @@ const Metrics = () => {
             </FormControl>
 
             <FormControl>
-              <FormLabel fontSize="sm" fontWeight="medium">
-                Month
+              <FormLabel fontSize="sm" fontWeight="medium" display="flex" alignItems="center" gap={2}>
+                 <Icon as={FaCalendarDay} color="blue.500" /> Month
               </FormLabel>
               <Select
                 value={selectedMonth || ""}
@@ -240,7 +239,6 @@ const Metrics = () => {
                   <option value="">No months available</option>
                 ) : (
                   <>
-                    <option value="">All Months</option>
                     {availableMonths.map((month) => (
                       <option key={month} value={month}>
                         {months[month - 1]}
@@ -252,8 +250,8 @@ const Metrics = () => {
             </FormControl>
 
             <FormControl>
-              <FormLabel fontSize="sm" fontWeight="medium">
-                Barangay
+              <FormLabel fontSize="sm" fontWeight="medium" display="flex" alignItems="center" gap={2}>
+              <Icon as={FaMapMarkerAlt} color="blue.500" /> Barangay
               </FormLabel>
               <Select
                 placeholder="All Barangays"
@@ -271,8 +269,8 @@ const Metrics = () => {
             </FormControl>
 
             <FormControl>
-              <FormLabel fontSize="sm" fontWeight="medium">
-                Commodity
+              <FormLabel fontSize="sm" fontWeight="medium" display="flex" alignItems="center" gap={2}>
+              <Icon as={FaSeedling} color="blue.500" /> Commodity
               </FormLabel>
               <Select
                 placeholder="All Commodities"
@@ -289,6 +287,7 @@ const Metrics = () => {
               </Select>
             </FormControl>
           </SimpleGrid>
+
 
           {/* Active filters and reset button row */}
           {(selectedBarangay || selectedCommodity) && (

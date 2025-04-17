@@ -1,36 +1,356 @@
-import React from 'react'
-import { Box, Container, Heading, Text, VStack, Button } from "@chakra-ui/react";
+import React, { useState } from 'react';
+import {
+  Box,
+  Heading,
+  Text,
+  Flex,
+  Input,
+  Select,
+  Icon,
+  SimpleGrid,
+  FormControl,
+  FormLabel,
+  InputGroup,
+  InputRightElement,
+  Button,
+  Table,
+  Thead,
+  Tbody,
+  Tr,
+  Th,
+  Td,
+  Badge,
+  TagLabel,
+  Tag,
+  HStack,
+  TableContainer,
+  Spinner,
+  Alert,
+  AlertIcon,
+  Tooltip
+} from "@chakra-ui/react";
+import { FaSearch, FaMapMarkerAlt, FaPlus, FaExchangeAlt, FaTractor } from "react-icons/fa";
+import { useAdminDashboard } from "../store/adminDashboard.store";
+import Barangays from "../../components/barangays.js";
 
 const MachineryInventory = () => {
-  return (
-    <Container maxW="container.md" py={10}>
-      <VStack spacing={5} align="stretch">
-        <Heading size="xl" textAlign="center">Mock Chakra UI Testing Page</Heading>
-        <Text textAlign="center" color="gray.500">
-          Not a real page. For debugging purposes lang, and ginawa for testing scrollable content and responsiveness.
-        </Text>
-        <Box
-          maxH="500px"
-          overflowY="auto"
-          p={4}
-          borderWidth={1}
-          borderRadius="md"
-          boxShadow="md"
-        >
-          {Array(50)
-            .fill("")
-            .map((_, i) => (
-              <Text key={i} my={2}>
-                This is a sample content line {i + 1}.
-              </Text>
-            ))}
-        </Box>
-        <Button colorScheme="teal" size="lg" alignSelf="center">
-          Test Button
-        </Button>
-      </VStack>
-    </Container>
-  )
-}
+  // State for filters
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedBarangay, setSelectedBarangay] = useState('');
+  
+  // Get data from store
+  const { 
+    machineryUnits,
+    isLoading,
+    error
+  } = useAdminDashboard();
 
-export default MachineryInventory
+  // Handle search input change
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+  };
+
+  // Filter machinery units based on search query and selected barangay
+  const filteredMachineryUnits = machineryUnits.filter(unit => {
+    // Filter by name
+    const matchesSearch = unit.unit_name.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    // Filter by barangay if one is selected
+    const matchesBarangay = !selectedBarangay || 
+      unit.barangay_allocations.some(allocation => allocation.barangay === selectedBarangay);
+    
+    return matchesSearch && matchesBarangay;
+  });
+
+  // Calculate totals for a unit
+  const calculateTotals = (unit) => {
+    return unit.barangay_allocations.reduce(
+      (totals, allocation) => {
+        return {
+          functional: totals.functional + (allocation.functional_units || 0),
+          nonFunctional: totals.nonFunctional + (allocation.non_functional_units || 0),
+          total: totals.total + (allocation.total_units || 0)
+        };
+      },
+      { functional: 0, nonFunctional: 0, total: 0 }
+    );
+  };
+
+  // Utility to compute a dynamic minWidth based on longest word in a label
+  const computeMinWidth = (label) => {
+    const base = 20; // minimum padding
+    const perChar = 8; // pixels per character
+    const max = 150;
+    const words = label.split(" ");
+    const longest = Math.max(...words.map((w) => w.length));
+    const width = Math.min(base + longest * perChar, max);
+    return `${width}px`;
+  };
+
+  // Render label with line breaks for multi-word strings
+  const renderLabel = (label) => {
+    const words = label.split(" ");
+    return (
+      <>
+        {words.map((word, idx) => (
+          <Text key={idx} as="span" display="block">
+            {word}
+          </Text>
+        ))}
+      </>
+    );
+  };
+
+  return (
+    <Box 
+      overflow="hidden" 
+      p={5} 
+      minH="100vh"
+    >
+      {/* Header */}
+      <Heading as="h1" size="xl" mb={2} color="black">
+        Machinery Inventory
+      </Heading>
+      <Text color="gray.600" mb={5}>
+        View and manage all agricultural machinery units available in Calamba City.
+      </Text>
+      
+      {/* Filter Box */}
+      <Box
+        mb={6}
+        p={4}
+        bgColor="blue.50"
+        borderRadius="lg"
+      >
+        {/* All controls in a single row */}
+        <SimpleGrid columns={{ base: 1, sm: 2, md: 4 }} spacing={4} alignItems="flex-end">
+          {/* Search Bar */}
+          <FormControl>
+            <FormLabel fontSize="sm" fontWeight="medium" display="flex" alignItems="center" gap={2} mb={2}>
+              <Icon as={FaSearch} color="blue.500" /> Search
+            </FormLabel>
+            <InputGroup size="md">
+              <Input 
+                placeholder="Search by machine name..." 
+                value={searchQuery}
+                onChange={handleSearchChange}
+                bg="white"
+                _focus={{ borderColor: "blue.400", boxShadow: "0 0 0 1px blue.400" }}
+              />
+              <InputRightElement pointerEvents="none">
+                <Icon as={FaSearch} color="gray.400" />
+              </InputRightElement>
+            </InputGroup>
+          </FormControl>
+
+          {/* Barangay Filter */}
+          <FormControl>
+            <FormLabel fontSize="sm" fontWeight="medium" display="flex" alignItems="center" gap={2} mb={2}> 
+              <Icon as={FaMapMarkerAlt} color="blue.500" /> Barangay
+            </FormLabel>
+            <Select
+              placeholder="All Barangays"
+              value={selectedBarangay}
+              onChange={(e) => setSelectedBarangay(e.target.value)}
+              bg="white"
+              size="md"
+              _focus={{ borderColor: "blue.400", boxShadow: "0 0 0 1px blue.400" }}
+            >
+              {Barangays.map((barangay) => (
+                <option key={barangay} value={barangay}>
+                  {barangay}
+                </option>
+              ))}
+            </Select>
+          </FormControl>
+
+          {/* New Machinery Button */}
+          <Button 
+            leftIcon={<Icon as={FaPlus} />} 
+            colorScheme="blue" 
+            size="md" 
+            h="40px"
+            mt={{ base: 0, md: "auto" }}
+          >
+            New Machinery
+          </Button>
+
+          {/* Transfer Units Button */}
+          <Button 
+            leftIcon={<Icon as={FaExchangeAlt} />} 
+            colorScheme="green" 
+            size="md"
+            h="40px"
+            mt={{ base: 0, md: "auto" }}
+          >
+            Transfer Units
+          </Button>
+        </SimpleGrid>
+      </Box>
+      
+      <Box mb={8}>
+        <Flex
+          justify="space-between" 
+          align="center" 
+          mb={4}
+          bg="blue.50"
+          p={3}
+          borderRadius="md"
+          borderLeftWidth="4px"
+          borderLeftColor="blue.500"
+        >
+          <Heading as="h2" size="md" display="flex" alignItems="center">
+            <Icon as={FaTractor}  mr={2} color="blue.600" /> FARM MACHINERIES
+          </Heading>
+        </Flex>
+
+        {/*Machineries Table*/}
+        {isLoading ? (
+              <Flex justifyContent="center" alignItems="center" minH="200px">
+                <Spinner size="lg" color="blue.500" thickness="3px" />
+                <Text ml={5}>Loading machineries...</Text>
+              </Flex>
+        ) : (
+          <Box overflowX="auto" border="1px solid" borderColor="gray.200">
+            <TableContainer>
+              <Table variant="simple" size="xs">
+              <Thead bg="gray.100" borderBottom="2px solid" borderColor="gray.300">
+                <Tr>
+                  <Th px={2} py={1} fontSize="2xs" textTransform="uppercase" borderRight="1px solid" borderColor="gray.300" textAlign={"center"}>
+                    Machinery
+                  </Th>
+                  <Th px={2} py={1} fontSize="2xs" textTransform="uppercase" borderRight="1px solid" borderColor="gray.300" textAlign={"center"}>
+                    Units
+                  </Th>
+                  <Th px={2} py={1} fontSize="2xs" textTransform="uppercase" borderRight="1px solid" borderColor="gray.300" textAlign={"center"}>
+                    Functional
+                  </Th>
+                  <Th px={2} py={1} fontSize="2xs" textTransform="uppercase" borderRight="1px solid" borderColor="gray.300" textAlign={"center"}>
+                    <Text>Non-</Text>
+                    <Text>Functional</Text>
+                  </Th>
+                  {Barangays.map((barangay) => {
+                    const minW = computeMinWidth(barangay);
+                    return (
+                      <Th
+                        key={barangay}
+                        px={2}
+                        py={1}
+                        fontSize="2xs"
+                        textTransform="uppercase"
+                        borderRight="1px solid"
+                        borderColor="gray.300"
+                        minW={minW}
+                        textAlign="center"
+                      >
+                        <Tooltip label={barangay} placement="top">
+                          <Box>
+                            {renderLabel(barangay)}
+                          </Box>
+                        </Tooltip>
+                      </Th>
+                    );
+                  })}
+                </Tr>
+              </Thead>
+                <Tbody>
+                  {filteredMachineryUnits.length === 0 ? (
+                    <Tr>
+                      <Td colSpan={4 + Barangays.length} textAlign="center" py={4}>
+                        No machinery units found
+                      </Td>
+                    </Tr>
+                  ) : (
+                    filteredMachineryUnits.map((unit) => {
+                      // Calculate totals for the unit
+                      const totals = calculateTotals(unit);
+                      
+                      return (
+                        <Tr key={unit._id}>
+                          {/* Machinery name */}
+                          <Td borderRight="1px solid" borderColor="gray.300" fontSize="xs" px={2} py={1} fontWeight={"medium"}>
+                            {unit.unit_name}
+                          </Td>
+                          
+                          {/* Total Units */}
+                          <Td borderRight="1px solid" borderColor="gray.300" fontSize="xs" px={2} py={1} fontWeight={"medium"} textAlign={"center"}>
+                            {totals.total}
+                          </Td>
+                          
+                          {/* Functional Units */}
+                          <Td borderRight="1px solid" borderColor="gray.300" fontSize="xs" px={2} py={1} fontWeight={"medium"} textAlign="center">
+                            <Tag size="sm" variant="subtle" colorScheme="green">
+                              <TagLabel>{totals.functional}</TagLabel>
+                            </Tag>
+                          </Td>
+                          
+                          {/* Non-Functional Units */}
+                          <Td borderRight="1px solid" borderColor="gray.300" fontSize="xs" px={2} py={1} fontWeight={"medium"} textAlign="center">
+                            <Tag size="sm" variant="subtle" colorScheme="red">
+                              <TagLabel>{totals.nonFunctional}</TagLabel>
+                            </Tag>
+                          </Td>
+                          
+                          {/* Barangay Allocations */}
+                          {Barangays.map((barangay) => {
+                            // Find allocation for this barangay
+                            const allocation = unit.barangay_allocations.find(
+                              (alloc) => alloc.barangay === barangay
+                            );
+                            
+                            // If no allocation found, return empty cell
+                            if (!allocation) {
+                              return (
+                                <Td 
+                                  key={barangay} 
+                                  borderRight="1px solid" 
+                                  borderColor="gray.300"
+                                  textAlign="center"
+                                  px={2}
+                                  py={1}
+                                >
+                                  -
+                                </Td>
+                              );
+                            }
+                            
+                            // Show allocation details
+                            return (
+                              <Td 
+                                key={barangay} 
+                                borderRight="1px solid" 
+                                borderColor="gray.300"
+                                textAlign="center"
+                                px={1}
+                                py={1}
+                                fontSize="sm"
+                              >
+                                <HStack spacing={1} justify="center">
+                                  <Tag size="sm" variant="subtle" colorScheme="green">
+                                    <TagLabel>{allocation.functional_units || 0}</TagLabel>
+                                  </Tag>
+                                  <Text>/</Text>
+                                  <Tag size="sm" variant="subtle" colorScheme="red">
+                                    <TagLabel>{allocation.non_functional_units || 0}</TagLabel>
+                                  </Tag>
+                                </HStack>
+                              </Td>
+                            );
+                          })}
+                        </Tr>
+                      );
+                    })
+                  )}
+                </Tbody>
+              </Table>
+            </TableContainer>
+          </Box>
+        )}
+
+      </Box>
+
+    </Box>
+  );
+};
+
+export default MachineryInventory;

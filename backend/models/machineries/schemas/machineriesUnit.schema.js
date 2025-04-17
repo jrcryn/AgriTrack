@@ -7,8 +7,8 @@ export const MachineriesUnitSchema = new mongoose.Schema({
         {
             barangay: {type: String, required: true, trim: true },
             total_units: { type: Number, required: true },
-            functional_units: { type: Number, required: true },
-            non_functional_units: { type: Number, required: true },
+            functional_units: { type: Number },
+            non_functional_units: { type: Number },
         }
     ],
-});
+}, { versionKey: false }, { timestamps: true });

@@ -1033,33 +1033,33 @@ const Responses = () => {
         View and validate farmer responses of high-value crops before pushing to main record.
       </Text>
       
-      {/* Search Section */}
-      <Flex 
-        direction={{ base: "column", md: "row" }} 
-        mb={6} 
-        p={4}
-        bg="blue.50"
-        borderRadius="md"
-        alignItems="center"
-      >
-        <HStack spacing={2} mb={{ base: 2, md: 0 }}>
-          <Icon as={FaSearch} color="blue.500" />
-          <Text fontWeight="medium">Search:</Text>
-        </HStack>
-        
-        <InputGroup width={{ base: "full", md: "sm" }} ml={{ base: 0, md: 4 }}>
-          <Input 
-            placeholder="Search by name, crop, barangay..." 
-            bg="white"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            _focus={{ borderColor: "blue.400" }}
-          />
-          <InputRightElement pointerEvents="none">
-            <FaSearch color="gray.300" />
-          </InputRightElement>
-        </InputGroup>
-      </Flex>
+{/* Search Section */}
+<Flex 
+  direction={{ base: "column", md: "row" }} 
+  mb={6} 
+  p={4}
+  bg="blue.50"
+  borderRadius="md"
+  alignItems={{ base: "flex-start", md: "center" }}  // This is the key change
+>
+  <HStack spacing={2} mb={{ base: 2, md: 0 }}>
+    <Icon as={FaSearch} color="blue.500" />
+    <Text fontSize='sm' fontWeight={'medium'}>Search:</Text>
+  </HStack>
+  
+  <InputGroup width={{ base: "full", md: "sm" }} ml={{ base: 0, md: 4 }}>
+    <Input 
+      placeholder="Search by name, crop, barangay..." 
+      bg="white"
+      value={searchQuery}
+      onChange={(e) => setSearchQuery(e.target.value)}
+      _focus={{ borderColor: "blue.400" }}
+    />
+    <InputRightElement pointerEvents="none">
+      <FaSearch color="gray.300" />
+    </InputRightElement>
+  </InputGroup>
+</Flex>
     
         <>
           {/* NEWLY PLANTED SECTION */}
