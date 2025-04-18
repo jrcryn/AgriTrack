@@ -1,7 +1,7 @@
 export const addMachineriesUnit = async (req, res) => {
     const { unit_name, remarks, barangay_allocations } = req.body;
 
-    if (!unit_name || !remarks || !barangay_allocations) {
+    if (!unit_name  || !barangay_allocations) {
         return res.status(400).json({ message: "Please provide all the required fields." });
     };
 

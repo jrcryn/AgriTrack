@@ -9,7 +9,7 @@ export const useMachineryUnitsQuery = () =>
     useQuery({
         queryKey: ['machineryUnits'],
         queryFn: async () => {
-            
+
             //await new Promise(resolve => setTimeout(resolve, 5000));
 
             const response = await axios.get(`${API_URL}/machinery-units`);
@@ -34,8 +34,9 @@ export const useAdminDashboard = () => {
             const response = await axios.post(`${API_URL}/add-machinery-unit`, machineData);
             return response.data;
         } catch (error) {
-            const errorMessage =error.response?.data?.message || 'An error occurred while creating the machinery unit.';
+            const errorMessage = error.response?.data?.message || 'An error occurred while creating the machinery unit.';
             setCreationError(errorMessage);
+            throw new Error(errorMessage); // Rethrow the error to be handled by the calling component
         } finally {
             setIsCreatingMachineryUnit(false);
         }
@@ -49,6 +50,7 @@ export const useAdminDashboard = () => {
         } catch (error) {
             const errorMessage = error.response?.data?.message || 'An error occurred while updating the machinery unit.';
             setUpdateError(errorMessage);
+            throw new Error(errorMessage); // Rethrow the error to be handled by the calling component
         } finally {
             setIsUpdatingMachineryUnit(false);
         }
