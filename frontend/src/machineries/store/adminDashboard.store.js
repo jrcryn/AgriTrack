@@ -25,8 +25,13 @@ export const useAdminDashboard = () => {
 
     const [isCreatingMachineryUnit, setIsCreatingMachineryUnit] = useState(false);
     const [isUpdatingMachineryUnit, setIsUpdatingMachineryUnit] = useState(false);
+    const [isAddingMachineryUnits, setIsAddingMachineryUnits] = useState(false);
+    const [deletingMachineryUnit, setIsDeletingMachineryUnit] = useState(false);
+
     const [creationError, setCreationError] = useState(null);
     const [updateError, setUpdateError] = useState(null);
+    const [addingError, setAddingError] = useState(null);
+    const [deletionError, setDeletionError] = useState(null);
 
     const createMachineriesUnit = async (machineData) => {
         setIsCreatingMachineryUnit(true);
@@ -39,6 +44,20 @@ export const useAdminDashboard = () => {
             throw new Error(errorMessage); // Rethrow the error to be handled by the calling component
         } finally {
             setIsCreatingMachineryUnit(false);
+        }
+    };
+
+    const addMachineryUnits = async (machineData) => {
+        setIsAddingMachineryUnits(true);
+        try {
+            const response = await axios.post(`${API_URL}/add-machinery-units`, machineData);
+            return response.data;
+        } catch (error) {
+            const errorMessage = error.response?.data?.message || 'An error occurred while creating the machinery unit.';
+            setAddingError(errorMessage);
+            throw new Error(errorMessage); // Rethrow the error to be handled by the calling component
+        } finally {
+            setIsAddingMachineryUnits(false);
         }
     };
 
@@ -56,6 +75,20 @@ export const useAdminDashboard = () => {
         }
     };
 
+    const deleteMachineryUnit = async (machineData) => {
+        setIsDeletingMachineryUnit(true);
+        try {
+            const response = await axios.delete(`${API_URL}/delete-machinery-unit`, { data: machineData });
+            return response.data;
+        } catch (error) {
+            const errorMessage = error.response?.data?.message || 'An error occurred while deleting the machinery unit.';
+            setDeletionError(errorMessage);
+            throw new Error(errorMessage); // Rethrow the error to be handled by the calling component
+        } finally {
+            setIsDeletingMachineryUnit(false);
+        }
+    }
+
     return {
         //data to be fecthed
         machineryUnits,
@@ -64,11 +97,14 @@ export const useAdminDashboard = () => {
         isLoading: isLoadingMachineries,
         isCreatingMachineryUnit,
         isUpdatingMachineryUnit,
+        isAddingMachineryUnits,
 
-        error: loadingMachineriesError || creationError || updateError,
-
+        error: loadingMachineriesError || creationError || updateError || addingError || deletionError,
+ 
         //actions
         createMachineriesUnit,
         updateMachineriesUnit,
+        addMachineryUnits,
+        deleteMachineryUnit,
     };
 };

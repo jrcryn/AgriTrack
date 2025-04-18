@@ -1,4 +1,4 @@
-export const addMachineriesUnit = async (req, res) => {
+export const createMachineriesUnit = async (req, res) => {
     const { unit_name, remarks, barangay_allocations } = req.body;
 
     if (!unit_name  || !barangay_allocations) {
@@ -25,6 +25,86 @@ export const addMachineriesUnit = async (req, res) => {
     } catch (error) {
         console.error("Error adding machinery unit:", error);
         return res.status(500).json({ message: "Error adding machinery unit." });
+    }
+};
+
+export const addMachineryUnits = async (req, res) => {
+    const { machineryId, barangay, functionalUnits = 0, nonFunctionalUnits = 0 } = req.body;
+
+    // Validate required fields
+    if (!machineryId || !barangay) {
+        return res.status(400).json({ message: "Machinery ID and barangay are required." });
+    }
+
+    // Validate unit counts
+    if (isNaN(functionalUnits) || functionalUnits < 0 || isNaN(nonFunctionalUnits) || nonFunctionalUnits < 0) {
+        return res.status(400).json({ message: "Unit counts must be non-negative numbers." });
+    }
+
+    // Ensure at least one type of unit is being added
+    if (functionalUnits === 0 && nonFunctionalUnits === 0) {
+        return res.status(400).json({ message: "At least one functional or non-functional unit must be added." });
+    }
+
+    try {
+        // Find the machinery unit by ID
+        const machinery = await global.machineriesModels.MachineriesUnit.findById(machineryId);
+        
+        if (!machinery) {
+            return res.status(404).json({ message: "Machinery unit not found." });
+        }
+
+        // Check if barangay already exists in allocations
+        const existingAllocationIndex = machinery.barangay_allocations.findIndex(
+            allocation => allocation.barangay === barangay
+        );
+        
+        if (existingAllocationIndex !== -1) {
+            // Update existing allocation
+            machinery.barangay_allocations[existingAllocationIndex].functional_units += functionalUnits;
+            machinery.barangay_allocations[existingAllocationIndex].non_functional_units += nonFunctionalUnits;
+        } else {
+            // Create new allocation
+            machinery.barangay_allocations.push({
+                barangay,
+                functional_units: functionalUnits,
+                non_functional_units: nonFunctionalUnits
+            });
+        }
+
+        // Save the updated machinery
+        await machinery.save();
+
+        return res.status(200).json({
+            message: `Successfully added ${functionalUnits} functional and ${nonFunctionalUnits} non-functional units to ${barangay}.`,
+            data: machinery
+        });
+    } catch (error) {
+        console.error("Error adding machinery units:", error);
+        return res.status(500).json({
+            message: "Error adding machinery units.", 
+            error: error.message
+        });
+    }
+};
+
+export const deleteMachineryUnit = async (req, res) => {
+    const { machineryId } = req.body;
+    if (!machineryId) {
+        return res.status(400).json({ message: "Machinery ID is required." });
+    }
+    try {
+        const deletedMachinery = await global.machineriesModels.MachineriesUnit.findByIdAndDelete(machineryId);
+        if (!deletedMachinery) {
+            return res.status(404).json({ message: "Machinery unit not found." });
+        }
+        return res.status(200).json({
+            message: "Machinery unit deleted successfully.",
+            data: deletedMachinery
+        });
+    } catch (error) {
+        console.error("Error deleting machinery unit:", error);
+        return res.status(500).json({ message: "Error deleting machinery unit." });
     }
 };
 

@@ -54,6 +54,7 @@ import {
   Tabs,
   Tfoot
 } from "@chakra-ui/react";
+import { useQueryClient } from '@tanstack/react-query';
 
 import { FaSearch, FaMapMarkerAlt, FaPlus, FaExchangeAlt, FaTractor, FaTrash } from "react-icons/fa";
 import { useAdminDashboard } from "../store/adminDashboard.store";
@@ -62,6 +63,7 @@ import Barangays from "../../components/barangays.js";
 // New Machinery Modal component
 const NewMachineryModal = ({ isOpen, onClose }) => {
   const toast = useToast();
+  const queryClient = useQueryClient();
   const { createMachineriesUnit, isCreatingMachineryUnit } = useAdminDashboard();
   
   // Form state
@@ -173,6 +175,9 @@ const NewMachineryModal = ({ isOpen, onClose }) => {
         remarks: remarks.trim(),
         barangay_allocations: barangayAllocations
       });
+
+      queryClient.invalidateQueries(['machineryUnits']);
+
 
       // Show success toast
       toast({
@@ -425,8 +430,18 @@ const NewMachineryModal = ({ isOpen, onClose }) => {
 
 const ViewMachineryModal = ({ isOpen, onClose, machine }) => {
   const toast = useToast();
-  const { updateMachineriesUnit, isUpdatingMachineryUnit } = useAdminDashboard();
+  const queryClient = useQueryClient();
+  const { 
+    updateMachineriesUnit, 
+    isUpdatingMachineryUnit, 
+    addMachineryUnits, 
+    isAddingMachineryUnits,
+    deleteMachineryUnit,
+    isDeletingMachineryUnit
+  } = useAdminDashboard();
   
+  const { isOpen: isDeleteModalOpen, onOpen: openDeleteModal, onClose: closeDeleteModal } = useDisclosure();
+
   // Tab state
   const [activeTab, setActiveTab] = useState("details");
   
@@ -440,6 +455,8 @@ const ViewMachineryModal = ({ isOpen, onClose, machine }) => {
   const [addToBarangay, setAddToBarangay] = useState("");
   const [addFunctionalUnits, setAddFunctionalUnits] = useState(0);
   const [addNonFunctionalUnits, setAddNonFunctionalUnits] = useState(0);
+
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   
   // Reset form when machine or visibility changes
   useEffect(() => {
@@ -452,6 +469,7 @@ const ViewMachineryModal = ({ isOpen, onClose, machine }) => {
     setAddToBarangay("");
     setAddFunctionalUnits(0);
     setAddNonFunctionalUnits(0);
+    setShowDeleteConfirm(false);
     setActiveTab("details");
   }, [machine, isOpen]);
   
@@ -541,6 +559,10 @@ const ViewMachineryModal = ({ isOpen, onClose, machine }) => {
         unitCount: transferUnitCount
       });
       
+      // Invalidate and refetch queries after successful transfer (para mabago yung details sa modal without having to close it first.)
+      queryClient.invalidateQueries(['machineryUnits']);
+
+
       toast({
         title: "Transfer Successful",
         description: `Successfully transferred ${transferUnitCount} ${transferUnitType === "functional_units" ? "functional" : "non-functional"} units from ${transferFrom} to ${transferTo}`,
@@ -552,6 +574,7 @@ const ViewMachineryModal = ({ isOpen, onClose, machine }) => {
       // Reset transfer form
       setTransferTo("");
       setTransferUnitCount(1);
+
     } catch (error) {
       toast({
         title: "Transfer Failed",
@@ -610,13 +633,16 @@ const ViewMachineryModal = ({ isOpen, onClose, machine }) => {
       
       // We'll use the updateMachineryUnit function with a different structure
       // This is a workaround since we don't have a dedicated "add units" endpoint
-      await updateMachineriesUnit({
+      await addMachineryUnits({
         machineryId: machine._id,
-        unit_name: machine.unit_name,
-        remarks: machine.remarks,
-        barangay_allocations: updatedAllocations
+        barangay: addToBarangay,
+        functionalUnits: addFunctionalUnits,
+        nonFunctionalUnits: addNonFunctionalUnits
       });
       
+      queryClient.invalidateQueries(['machineryUnits']);
+
+
       toast({
         title: "Units Added",
         description: `Successfully added units to ${addToBarangay}`,
@@ -640,21 +666,52 @@ const ViewMachineryModal = ({ isOpen, onClose, machine }) => {
     }
   };
 
+  //handle deleting machine units
+  const handleDelete = async () => {
+    try {
+      await deleteMachineryUnit({ machineryId: machine._id });
+      
+      // Invalidate queries to refresh the data
+      queryClient.invalidateQueries(['machineryUnits']);
+      
+      // Show success message
+      toast({
+        title: "Machinery Deleted",
+        description: `${machine.unit_name} has been permanently removed`,
+        status: "success",
+        duration: 5000,
+        isClosable: true
+      });
+      
+      // Close the modal
+      onClose();
+    } catch (error) {
+      toast({
+        title: "Delete Failed",
+        description: error.message || "An error occurred while deleting",
+        status: "error",
+        duration: 5000,
+        isClosable: true
+      });
+    }
+  };
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="2xl" scrollBehavior="inside" motionPreset="none">
+    <Modal isOpen={isOpen} onClose={onClose} size="2xl" scrollBehavior="inside" motionPreset="none" closeOnOverlayClick={false}>
       <ModalOverlay />
-      <ModalContent borderRadius="md" overflow="hidden" boxShadow="lg">
+      <ModalContent borderRadius="md" overflow="hidden" boxShadow="lg" height={"1000px"} >
         <ModalHeader bg="white" borderBottomWidth="1px" borderColor="gray.200" display="flex" alignItems="center" py={4}>
           <Icon as={FaTractor} mr={2} color="blue.500" />
           {machine.unit_name}
         </ModalHeader>
         
-        <ModalBody py={6}>
+        <ModalBody py={4}>
           <Tabs variant="enclosed" colorScheme="blue" onChange={(index) => setActiveTab(["details", "transfer", "add"][index])}>
             <TabList mb={4}>
               <Tab fontWeight="medium">Details</Tab>
               <Tab fontWeight="medium">Transfer Units</Tab>
               <Tab fontWeight="medium">Add Units</Tab>
+              <Tab fontWeight="medium">More</Tab>
             </TabList>
             
             <TabPanels>
@@ -721,48 +778,51 @@ const ViewMachineryModal = ({ isOpen, onClose, machine }) => {
                       </HStack>
                     </Heading>
                     
-                    <Table size="sm" variant="simple">
-                      <Thead bg="gray.50">
-                        <Tr>
-                          <Th>Barangay</Th>
-                          <Th isNumeric>Functional</Th>
-                          <Th isNumeric>Non-functional</Th>
-                          <Th isNumeric>Total</Th>
-                        </Tr>
-                      </Thead>
-                      <Tbody>
-                        {machine.barangay_allocations.map((allocation, index) => {
-                          const functional = allocation.functional_units || 0;
-                          const nonFunctional = allocation.non_functional_units || 0;
-                          const total = functional + nonFunctional;
-                          
-                          return (
-                            <Tr key={index}>
-                              <Td fontWeight="medium">{allocation.barangay}</Td>
-                              <Td isNumeric>
-                                <Tag colorScheme="green" size="sm">{functional}</Tag>
-                              </Td>
-                              <Td isNumeric>
-                                <Tag colorScheme="red" size="sm">{nonFunctional}</Tag>
-                              </Td>
-                              <Td isNumeric fontWeight="bold">{total}</Td>
-                            </Tr>
-                          );
-                        })}
-                      </Tbody>
-                      <Tfoot bg="gray.50">
-                        <Tr>
-                          <Th>Total</Th>
-                          <Th isNumeric>
-                            <Tag colorScheme="green" size="sm">{totals.functional}</Tag>
-                          </Th>
-                          <Th isNumeric>
-                            <Tag colorScheme="red" size="sm">{totals.nonFunctional}</Tag>
-                          </Th>
-                          <Th isNumeric fontWeight="bold">{totals.total}</Th>
-                        </Tr>
-                      </Tfoot>
-                    </Table>
+                    {/* Mobile-friendly table with horizontal scroll */}
+                    <Box overflowX="auto">
+                      <Table size="sm" variant="simple">
+                        <Thead bg="gray.50">
+                          <Tr>
+                            <Th>Barangay</Th>
+                            <Th isNumeric>Functional</Th>
+                            <Th isNumeric>Non-functional</Th>
+                            <Th isNumeric>Total</Th>
+                          </Tr>
+                        </Thead>
+                        <Tbody>
+                          {machine.barangay_allocations.map((allocation, index) => {
+                            const functional = allocation.functional_units || 0;
+                            const nonFunctional = allocation.non_functional_units || 0;
+                            const total = functional + nonFunctional;
+                            
+                            return (
+                              <Tr key={index}>
+                                <Td fontWeight="sm">{allocation.barangay}</Td>
+                                <Td isNumeric>
+                                  <Tag colorScheme="green" size="sm">{functional}</Tag>
+                                </Td>
+                                <Td isNumeric>
+                                  <Tag colorScheme="red" size="sm" >{nonFunctional}</Tag>
+                                </Td>
+                                <Td fontWeight="semibold" fontSize="xs" isNumeric >{total}</Td>
+                              </Tr>
+                            );
+                          })}
+                        </Tbody>
+                        <Tfoot bg="gray.50">
+                          <Tr>
+                            <Th>Total</Th>
+                            <Th isNumeric>
+                              <Tag colorScheme="green" size="sm">{totals.functional}</Tag>
+                            </Th>
+                            <Th isNumeric>
+                              <Tag colorScheme="red" size="sm">{totals.nonFunctional}</Tag>
+                            </Th>
+                            <Th fontWeight="bold" fontSize={"xs"} textAlign={"right"}>{totals.total}</Th>
+                          </Tr>
+                        </Tfoot>
+                      </Table>
+                    </Box>
                   </Box>
                 </VStack>
               </TabPanel>
@@ -979,13 +1039,70 @@ const ViewMachineryModal = ({ isOpen, onClose, machine }) => {
                       colorScheme="blue"
                       leftIcon={<Icon as={FaPlus} />}
                       onClick={handleAddUnits}
-                      isLoading={isUpdatingMachineryUnit}
+                      isLoading={isAddingMachineryUnits}
                       isDisabled={!addToBarangay || (addFunctionalUnits === 0 && addNonFunctionalUnits === 0)}
                       fontWeight="500"
                       width="full"
                     >
                       Add Units
                     </Button>
+                  </Box>
+                </VStack>
+              </TabPanel>
+
+              {/* More tab Panel */}
+              <TabPanel p={0}>
+                <VStack spacing={6} align="stretch">
+                  <Box 
+                    p={5} 
+                    borderRadius="md" 
+                    borderWidth="1px" 
+                    borderColor="red.200" 
+                    bg="red.50"
+                    boxShadow="sm"
+                  >
+                    <Heading as="h3" size="md" mb={4} color="red.600" fontWeight="600">
+                      <HStack>
+                        <Icon as={FaTrash} />
+                        <Text>Danger Zone</Text>
+                      </HStack>
+                    </Heading>
+                    
+                    <Alert status="warning" mb={4} borderRadius="md">
+                      <AlertIcon />
+                      <Box flex="1">
+                        <AlertTitle mb={1}>Warning: This action cannot be undone</AlertTitle>
+
+                      </Box>
+                    </Alert>
+                    
+                    <Box 
+                      p={4} 
+                      borderWidth="1px" 
+                      borderColor="red.300" 
+                      borderRadius="md"
+                      bg="white"
+                    >
+                      <Text fontWeight="medium" mb={1}>
+                        Delete "{machine.unit_name}"
+                      </Text>
+
+                      <Text fontSize="sm" mb={3}>
+                          Deleting this machinery will permanently remove it from the system, including all associated allocation records and data.
+                      </Text>
+
+                      
+                      
+                        <Button
+                          leftIcon={<Icon as={FaTrash} />}
+                          colorScheme="red"
+                          variant="outline"
+                          size="md"
+                          onClick={openDeleteModal}
+                        >
+                          Delete this machinery
+                        </Button>
+                    </Box>
                   </Box>
                 </VStack>
               </TabPanel>
@@ -999,7 +1116,42 @@ const ViewMachineryModal = ({ isOpen, onClose, machine }) => {
           </Button>
         </ModalFooter>
       </ModalContent>
+
+
+      {/* Modal for confirming machine deletion */}
+      <Modal isOpen={isDeleteModalOpen} onClose={closeDeleteModal} isCentered size="sm" motionPreset='none'>
+        <ModalOverlay />
+        <ModalContent borderRadius="md" overflow="hidden" boxShadow="lg">
+          <Box borderWidth="1px" borderColor="red.200" p={5} borderRadius="md" bg="red.50">
+            <Heading size="md" color="red.600" mb={4}>Delete Confirmation</Heading>
+            <Text fontWeight="medium" mb={4}>
+              Are you sure you want to delete this machinery?
+            </Text>
+            <HStack spacing={3} justifyContent="flex-end">
+              <Button
+                size="md"
+                onClick={closeDeleteModal}
+                variant={"outline"}
+              >
+                Cancel
+              </Button>
+              <Button
+                colorScheme="red"
+                size="md"
+                isLoading={isDeletingMachineryUnit}
+                onClick={() => {
+                  handleDelete();
+                  closeDeleteModal();
+                }}
+              >
+                Yes, delete permanently
+              </Button>
+            </HStack>
+          </Box>
+        </ModalContent>
+      </Modal> 
     </Modal>
+    
   );
 };
 
