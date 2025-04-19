@@ -56,7 +56,7 @@ import {
 } from "@chakra-ui/react";
 import { useQueryClient } from '@tanstack/react-query';
 
-import { FaSearch, FaMapMarkerAlt, FaPlus, FaExchangeAlt, FaTractor, FaTrash } from "react-icons/fa";
+import { FaSearch, FaMapMarkerAlt, FaPlus, FaExchangeAlt, FaTractor, FaTrash, FaAddressCard  } from "react-icons/fa";
 import { useAdminDashboard } from "../store/adminDashboard.store";
 import Barangays from "../../components/barangays.js";
 
@@ -170,7 +170,7 @@ const NewMachineryModal = ({ isOpen, onClose }) => {
 
     try {
       // Create machinery unit
-      await createMachineriesUnit({
+      const response = await createMachineriesUnit({
         unit_name: unitName.trim(),
         remarks: remarks.trim(),
         barangay_allocations: barangayAllocations
@@ -182,7 +182,7 @@ const NewMachineryModal = ({ isOpen, onClose }) => {
       // Show success toast
       toast({
         title: "Machinery created",
-        description: `${unitName} has been added to inventory`,
+        description:  response.message|| `${unitName} has been added to inventory`,
         status: "success",
         duration: 5000,
         isClosable: true,
@@ -437,7 +437,8 @@ const ViewMachineryModal = ({ isOpen, onClose, machine }) => {
     addMachineryUnits, 
     isAddingMachineryUnits,
     deleteMachineryUnit,
-    isDeletingMachineryUnit
+    isDeletingMachineryUnit,
+    updateMachineryNameAndRemarks,
   } = useAdminDashboard();
   
   const { isOpen: isDeleteModalOpen, onOpen: openDeleteModal, onClose: closeDeleteModal } = useDisclosure();
@@ -455,6 +456,17 @@ const ViewMachineryModal = ({ isOpen, onClose, machine }) => {
   const [addToBarangay, setAddToBarangay] = useState("");
   const [addFunctionalUnits, setAddFunctionalUnits] = useState(0);
   const [addNonFunctionalUnits, setAddNonFunctionalUnits] = useState(0);
+
+  const [updatedName, setUpdatedName] = useState("");
+  const [updatedRemarks, setUpdatedRemarks] = useState("");
+
+
+  useEffect(() => {
+    if (machine) {
+      setUpdatedName(machine.unit_name || "");
+      setUpdatedRemarks(machine.remarks || "");
+    }
+  }, [machine]);
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   
@@ -551,7 +563,7 @@ const ViewMachineryModal = ({ isOpen, onClose, machine }) => {
     }
     
     try {
-      await updateMachineriesUnit({
+      const response = await updateMachineriesUnit({
         machineryId: machine._id,
         transferFrom,
         transferTo,
@@ -565,7 +577,7 @@ const ViewMachineryModal = ({ isOpen, onClose, machine }) => {
 
       toast({
         title: "Transfer Successful",
-        description: `Successfully transferred ${transferUnitCount} ${transferUnitType === "functional_units" ? "functional" : "non-functional"} units from ${transferFrom} to ${transferTo}`,
+        description: response.message || `Successfully transferred ${transferUnitCount} ${transferUnitType === "functional_units" ? "functional" : "non-functional"} units from ${transferFrom} to ${transferTo}`,
         status: "success",
         duration: 5000,
         isClosable: true
@@ -633,7 +645,7 @@ const ViewMachineryModal = ({ isOpen, onClose, machine }) => {
       
       // We'll use the updateMachineryUnit function with a different structure
       // This is a workaround since we don't have a dedicated "add units" endpoint
-      await addMachineryUnits({
+      const response = await addMachineryUnits({
         machineryId: machine._id,
         barangay: addToBarangay,
         functionalUnits: addFunctionalUnits,
@@ -645,7 +657,7 @@ const ViewMachineryModal = ({ isOpen, onClose, machine }) => {
 
       toast({
         title: "Units Added",
-        description: `Successfully added units to ${addToBarangay}`,
+        description:  response.message || `Successfully added units to ${addToBarangay}`,
         status: "success",
         duration: 5000,
         isClosable: true
@@ -669,7 +681,7 @@ const ViewMachineryModal = ({ isOpen, onClose, machine }) => {
   //handle deleting machine units
   const handleDelete = async () => {
     try {
-      await deleteMachineryUnit({ machineryId: machine._id });
+      const response = await deleteMachineryUnit({ machineryId: machine._id });
       
       // Invalidate queries to refresh the data
       queryClient.invalidateQueries(['machineryUnits']);
@@ -677,7 +689,7 @@ const ViewMachineryModal = ({ isOpen, onClose, machine }) => {
       // Show success message
       toast({
         title: "Machinery Deleted",
-        description: `${machine.unit_name} has been permanently removed`,
+        description: response.message || `${machine.unit_name} has been permanently removed`,
         status: "success",
         duration: 5000,
         isClosable: true
@@ -692,6 +704,58 @@ const ViewMachineryModal = ({ isOpen, onClose, machine }) => {
         status: "error",
         duration: 5000,
         isClosable: true
+      });
+    }
+  };
+
+  const handleUpdateNameAndRemarks = async () => {
+    if (!updatedName.trim() && !updatedRemarks.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Please provide either a name or remarks",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+  
+    try {
+      // Create an update object with only fields that should be updated
+      const updateData = {
+        machineryId: machine._id,
+      };
+  
+      // Only include unit_name if it's not empty
+      if (updatedName.trim()) {
+        updateData.unit_name = updatedName.trim();
+      } else {
+        // If no name is provided, use the existing name
+        updateData.unit_name = machine.unit_name;
+      }
+  
+      // Always include remarks (can be empty string to clear remarks)
+      updateData.remarks = updatedRemarks.trim();
+  
+      const response = await updateMachineryNameAndRemarks(updateData);
+      queryClient.invalidateQueries(['machineryUnits']);
+  
+      onClose();
+
+      toast({
+        title: "Machinery Updated",
+        description: response.message || "Machinery details have been updated",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (error) {
+      toast({
+        title: "Update Failed",
+        description: error.message || "An error occurred while updating",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
       });
     }
   };
@@ -1053,6 +1117,59 @@ const ViewMachineryModal = ({ isOpen, onClose, machine }) => {
               {/* More tab Panel */}
               <TabPanel p={0}>
                 <VStack spacing={6} align="stretch">
+
+                  <Box
+                    p={5}
+                    borderRadius="md"
+                    borderWidth="1px"
+                    boxShadow="sm"
+                  >
+                    <Heading as="h3" size="md" mb={4} color={"blue.600"} fontWeight="600">
+                      <HStack>
+                        <Icon as={FaAddressCard} />
+                        <Text>Name and Remarks</Text>
+                      </HStack>
+                    </Heading>
+
+                    <Alert status="info" mb={4} borderRadius="md" fontSize="sm">
+                      <AlertIcon />
+                      Update the name and remarks of this machinery unit
+                    </Alert>
+
+                    <FormControl mb={3} isRequired>
+                      <FormLabel fontWeight="medium">Machinery Name</FormLabel>
+                      <Input
+                        value={updatedName}
+                        placeholder="Enter machinery name"
+                        onChange={(e) => setUpdatedName(e.target.value)}
+                      />
+                    </FormControl>
+
+                    <FormControl mb={3}>
+                      <FormLabel fontWeight="medium">Remarks</FormLabel>
+                      <Textarea
+                        value={updatedRemarks}
+                        placeholder="Enter remarks (optional)"
+                        onChange={(e) => setUpdatedRemarks(e.target.value)}
+                        rows={3}
+                      />
+                    </FormControl>
+
+                    <Button
+                      colorScheme="blue"
+                      onClick={handleUpdateNameAndRemarks}
+                      isLoading={isUpdatingMachineryUnit}
+                      isDisabled={
+                        (updatedName.trim() === (machine?.unit_name || "") && 
+                        updatedRemarks.trim() === (machine?.remarks || "")) || 
+                        (!updatedName.trim() && !updatedRemarks.trim())
+                      }
+                      width={"100%"}
+                    >
+                      Save
+                    </Button>
+                  </Box>
+                  
                   <Box 
                     p={5} 
                     borderRadius="md" 
@@ -1104,6 +1221,10 @@ const ViewMachineryModal = ({ isOpen, onClose, machine }) => {
                         </Button>
                     </Box>
                   </Box>
+                    
+
+
+
                 </VStack>
               </TabPanel>
             </TabPanels>
@@ -1208,6 +1329,31 @@ const MachineryInventory = () => {
       { functional: 0, nonFunctional: 0, total: 0 }
     );
   };
+
+  // Format unit name for display, adding line breaks for long names
+  const formatUnitName = (name) => {
+    // Filter out any empty strings caused by extra spaces
+    const words = name.split(' ').filter(word => word.trim() !== '');
+    if (words.length <= 3) return name;
+    
+    // Group words into chunks of 3
+    const chunks = [];
+    for (let i = 0; i < words.length; i += 3) {
+      chunks.push(words.slice(i, i + 3).join(' '));
+    }
+    
+    // Use a Box container so each chunk renders on its own line
+    return (
+      <Box>
+        {chunks.map((chunk, index) => (
+          <Text as="div" key={index} lineHeight="tight">
+            {chunk}
+          </Text>
+        ))}
+      </Box>
+    );
+  };
+
 
   // Render label with line breaks for multi-word strings
   const renderLabel = (label) => {
@@ -1354,8 +1500,6 @@ const MachineryInventory = () => {
                       borderColor="green.300" 
                       textAlign={"center"} 
                       bg={"green.100"}
-                      width={getColumnWidth("machinery")}
-                      maxW={getColumnWidth("machinery")}
                     >
                       Machinery
                     </Th>
@@ -1470,7 +1614,7 @@ const MachineryInventory = () => {
                           }}
                           onClick={() => handleMachineClick(unit)}
                         >
-                          {unit.unit_name}
+                          {formatUnitName(unit.unit_name)}
                         </Td>
                         
                         {/* Total Units */}

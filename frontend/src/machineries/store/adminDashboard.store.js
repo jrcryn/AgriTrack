@@ -89,6 +89,20 @@ export const useAdminDashboard = () => {
         }
     }
 
+    const updateMachineryNameAndRemarks = async (machineData) => {
+        setIsUpdatingMachineryUnit(true);
+        try {
+            const response = await axios.post(`${API_URL}/update-machinery-unit`, machineData);
+            return response.data;
+        } catch (error) {
+            const errorMessage = error.response?.data?.message || 'An error occurred while updating the machinery unit.';
+            setUpdateError(errorMessage);
+            throw new Error(errorMessage); // Rethrow the error to be handled by the calling component
+        } finally {
+            setIsUpdatingMachineryUnit(false);
+        }
+    };  
+
     return {
         //data to be fecthed
         machineryUnits,
@@ -106,5 +120,6 @@ export const useAdminDashboard = () => {
         updateMachineriesUnit,
         addMachineryUnits,
         deleteMachineryUnit,
+        updateMachineryNameAndRemarks,
     };
 };

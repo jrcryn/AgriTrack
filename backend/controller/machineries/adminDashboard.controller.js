@@ -19,7 +19,7 @@ export const createMachineriesUnit = async (req, res) => {
             barangay_allocations
         });
         return res.status(200).json({ 
-            message: "Machineries unit added successfully.",
+            message: "Machinery unit added successfully.",
             data: newMachineriesUnit
          });
     } catch (error) {
@@ -99,7 +99,7 @@ export const deleteMachineryUnit = async (req, res) => {
             return res.status(404).json({ message: "Machinery unit not found." });
         }
         return res.status(200).json({
-            message: "Machinery unit deleted successfully.",
+            message: "Machinery has been permanently deleted.",
             data: deletedMachinery
         });
     } catch (error) {
@@ -108,11 +108,40 @@ export const deleteMachineryUnit = async (req, res) => {
     }
 };
 
+export const updateMachineryUnit = async (req, res) => {
+    const { machineryId, unit_name, remarks } = req.body;
+
+    if (!machineryId) {
+        return res.status(400).json({ message: "Please provide all the required fields." });
+    }
+    
+    const findMachinery = await global.machineriesModels.MachineriesUnit.findById(machineryId);
+    if (!findMachinery) {
+        return res.status(404).json({ message: "Machinery unit not found." });
+    }
+
+    try {
+        const updatedMachinery = await global.machineriesModels.MachineriesUnit.findByIdAndUpdate(
+            machineryId,
+            { unit_name, remarks },
+            { new: true } // Return the updated document
+        );
+        return res.status(200).json({
+            message: "Machinery unit updated successfully.",
+            data: updatedMachinery
+        });
+    } catch (error) {
+        console.error("Error updating machinery unit:", error);
+        return res.status(500).json({ message: "Error updating machinery unit." });
+    }
+};
+
 export const getMachineriesUnits = async (req, res) => {
     try {
         const machineryUnits = await global.machineriesModels.MachineriesUnit.find().lean();
         res.json(machineryUnits);
     } catch (error) {
+        console.error("Error fetching machinery units:", error);
         res.status(500).json({ message: "Error fetching machinery units.", error: error.message });
     }
     
@@ -125,6 +154,11 @@ export const transferMachineriesUnit = async (req, res) => {
     if (!machineryId || !transferFrom || !transferTo || !unitCount || !unitType) {
         return res.status(400).json({message: "Please provide all the required data."});
     };
+
+    const findMachinery = await global.machineriesModels.MachineriesUnit.findById(machineryId);
+    if (!findMachinery) {
+        return res.status(404).json({message: "Machinery unit not found."});
+    }
     
     // Validate unitType
     if (unitType !== 'functional_units' && unitType !== 'non_functional_units') {
