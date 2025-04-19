@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box,
+  Link,
   Heading,
   Text,
   Flex,
@@ -1604,17 +1605,21 @@ const MachineryInventory = () => {
                           borderRight="1px solid" 
                           borderColor="gray.300" 
                           fontSize="xs" 
-                          textColor={"blue"}
-                          px={2} py={1} 
-                          fontWeight={"medium"}
-                          cursor={"pointer"}
-                          _hover={{ 
-                            textDecoration: "underline", 
-                            color: "blue" 
-                          }}
-                          onClick={() => handleMachineClick(unit)}
+                          px={2} py={1}
                         >
-                          {formatUnitName(unit.unit_name)}
+                          <Link
+                            display="block"
+                            textColor="blue.600" 
+                            fontWeight="medium"
+                            onClick={() => handleMachineClick(unit)}
+                            _hover={{ 
+                              textDecoration: "underline", 
+                              color: "blue.800" 
+                            }}
+                            aria-label={`View details for ${unit.unit_name}`}
+                          >
+                            {formatUnitName(unit.unit_name)}
+                          </Link>
                         </Td>
                         
                         {/* Total Units */}

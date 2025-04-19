@@ -1,7 +1,7 @@
 import React from 'react'
 import { Box, Container, Heading, Text, VStack, Button } from "@chakra-ui/react";
 
-const Dashboard = () => {
+const Metrics = () => {
   return (
     <Container maxW="container.md" py={10}>
       <VStack spacing={5} align="stretch">
@@ -33,4 +33,4 @@ const Dashboard = () => {
   )
 }
 
-export default Dashboard
+export default Metrics
