@@ -185,7 +185,7 @@ const Metrics = () => {
                 </StatLabel>
                 <StatNumber fontSize="4xl" mb={4}>{machineryUnits.length}</StatNumber>
                 <StatHelpText>
-                  Total number of machines currently registered in the system.
+                  Number of machines currently registered in the system.
                 </StatHelpText>
               </Stat>
             </Box>
@@ -206,7 +206,7 @@ const Metrics = () => {
                 </StatLabel>
                 <StatNumber fontSize="4xl" mb={4}>{metrics.totalMachines}</StatNumber>
                 <StatHelpText>
-                  Available across all barangays
+                  Available machine units across all barangays
                 </StatHelpText>
               </Stat>
             </Box>
