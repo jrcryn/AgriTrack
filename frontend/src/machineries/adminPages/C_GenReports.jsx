@@ -123,14 +123,14 @@ const GenReports = () => {
           >
             <VStack spacing={6} align="stretch">
               <Text>
-                Generate a comprehensive machinery inventory report showing all units, their functional status, and barangay allocations.
+                Generate a machinery inventory report showing all units, their functional status, and barangay allocations.
               </Text>
               
               <Box bg="blue.50" p={4} borderRadius="md">
                 <Flex align="center">
                   <Icon as={FaTools} color="blue.500" mr={2} />
                   <Text fontWeight="medium">
-                    {machineryUnits.length} machinery types currently registered in the system.
+                    {machineryUnits.length} machinery units currently registered in the system.
                   </Text>
                 </Flex>
               </Box>
