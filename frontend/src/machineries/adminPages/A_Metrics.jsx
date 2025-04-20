@@ -105,6 +105,34 @@ const Metrics = () => {
     );
   }
 
+    if (isLoading) {
+      return (
+        <Box 
+          overflow="hidden" 
+          bg="white" 
+          p={5} 
+          minH="100vh"
+        >
+          <Heading as="h1" size="xl" mb={2} color="black">
+            Machinery Metrics
+          </Heading>
+          <Alert 
+            bgColor={"blue.100"} 
+            borderRadius="md" 
+            mt={4}
+            display="flex"
+            alignItems="center"
+            py={3}
+          >
+              <AlertIcon color="blue.500"/>
+            <Text fontWeight="medium" mr={3}>Please Wait:</Text>
+            <Spinner size="md" thickness="3px" color="blue.500" mr={3} />
+            <Text>Loading Metrics Data...</Text>
+          </Alert>
+        </Box>
+      );
+    }
+
   return (
     <Box 
       overflow="hidden" 
@@ -136,14 +164,6 @@ const Metrics = () => {
           </Heading>
         </Flex>
       
-        {isLoading ? (
-          <Center h="200px">
-            <Flex direction="column" align="center">
-              <Spinner size="xl" thickness="4px" color="blue.500" mb={4} />
-              <Text color="gray.500">Loading machinery data...</Text>
-            </Flex>
-          </Center>
-        ) : (
           <Stack 
             direction={{ base: "column", md: "row" }} 
             spacing={4} 
@@ -161,9 +181,30 @@ const Metrics = () => {
             >
               <Stat>
                 <StatLabel fontSize="md" display="flex" alignItems="center">
+                  <Icon as={FaTractor} mr={2} color="blue.500" /> Total Machines
+                </StatLabel>
+                <StatNumber fontSize="4xl" mb={4}>{machineryUnits.length}</StatNumber>
+                <StatHelpText>
+                  Total number of machines currently registered in the system.
+                </StatHelpText>
+              </Stat>
+            </Box>
+
+            {/* Total Machinery */}
+            <Box 
+              p={5} 
+              flex={1} 
+              borderRadius="md" 
+              boxShadow="sm" 
+              bg="white"
+              borderWidth="1px"
+              borderColor="gray.200"
+            >
+              <Stat>
+                <StatLabel fontSize="md" display="flex" alignItems="center">
                   <Icon as={FaTractor} mr={2} color="blue.500" /> Total Machinery Units
                 </StatLabel>
-                <StatNumber fontSize="4xl">{metrics.totalMachines}</StatNumber>
+                <StatNumber fontSize="4xl" mb={4}>{metrics.totalMachines}</StatNumber>
                 <StatHelpText>
                   Available across all barangays
                 </StatHelpText>
@@ -222,7 +263,6 @@ const Metrics = () => {
               </Stat>
             </Box>
           </Stack>
-        )}
       </Box>
     
       {/* OPERATIONAL STATUS SECTION */}
@@ -242,11 +282,6 @@ const Metrics = () => {
           </Heading>
         </Flex>
       
-        {isLoading ? (
-          <Center h="200px">
-            <Spinner size="xl" thickness="4px" color="green.500" />
-          </Center>
-        ) : (
           <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
             <Box 
               p={5} 
@@ -307,7 +342,6 @@ const Metrics = () => {
               </Box>
             </Box>
           </SimpleGrid>
-        )}
       </Box>
     </Box>
   );

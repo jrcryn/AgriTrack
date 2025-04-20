@@ -130,7 +130,7 @@ const GenReports = () => {
                 <Flex align="center">
                   <Icon as={FaTools} color="blue.500" mr={2} />
                   <Text fontWeight="medium">
-                    {machineryUnits.length} machinery units currently registered in the system.
+                    {machineryUnits.length} machines currently registered in the system.
                   </Text>
                 </Flex>
               </Box>
