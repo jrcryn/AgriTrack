@@ -1,0 +1,13 @@
+import mongoose from 'mongoose';
+
+export const MachineriesUnitSchema = new mongoose.Schema({
+    unit_name: { type: String, required: true, trim: true },
+    remarks: { type: String, trim: true },
+    barangay_allocations: [
+        {
+            barangay: {type: String, required: true, trim: true },
+            functional_units: { type: Number },
+            non_functional_units: { type: Number },
+        }
+    ],
+}, { versionKey: false }, { timestamps: true });

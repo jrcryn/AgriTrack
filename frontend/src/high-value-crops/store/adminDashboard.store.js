@@ -29,24 +29,24 @@ export const useValidatedInputsQuery = () =>
     refetchInterval: 1000 // Refetch every second
   });
 
-export const useUpdateFarmerInputMutation = () => {
-  const queryClient = useQueryClient();
+// export const useUpdateFarmerInputMutation = () => {
+//   const queryClient = useQueryClient();
   
-  return useMutation({
-    mutationFn: async ({ farmerId, updateData }) => {
-      const response = await axios.post(`${API_URL}/update-farmer-input`, {
-        farmerId,
-        updateData
-      });
-      return response.data;
-    },
-    onSuccess: () => {
-      // Invalidate queries to refetch data
-      queryClient.invalidateQueries({ queryKey: ['unvalidatedInputs'] });
-      queryClient.invalidateQueries({ queryKey: ['validatedInputs'] });
-    }
-  });
-};
+//   return useMutation({
+//     mutationFn: async ({ farmerId, updateData }) => {
+//       const response = await axios.post(`${API_URL}/update-farmer-input`, {
+//         farmerId,
+//         updateData
+//       });
+//       return response.data;
+//     },
+//     onSuccess: () => {
+//       // Invalidate queries to refetch data
+//       queryClient.invalidateQueries({ queryKey: ['unvalidatedInputs'] });
+//       queryClient.invalidateQueries({ queryKey: ['validatedInputs'] });
+//     }
+//   });
+// };
 
 export const useFarmerAccountsQuery = () => 
   useQuery({
@@ -142,7 +142,7 @@ export const useAdminDashboard = () => {
 
   const { data: unvalidatedInputs = [], isLoading: isLoadingUnvalidated, error: unvalidatedError } = useUnvalidatedInputsQuery();
   const { data: validatedInputs = [], isLoading: isLoadingValidated, error: validatedError } = useValidatedInputsQuery();
-  const { mutate: updateFarmerInput, isPending: isUpdating, error: updateError } = useUpdateFarmerInputMutation();
+  //const { mutate: updateFarmerInput, isPending: isUpdating, error: updateError } = useUpdateFarmerInputMutation();
   const { data: farmerAccounts = [], isLoading: isLoadingAccounts, error: accountsError } = useFarmerAccountsQuery();
 
   const { data: availableYears = [], isLoading: isLoadingUFRY } = useUnifiedFarmerResponseYearQuery();
@@ -251,7 +251,7 @@ export const useAdminDashboard = () => {
   // Combine errors from different sources
   if (unvalidatedError) setError(unvalidatedError.message || 'Failed to fetch unvalidated inputs');
   if (validatedError) setError(validatedError.message || 'Failed to fetch validated inputs');
-  if (updateError) setError(updateError.message || 'Failed to update farmer input');
+  // if (updateError) setError(updateError.message || 'Failed to update farmer input');
   if (accountsError) setError(accountsError.message || 'Failed to fetch farmer accounts');
   if (dateRangesError) setError(dateRangesError.message || 'Failed to fetch date ranges');
 
@@ -278,18 +278,18 @@ export const useAdminDashboard = () => {
     isLoading: isLoadingUnvalidated || isLoadingValidated || isLoadingAccounts || isLoadingMetrics || isLoadingDateRanges,
     isLoadingUFRY,
     isLoadingUFRM,
-    isUpdating,
+    //isUpdating,
     isCreatingUnifiedResponse,
     isCreatingFarmerAccount,
     isGeneratingReport,
     isUpdatingFarmerAccount,
     
     // Error state
-    error: unvalidatedError || validatedError || updateError || accountsError || dateRangesError,
+    error: unvalidatedError || validatedError || accountsError || dateRangesError,
     clearError: () => setError(null),
 
     // Actions
-    updateFarmerInput,
+    //updateFarmerInput,
     createFarmerAccount,
     createUnifiedFarmerResponse,
     generateExcelReport,

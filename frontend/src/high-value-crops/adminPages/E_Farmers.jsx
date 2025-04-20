@@ -332,23 +332,6 @@ const E_Farmers = () => {
     });
   };
 
-  // Custom styles for datepicker to match Chakra UI
-  const datepickerWrapperStyle = {
-    width: '100%'
-  };
-
-  const datepickerInputStyle = {
-    width: '100%',
-    height: '40px',
-    padding: '0 16px',
-    fontSize: '16px',
-    borderRadius: '0.375rem',
-    border: '1px solid',
-    borderColor: 'var(--chakra-colors-gray-300)',
-    backgroundColor: 'white',
-    outline: 'none'
-  };
-
   // Show error state
   if (error) {
     return (
@@ -390,36 +373,27 @@ const E_Farmers = () => {
       </Text>
       
       {/* Search and Add Farmer Section */}
-      <Flex 
-        direction={{ base: "column", md: "row" }} 
-        mb={6} 
+      <Box 
+        mb={6}
         p={4}
         bg="blue.50"
         borderRadius="md"
-        alignItems="center"
-        justifyContent="space-between"
       >
-        <Flex 
-          direction={{ base: "column", md: "row" }}
-          width={{ base: "100%", md: "auto" }}
-          mb={{ base: 4, md: 0 }}
-          alignItems={{ base: "flex-start", md: "center" }}
-        >
+        <SimpleGrid columns={{ base: 1, md: 3 }} spacing={{ base: 4, md: 6 }} alignItems="flex-end">
           {/* General Search */}
-          <Box width={{ base: "100%", md: "auto" }} mb={{ base: 4, md: 0 }}>
-            <HStack 
-              spacing={2} 
+          <Box>
+            <HStack
+              spacing={2}
               mb={2}
-              width={{ base: "100%", md: "auto" }}
-              justifyContent={{ base: "center", md: "flex-start" }}
+              justifyContent="flex-start"
             >
               <Icon as={FaSearch} color="blue.500" />
-              <Text fontWeight="medium">Search by:</Text>
+              <Text fontWeight="medium" fontSize={'sm'}>Search by:</Text>
             </HStack>
             
-            <InputGroup width={{ base: "100%", md: "sm" }}>
-              <Input 
-                placeholder="name or location..." 
+            <InputGroup>
+              <Input
+                placeholder="name or location..."
                 bg="white"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -432,31 +406,30 @@ const E_Farmers = () => {
           </Box>
           
           {/* Farmer ID Search */}
-          <Box ml={{ base: 0, md: 5 }} width={{ base: "100%", md: "auto" }}>
-            <HStack 
-              spacing={2} 
+          <Box>
+            <HStack
+              spacing={2}
               mb={2}
-              width={{ base: "100%", md: "auto" }}
-              justifyContent={{ base: "center", md: "flex-start" }}
+              justifyContent="flex-start"
             >
               <Icon as={FaAddressCard} color="blue.500" />
-              <Text fontWeight="medium">Search by Farmer ID:</Text>
+              <Text fontWeight="medium" fontSize={'sm'}>Search by Farmer ID:</Text>
             </HStack>
             
             <Flex>
-              <Box 
-                bg="gray.100" 
-                px={3} 
-                py={2} 
-                borderLeftRadius="md" 
-                display="flex" 
+              <Box
+                bg="gray.100"
+                px={3}
+                py={2}
+                borderLeftRadius="md"
+                display="flex"
                 alignItems="center"
                 fontWeight="medium"
               >
                 F-
               </Box>
-              <Input 
-                placeholder="Initials" 
+              <Input
+                placeholder="Initials"
                 bg="white"
                 value={farmerInitials}
                 onChange={(e) => setFarmerInitials(e.target.value)}
@@ -464,18 +437,18 @@ const E_Farmers = () => {
                 maxLength={4}
                 _focus={{ borderColor: "blue.400" }}
               />
-              <Box 
-                bg="gray.100" 
-                px={2} 
-                py={2} 
-                display="flex" 
+              <Box
+                bg="gray.100"
+                px={2}
+                py={2}
+                display="flex"
                 alignItems="center"
                 fontWeight="medium"
               >
                 -
               </Box>
-              <Input 
-                placeholder="Number" 
+              <Input
+                placeholder="Number"
                 bg="white"
                 value={farmerIdNumber}
                 onChange={(e) => setFarmerIdNumber(e.target.value)}
@@ -486,19 +459,20 @@ const E_Farmers = () => {
               />
             </Flex>
           </Box>
-        </Flex>
-        
-        <Button
-          leftIcon={<FaUserPlus />}
-          colorScheme="blue"
-          onClick={onOpen}
-          size={{ base: "md", md: "md" }}
-          width={{ base: "100%", md: "auto" }}
-          mt={{ base: 2, md: 0 }}
-        >
-          Add New Farmer
-        </Button>
-      </Flex>
+          
+          {/* Add Farmer Button */}
+          <Button
+            leftIcon={<FaUserPlus />}
+            colorScheme="blue"
+            onClick={onOpen}
+            size="md"
+            alignSelf="flex-end"
+            height="40px"
+          >
+            Add New Farmer
+          </Button>
+        </SimpleGrid>
+      </Box>
       
       {/* Farmers List Section */}
       <Box mb={8}>
