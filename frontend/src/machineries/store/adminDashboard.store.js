@@ -10,7 +10,7 @@ export const useMachineryUnitsQuery = () =>
         queryKey: ['machineryUnits'],
         queryFn: async () => {
 
-            //await new Promise(resolve => setTimeout(resolve, 5000));
+            await new Promise(resolve => setTimeout(resolve, 5000));
 
             const response = await axios.get(`${API_URL}/machinery-units`);
             return response.data;
