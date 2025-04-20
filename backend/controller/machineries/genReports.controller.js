@@ -62,7 +62,7 @@ export const generateMachineryExcelReport = async (req, res) => {
                     cell.fill = {
                         type: 'pattern',
                         pattern: 'solid',
-                        fgColor: { argb: 'FF228B22' } // Green
+                        fgColor: { argb: 'FF92D050' } // Green
                     };
                 } else {
                     // Barangay headers
@@ -171,13 +171,9 @@ export const generateMachineryExcelReport = async (req, res) => {
             }
         });
         
-        // Set file name with current date
-        const date = new Date().toISOString().split('T')[0];
-        const filename = `Machinery_Inventory_${date}.xlsx`;
-        
         // Set response headers for file download
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
+        res.setHeader('Content-Disposition', '');
         
         // Write to response and end
         await workbook.xlsx.write(res);

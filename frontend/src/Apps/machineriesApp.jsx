@@ -7,8 +7,6 @@ import Layout from '../machineries/adminPages/Layout.jsx';
 import Metrics from '../machineries/adminPages/A_Metrics.jsx';
 import MachineryInventory from '../machineries/adminPages/B_MachineInventory.jsx'
 import GenReports from '../machineries/adminPages/C_GenReports.jsx';
-import AddMachinery from '../machineries/adminPages/D_AddMachinery.jsx';
-import TransferUnits from '../machineries/adminPages/E_TransferUnits.jsx';
 
 const machineriesApp = () => {
     return (
@@ -18,8 +16,6 @@ const machineriesApp = () => {
                    <Route path="metrics" element={<Metrics/>} />
                    <Route path="machine-inventory" element={<MachineryInventory/>} />
                    <Route path="gen-reports" element={<GenReports/>} />
-                   <Route path="add-machinery" element={<AddMachinery/>} />
-                   <Route path="transfer-units" element={<TransferUnits/>} />
                 </Route>    
             </Routes>
         </Box>

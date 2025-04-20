@@ -26,7 +26,8 @@ export const useAdminDashboard = () => {
     const [isCreatingMachineryUnit, setIsCreatingMachineryUnit] = useState(false);
     const [isUpdatingMachineryUnit, setIsUpdatingMachineryUnit] = useState(false);
     const [isAddingMachineryUnits, setIsAddingMachineryUnits] = useState(false);
-    const [deletingMachineryUnit, setIsDeletingMachineryUnit] = useState(false);
+    const [isDeletingMachineryUnit, setIsDeletingMachineryUnit] = useState(false);
+    const [isGeneratingReport, setIsGeneratingReport] = useState(false);
 
     const [creationError, setCreationError] = useState(null);
     const [updateError, setUpdateError] = useState(null);
@@ -101,7 +102,21 @@ export const useAdminDashboard = () => {
         } finally {
             setIsUpdatingMachineryUnit(false);
         }
-    };  
+    }; 
+    
+    const generateExcelReport = async () => {
+        setIsGeneratingReport(true);
+        try {
+            const response = await axios.get(`${API_URL}/generate-machinery-report`, { responseType: 'blob' })
+            return response.data;
+        } catch (error) {
+            const errorMessage = error.response?.data?.message || 'An error occurred while generating the report.';
+            setReportError(errorMessage);
+            throw new Error(errorMessage); // Rethrow the error to be handled by the calling component
+        } finally {
+            setIsGeneratingReport(false);
+        }
+    }
 
     return {
         //data to be fecthed
@@ -112,6 +127,8 @@ export const useAdminDashboard = () => {
         isCreatingMachineryUnit,
         isUpdatingMachineryUnit,
         isAddingMachineryUnits,
+        isDeletingMachineryUnit,
+        isGeneratingReport,
 
         error: loadingMachineriesError || creationError || updateError || addingError || deletionError,
  
@@ -121,5 +138,6 @@ export const useAdminDashboard = () => {
         addMachineryUnits,
         deleteMachineryUnit,
         updateMachineryNameAndRemarks,
+        generateExcelReport
     };
 };
