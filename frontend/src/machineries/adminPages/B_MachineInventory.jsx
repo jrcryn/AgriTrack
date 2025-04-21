@@ -437,9 +437,11 @@ const ViewMachineryModal = ({ isOpen, onClose, machine }) => {
     isUpdatingMachineryUnit, 
     addMachineryUnits, 
     isAddingMachineryUnits,
-    deleteMachineryUnit,
-    isDeletingMachineryUnit,
+    deleteMachinery,
+    isDeletingMachinery,
     updateMachineryNameAndRemarks,
+    deleteMachineryUnits,
+    isDeletingMachineryUnits
   } = useAdminDashboard();
   
   const { isOpen: isDeleteModalOpen, onOpen: openDeleteModal, onClose: closeDeleteModal } = useDisclosure();
@@ -457,6 +459,11 @@ const ViewMachineryModal = ({ isOpen, onClose, machine }) => {
   const [addToBarangay, setAddToBarangay] = useState("");
   const [addFunctionalUnits, setAddFunctionalUnits] = useState(0);
   const [addNonFunctionalUnits, setAddNonFunctionalUnits] = useState(0);
+
+  // Delete units state
+  const [deleteFromBarangay, setDeleteFromBarangay] = useState("");
+  const [deleteUnitType, setDeleteUnitType] = useState("functional_units");
+  const [deleteUnitCount, setDeleteUnitCount] = useState(1);
 
   const [updatedName, setUpdatedName] = useState("");
   const [updatedRemarks, setUpdatedRemarks] = useState("");
@@ -482,6 +489,9 @@ const ViewMachineryModal = ({ isOpen, onClose, machine }) => {
     setAddToBarangay("");
     setAddFunctionalUnits(0);
     setAddNonFunctionalUnits(0);
+    setDeleteFromBarangay("");
+    setDeleteUnitType("functional_units");
+    setDeleteUnitCount(1);
     setShowDeleteConfirm(false);
     setActiveTab("details");
   }, [machine, isOpen]);
@@ -536,6 +546,21 @@ const ViewMachineryModal = ({ isOpen, onClose, machine }) => {
     return transferUnitType === "functional_units" 
       ? (sourceAllocation.functional_units || 0)
       : (sourceAllocation.non_functional_units || 0);
+  };
+
+  // Get max units that can be deleted
+  const getMaxDeleteUnits = () => {
+    if (!deleteFromBarangay) return 0;
+    
+    const allocation = machine.barangay_allocations.find(
+      alloc => alloc.barangay === deleteFromBarangay
+    );
+    
+    if (!allocation) return 0;
+    
+    return deleteUnitType === "functional_units" 
+      ? (allocation.functional_units || 0)
+      : (allocation.non_functional_units || 0);
   };
   
   // Handle transfer submission
@@ -680,9 +705,9 @@ const ViewMachineryModal = ({ isOpen, onClose, machine }) => {
   };
 
   //handle deleting machine units
-  const handleDelete = async () => {
+  const handleDeleteMachine = async () => {
     try {
-      const response = await deleteMachineryUnit({ machineryId: machine._id });
+      const response = await deleteMachinery({ machineryId: machine._id });
       
       // Invalidate queries to refresh the data
       queryClient.invalidateQueries(['machineryUnits']);
@@ -761,6 +786,64 @@ const ViewMachineryModal = ({ isOpen, onClose, machine }) => {
     }
   };
 
+  const handleDeleteUnits = async () => {
+    if (!deleteFromBarangay || deleteUnitCount <= 0) {
+      toast({
+        title: "Validation Error",
+        description: "Please complete all required fields",
+        status: "error",
+        duration: 3000,
+        isClosable: true
+      });
+      return;
+    }
+    
+    const maxUnits = getMaxDeleteUnits();
+    if (deleteUnitCount > maxUnits) {
+      toast({
+        title: "Validation Error",
+        description: `Cannot delete more than ${maxUnits} units`,
+        status: "error",
+        duration: 3000,
+        isClosable: true
+      });
+      return;
+    }
+    
+    try {
+      const response = await deleteMachineryUnits({
+        machineryId: machine._id,
+        barangay: deleteFromBarangay,
+        unitType: deleteUnitType,
+        unitCount: deleteUnitCount
+      });
+      
+      // Invalidate queries to refresh the data
+      queryClient.invalidateQueries(['machineryUnits']);
+      
+      toast({
+        title: "Units Deleted",
+        description: response.message || `Successfully deleted ${deleteUnitCount} units from ${deleteFromBarangay}`,
+        status: "success",
+        duration: 5000,
+        isClosable: true
+      });
+      
+      // Reset form
+      setDeleteFromBarangay("");
+      setDeleteUnitCount(1);
+      
+    } catch (error) {
+      toast({
+        title: "Deletion Failed",
+        description: error.message || "Failed to delete units",
+        status: "error",
+        duration: 5000,
+        isClosable: true
+      });
+    }
+  };
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="2xl" scrollBehavior="inside" motionPreset="none" closeOnOverlayClick={false}>
       <ModalOverlay />
@@ -775,7 +858,7 @@ const ViewMachineryModal = ({ isOpen, onClose, machine }) => {
             <TabList mb={4}>
               <Tab fontWeight="medium">Details</Tab>
               <Tab fontWeight="medium">Transfer Units</Tab>
-              <Tab fontWeight="medium">Add Units</Tab>
+              <Tab fontWeight="medium">Edit Units</Tab>
               <Tab fontWeight="medium">More</Tab>
             </TabList>
             
@@ -1016,7 +1099,7 @@ const ViewMachineryModal = ({ isOpen, onClose, machine }) => {
                 </VStack>
               </TabPanel>
               
-              {/* Add Units Tab */}
+              {/* Edit Units Tab */}
               <TabPanel p={0}>
                 <VStack spacing={6} align="stretch">
                   <Box 
@@ -1112,6 +1195,98 @@ const ViewMachineryModal = ({ isOpen, onClose, machine }) => {
                       Add Units
                     </Button>
                   </Box>
+
+                  {/* Remove Units Box */}
+                  <Box 
+                    p={5} 
+                    borderRadius="md" 
+                    borderWidth="1px" 
+                     
+                    bg="white"
+                    boxShadow="sm"
+                  >
+                    <Heading as="h3" size="md" mb={4} color="red.600" fontWeight="600">
+                      <HStack>
+                        <Icon as={FaTrash} />
+                        <Text>Remove Units</Text>
+                      </HStack>
+                    </Heading>
+                    
+                    <Alert status="warning" mb={4} borderRadius="md" fontSize="sm">
+                      <AlertIcon />
+                      Remove units from an existing barangay allocation
+                    </Alert>
+                    
+                    <FormControl isRequired mb={4}>
+                      <FormLabel fontWeight="medium">Barangay</FormLabel>
+                      <Select 
+                        value={deleteFromBarangay}
+                        onChange={(e) => setDeleteFromBarangay(e.target.value)}
+                        placeholder="Select barangay"
+                        isDisabled={allocatedBarangays.length === 0}
+                      >
+                        {allocatedBarangays.map((barangay) => (
+                          <option key={barangay} value={barangay}>
+                            {barangay}
+                          </option>
+                        ))}
+                      </Select>
+                    </FormControl>
+                    
+                    <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+                      <FormControl isRequired>
+                        <FormLabel fontWeight="medium">Unit Type</FormLabel>
+                        <Select 
+                          value={deleteUnitType}
+                          onChange={(e) => {
+                            setDeleteUnitType(e.target.value);
+                            setDeleteUnitCount(1);
+                          }}
+                          isDisabled={!deleteFromBarangay}
+                        >
+                          <option value="functional_units">Functional Units</option>
+                          <option value="non_functional_units">Non-functional Units</option>
+                        </Select>
+                      </FormControl>
+                      
+                      <FormControl isRequired>
+                        <FormLabel fontWeight="medium">Number of Units</FormLabel>
+                        <NumberInput
+                          min={1}
+                          max={getMaxDeleteUnits()}
+                          value={deleteUnitCount}
+                          onChange={(_, value) => setDeleteUnitCount(value)}
+                          isDisabled={!deleteFromBarangay}
+                        >
+                          <NumberInputField />
+                          <NumberInputStepper>
+                            <NumberIncrementStepper />
+                            <NumberDecrementStepper />
+                          </NumberInputStepper>
+                        </NumberInput>
+                        {deleteFromBarangay && (
+                          <Text mt={1} fontSize="sm" color="blue.600">
+                            Max: {getMaxDeleteUnits()} units available
+                          </Text>
+                        )}
+                      </FormControl>
+                    </SimpleGrid>
+                    
+                    <Button
+                      mt={6}
+                      colorScheme="red"
+                      leftIcon={<Icon as={FaTrash} />}
+                      onClick={handleDeleteUnits}
+                      isLoading={isDeletingMachineryUnits}
+                      isDisabled={!deleteFromBarangay || deleteUnitCount <= 0 || getMaxDeleteUnits() === 0}
+                      fontWeight="500"
+                      width="full"
+                    >
+                      Delete Units
+                    </Button>
+                  </Box>
+
+                  
                 </VStack>
               </TabPanel>
 
@@ -1260,9 +1435,9 @@ const ViewMachineryModal = ({ isOpen, onClose, machine }) => {
               <Button
                 colorScheme="red"
                 size="md"
-                isLoading={isDeletingMachineryUnit}
+                isLoading={isDeletingMachinery}
                 onClick={() => {
-                  handleDelete();
+                  handleDeleteMachine();
                   closeDeleteModal();
                 }}
               >

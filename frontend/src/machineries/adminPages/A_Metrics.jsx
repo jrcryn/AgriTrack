@@ -294,7 +294,7 @@ const Metrics = () => {
               alignItems="center"
             >
               <Box flex="3">
-                <Heading size="md" mb={4} color="green.600">Operational Readiness Rate</Heading>
+                <Heading size="md" mb={4}>Operational Readiness Rate</Heading>
                 <Text color="gray.600" mb={3}>
                   Percentage of total machinery that is functional and is being used.
                 </Text>
@@ -324,7 +324,7 @@ const Metrics = () => {
               borderWidth="1px"
               borderColor="gray.200"
             >
-              <Heading size="md" mb={4}>Functional vs. Non-Functional</Heading>
+              <Heading size="md" mb={4} fontWeight={"bold"}>Functional vs. Non-Functional</Heading>
               <Box mb={3}>
                 <Flex justify="space-between" mb={1}>
                   <Text color="green.600" fontWeight="medium">Functional ({metrics.functionalPercentage.toFixed(1)}%)</Text>

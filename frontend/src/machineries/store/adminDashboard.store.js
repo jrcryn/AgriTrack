@@ -26,7 +26,8 @@ export const useAdminDashboard = () => {
     const [isCreatingMachineryUnit, setIsCreatingMachineryUnit] = useState(false);
     const [isUpdatingMachineryUnit, setIsUpdatingMachineryUnit] = useState(false);
     const [isAddingMachineryUnits, setIsAddingMachineryUnits] = useState(false);
-    const [isDeletingMachineryUnit, setIsDeletingMachineryUnit] = useState(false);
+    const [isDeletingMachinery, setIsDeletingMachinery] = useState(false);
+    const [isDeletingMachineryUnits, setIsDeletingMachineryUnits] = useState(false);
     const [isGeneratingReport, setIsGeneratingReport] = useState(false);
 
     const [creationError, setCreationError] = useState(null);
@@ -76,17 +77,31 @@ export const useAdminDashboard = () => {
         }
     };
 
-    const deleteMachineryUnit = async (machineData) => {
-        setIsDeletingMachineryUnit(true);
+    const deleteMachinery = async (machineData) => {
+        setIsDeletingMachinery(true);
         try {
-            const response = await axios.delete(`${API_URL}/delete-machinery-unit`, { data: machineData });
+            const response = await axios.delete(`${API_URL}/delete-machinery`, { data: machineData });
             return response.data;
         } catch (error) {
             const errorMessage = error.response?.data?.message || 'An error occurred while deleting the machinery unit.';
             setDeletionError(errorMessage);
             throw new Error(errorMessage); // Rethrow the error to be handled by the calling component
         } finally {
-            setIsDeletingMachineryUnit(false);
+            setIsDeletingMachinery(false);
+        }
+    }
+
+    const deleteMachineryUnits = async (machineData) => {
+        setIsDeletingMachineryUnits(true);
+        try {
+            const response = await axios.post(`${API_URL}/delete-machinery-units`, machineData);
+            return response.data;
+        } catch (error) {
+            const errorMessage = error.response?.data?.message || 'An error occurred while deleting the machinery unit.';
+            setDeletionError(errorMessage);
+            throw new Error(errorMessage); // Rethrow the error to be handled by the calling component
+        } finally {
+            setIsDeletingMachineryUnits(false);
         }
     }
 
@@ -127,7 +142,8 @@ export const useAdminDashboard = () => {
         isCreatingMachineryUnit,
         isUpdatingMachineryUnit,
         isAddingMachineryUnits,
-        isDeletingMachineryUnit,
+        isDeletingMachinery,
+        isDeletingMachineryUnits,
         isGeneratingReport,
 
         error: loadingMachineriesError || creationError || updateError || addingError || deletionError,
@@ -136,7 +152,8 @@ export const useAdminDashboard = () => {
         createMachineriesUnit,
         updateMachineriesUnit,
         addMachineryUnits,
-        deleteMachineryUnit,
+        deleteMachinery,
+        deleteMachineryUnits,
         updateMachineryNameAndRemarks,
         generateExcelReport
     };

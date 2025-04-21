@@ -28,7 +28,7 @@ export const createMachineriesUnit = async (req, res) => {
     }
 };
 
-export const addMachineryUnits = async (req, res) => {
+export const addMachineryUnits = async (req, res) => { //solely for adding units to barangay
     const { machineryId, barangay, functionalUnits = 0, nonFunctionalUnits = 0 } = req.body;
 
     // Validate required fields
@@ -88,7 +88,7 @@ export const addMachineryUnits = async (req, res) => {
     }
 };
 
-export const deleteMachineryUnit = async (req, res) => {
+export const deleteMachinery = async (req, res) => { //pang delete ng machine talaga
     const { machineryId } = req.body;
     if (!machineryId) {
         return res.status(400).json({ message: "Machinery ID is required." });
@@ -108,7 +108,7 @@ export const deleteMachineryUnit = async (req, res) => {
     }
 };
 
-export const updateMachineryUnit = async (req, res) => {
+export const updateMachineryUnit = async (req, res) => { //update for name and remarks lang
     const { machineryId, unit_name, remarks } = req.body;
 
     if (!machineryId) {
@@ -133,6 +133,74 @@ export const updateMachineryUnit = async (req, res) => {
     } catch (error) {
         console.error("Error updating machinery unit:", error);
         return res.status(500).json({ message: "Error updating machinery unit." });
+    }
+};
+
+export const deleteMachineryUnits = async (req, res) => {
+    const { machineryId, barangay, unitType, unitCount } = req.body;
+
+    // Validate required fields
+    if (!machineryId || !barangay || !unitType || !unitCount) {
+        return res.status(400).json({ message: "Please provide all required fields: machineryId, barangay, unitType, and unitCount." });
+    }
+
+    // Validate unit type
+    if (unitType !== 'functional_units' && unitType !== 'non_functional_units') {
+        return res.status(400).json({ message: "Unit type must be either 'functional_units' or 'non_functional_units'." });
+    }
+
+    // Validate unit count
+    if (isNaN(unitCount) || unitCount <= 0) {
+        return res.status(400).json({ message: "Unit count must be a positive number." });
+    }
+
+    try {
+        // Find the machinery unit by ID
+        const machinery = await global.machineriesModels.MachineriesUnit.findById(machineryId);
+        
+        if (!machinery) {
+            return res.status(404).json({ message: "Machinery unit not found." });
+        }
+
+        // Find the barangay allocation
+        const allocationIndex = machinery.barangay_allocations.findIndex(
+            allocation => allocation.barangay === barangay
+        );
+        
+        if (allocationIndex === -1) {
+            return res.status(404).json({ message: `Barangay '${barangay}' not found in machinery allocations.` });
+        }
+
+        // Check if there are enough units to delete
+        const allocation = machinery.barangay_allocations[allocationIndex];
+        if (!allocation[unitType] || allocation[unitType] < unitCount) {
+            return res.status(400).json({ 
+                message: `Not enough ${unitType === 'functional_units' ? 'functional' : 'non-functional'} units to delete in ${barangay}.` 
+            });
+        }
+
+        // Update the allocation by subtracting the units
+        machinery.barangay_allocations[allocationIndex][unitType] -= unitCount;
+        
+        // If both functional and non-functional units become zero, remove the entire allocation
+        const updatedAllocation = machinery.barangay_allocations[allocationIndex];
+        if ((updatedAllocation.functional_units || 0) <= 0 && (updatedAllocation.non_functional_units || 0) <= 0) {
+            machinery.barangay_allocations.splice(allocationIndex, 1);
+        }
+
+        // Save the updated machinery
+        await machinery.save();
+
+        return res.status(200).json({
+            message: `Successfully deleted ${unitCount} ${unitType === 'functional_units' ? 'functional' : 'non-functional'} units from ${barangay}.`,
+            data: machinery
+        });
+    } catch (error) {
+        console.error("Error deleting machinery units:", error);
+        return res.status(500).json({
+            message: "Error deleting machinery units.", 
+            error: error.message
+        });
     }
 };
 
