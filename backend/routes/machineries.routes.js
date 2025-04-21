@@ -3,7 +3,8 @@ import express from 'express';
 import { 
     createMachineriesUnit,
     addMachineryUnits,
-    deleteMachineryUnit,
+    deleteMachinery,
+    deleteMachineryUnits,
     updateMachineryUnit,
     getMachineriesUnits,
     transferMachineriesUnit
@@ -16,7 +17,8 @@ const router = express.Router();
 
 router.post('/add-machinery-unit', createMachineriesUnit);
 router.post('/add-machinery-units', addMachineryUnits);
-router.delete('/delete-machinery-unit', deleteMachineryUnit);
+router.delete('/delete-machinery', deleteMachinery);
+router.post('/delete-machinery-units', deleteMachineryUnits);
 router.post('/update-machinery-unit', updateMachineryUnit);
 router.get('/machinery-units', getMachineriesUnits);
 router.post('/transfer-machinery-unit', transferMachineriesUnit);
