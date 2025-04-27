@@ -16,7 +16,7 @@ const machineriesApp = () => {
                    <Route path="metrics" element={<Metrics/>} />
                    <Route path="machine-inventory" element={<MachineryInventory/>} />
                    <Route path="gen-reports" element={<GenReports/>} />
-                </Route>    
+                </Route>    ``
             </Routes>
         </Box>
     );
