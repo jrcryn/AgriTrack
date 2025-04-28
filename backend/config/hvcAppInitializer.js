@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 import { connectDB } from './db.js';
 import { initializeHighValueCropsModels, getUnifiedFarmerRecordModel } from '../models/high-value-crops/hvcModelFactory.js';
 
-
+//dati wala, pero kac hindi na mabasa yung MONGO_URL varaiable sa environment kaya minano-mano yung import gamit path
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 

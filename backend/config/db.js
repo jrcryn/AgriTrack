@@ -13,8 +13,6 @@ export const connectDB = async() => {
         connections.docTrackDb = mongoose.connection.useDb('doc-track');
         connections.machineriesDb = mongoose.connection.useDb('machineries');
         
-        console.log(`Multiple databases initialized: ${connections.highValueCropsDb.name}, ${connections.docTrackDb.name}, ${connections.machineriesDb.name}`);
-        
     } catch (error) {
         console.error(`Error: ${error}`);
         process.exit(1); // Exit process with failure

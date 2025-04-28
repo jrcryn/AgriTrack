@@ -6,6 +6,7 @@ dotenv.config();
 
 import './config/hvcAppInitializer.js';
 import './config/machineriesAppInitializer.js';
+import './config/doc-trackAppInitializer.js';
 import highValueCropsRoutes from './routes/high-value-crops.routes.js';
 import machineriesRoutes from './routes/machineries.routes.js';
 
@@ -15,6 +16,7 @@ app.use(express.json());
 
 const allowedOrigins = [
     'https://agritrack-5zw3.onrender.com',
+    'http://localhost:5173',  
     process.env.CLIENT_URL,
 ];
 
