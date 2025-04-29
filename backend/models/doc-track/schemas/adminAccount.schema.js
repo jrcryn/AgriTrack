@@ -1,0 +1,14 @@
+import mongoose from 'mongoose';
+
+export const AdminSchema = new mongoose.Schema({
+    name: { type: String, required: true },
+    dept_position: { 
+        type: String,
+        enum: ['doc-trackAdmin'], // Only allows this single value
+        default: 'doc-trackAdmin', // Sets this as the default
+        required: true
+    },
+    email: { type: String, unique: true },
+    phone: { type: String, unique: true },
+    isActive: { type: Boolean, default: true }
+}, { versionKey: false, timestamps: true });

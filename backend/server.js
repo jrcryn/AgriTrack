@@ -6,8 +6,11 @@ dotenv.config();
 
 import './config/hvcAppInitializer.js';
 import './config/machineriesAppInitializer.js';
+import './config/doc-trackAppInitializer.js';
 import highValueCropsRoutes from './routes/high-value-crops.routes.js';
 import machineriesRoutes from './routes/machineries.routes.js';
+import docTrackRoutes from './routes/doc-track.routes.js';
+
 
 const app = express();
 
@@ -15,6 +18,7 @@ app.use(express.json());
 
 const allowedOrigins = [
     'https://agritrack-5zw3.onrender.com',
+    'http://localhost:5173',  
     process.env.CLIENT_URL,
 ];
 
@@ -27,6 +31,7 @@ app.use(cors({
 
 app.use(highValueCropsRoutes);
 app.use(machineriesRoutes);
+app.use(docTrackRoutes);
 
 app.listen(process.env.PORT, () => {
     console.log('Server is running on port ' + process.env.PORT);

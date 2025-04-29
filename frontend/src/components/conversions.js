@@ -21,7 +21,7 @@ const conversions = {
     "LAGKITAN": 0.0016,
     "LATUNDAN": 0.0016,
     "SABA": 0.0016,
-    "SEÑORITA": 0.0016,
+    "SENORITA": 0.0016,
     "LIBERICA": 0.0012,
     "ROBUSTA": 0.0006,
 };

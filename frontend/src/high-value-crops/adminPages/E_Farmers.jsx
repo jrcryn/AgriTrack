@@ -250,7 +250,7 @@ const E_Farmers = () => {
     } catch (error) {
       toast({
         title: "Error",
-        description: error.response?.data?.message || `Failed to ${isEditMode ? 'update' : 'register'} farmer`,
+        description: isEditMode ? "Failed to update farmer account" : (error.response?.data?.message || "Failed to register farmer"),
         status: "error",
         duration: 5000,
         isClosable: true,

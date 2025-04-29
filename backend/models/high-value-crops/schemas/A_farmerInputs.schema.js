@@ -1,10 +1,13 @@
 import mongoose from 'mongoose';
 
-const formatProperCase = (name) => {
-  return name
-  .toLowerCase()
-  .replace(/\b\w/g, (char) => char.toUpperCase());
-};
+/* tinangal na, since farmer details will come from farmer accounts schama, pero should not be removed
+if gusto ng client mag roll-back sa dating gawi, since ayon ang napag kasuduan*/
+
+// const formatProperCase = (name) => {
+//   return name
+//   .toLowerCase()
+//   .replace(/\b\w/g, (char) => char.toUpperCase());
+// };
 
 export const AFarmerInputsSchema = new mongoose.Schema({
   farmer_account_id: {
