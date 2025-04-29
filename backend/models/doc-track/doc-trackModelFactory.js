@@ -11,9 +11,9 @@ export const initializeDocTrackModels = () => {
 
     return {
         Document: db.model('Document', DocumentSchema),
-        DocumentDetail: db.model('DocumentDetail', DocumentDetailSchema),
+        Document_Detail: db.model('Document_Detail', DocumentDetailSchema),
         QrCode: db.model('QrCode', QrCodeSchema),
-        Staff: db.model('Staff', StaffSchema),
-        Admin: db.model('Admin', AdminSchema),
+        StaffAccount: db.model('Staff_Account', StaffSchema),
+        AdminAccount: db.model('Admin_Account', AdminSchema),
     };
 };

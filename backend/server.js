@@ -9,6 +9,8 @@ import './config/machineriesAppInitializer.js';
 import './config/doc-trackAppInitializer.js';
 import highValueCropsRoutes from './routes/high-value-crops.routes.js';
 import machineriesRoutes from './routes/machineries.routes.js';
+import docTrackRoutes from './routes/doc-track.routes.js';
+
 
 const app = express();
 
@@ -29,6 +31,7 @@ app.use(cors({
 
 app.use(highValueCropsRoutes);
 app.use(machineriesRoutes);
+app.use(docTrackRoutes);
 
 app.listen(process.env.PORT, () => {
     console.log('Server is running on port ' + process.env.PORT);

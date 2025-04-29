@@ -21,7 +21,7 @@ export const DocumentDetailSchema = new mongoose.Schema({
         required: true
     },
     remarks: {type: String},
-    
+
     timestamp: {
         type: Date,
         default: Date.now
