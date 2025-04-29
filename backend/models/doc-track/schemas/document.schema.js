@@ -10,10 +10,17 @@ export const DocumentSchema = new mongoose.Schema({
 
     // itong currentHandler is para malaman kung sino and current na may hawak ng document
     currentHandler: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Staff',
+        id: {
+            type: mongoose.Schema.Types.ObjectId,
+            required: true,
+        },
+        role: {
+            type: String,
+            enum: ['Staff', 'Admin'],
+            required: true,
+        }
     },
-    
+
     priority: {
         type: String,
         enum: ['Low', 'Medium', 'High', 'Urgent'],

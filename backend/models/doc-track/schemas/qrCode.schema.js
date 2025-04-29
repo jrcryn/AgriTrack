@@ -6,6 +6,7 @@ export const QrCodeSchema = new mongoose.Schema({
         ref: 'Document',
         required: true,
     },
+
     qr_data: {
         type: String,
         required: true,
@@ -37,9 +38,4 @@ export const QrCodeSchema = new mongoose.Schema({
         type: Boolean,
         default: true
     }
-}, { versionKey: false });
-
-// Add index for reference number
-QrCodeSchema.index({ referenceNumber: 1 }, { unique: true });
-QrCodeSchema.index({ document_id: 1 });
-QrCodeSchema.index({ isActive: 1 });
+}, { versionKey: false, timestamps: true });
