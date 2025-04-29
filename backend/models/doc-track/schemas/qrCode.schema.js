@@ -10,6 +10,14 @@ export const QrCodeSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
+    // unique reference number (8 digits so pwedeng 10^8 combinations - 100M)
+    referenceNumber: {
+        type: String,
+        required: true,
+        unique: true,
+        minlength: 8,
+        maxlength: 8
+    },
     generatedAt: {
         type: Date,
         default: Date.now,
@@ -30,3 +38,8 @@ export const QrCodeSchema = new mongoose.Schema({
         default: true
     }
 }, { versionKey: false });
+
+// Add index for reference number
+QrCodeSchema.index({ referenceNumber: 1 }, { unique: true });
+QrCodeSchema.index({ document_id: 1 });
+QrCodeSchema.index({ isActive: 1 });

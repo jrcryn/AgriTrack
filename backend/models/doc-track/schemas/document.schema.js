@@ -4,4 +4,20 @@ export const DocumentSchema = new mongoose.Schema({
     title: { type: String, required: true },
     type: { type: String, required: true },
     source: { type: String, required: true },
-}, { versionKey: false }, {timestamps: true});
+    status: { type: String, default: 'Pending' },
+
+    // document details such as; location, staff etc will come from documentDetail
+
+    // itong currentHandler is para malaman kung sino and current na may hawak ng document
+    currentHandler: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Staff',
+    },
+    
+    priority: {
+        type: String,
+        enum: ['Low', 'Medium', 'High', 'Urgent'],
+        default: 'Medium'
+    },
+    isCompleted: { type: Boolean, default: false }
+}, { timestamps: true, versionKey: false });
