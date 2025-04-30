@@ -434,7 +434,6 @@ const getNextSequence = async (key) => {
 // Create a new farmer account
 // Create a new farmer account
 export const createFarmerAccount = async (req, res) => {
-  console.log('📥 createFarmerAccount payload:', req.body);
 
   const { surname, first_name, middle_name, suffix, farmer_barangay, mobile_number, facebook, birthdate } = req.body;
   if (!surname || !first_name || !farmer_barangay) {

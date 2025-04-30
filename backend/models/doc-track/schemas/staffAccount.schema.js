@@ -9,6 +9,6 @@ export const StaffSchema = new mongoose.Schema({
         required: true
     },
     email: { type: String, unique: true },
-    phone: { type: Number, unique: true },
+    phone: { type: String, unique: true },
     isActive: { type: Boolean, default: true }
 }, { versionKey: false, timestamps: true });
