@@ -2,10 +2,10 @@ import mongoose from 'mongoose';
 
 export const AdminSchema = new mongoose.Schema({
     name: { type: String, required: true },
-    dept_position: { 
+    role: { 
         type: String,
-        enum: ['doc-trackAdmin'], // Only allows this single value
-        default: 'doc-trackAdmin', // Sets this as the default
+        enum: ['sdmin'], // Only allows this single value
+        default: 'sdmin', // Sets this as the default
         required: true
     },
     email: { type: String, unique: true },
