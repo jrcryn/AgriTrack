@@ -6,26 +6,35 @@ export const DocumentDetailSchema = new mongoose.Schema({
         ref: 'Document',
         required: true,
     },
-    action: { type: String, required: true },
+
+
+    action: {type: String, required: true}, 
     
-    // yung location and staff_id is for historical information about who handled the document throughout its lifecycle.
-    location: { type: String, required: true },
 
-    /* note that staff department or location can be changed afterwards, 
-    pag nagkaroon ng rotation or something like that sa office nila, 
-    so sa pagkuha ng last location or location history ng docu, 
-    is dapat sa location entry kukuhanin hindi sa location/department ng staff*/
-    staff_id: { 
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Staff', 
-        required: true
+    handleBy: { 
+       id: {
+         type: mongoose.Schema.Types.ObjectId,
+         required: true,
+       },
+       name: { type: String, required: true },
+       role: {
+           type: String,
+           enum: ['Staff', 'Admin'],
+           required: true,
+       },
+       office_position: { type: String, required: true },
+       email: { type: String, required: true },
+       phone: { type: String, required: true },
     },
-    remarks: {type: String},
 
-    timestamp: {
+
+    remarks: {type: String}, 
+
+    createdAt: {
         type: Date,
-        default: Date.now
+        default: Date.now,
     }
+    
 }, { versionKey: false});
 
 // Existing indexes are good

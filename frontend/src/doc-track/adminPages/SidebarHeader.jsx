@@ -19,23 +19,26 @@ import {
   MenuItem,
   MenuList,
   Divider,
-  Image
+  Image,
+  Badge,
 } from '@chakra-ui/react'
 import {
   FiGrid,
-  FiDownload,
-  FiUsers,
   FiChevronDown,
-  FiMenu
+  FiMenu,
+  FiDownload,
+  FiInbox, FiClock, FiSend, FiArchive, FiUsers, 
 } from 'react-icons/fi'
-import { FaWpforms } from "react-icons/fa";
 import Logo from '../../images/Calamba_Seal.png'
 
 const LinkItems = [
-  { name: 'Dashboard', icon: FiGrid, path : '/hvc/admin/metrics' },
-  { name: 'Generate Report', icon: FiDownload, path : '/hvc/admin/gen-reports' },
-  { name: 'New Responses', icon: FaWpforms, path : '/hvc/admin/responses' },
-  { name: 'Farmers', icon: FiUsers, path : '/hvc/admin/farmers' },
+  { name: 'Dashboard', icon: FiGrid, path : '/doc-track/admin/metrics' },
+  { name: 'Incoming', icon: FiInbox, path : '/doc-track/admin/incoming', count: 8 },
+  { name: 'Pending', icon: FiClock, path : '/doc-track/admin/pending', count: 6 },
+  { name: 'Outgoing', icon: FiSend, path : '/doc-track/admin/outgoing', count: 4 },
+  { name: 'Generate Reports', icon: FiDownload, path : '/doc-track/admin/gen-reports' },
+  { name: 'History', icon: FiArchive, path : '/doc-track/admin/history' },
+  { name: 'Staffs', icon: FiUsers, path : '/doc-track/admin/staffs' },
 ]
 
 const SidebarContent = ({ onClose, ...rest }) => {
@@ -68,7 +71,13 @@ const SidebarContent = ({ onClose, ...rest }) => {
       />
       {/* Navigation Items */}
       {LinkItems.map((link) => (
-        <NavItem key={link.name} icon={link.icon} path={link.path}>
+        <NavItem 
+          key={link.name} 
+          icon={link.icon} 
+          path={link.path}
+          count={link.count}
+          linkName={link.name}
+        >
           {link.name}
         </NavItem>
       ))}
@@ -76,11 +85,36 @@ const SidebarContent = ({ onClose, ...rest }) => {
   )
 }
 
-const NavItem = ({ icon, children, path, ...rest }) => {
+const NavItem = ({ icon, children, path, linkName, ...rest }) => {
 
   const location = useLocation();
   const isActive = location.pathname === path;
-  
+
+  const { count, ...otherProps } = rest;
+
+  const getBadgeStyles = () => {
+    switch(linkName) {
+      case 'Incoming':
+        return {
+          bg: "green",
+          color: "white"
+         
+        };
+      case 'Pending':
+        return {
+          bg: "yellow.600",
+          color: "white"
+        };
+      case 'Outgoing':
+        return {
+          bg: "red.600",
+          color: "white"
+        };
+    }
+  };
+
+  const badgeStyles = getBadgeStyles();
+
 
   return (
     <Box 
@@ -101,7 +135,7 @@ const NavItem = ({ icon, children, path, ...rest }) => {
           bg: 'white',
           color: 'black',
         }}
-        {...rest}>
+        {...otherProps}>
         {icon && (
           <Icon 
             mr="4" 
@@ -110,7 +144,19 @@ const NavItem = ({ icon, children, path, ...rest }) => {
             _groupHover={{ color: 'black' }} 
             as={icon} />
         )}
-        {children}
+        <Text flex="1">{children}</Text>
+        {count !== undefined && (
+          <Badge 
+            colorScheme={badgeStyles.colorScheme}
+            bg={badgeStyles.bg}
+            color={badgeStyles.color}
+            borderRadius="full"
+            ml={2}
+            fontSize="md"
+          >
+            {count}
+          </Badge>
+        )}
       </Flex>
     </Box>
   )

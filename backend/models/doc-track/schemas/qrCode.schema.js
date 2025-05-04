@@ -23,7 +23,11 @@ export const QrCodeSchema = new mongoose.Schema({
         type: Date,
         default: Date.now,
     },
-    
+
+    updatedAt: {
+        type: Date
+    },
+
     // additional fields
     version: {
         type: Number,
@@ -38,4 +42,6 @@ export const QrCodeSchema = new mongoose.Schema({
         type: Boolean,
         default: true
     }
-}, { versionKey: false, timestamps: true });
+}, { versionKey: false, timestamps: false });
+
+// indexing

@@ -1,12 +1,14 @@
 import mongoose from 'mongoose';
 
 export const DocumentSchema = new mongoose.Schema({
-    title: { type: String, required: true },
-    type: { type: String, required: true },
-    source: { type: String, required: true },
+    title: { type: String, required: true },  // name ng document 
+    type: { type: String, required: true }, // IN or OUT
+    description: { type: String }, // more details or san nangaling for example
     status: { type: String, default: 'Pending' },
 
     // document details such as; location, staff etc will come from documentDetail
+    
+    action: {type: String, required: true}, // action taken on the document
 
     // itong currentHandler is para malaman kung sino and current na may hawak ng document
     currentHandler: {
@@ -14,7 +16,7 @@ export const DocumentSchema = new mongoose.Schema({
             type: mongoose.Schema.Types.ObjectId,
             required: true,
         },
-        role: {
+        role: { //pang hanap sa collections staff or admin
             type: String,
             enum: ['Staff', 'Admin'],
             required: true,
@@ -26,5 +28,15 @@ export const DocumentSchema = new mongoose.Schema({
         enum: ['Low', 'Medium', 'High', 'Urgent'],
         default: 'Medium'
     },
-    isCompleted: { type: Boolean, default: false }
-}, { timestamps: true, versionKey: false });
+    isCompleted: { type: Boolean, default: false },
+
+    createdAt: {
+        type: Date,
+        default: Date.now
+    },
+
+    updatedAt: {
+        type: Date
+    }
+
+}, { versionKey: false });

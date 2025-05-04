@@ -2,13 +2,14 @@ import mongoose from 'mongoose';
 
 export const StaffSchema = new mongoose.Schema({
     name: { type: String, required: true },
-    dept_position: { 
+    role: { 
         type: String,
-        enum: ['doc-trackStaff'], // Only allows this single value
-        default: 'doc-trackStaff', // Sets this as the default
+        enum: ['Staff'], // Only allows this single value
+        default: 'Staff', // Sets this as the default
         required: true
     },
+    office_position: { type: String, required: true },
     email: { type: String, unique: true },
-    phone: { type: Number, unique: true },
+    phone: { type: String, unique: true },
     isActive: { type: Boolean, default: true }
 }, { versionKey: false, timestamps: true });

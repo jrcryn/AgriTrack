@@ -65,10 +65,13 @@ const Instructions = ({ onNext }) => {
                   • Pakisigurong tama ang mga impormasyong ibibigay.
                 </Text>
                 <Text fontSize="sm" mb={2}>
-                  • Lahat ng sagutang may markang <Text as="span" color="red.500" fontSize='md' >*</Text> ay kinakailangan.
+                  • Lahat ng sagutang may markang <Text as="span" color="red.500" fontSize='md' ><b>*</b></Text> ay kinakailangan.
                 </Text>
                 <Text fontSize="sm">
                   • Dapat tapusin ang form sa isang session lamang.<b> Huwag i-refresh ang page habang naglalagay ng impormasyon.</b>
+                </Text>
+                <Text fontSize="sm">
+                  • Kung ma i-refresh ang page, mawawala ang mga impormasyong nailagay, at kinakailangan na ulitin ang pagsasagot.
                 </Text>
                 <Text fontSize="sm">
                   • Pindutin ang <b>CONTINUE/SUSUNOD</b> para simulan ang pagsasagot at makapunta sa mga susunod na pahina.
