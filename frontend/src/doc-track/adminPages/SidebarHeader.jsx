@@ -59,6 +59,9 @@ const SidebarContent = ({ onClose, ...rest }) => {
         <Text fontSize="larger"  fontWeight="bold" color="white">
           DOC-TRACK
         </Text>
+                <Text fontSize="larger"  fontWeight="bold" color="white">
+                  ADMIN
+                </Text>
       </Box>
       {/* Mobile Close Button */}
       <CloseButton
