@@ -1,6 +1,6 @@
 import { Box } from '@chakra-ui/react';
-import React, { useState } from 'react';
-import { Routes, Route, useNavigate } from 'react-router-dom';
+import React, { useEffect, useState, useRef } from 'react';
+import { Routes, Route, useNavigate, useNavigationType, useLocation } from 'react-router-dom';
 
 // Admin imports
 import Layout from '../high-value-crops/adminPages/Layout.jsx';
@@ -24,9 +24,32 @@ import SuccessPage from '../high-value-crops/formPages/E_successPage.jsx';
 
 const highValueCropsApp = () => {
   const navigate = useNavigate();
+  const navigationType = useNavigationType();
+  const location = useLocation();
+
   const [selectedCropType, setSelectedCropType] = useState('');
 
+  // this ref will flip to true whenever we do an in-app Next/Back
+  const hasInteractedRef = useRef(false);
+
+  useEffect(() => {
+    const isFormPath        = location.pathname.startsWith('/hvc/form');
+    const isInitialFormPath = location.pathname === '/hvc/form/istcns';
+
+    // only on a true browser POP (refresh/direct URL) AND
+    // if we've never clicked Next/Back yet, redirect home
+    if (
+      navigationType === 'POP' &&
+      isFormPath &&
+      !isInitialFormPath &&
+      !hasInteractedRef.current
+    ) {
+      navigate('/hvc/form/istcns', { replace: true });
+    }
+  }, [location.pathname, navigationType, navigate]);
+
   const handleNext = (path, cropType) => {
+    hasInteractedRef.current = true; // Set the ref to true when navigating forward
     window.scrollTo(0, 0); // Scroll to top
     if (cropType) {
       setSelectedCropType(cropType);
@@ -35,6 +58,7 @@ const highValueCropsApp = () => {
   };
 
   const handleBack = () => {
+    hasInteractedRef.current = true; // Set the ref to true when navigating back
     window.scrollTo(0, 0); // Scroll to top
     navigate(-1);
   };
