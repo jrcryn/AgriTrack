@@ -1,248 +1,163 @@
-  import React, { useState } from 'react';
-  import {
-    Box,
-    Heading,
-    Text,
-    VStack,
-    FormControl,
-    FormLabel,
-    Input,
-    Button,
-    FormErrorMessage,
-    InputGroup,
-    InputRightElement,
-    InputLeftElement,
-    Icon,
-    Flex,
-    Image,
-    Link,
-    Stack
-  } from '@chakra-ui/react';
-  import { FiEye, FiEyeOff, FiMail, FiLock } from 'react-icons/fi';
-  import Logo from '../images/Calamba_Seal.png';
+import React, { useState } from 'react';
+import {
+  Box,
+  Heading,
+  Text,
+  VStack,
+  FormControl,
+  FormLabel,
+  Input,
+  Button,
+  FormErrorMessage,
+  InputGroup,
+  InputRightElement,
+  InputLeftElement,
+  Icon,
+  Flex,
+  Image,
+  Link,
+  Stack,
+  useColorModeValue,
+} from '@chakra-ui/react';
+import { FiEye, FiEyeOff, FiMail, FiLock } from 'react-icons/fi';
+import Logo from '../images/Calamba_Seal.png';
+import BackgroundImage from '../images/bg.jpg';
 
-  const LoginPage = () => {
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [showPassword, setShowPassword] = useState(false);
-    const [emailError, setEmailError] = useState('');
-    const [passwordError, setPasswordError] = useState('');
-    
-    // Card styling variables
-    const cardBg = 'white';
-    const accentColor = 'blue.600';
-    const borderColor = 'gray.200';
-    
-    const validateEmail = (email) => {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!email.trim()) {
-        return 'Email address is required';
-      } else if (!emailRegex.test(email)) {
-        return 'Please enter a valid email address';
-      }
-      return '';
-    };
+const LoginPage = () => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
 
-    const handleEmailChange = (e) => {
-      const value = e.target.value;
-      setEmail(value);
-      if (emailError) {
-        setEmailError(validateEmail(value));
-      }
-    };
-
-    const handlePasswordChange = (e) => {
-      const value = e.target.value;
-      setPassword(value);
-      if (passwordError && value) {
-        setPasswordError('');
-      }
-    };
-
-    const handleEmailBlur = () => {
-      setEmailError(validateEmail(email));
-    };
-
-    const handlePasswordBlur = () => {
-      setPasswordError(password ? '' : 'Password is required');
-    };
-
-    const togglePasswordVisibility = () => {
-      setShowPassword(!showPassword);
-    };
-
-    const handleSubmit = (e) => {
-      e.preventDefault();
-      const emailValidationError = validateEmail(email);
-      const passwordValidationError = password.trim() ? '' : 'Password is required';
-      
-      setEmailError(emailValidationError);
-      setPasswordError(passwordValidationError);
-      
-      if (!emailValidationError && !passwordValidationError) {
-        // Authentication logic would go here in the future
-        console.log('Valid form submitted');
-      }
-    };
-
-    return (
-      <Box minH="100vh" py={10} px={4} bg="gray.50">
-        <VStack spacing={8} maxW="500px" mx="auto" w="full">
-
-          
-          {/* Main Card */}
-          <Box bg={cardBg} borderRadius="xl" shadow="xl" w="full" overflow="hidden">
-            {/* Header */}
-            <Box 
-              p={6}
-              borderBottomWidth="2px"
-              borderColor={borderColor}
-              align="center"
-            >
-          {/* Logo and Department Info */}
-          <Flex align="center" justify="center">
-            <Image boxSize="90px" src={Logo} mr={4} />
-            <Box textAlign="left">
-              <Text fontSize="2xl" fontWeight="bold" lineHeight="shorter">
-                AgriTrack
-              </Text>
-              <Text fontSize="sm" fontWeight="medium" color="gray.600">
-                C.A.S.D. Calamba
-              </Text>
-            </Box>
-          </Flex>
-              <Text fontSize="sm" color="gray.500" fontWeight="medium" mb={-2}>
-                Enter your credentials to access your account
-              </Text>
-            </Box>
-
-            {/* Form Content */}
-            <Box p={8}>
-              <form onSubmit={handleSubmit}>
-                <VStack spacing={6} align="stretch">
-                  {/* Login Section Banner */}
-                  <Box
-                    bg="blue.50"
-                    borderRadius="md"
-                    p={4}
-                    borderLeftWidth="4px"
-                    borderColor={accentColor}
-                  >
-                    <Text fontSize="md" fontWeight="bold" color="blue.600">
-                      ACCOUNT AUTHENTICATION
-                    </Text>
-                  </Box>
-
-                  <FormControl isInvalid={emailError} id="email">
-                    <FormLabel 
-                      fontSize="sm" 
-                      fontWeight="bold"
-                      color="gray.600"
-                      textTransform="uppercase"
-                      letterSpacing="wide"
-                    >
-                      Email Address
-                    </FormLabel>
-                    <InputGroup>
-                      <InputLeftElement pointerEvents="none">
-                        <Icon as={FiMail} color="gray.400" />
-                      </InputLeftElement>
-                      <Input 
-                        type="email"
-                        value={email}
-                        onChange={handleEmailChange}
-                        onBlur={handleEmailBlur}
-                        placeholder="Enter your email address"
-                        borderRadius="md"
-                        focusBorderColor={accentColor}
-                      />
-                    </InputGroup>
-                    {emailError && (
-                      <FormErrorMessage>{emailError}</FormErrorMessage>
-                    )}
-                  </FormControl>
-
-                  <FormControl isInvalid={passwordError} id="password">
-                    <FormLabel 
-                      fontSize="sm" 
-                      fontWeight="bold"
-                      color="gray.600"
-                      textTransform="uppercase"
-                      letterSpacing="wide"
-                    >
-                      Password
-                    </FormLabel>
-                    <InputGroup>
-                      <InputLeftElement pointerEvents="none">
-                        <Icon as={FiLock} color="gray.400" />
-                      </InputLeftElement>
-                      <Input 
-                        type={showPassword ? "text" : "password"}
-                        value={password}
-                        onChange={handlePasswordChange}
-                        onBlur={handlePasswordBlur}
-                        placeholder="Enter your password"
-                        borderRadius="md"
-                        focusBorderColor={accentColor}
-                      />
-                      <InputRightElement>
-                        <Button 
-                          size="sm" 
-                          variant="ghost"
-                          onClick={togglePasswordVisibility}
-                          aria-label={showPassword ? "Hide password" : "Show password"}
-                        >
-                          <Icon as={showPassword ? FiEyeOff : FiEye} color="gray.400" />
-                        </Button>
-                      </InputRightElement>
-                    </InputGroup>
-                    {passwordError && (
-                      <FormErrorMessage>{passwordError}</FormErrorMessage>
-                    )}
-                  </FormControl>
-
-                  {/* Forgot Password Link */}
-                  <Flex justify="flex-end">
-                    <Link 
-                      color={accentColor} 
-                      fontSize="sm"
-                      _hover={{ textDecoration: "underline" }}
-                      fontWeight="medium"
-                    >
-                      Forgot Password?
-                    </Link>
-                  </Flex>
-
-                  {/* Login Button - following pattern from other forms */}
-                  <Stack
-                    direction={{ base: 'column', md: 'row' }}
-                    spacing={4}
-                    justify="flex-end"
-                    mt={12}
-                  >
-                    <Button
-                      bg={accentColor}
-                      color="white"
-                      _hover={{ bg: 'blue.700' }}
-                      type="submit"
-                      px={8}
-                      borderRadius="md"
-                    >
-                      Login
-                    </Button>
-                  </Stack>
-                </VStack>
-              </form>
-            </Box>
-          </Box>
-          
-          {/* Footer Text */}
-          <Text fontSize="xs" color="gray.500" textAlign="center">
-            © {new Date().getFullYear()} City Agriculture Services Department. All rights reserved.
-          </Text>
-        </VStack>
-      </Box>
-    );
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email.trim()) return 'Email address is required';
+    if (!emailRegex.test(email)) return 'Please enter a valid email address';
+    return '';
   };
 
-  export default LoginPage;
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const emailValidationError = validateEmail(email);
+    const passwordValidationError = password.trim() ? '' : 'Password is required';
+
+    setEmailError(emailValidationError);
+    setPasswordError(passwordValidationError);
+
+    if (!emailValidationError && !passwordValidationError) {
+      console.log('Valid form submitted');
+      // Future authentication logic will go here
+    }
+  };
+
+  return (
+    <Box // Parent container for positioning
+      minH="100vh"
+      position="relative" // Establishes a stacking context
+      display="flex"
+      alignItems="center"
+      justifyContent="center"
+      px={4}
+    >
+      {/* Background Image Box */}
+      <Box
+        position="absolute"
+        top="0"
+        left="0"
+        width="100%"
+        height="100%"
+        bgImage={`url(${BackgroundImage})`}
+        bgSize="cover"
+        bgPosition="center"
+        bgRepeat="no-repeat"
+        filter="blur(3px)" // Apply blur only to this box
+        zIndex="-1" // Ensure it's behind the content
+      />
+
+      {/* Login Form Box */}
+      <Box
+        bg="white" // Or useColorModeValue('white', 'gray.700') for dark mode
+        borderRadius="2xl"
+        shadow="2xl"
+        maxW="lg"
+        w="full"
+        p={{ base: 6, md: 10 }}
+        zIndex="1" // Ensure it's on top of the blurred background
+      >
+        {/* Logo and Title */}
+        <VStack spacing={3} textAlign="center" mb={6}>
+          <Image boxSize="80px" src={Logo} alt="City Logo" />
+          <Heading size="lg">AgriTrack</Heading>
+          <Text fontSize="sm" color="gray.500">City Agriculture Services Department - Calamba</Text>
+        </VStack>
+
+        <form onSubmit={handleSubmit}>
+          <VStack spacing={5}>
+            <FormControl isInvalid={!!emailError}>
+              <FormLabel>Email Address</FormLabel>
+              <InputGroup>
+                <InputLeftElement pointerEvents="none">
+                  <Icon as={FiMail} color="gray.400" />
+                </InputLeftElement>
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  onBlur={() => setEmailError(validateEmail(email))}
+                  placeholder="example@email.com"
+                />
+              </InputGroup>
+              {emailError && <FormErrorMessage>{emailError}</FormErrorMessage>}
+            </FormControl>
+
+            <FormControl isInvalid={!!passwordError}>
+              <FormLabel>Password</FormLabel>
+              <InputGroup>
+                <InputLeftElement pointerEvents="none">
+                  <Icon as={FiLock} color="gray.400" />
+                </InputLeftElement>
+                <Input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onBlur={() => setPasswordError(password.trim() ? '' : 'Password is required')}
+                  placeholder="Enter password"
+                />
+                <InputRightElement>
+                  <Button variant="ghost" size="sm" onClick={() => setShowPassword(!showPassword)}>
+                    <Icon as={showPassword ? FiEyeOff : FiEye} color="gray.400" />
+                  </Button>
+                </InputRightElement>
+              </InputGroup>
+              {passwordError && <FormErrorMessage>{passwordError}</FormErrorMessage>}
+            </FormControl>
+
+            <Flex w="full" justify="space-between" align="center" fontSize="sm">
+              <Box /> {/* Empty Box for spacing if needed, or for a "Remember me" checkbox */}
+              <Link color="blue.600" _hover={{ textDecoration: 'underline' }}>
+                Forgot Password?
+              </Link>
+            </Flex>
+
+            <Button
+              colorScheme="blue"
+              width="full"
+              size="lg"
+              type="submit"
+              borderRadius="lg"
+            >
+              Sign In
+            </Button>
+          </VStack>
+        </form>
+
+        <Text mt={8} fontSize="xs" color="gray.500" textAlign="center">
+          © {new Date().getFullYear()} City Agriculture Services Department. All rights reserved.
+        </Text>
+      </Box>
+    </Box>
+  );
+};
+
+export default LoginPage;
