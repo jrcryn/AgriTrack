@@ -717,75 +717,84 @@ export const getAvailableMonthsForYear = async (req, res) => {
 
 // Get metrics data for a specific year and month
 // Get metrics data for a specific year and month
+// ...existing code...
 export const getMetricsForYearMonth = async (req, res) => {
   const { year, month } = req.params;
   const { farm_location, commodity } = req.query; // Get filters from query parameters
-  
-  if (!year || isNaN(parseInt(year)) || !month || isNaN(parseInt(month))) {
-    return res.status(400).json({ message: 'Valid year and month parameters are required' });
+
+  // Validate year, month can be 0 for "All Months"
+  if (!year || isNaN(parseInt(year)) || month === undefined || month === null || isNaN(parseInt(month))) {
+    return res.status(400).json({ message: 'Valid year and month (or 0 for all) parameters are required' });
   }
-  
+
   try {
     const yearNum = parseInt(year);
-    const monthNum = parseInt(month);
-    
+    const monthNum = parseInt(month); // monthNum will be 0 for "All Months"
+
     // Get the appropriate model for this year
     const UnifiedFarmerRecordModel = global.getUnifiedFarmerRecordModel(yearNum);
-    
-    // Define month start and end (for date filtering)
-    const startOfMonth = new Date(yearNum, monthNum - 1, 1);
-    const endOfMonth = new Date(yearNum, monthNum, 0, 23, 59, 59, 999); // Last day of the month
-    
+
+    // Define month start and end ONLY if a specific month is selected
+    let startOfMonth, endOfMonth;
+    const isSpecificMonth = monthNum > 0 && monthNum <= 12;
+
+    if (isSpecificMonth) {
+      startOfMonth = new Date(yearNum, monthNum - 1, 1);
+      endOfMonth = new Date(yearNum, monthNum, 0, 23, 59, 59, 999); // Last day of the month
+    }
+
     // Base filters that will be applied to both queries
     const baseFilters = {};
-    
+
     // Add optional filters if provided
     if (farm_location) {
       baseFilters.farm_location = farm_location;
     }
-    
+
     if (commodity) {
       baseFilters.commodity = commodity;
     }
-    
+
     // 1. Newly Planted Metrics
-    // A crop is considered planted in the month if:
-    // - The plantation_start_date is in this month OR
-    // - The plantation period (start to end) overlaps with this month
     const newlyPlantedFilter = {
-      ...baseFilters, // Include base filters
+      ...baseFilters,
       crop_stage: "NEWLY PLANTED",
-      $or: [
-        // Plantation starts in this month
+    };
+
+    // Add date range filter only if a specific month is selected
+    if (isSpecificMonth) {
+      newlyPlantedFilter.$or = [
         { plantation_start_date: { $gte: startOfMonth, $lte: endOfMonth } },
-        // Plantation ends in this month
         { plantation_end_date: { $gte: startOfMonth, $lte: endOfMonth } },
-        // Plantation spans this month (starts before, ends after)
-        { 
+        {
           plantation_start_date: { $lt: startOfMonth },
           plantation_end_date: { $gt: endOfMonth }
         }
-      ]
-    };
-    
-    // Get unique farmers count who planted in the selected month
+      ];
+    } else {
+      // For "All Months", ensure plantation dates exist within the year (implicitly handled by model)
+      newlyPlantedFilter.plantation_start_date = { $ne: null }; // Or some basic check if needed
+    }
+
+
+    // Get unique farmers count who planted
     const newlyPlantedFarmersResult = await UnifiedFarmerRecordModel.aggregate([
       { $match: newlyPlantedFilter },
       { $group: { _id: "$farmer_account_id" } },
       { $count: "count" }
     ]);
-    
+
     // Calculate total area planted
     const newlyPlantedAreaResult = await UnifiedFarmerRecordModel.aggregate([
       { $match: newlyPlantedFilter },
       {
         $group: {
           _id: null,
-          totalAreaPlanted: { 
-            $sum: { 
+          totalAreaPlanted: {
+            $sum: {
               $cond: [
                 { $gt: [{ $ifNull: ["$total_area_planted", 0] }, 0] },
-                "$total_area_planted", 
+                "$total_area_planted",
                 { $ifNull: ["$total_area_trees_planted", 0] }
               ]
             }
@@ -793,66 +802,68 @@ export const getMetricsForYearMonth = async (req, res) => {
         }
       }
     ]);
-    
+
     // 2. Harvesting Metrics
-    // A harvest is considered done in the month if:
-    // - The harvest_start_date is in this month OR
-    // - The harvest period (start to end) overlaps with this month
     const harvestingFilter = {
-      ...baseFilters, // Include base filters
+      ...baseFilters,
       crop_stage: "HARVESTING",
-      $or: [
-        // Harvest starts in this month
+    };
+
+    // Add date range filter only if a specific month is selected
+    if (isSpecificMonth) {
+      harvestingFilter.$or = [
         { harvest_start_date: { $gte: startOfMonth, $lte: endOfMonth } },
-        // Harvest ends in this month
         { harvest_end_date: { $gte: startOfMonth, $lte: endOfMonth } },
-        // Harvest spans this month (starts before, ends after)
-        { 
+        {
           harvest_start_date: { $lt: startOfMonth },
           harvest_end_date: { $gt: endOfMonth }
         }
-      ]
-    };
-    
-    // Get unique farmers count who harvested in the selected month
+      ];
+    } else {
+       // For "All Months", ensure harvest dates exist within the year (implicitly handled by model)
+      harvestingFilter.harvest_start_date = { $ne: null }; // Or some basic check if needed
+    }
+
+
+    // Get unique farmers count who harvested
     const harvestingFarmersResult = await UnifiedFarmerRecordModel.aggregate([
       { $match: harvestingFilter },
       { $group: { _id: "$farmer_account_id" } },
       { $count: "count" }
     ]);
-    
+
     // Calculate total area harvested and volume production
     const harvestingMetricsResult = await UnifiedFarmerRecordModel.aggregate([
       { $match: harvestingFilter },
       {
         $group: {
           _id: null,
-          totalAreaHarvested: { 
-            $sum: { 
+          totalAreaHarvested: {
+            $sum: {
               $cond: [
                 { $gt: [{ $ifNull: ["$total_area_harvested", 0] }, 0] },
-                "$total_area_harvested", 
+                "$total_area_harvested",
                 { $ifNull: ["$total_area_trees_harvested", 0] }
               ]
-            } 
+            }
           },
           totalVolumeProduction: { $sum: { $ifNull: ["$total_weight", 0] } }
         }
       }
     ]);
-    
+
     // Extract the values (with fallbacks to 0 if no data)
     const newlyPlantedFarmers = newlyPlantedFarmersResult.length > 0 ? newlyPlantedFarmersResult[0].count : 0;
     const areaPlanted = newlyPlantedAreaResult.length > 0 ? newlyPlantedAreaResult[0].totalAreaPlanted : 0;
     const harvestingFarmers = harvestingFarmersResult.length > 0 ? harvestingFarmersResult[0].count : 0;
     const areaHarvested = harvestingMetricsResult.length > 0 ? harvestingMetricsResult[0].totalAreaHarvested : 0;
     const volumeProduction = harvestingMetricsResult.length > 0 ? harvestingMetricsResult[0].totalVolumeProduction : 0;
-    
+
     // Prepare the response
     const response = {
       filters: {
         year: yearNum,
-        month: monthNum,
+        month: isSpecificMonth ? monthNum : null, // Indicate null month for "All Months"
         farm_location: farm_location || null,
         commodity: commodity || null
       },
@@ -866,7 +877,7 @@ export const getMetricsForYearMonth = async (req, res) => {
         volumeProduction: volumeProduction
       }
     };
-    
+
     res.json(response);
   } catch (error) {
     console.error('Error fetching metrics:', error);

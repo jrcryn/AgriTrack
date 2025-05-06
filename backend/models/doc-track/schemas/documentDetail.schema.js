@@ -19,10 +19,10 @@ export const DocumentDetailSchema = new mongoose.Schema({
        name: { type: String, required: true },
        role: {
            type: String,
-           enum: ['Staff', 'Admin'],
+           enum: ['doc-trackStaff', 'doc-trackAdmin'],
            required: true,
        },
-       office_position: { type: String, required: true },
+       office_position: { type: String },
        email: { type: String, required: true },
        phone: { type: String, required: true },
     },

@@ -224,19 +224,20 @@ const Metrics = () => {
                  <Icon as={FaCalendarDay} color="blue.500" /> Month
               </FormLabel>
               <Select
-                value={selectedMonth || ""}
+                value={selectedMonth === null ? "" : selectedMonth} // Use "" for "All Months"
                 onChange={(e) => {
                   const value = e.target.value;
-                  setSelectedMonth(value === "" ? null : Number(value));
+                  setSelectedMonth(value === "" ? null : Number(value)); // Set to null for "All Months"
                 }}
                 bg="white"
                 size="md"
-                isDisabled={isLoadingUFRM || availableMonths.length === 0}
+                isDisabled={isLoadingUFRM || !selectedYear} // Disable if no year selected or months loading
               >
+                <option value="">All Months</option> {/* Add "All Months" option */}
                 {isLoadingUFRM ? (
-                  <option value="">Loading months...</option>
-                ) : availableMonths.length === 0 ? (
-                  <option value="">No months available</option>
+                  <option value="" disabled>Loading months...</option>
+                ) : availableMonths.length === 0 && selectedYear ? ( // Check if year is selected before showing "No months"
+                  <option value="" disabled>No months available for {selectedYear}</option>
                 ) : (
                   <>
                     {availableMonths.map((month) => (
@@ -247,7 +248,7 @@ const Metrics = () => {
                   </>
                 )}
               </Select>
-            </FormControl>
+            </FormControl>  
 
             <FormControl>
               <FormLabel fontSize="sm" fontWeight="medium" display="flex" alignItems="center" gap={2}>

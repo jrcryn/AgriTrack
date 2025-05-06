@@ -85,32 +85,37 @@ export const useUnifiedFarmerResponseMonthsQuery = (year) =>
     refetchInterval: 1000 // Refetch every second
   });
 
-  export const useMetricsForYearMonthQuery = (year, month, barangay, commodity) => 
+  export const useMetricsForYearMonthQuery = (year, month, barangay, commodity) =>
     useQuery({
-      queryKey: ['metricsData', year, month, barangay, commodity],
+      // Use 0 in the query key to represent "All Months" when month is null
+      queryKey: ['metricsData', year, month ?? 0, barangay, commodity],
       queryFn: async () => {
-        if (!year || !month) return null;
-        
-        let url = `${API_URL}/metrics/data/${year}/${month}`;
+        // We need a year, but month can be null (represented as 0)
+        if (!year) return null;
+
+        // Use 0 if month is null/undefined
+        const monthParam = month ?? 0;
+        let url = `${API_URL}/metrics/data/${year}/${monthParam}`;
         const params = new URLSearchParams();
-        
+
         if (barangay) {
           params.append('farm_location', barangay);
         }
-        
+
         if (commodity) {
           params.append('commodity', commodity);
         }
-        
+
         // Append query params if any exist
         if (params.toString()) {
           url += `?${params.toString()}`;
         }
-        
+
         const response = await axios.get(url);
         return response.data;
       },
-      enabled: !!(year && month), // Only run if both year and month are provided
+      // Enable the query as long as a year is selected
+      enabled: !!year,
       staleTime: 0,
       refetchInterval: 1000
     });
@@ -135,7 +140,7 @@ export const useDateRangesQuery = (year, month) =>
 // Composite hook that combines React Query and Zustand
 export const useAdminDashboard = () => {
 
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [selectedYear, setSelectedYear] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState(null);
   const [selectedBarangay, setSelectedBarangay] = useState('');
   const [selectedCommodity, setSelectedCommodity] = useState('');
@@ -162,16 +167,24 @@ export const useAdminDashboard = () => {
 
 
   useEffect(() => {
-    if (availableMonths && availableMonths.length > 0 && !selectedMonth) {
-      setSelectedMonth(availableMonths[0]);
+    if (!selectedYear && availableYears && availableYears.length > 0) {
+      setSelectedYear(availableYears[0]); // Select the first available year by default
     }
-  }, [availableMonths, selectedMonth]);
+  }, [availableYears, selectedYear]);
+
+
+  // useEffect(() => {
+  //   if (availableMonths && availableMonths.length > 0 && !selectedMonth) {
+  //     setSelectedMonth(availableMonths[0]);
+  //   }
+  // }, [availableMonths, selectedMonth]);
+
+  // Reset month when year changes
+
 
   useEffect(() => {
-    if (availableYears && availableYears.length > 0) {
-      setSelectedYear(availableYears[0]);
-    }
-  }, [availableYears]);
+    setSelectedMonth(null); // Reset to "All Months" when year changes
+  }, [selectedYear]);
 
 
   const createFarmerAccount = async (farmerData) => {
