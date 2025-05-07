@@ -36,7 +36,6 @@ const LinkItems = [
   { name: 'Incoming', icon: FiInbox, path : '/agritrack/doc-track/admin/incoming', count: 8 },
   { name: 'Pending', icon: FiClock, path : '/agritrack/doc-track/admin/pending', count: 6 },
   { name: 'Outgoing', icon: FiSend, path : '/agritrack/doc-track/admin/outgoing', count: 4 },
-  { name: 'Generate Reports', icon: FiDownload, path : '/agritrack/doc-track/admin/gen-reports' },
   { name: 'History', icon: FiArchive, path : '/agritrack/doc-track/admin/history' },
   { name: 'Staffs', icon: FiUsers, path : '/agritrack/doc-track/admin/staffs' },
 ]
