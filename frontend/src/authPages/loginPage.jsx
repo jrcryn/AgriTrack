@@ -1,0 +1,163 @@
+import React, { useState } from 'react';
+import {
+  Box,
+  Heading,
+  Text,
+  VStack,
+  FormControl,
+  FormLabel,
+  Input,
+  Button,
+  FormErrorMessage,
+  InputGroup,
+  InputRightElement,
+  InputLeftElement,
+  Icon,
+  Flex,
+  Image,
+  Link,
+  Stack,
+  useColorModeValue,
+} from '@chakra-ui/react';
+import { FiEye, FiEyeOff, FiMail, FiLock } from 'react-icons/fi';
+import Logo from '../images/Calamba_Seal.png';
+import BackgroundImage from '../images/bg.jpg';
+
+const LoginPage = () => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email.trim()) return 'Email address is required';
+    if (!emailRegex.test(email)) return 'Please enter a valid email address';
+    return '';
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const emailValidationError = validateEmail(email);
+    const passwordValidationError = password.trim() ? '' : 'Password is required';
+
+    setEmailError(emailValidationError);
+    setPasswordError(passwordValidationError);
+
+    if (!emailValidationError && !passwordValidationError) {
+      console.log('Valid form submitted');
+      // Future authentication logic will go here
+    }
+  };
+
+  return (
+    <Box // Parent container for positioning
+      minH="100vh"
+      position="relative" // Establishes a stacking context
+      display="flex"
+      alignItems="center"
+      justifyContent="center"
+      px={4}
+    >
+      {/* Background Image Box */}
+      <Box
+        position="absolute"
+        top="0"
+        left="0"
+        width="100%"
+        height="100%"
+        bgImage={`url(${BackgroundImage})`}
+        bgSize="cover"
+        bgPosition="center"
+        bgRepeat="no-repeat"
+        filter="blur(3px)" // Apply blur only to this box
+        zIndex="-1" // Ensure it's behind the content
+      />
+
+      {/* Login Form Box */}
+      <Box
+        bg="white" // Or useColorModeValue('white', 'gray.700') for dark mode
+        borderRadius="2xl"
+        shadow="2xl"
+        maxW="lg"
+        w="full"
+        p={{ base: 6, md: 10 }}
+        zIndex="1" // Ensure it's on top of the blurred background
+      >
+        {/* Logo and Title */}
+        <VStack spacing={3} textAlign="center" mb={6}>
+          <Image boxSize="80px" src={Logo} alt="City Logo" />
+          <Heading size="lg">AgriTrack</Heading>
+          <Text fontSize="sm" color="gray.500">City Agriculture Services Department - Calamba</Text>
+        </VStack>
+
+        <form onSubmit={handleSubmit}>
+          <VStack spacing={5}>
+            <FormControl isInvalid={!!emailError}>
+              <FormLabel>Email Address</FormLabel>
+              <InputGroup>
+                <InputLeftElement pointerEvents="none">
+                  <Icon as={FiMail} color="gray.400" />
+                </InputLeftElement>
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  onBlur={() => setEmailError(validateEmail(email))}
+                  placeholder="example@email.com"
+                />
+              </InputGroup>
+              {emailError && <FormErrorMessage>{emailError}</FormErrorMessage>}
+            </FormControl>
+
+            <FormControl isInvalid={!!passwordError}>
+              <FormLabel>Password</FormLabel>
+              <InputGroup>
+                <InputLeftElement pointerEvents="none">
+                  <Icon as={FiLock} color="gray.400" />
+                </InputLeftElement>
+                <Input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onBlur={() => setPasswordError(password.trim() ? '' : 'Password is required')}
+                  placeholder="Enter password"
+                />
+                <InputRightElement>
+                  <Button variant="ghost" size="sm" onClick={() => setShowPassword(!showPassword)}>
+                    <Icon as={showPassword ? FiEyeOff : FiEye} color="gray.400" />
+                  </Button>
+                </InputRightElement>
+              </InputGroup>
+              {passwordError && <FormErrorMessage>{passwordError}</FormErrorMessage>}
+            </FormControl>
+
+            <Flex w="full" justify="space-between" align="center" fontSize="sm">
+              <Box /> {/* Empty Box for spacing if needed, or for a "Remember me" checkbox */}
+              <Link color="blue.600" _hover={{ textDecoration: 'underline' }}>
+                Forgot Password?
+              </Link>
+            </Flex>
+
+            <Button
+              colorScheme="blue"
+              width="full"
+              size="lg"
+              type="submit"
+              borderRadius="lg"
+            >
+              Sign In
+            </Button>
+          </VStack>
+        </form>
+
+        <Text mt={8} fontSize="xs" color="gray.500" textAlign="center">
+          © {new Date().getFullYear()} City Agriculture Services Department. All rights reserved.
+        </Text>
+      </Box>
+    </Box>
+  );
+};
+
+export default LoginPage;

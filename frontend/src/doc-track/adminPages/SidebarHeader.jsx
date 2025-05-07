@@ -32,13 +32,12 @@ import {
 import Logo from '../../images/Calamba_Seal.png'
 
 const LinkItems = [
-  { name: 'Dashboard', icon: FiGrid, path : '/doc-track/admin/metrics' },
-  { name: 'Incoming', icon: FiInbox, path : '/doc-track/admin/incoming', count: 8 },
-  { name: 'Pending', icon: FiClock, path : '/doc-track/admin/pending', count: 6 },
-  { name: 'Outgoing', icon: FiSend, path : '/doc-track/admin/outgoing', count: 4 },
-  { name: 'Generate Reports', icon: FiDownload, path : '/doc-track/admin/gen-reports' },
-  { name: 'History', icon: FiArchive, path : '/doc-track/admin/history' },
-  { name: 'Staffs', icon: FiUsers, path : '/doc-track/admin/staffs' },
+  { name: 'Dashboard', icon: FiGrid, path : '/agritrack/doc-track/admin/metrics' },
+  { name: 'Incoming', icon: FiInbox, path : '/agritrack/doc-track/admin/incoming', count: 8 },
+  { name: 'Pending', icon: FiClock, path : '/agritrack/doc-track/admin/pending', count: 6 },
+  { name: 'Outgoing', icon: FiSend, path : '/agritrack/doc-track/admin/outgoing', count: 4 },
+  { name: 'History', icon: FiArchive, path : '/agritrack/doc-track/admin/history' },
+  { name: 'Staffs', icon: FiUsers, path : '/agritrack/doc-track/admin/staffs' },
 ]
 
 const SidebarContent = ({ onClose, ...rest }) => {
@@ -59,6 +58,9 @@ const SidebarContent = ({ onClose, ...rest }) => {
         <Text fontSize="larger"  fontWeight="bold" color="white">
           DOC-TRACK
         </Text>
+                <Text fontSize="larger"  fontWeight="bold" color="white">
+                  ADMIN
+                </Text>
       </Box>
       {/* Mobile Close Button */}
       <CloseButton

@@ -8,6 +8,5 @@ router.post('/create-doctrack-staff-account', createStaffAccount);
 router.post('/create-document', createDocument);
 router.get('/documents/:id/qrcode', downloadQrCode);
 
-
 export default router;
 

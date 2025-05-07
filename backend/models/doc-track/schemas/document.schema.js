@@ -16,11 +16,6 @@ export const DocumentSchema = new mongoose.Schema({
             type: mongoose.Schema.Types.ObjectId,
             required: true,
         },
-        role: { //pang hanap sa collections staff or admin
-            type: String,
-            enum: ['Staff', 'Admin'],
-            required: true,
-        }
     },
 
     priority: {
