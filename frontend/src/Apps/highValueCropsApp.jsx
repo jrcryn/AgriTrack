@@ -33,8 +33,8 @@ const highValueCropsApp = () => {
   const hasInteractedRef = useRef(false);
 
   useEffect(() => {
-    const isFormPath        = location.pathname.startsWith('/agritrack/hvc/form');
-    const isInitialFormPath = location.pathname === '/agritrack/hvc/form/istcns';
+    const isFormPath        = location.pathname.startsWith('/hvc/form');
+    const isInitialFormPath = location.pathname === '/hvc/form/istcns';
 
     // only on a true browser POP (refresh/direct URL) AND
     // if we've never clicked Next/Back yet, redirect home
@@ -44,7 +44,7 @@ const highValueCropsApp = () => {
       !isInitialFormPath &&
       !hasInteractedRef.current
     ) {
-      navigate('/agritrack/hvc/form/istcns', { replace: true });
+      navigate('/hvc/form/istcns', { replace: true });
     }
   }, [location.pathname, navigationType, navigate]);
 
@@ -54,7 +54,7 @@ const highValueCropsApp = () => {
     if (cropType) {
       setSelectedCropType(cropType);
     }
-    navigate('/agritrack/hvc/form' + path);
+    navigate('/hvc/form' + path);
   };
 
   const handleBack = () => {
