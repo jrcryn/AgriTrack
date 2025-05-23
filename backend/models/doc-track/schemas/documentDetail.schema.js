@@ -11,7 +11,7 @@ export const DocumentDetailSchema = new mongoose.Schema({
     action: {type: String, required: true}, 
     
 
-    handleBy: { 
+    handledBy: { 
        id: {
          type: mongoose.Schema.Types.ObjectId,
          required: true,
