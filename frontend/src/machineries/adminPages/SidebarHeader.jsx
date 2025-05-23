@@ -33,9 +33,9 @@ import {
 import Logo from '../../images/Calamba_Seal.png'
 
 const LinkItems = [
-  { name: 'Dashboard', icon: FiGrid, path: '/agritrack/machineries/admin/metrics' },
-  { name: 'Machinery Inventory', icon: FiBox, path: '/agritrack/machineries/admin/machine-inventory' },
-  { name: 'Generate Report', icon: FiDownload, path: '/agritrack/machineries/admin/gen-reports' },
+  { name: 'Dashboard', icon: FiGrid, path: '/machineries/admin/metrics' },
+  { name: 'Machinery Inventory', icon: FiBox, path: '/machineries/admin/machine-inventory' },
+  { name: 'Generate Report', icon: FiDownload, path: '/machineries/admin/gen-reports' },
 ];
 const SidebarContent = ({ onClose, ...rest }) => {
   return (

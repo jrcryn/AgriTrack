@@ -11,10 +11,10 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <Routes>
-        <Route path="/agritrack/hvc/*" element={<HighValueCrops />} />
-        <Route path="/agritrack/machineries/*" element={<Machineries />} />
-        <Route path="/agritrack/doc-track/*" element={<DocTrack/>} />
-        <Route path="/agritrack/auth/*" element={<Auth/>} />``
+        <Route path="/hvc/*" element={<HighValueCrops />} />
+        <Route path="/machineries/*" element={<Machineries />} />
+        <Route path="/doc-track/*" element={<DocTrack/>} />
+        <Route path="/auth/*" element={<Auth/>} />``
       </Routes>
     </QueryClientProvider>
   )

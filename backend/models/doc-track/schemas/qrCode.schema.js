@@ -38,10 +38,6 @@ export const QrCodeSchema = new mongoose.Schema({
         enum: ['L', 'M', 'Q', 'H'],
         default: 'M'
     },
-    isActive: {
-        type: Boolean,
-        default: true
-    }
 }, { versionKey: false, timestamps: false });
 
 // indexing

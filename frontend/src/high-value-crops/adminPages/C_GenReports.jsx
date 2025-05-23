@@ -5,7 +5,6 @@ import {
   Spinner, Alert, AlertIcon, Badge, AlertTitle, AlertDescription
 } from "@chakra-ui/react";
 import { FaFileExcel, FaDownload, FaCalendarAlt, FaChartBar, FaWifi } from 'react-icons/fa';
-import axios from 'axios';
 import { useAdminDashboard } from '../store/adminDashboard.store';
 
 const C_GenReports = () => {
