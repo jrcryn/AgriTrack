@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 
-export const AdminSchema = new mongoose.Schema({
+export const ManagerSchema = new mongoose.Schema({
     name: { type: String, required: true },
     role: { 
         type: String,

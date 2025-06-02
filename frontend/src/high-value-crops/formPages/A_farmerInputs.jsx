@@ -246,12 +246,16 @@ const FarmerInput = ({ onNext, onBack }) => {
                         <Input
                           placeholder="Number"
                           bg="white"
-                          type="number"
+                          type="text"
+                          inputMode="numeric"
+                          pattern="\d*"
                           borderRightRadius="md"
                           borderLeftRadius="0"
-                          maxLength={4}
                           value={farmerIdNumber}
-                          onChange={(e) => setFarmerIdNumber(e.target.value)}
+                          onChange={(e) => {
+                            const value = e.target.value.replace(/\D/g, '').slice(0, 4);
+                            setFarmerIdNumber(value);
+                          }}
                           isDisabled={isFarmerSelected}
                           _focus={{ borderColor: "blue.400" }}
                         />

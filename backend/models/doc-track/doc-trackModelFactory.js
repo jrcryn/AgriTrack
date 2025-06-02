@@ -4,7 +4,7 @@ import { DocumentSchema } from './schemas/document.schema.js';
 import { DocumentDetailSchema } from './schemas/documentDetail.schema.js';
 import { QrCodeSchema } from './schemas/qrCode.schema.js';
 import { StaffSchema } from './schemas/staffAccount.schema.js';
-import { AdminSchema } from './schemas/adminAccount.schema.js';
+import { ManagerSchema } from './schemas/managerAccount.schema.js';
 
 export const initializeDocTrackModels = () => {
     const db = getDocTrackDB();
@@ -14,6 +14,6 @@ export const initializeDocTrackModels = () => {
         Document_Detail: db.model('Document_Detail', DocumentDetailSchema),
         QrCode: db.model('QrCode', QrCodeSchema),
         StaffAccount: db.model('Staff_Account', StaffSchema),
-        AdminAccount: db.model('Admin_Account', AdminSchema),
+        ManagerAccount: db.model('Manager_Account', ManagerSchema),
     };
 };
