@@ -4,16 +4,7 @@ import cors from 'cors';
 
 dotenv.config();
 
-import './config/hvcAppInitializer.js';
-import './config/machineriesAppInitializer.js';
-import './config/doc-trackAppInitializer.js';
-import highValueCropsRoutes from './routes/high-value-crops.routes.js';
-import machineriesRoutes from './routes/machineries.routes.js';
-import docTrackRoutes from './routes/doc-track.routes.js';
-
-
 const app = express();
-
 app.use(express.json());
 
 const allowedOrigins = [
@@ -29,10 +20,33 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
-app.use(highValueCropsRoutes);
-app.use(machineriesRoutes);
-app.use(docTrackRoutes);
+// Import initializers as functions
+import initHVC from './config/hvcAppInitializer.js';
+import initMachineries from './config/machineriesAppInitializer.js';
+import initDocTrack from './config/doc-trackAppInitializer.js';
 
-app.listen(process.env.PORT, () => {
-    console.log('Server is running on port ' + process.env.PORT);
-});
+import highValueCropsRoutes from './routes/high-value-crops.routes.js';
+import machineriesRoutes from './routes/machineries.routes.js';
+import docTrackRoutes from './routes/doc-track.routes.js';
+import authRoutes from './routes/auth.routes.js';
+
+async function startServer() {
+    // Wait for all initializers to finish
+    await Promise.all([
+        initHVC(),
+        initMachineries(),
+        initDocTrack()
+    ]);
+
+    // Now that globals are set, add routes
+    app.use(highValueCropsRoutes);
+    app.use(machineriesRoutes);
+    app.use(docTrackRoutes);
+    app.use(authRoutes);
+
+    app.listen(process.env.PORT, () => {
+        console.log(`Server running on port ${process.env.PORT}`);
+    });
+}
+
+startServer();

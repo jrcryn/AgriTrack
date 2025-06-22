@@ -12,7 +12,7 @@ const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 // Initialize database connections and models
-const initializeApp = async () => {
+const initDocTrack = async () => {
   try {
 
     if (!process.env.MONGO_URI) {
@@ -38,4 +38,4 @@ const initializeApp = async () => {
   }
 };
 
-initializeApp();
+export default initDocTrack;
