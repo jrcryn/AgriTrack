@@ -10,7 +10,7 @@ const __dirname = path.dirname(__filename);
 
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
-const initializeApp = async () => {
+const initMachineries = async () => {
 
     try {
 
@@ -31,4 +31,4 @@ const initializeApp = async () => {
     }
 };
 
-initializeApp();
+export default initMachineries;

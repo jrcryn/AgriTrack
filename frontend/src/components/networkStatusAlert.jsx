@@ -10,7 +10,7 @@ const NetworkStatusAlert = () => {
   const isActuallyOnline = isDeviceOnline && hasInternet;
 
   // Helper: Fetch with a timeout
-  const fetchWithTimeout = (url, options = {}, timeout = 5000) =>
+  const fetchWithTimeout = (url, options = {}, timeout = 10000) =>
     Promise.race([
       fetch(url, options),
       new Promise((_, reject) =>
@@ -18,22 +18,21 @@ const NetworkStatusAlert = () => {
       ),
     ]);
 
-  // Check actual internet connectivity via a reliable CORS-enabled endpoint (pwede pamalit cloudfare pag dumating yung oras na hindi na gumagana, pero kasi mas reliable at gumana agad to).
+  // Check actual internet connectivity by fetching a lightweight, reliable endpoint.
   const checkInternetConnectivity = useCallback(async () => {
     try {
-      const response = await fetchWithTimeout(
-        "https://httpstat.us/200?cachebuster=" + Date.now(),
-        { cache: "no-cache" },
-        5000
+      // Using Google's 204 endpoint is a common practice for connectivity checks.
+      // It's fast and returns no content.
+      // We use 'no-cors' mode as we don't need to read the response, just see if the request succeeds.
+      await fetchWithTimeout(
+        "https://www.google.com/generate_204?cachebuster=" + Date.now(),
+        { method: "HEAD", mode: "no-cors", cache: "no-cache" }
       );
-      if (response && response.ok) {
-        setHasInternet(true);
-        return true;
-      } else {
-        setHasInternet(false);
-        return false;
-      }
+      // If the fetch promise resolves, it means we have a connection.
+      setHasInternet(true);
+      return true;
     } catch (error) {
+      // The promise rejects on network errors or timeout.
       setHasInternet(false);
       return false;
     }

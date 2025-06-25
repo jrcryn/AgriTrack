@@ -1,6 +1,4 @@
-
-import mongoose from 'mongoose';
-import { getHighValueCropsDB } from '../../config/dbAccessHelper.js'; // import hcv db access
+import { getHighValueCropsDB } from '../../config/dbAccessHelper.js'; // import hvc db access
 
 
 //________________________________ FARMERS NEW RESPONSES PAGE ____________________________________

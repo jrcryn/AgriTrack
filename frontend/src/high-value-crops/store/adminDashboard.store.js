@@ -11,7 +11,7 @@ export const useUnvalidatedInputsQuery = () =>
     queryKey: ['unvalidatedInputs'],
     queryFn: async () => {
 
-      const response = await axios.get(`${API_URL}/get-unvalidated-inputs`);
+      const response = await axios.get(`${API_URL}/api/hvc/get-unvalidated-inputs`);
       return response.data;
     },
     staleTime: 0, // Data is always fresh
@@ -22,7 +22,7 @@ export const useValidatedInputsQuery = () =>
   useQuery({
     queryKey: ['validatedInputs'],
     queryFn: async () => {
-      const response = await axios.get(`${API_URL}/get-validated-inputs`);
+      const response = await axios.get(`${API_URL}/api/hvc/get-validated-inputs`);
       return response.data;
     },
     staleTime: 0, // Data is always fresh
@@ -53,7 +53,7 @@ export const useFarmerAccountsQuery = () =>
     queryKey: ['farmerAccounts'],
     queryFn: async () => {
 
-      const response = await axios.get(`${API_URL}/get-farmer-accounts`);
+      const response = await axios.get(`${API_URL}/api/hvc/get-farmer-accounts`);
       return response.data;
     },
     staleTime: 0, // Data is always fresh
@@ -66,7 +66,7 @@ export const useUnifiedFarmerResponseYearQuery = () =>
     queryFn: async () => {
       //await new Promise(resolve => setTimeout(resolve, 5000));
 
-      const response = await axios.get(`${API_URL}/metrics/available-years`);
+      const response = await axios.get(`${API_URL}/api/hvc/metrics/available-years`);
       return response.data;
     },
     staleTime: 0, // Data is always fresh
@@ -77,7 +77,7 @@ export const useUnifiedFarmerResponseMonthsQuery = (year) =>
   useQuery({
     queryKey: ['availableMonths', year],
     queryFn: async () => {
-      const response = await axios.get(`${API_URL}/metrics/available-months/${year}`);
+      const response = await axios.get(`${API_URL}/api/hvc/metrics/available-months/${year}`);
       return response.data;
     },
     enabled: !!year, // Only run the query if year is provided
@@ -95,7 +95,7 @@ export const useUnifiedFarmerResponseMonthsQuery = (year) =>
 
         // Use 0 if month is null/undefined
         const monthParam = month ?? 0;
-        let url = `${API_URL}/metrics/data/${year}/${monthParam}`;
+        let url = `${API_URL}/api/hvc/metrics/data/${year}/${monthParam}`;
         const params = new URLSearchParams();
 
         if (barangay) {
@@ -127,7 +127,7 @@ export const useDateRangesQuery = (year, month) =>
     queryFn: async () => {
       if (!year || !month) return [];
 
-      const response = await axios.get(`${API_URL}/report-date-ranges/${year}/${month}`);
+      const response = await axios.get(`${API_URL}/api/hvc/report-date-ranges/${year}/${month}`);
       return response.data;
     },
     enabled: !!(year && month), // Only run if both year and month are provided
@@ -190,7 +190,7 @@ export const useAdminDashboard = () => {
   const createFarmerAccount = async (farmerData) => {
     setIsCreatingFarmerAccount(true);
     try {
-      const response =  await axios.post(`${API_URL}/create-farmer-account`, farmerData);
+      const response =  await axios.post(`${API_URL}/api/hvc/create-farmer-account`, farmerData);
       return response.data;
     } catch (error) {
       setError(error.message || 'Failed to create farmer account');
@@ -203,7 +203,7 @@ export const useAdminDashboard = () => {
   const createUnifiedFarmerResponse = async (responseData) => {
     setIsCreatingUnifiedResponse(true);
     try {
-      const response = await axios.post(`${API_URL}/create-unified-farmer-response`, responseData);
+      const response = await axios.post(`${API_URL}/api/hvc/create-unified-farmer-response`, responseData);
       return response.data; 
     } catch (error) {
       setError(error.message || 'Failed to create unified farmer response');
@@ -215,7 +215,7 @@ export const useAdminDashboard = () => {
 
   const getFarmerAccountById = async (farmerId) => {
     try {
-      const response = await axios.post(`${API_URL}/get-farmer-account`, farmerId);
+      const response = await axios.post(`${API_URL}/api/hvc/get-farmer-account`, farmerId);
       return response.data;
     } catch (error) {
       setError(error.message || 'Failed to fetch farmer account by ID');
@@ -227,7 +227,7 @@ export const useAdminDashboard = () => {
     setIsGeneratingReport(true);
     try {
       const response = await axios.post(
-        `${API_URL}/generate-excel-report`, 
+        `${API_URL}/api/hvc/generate-excel-report`, 
         { 
           startDate, 
           endDate
@@ -246,7 +246,7 @@ export const useAdminDashboard = () => {
   const updateFarmerAccount = async (farmerId, updateData) => {
     setIsUpdatingFarmerAccount(true);
     try {
-      const response = await axios.put(`${API_URL}/farmer-accounts/update`, { 
+      const response = await axios.put(`${API_URL}/api/hvc/farmer-accounts/update`, { 
         farmerId,
         ...updateData
       });
