@@ -8,7 +8,7 @@ const app = express();
 app.use(express.json());
 
 const allowedOrigins = [
-    'https://agritrack-5zw3.onrender.com',
+    'https://frontend-service-cpbs.onrender.com',
     'http://localhost:5173',  
     process.env.CLIENT_URL,
 ];
