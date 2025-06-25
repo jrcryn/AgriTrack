@@ -12,7 +12,7 @@ export const useMachineryUnitsQuery = () =>
 
             //await new Promise(resolve => setTimeout(resolve, 5000));
 
-            const response = await axios.get(`${API_URL}/machinery-units`);
+            const response = await axios.get(`${API_URL}/api/machineries/machinery-units`);
             return response.data;
         },
         staleTime: 0, //data is alwasys fresh
@@ -38,7 +38,7 @@ export const useAdminDashboard = () => {
     const createMachineriesUnit = async (machineData) => {
         setIsCreatingMachineryUnit(true);
         try {
-            const response = await axios.post(`${API_URL}/add-machinery-unit`, machineData);
+            const response = await axios.post(`${API_URL}/api/machineries/add-machinery-unit`, machineData);
             return response.data;
         } catch (error) {
             const errorMessage = error.response?.data?.message || 'An error occurred while creating the machinery unit.';
@@ -52,7 +52,7 @@ export const useAdminDashboard = () => {
     const addMachineryUnits = async (machineData) => {
         setIsAddingMachineryUnits(true);
         try {
-            const response = await axios.post(`${API_URL}/add-machinery-units`, machineData);
+            const response = await axios.post(`${API_URL}/api/machineries/add-machinery-units`, machineData);
             return response.data;
         } catch (error) {
             const errorMessage = error.response?.data?.message || 'An error occurred while creating the machinery unit.';
@@ -66,7 +66,7 @@ export const useAdminDashboard = () => {
     const updateMachineriesUnit = async (machineData) => {
         setIsUpdatingMachineryUnit(true);
         try {
-            const response = await axios.post(`${API_URL}/transfer-machinery-unit`, machineData);
+            const response = await axios.post(`${API_URL}/api/machineries/transfer-machinery-unit`, machineData);
             return response.data;
         } catch (error) {
             const errorMessage = error.response?.data?.message || 'An error occurred while updating the machinery unit.';
@@ -80,7 +80,7 @@ export const useAdminDashboard = () => {
     const deleteMachinery = async (machineData) => {
         setIsDeletingMachinery(true);
         try {
-            const response = await axios.delete(`${API_URL}/delete-machinery`, { data: machineData });
+            const response = await axios.delete(`${API_URL}/api/machineries/delete-machinery`, { data: machineData });
             return response.data;
         } catch (error) {
             const errorMessage = error.response?.data?.message || 'An error occurred while deleting the machinery unit.';
@@ -94,7 +94,7 @@ export const useAdminDashboard = () => {
     const deleteMachineryUnits = async (machineData) => {
         setIsDeletingMachineryUnits(true);
         try {
-            const response = await axios.post(`${API_URL}/delete-machinery-units`, machineData);
+            const response = await axios.post(`${API_URL}/api/machineries/delete-machinery-units`, machineData);
             return response.data;
         } catch (error) {
             const errorMessage = error.response?.data?.message || 'An error occurred while deleting the machinery unit.';
@@ -108,7 +108,7 @@ export const useAdminDashboard = () => {
     const updateMachineryNameAndRemarks = async (machineData) => {
         setIsUpdatingMachineryUnit(true);
         try {
-            const response = await axios.post(`${API_URL}/update-machinery-unit`, machineData);
+            const response = await axios.post(`${API_URL}/api/machineries/update-machinery-unit`, machineData);
             return response.data;
         } catch (error) {
             const errorMessage = error.response?.data?.message || 'An error occurred while updating the machinery unit.';
@@ -122,7 +122,7 @@ export const useAdminDashboard = () => {
     const generateExcelReport = async () => {
         setIsGeneratingReport(true);
         try {
-            const response = await axios.get(`${API_URL}/generate-machinery-report`, { responseType: 'blob' })
+            const response = await axios.get(`${API_URL}/api/machineries/generate-machinery-report`, { responseType: 'blob' })
             return response.data;
         } catch (error) {
             const errorMessage = error.response?.data?.message || 'An error occurred while generating the report.';

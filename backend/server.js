@@ -39,10 +39,10 @@ async function startServer() {
     ]);
 
     // Now that globals are set, add routes
-    app.use(highValueCropsRoutes);
-    app.use(machineriesRoutes);
-    app.use(docTrackRoutes);
-    app.use(authRoutes);
+    app.use("/api/hvc", highValueCropsRoutes);
+    app.use("/api/machineries", machineriesRoutes);
+    app.use("/api/doc-track", docTrackRoutes);
+    app.use("/api/auth",authRoutes);
 
     app.listen(process.env.PORT, () => {
         console.log(`Server running on port ${process.env.PORT}`);
