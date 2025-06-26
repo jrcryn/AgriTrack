@@ -12,26 +12,11 @@ dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 const TOKEN = process.env.MAILTRAP_API_TOKEN;
 
-const client = new MailtrapClient({
+export const mailTrapClient = new MailtrapClient({
   token: TOKEN,
 });
 
-const sender = {
+export const sender = {
   email: "hello@demomailtrap.co",
   name: "Mailtrap Test",
 };
-const recipients = [
-  {
-    email: "jjjrcapstone@gmail.com",
-  }
-];
-
-client
-  .send({
-    from: sender,
-    to: recipients,
-    subject: "INTEGRATION TEST: 1234567890",
-    text: "Nakakapanghina yung grade natin sa Capstone.",
-    category: "Integration Test",
-  })
-  .then(console.log, console.error);
