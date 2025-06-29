@@ -170,7 +170,7 @@ const C_GenReports = () => {
             High-Value Crops Metrics
           </Heading>
           <Alert status="info" borderRadius="md" mt={4}>
-            <AlertIcon />
+            <AlertIcon color="green.500"/>
             <AlertTitle>No data available!</AlertTitle>
             <AlertDescription>
               There are currently no metrics data available. Please check back later or add some farmer records.

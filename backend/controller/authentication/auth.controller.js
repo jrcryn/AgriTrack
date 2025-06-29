@@ -8,46 +8,20 @@ export const register = async (req, res) => {
     try {
 
         if (!name || !email || !phone || !password || !role || (role === 'DMS' && !office_position)) {
-            return res.status(400).json({ message: 'All fields are required' });
-        }
-        
-        // uAE (userAlreadyExists) can be improved later on to be an array of models tapos for loop na lang?
-
-        const uAEDocTrackStaff = await global.docTrackModels.StaffAccount.findOne({
-            $or: [
-                { email: email },
-                { phone: phone }
-            ]
-        });
-        const uAEDocTrackAdmin = await global.docTrackModels.ManagerAccount.findOne({
-            $or: [
-                { email: email },
-                { phone: phone }
-            ]
-        });
-        const uAEMachineriesStaff = await global.machineriesModels.StaffAccount.findOne({
-            $or: [
-                { email: email },
-                { phone: phone }
-            ]
-        });
-        const uAEHVCStaff = await global.highValueCropsModels.StaffAccount.findOne({
-            $or: [
-                { email: email },
-                { phone: phone }
-            ]
-        });
-        const uAEHVCAdmin = await global.highValueCropsModels.ManagerAccount.findOne({
-            $or: [
-                { email: email },
-                { phone: phone }
-            ]
-        });
-        if (uAEDocTrackStaff || uAEDocTrackAdmin || uAEMachineriesStaff || uAEHVCStaff || uAEHVCAdmin) {
-            return res.status(400).json({ message: 'User already exists with this email or phone' });
+            return res.status(400).json({ success: false, message: 'All fields are required.' });
         }
 
-        // naisip ko gawin lang valid for 12 hours yung default password, if failed to comply si user need bumalik kay it to create a new one.
+        const userExists = await global.docTrackModels.StaffAccount.findOne({ $or: [{ email: email }, { phone: phone }]}) ||
+                           await global.docTrackModels.ManagerAccount.findOne({ $or: [{ email: email }, { phone: phone }]}) ||
+                           await global.machineriesModels.StaffAccount.findOne({ $or: [{ email: email }, { phone: phone }]}) ||
+                           await global.highValueCropsModels.StaffAccount.findOne({ $or: [{ email: email }, { phone: phone }]}) ||
+                           await global.highValueCropsModels.ManagerAccount.findOne({ $or: [{ email: email }, { phone: phone }] });
+
+        if (userExists) {
+            return res.status(400).json({ success: false, message: 'User already exists.' });
+        }
+
+        // naisip ko gawin lang valid for 12 hours yung default password, if failed to comply si user need bumalik kay IT to create a new one.
         // TO BE IMPLEMENTED:
         // const defaultPasswordExpiry = Date.now() + 12 * 60 * 60 * 1000;
         const defaultPassword = crypto.randomBytes(8).toString('hex'); 
@@ -62,7 +36,7 @@ export const register = async (req, res) => {
                       null;
 
         if (!model) {
-            return res.status(400).json({ message: 'Invalid account type specified' });
+            return res.status(400).json({ success: false, message: 'Invalid account type specified.' });
         }
 
         const newUser = new model({
@@ -73,10 +47,11 @@ export const register = async (req, res) => {
             password: hashedPassword,
         });
         await newUser.save();
-        await sendWelcomeEmail(email, defaultPassword);
+        //await sendWelcomeEmail(email, defaultPassword);
 
         res.status(201).json({ 
             message: 'User registered successfully', 
+            success: true,
             user: { // only yung mga kailangan lang pala na ibalik sa client sabi ni ai. Akala ko need pa i-redact yung password or gawing undefined, so pag hindi naka state d2 auto redeacted na pala.
                 id: newUser._id,
                 name: newUser.name,
@@ -87,11 +62,39 @@ export const register = async (req, res) => {
 
     } catch (error) {
         console.error('Error signing up:', error);
-        return res.status(500).json({ message: 'Internal server error' });
+        return res.status(500).json({ success: false ,message: 'Internal server error.' });
     }
 };
 
+export const login = async (req, res) => {
+    const { email, password } = req.body;
 
+    try {
+        if (!email || !password) {
+            return res.status(400).json({ success: false, message: 'All fields are required.'})
+        }
+
+        const user = await global.docTrackModels.StaffAccount.findOne({ email }) ||
+                     await global.docTrackModels.ManagerAccount.findOne({ email }) ||
+                     await global.machineriesModels.StaffAccont.findOne({ email }) ||
+                     await global.highValueCropsModels.StaffAccount.fineOne({ email }) ||
+                     await global.highValueCropsModels.ManagerAccount.fineOne({ email });
+
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'Account not found.' });
+        }
+
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+        if (!isPasswordValid) {
+            return res.status(401).json({ success: false, message: 'Invalid credentials.'})
+        }
+
+
+    } catch (error) {
+        console.error('Error logging in:', error);
+        return res.status(500).json({ success: false, message: 'Internal server error.' });
+    }
+};
 
 
 
