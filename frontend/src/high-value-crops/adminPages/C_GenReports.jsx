@@ -169,7 +169,7 @@ const C_GenReports = () => {
           <Heading as="h1" size="xl" mb={2} color="black">
             High-Value Crops Metrics
           </Heading>
-          <Alert status="info" borderRadius="md" mt={4}>
+          <Alert status="info" borderRadius="md" mt={4} bgColor={"green.100"}>
             <AlertIcon color="green.500"/>
             <AlertTitle>No data available!</AlertTitle>
             <AlertDescription>
