@@ -2,16 +2,17 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 
 import { sendWelcomeEmail } from '../../mailtrap/emails.controller.js';
+import { generateTokenAndSetCookie } from '../../utils/generateTokenAndSetCookie.js'
 
-export const register = async (req, res) => {
-    const { name, email, phone, password, role, office_position } = req.body;
+export const register = async (req, res) => {  //system admin level access only
+    const { name, email, phone, role, office_position } = req.body;
     try {
 
-        if (!name || !email || !phone || !password || !role || (role === 'DMS' && !office_position)) {
+        if (!name || !email || !phone || !role || (role === 'DMS' && !office_position)) {
             return res.status(400).json({ success: false, message: 'All fields are required.' });
         }
 
-        const userExists = await global.docTrackModels.StaffAccount.findOne({ $or: [{ email: email }, { phone: phone }]}) ||
+        let userExists = await global.docTrackModels.StaffAccount.findOne({ $or: [{ email: email }, { phone: phone }]}) ||
                            await global.docTrackModels.ManagerAccount.findOne({ $or: [{ email: email }, { phone: phone }]}) ||
                            await global.machineriesModels.StaffAccount.findOne({ $or: [{ email: email }, { phone: phone }]}) ||
                            await global.highValueCropsModels.StaffAccount.findOne({ $or: [{ email: email }, { phone: phone }]}) ||
@@ -26,7 +27,7 @@ export const register = async (req, res) => {
         // const defaultPasswordExpiry = Date.now() + 12 * 60 * 60 * 1000;
         const defaultPassword = crypto.randomBytes(8).toString('hex'); 
 
-        const hashedPassword = await bcrypt.hash(defaultPassword, 12);
+        const hashedPassword = await bcrypt.hash(defaultPassword, 12); // default password sent via email, users are required to change it upon first login
 
         const model = role === 'DMS' ? global.docTrackModels.StaffAccount :
                       role === 'DMM' ? global.docTrackModels.ManagerAccount :
@@ -47,8 +48,9 @@ export const register = async (req, res) => {
             password: hashedPassword,
         });
         await newUser.save();
-        //await sendWelcomeEmail(email, defaultPassword);
+        await sendWelcomeEmail(email, defaultPassword);
 
+        hashedPassword = undefined; 
         res.status(201).json({ 
             message: 'User registered successfully', 
             success: true,
@@ -76,12 +78,12 @@ export const login = async (req, res) => {
 
         const user = await global.docTrackModels.StaffAccount.findOne({ email }) ||
                      await global.docTrackModels.ManagerAccount.findOne({ email }) ||
-                     await global.machineriesModels.StaffAccont.findOne({ email }) ||
-                     await global.highValueCropsModels.StaffAccount.fineOne({ email }) ||
-                     await global.highValueCropsModels.ManagerAccount.fineOne({ email });
+                     await global.machineriesModels.StaffAccount.findOne({ email }) ||
+                     await global.highValueCropsModels.StaffAccount.findOne({ email }) ||
+                     await global.highValueCropsModels.ManagerAccount.findOne({ email });
 
         if (!user) {
-            return res.status(404).json({ success: false, message: 'Account not found.' });
+            return res.status(404).json({ success: false, message: 'Invalid credentials.' });
         }
 
         const isPasswordValid = await bcrypt.compare(password, user.password);
@@ -89,9 +91,34 @@ export const login = async (req, res) => {
             return res.status(401).json({ success: false, message: 'Invalid credentials.'})
         }
 
+        generateTokenAndSetCookie(res, user._id);
+
+        user.lastLogin = new Date();
+        await user.save();
+
+        res.status(200).json({
+            success: true,
+            message: 'Login successful.',
+            user: {
+                id: user._id,
+                role: user.role,
+                office_position: user.office_position,
+            }
+        });
 
     } catch (error) {
         console.error('Error logging in:', error);
+        return res.status(500).json({ success: false, message: 'Internal server error.' });
+    }
+};
+
+
+export const logout = async (req, res) => {
+    try {
+        res.clearCookie('authToken');
+        res.status(200).json({ success: true, message: 'Logout successful.' });
+    } catch (error) {
+        console.error('Error logging out:', error);
         return res.status(500).json({ success: false, message: 'Internal server error.' });
     }
 };
