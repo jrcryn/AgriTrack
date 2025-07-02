@@ -1,6 +1,8 @@
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
+import qrcode from 'qrcode';
 
+import { authenticator } from 'otplib';
 import { sendWelcomeEmail } from '../../mailtrap/emails.controller.js';
 import { generateTokenAndSetCookie } from '../../utils/generateTokenAndSetCookie.js'
 
@@ -91,25 +93,31 @@ export const login = async (req, res) => {
             return res.status(401).json({ success: false, message: 'Invalid credentials.'})
         }
 
-        generateTokenAndSetCookie(res, user._id);
+        if(!user.is2FAEnabled) {
+            return res.status(400).json({ success: false, message: 'You are required to set up 2FA first before logging in' });
+        };
 
-        user.lastLogin = new Date();
-        await user.save();
+        //generateTokenAndSetCookie(res, user._id);
+
+        // user.lastLogin = new Date();
+        // await user.save();
 
         res.status(200).json({
             success: true,
             message: 'Login successful.',
-            user: {
-                id: user._id,
-                role: user.role,
-                office_position: user.office_position,
-            }
+            user: user._id
         });
 
     } catch (error) {
         console.error('Error logging in:', error);
         return res.status(500).json({ success: false, message: 'Internal server error.' });
     }
+};
+
+
+
+export const generate2FASecret = async (req, res) => {
+    
 };
 
 

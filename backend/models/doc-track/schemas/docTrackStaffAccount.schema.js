@@ -15,12 +15,11 @@ export const DocTrackStaffSchema = new mongoose.Schema({
 
     password: { type: String, required: true },
     lastLogin: { type: Date, default: Date.now },
-    isVerified: {type: Boolean, default: false},
+    is2FAEnabled: {type: Boolean, default: false},
 
     resetPasswordToken: String,
     resetPasswordExpiresAt: Date,
-    verificationToken: String,
-    verificationTokenExpiresAt: Date,
+
 
     isActive: { type: Boolean, default: true }
 
