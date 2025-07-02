@@ -16,6 +16,7 @@ export const DocTrackStaffSchema = new mongoose.Schema({
     password: { type: String, required: true },
     lastLogin: { type: Date, default: Date.now },
     is2FAEnabled: {type: Boolean, default: false},
+    twoFASecret: String,
 
     resetPasswordToken: String,
     resetPasswordExpiresAt: Date,

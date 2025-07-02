@@ -14,13 +14,13 @@ export const register = async (req, res) => {  //system admin level access only
             return res.status(400).json({ success: false, message: 'All fields are required.' });
         }
 
-        let userExists = await global.docTrackModels.StaffAccount.findOne({ $or: [{ email: email }, { phone: phone }]}) ||
-                           await global.docTrackModels.ManagerAccount.findOne({ $or: [{ email: email }, { phone: phone }]}) ||
-                           await global.machineriesModels.StaffAccount.findOne({ $or: [{ email: email }, { phone: phone }]}) ||
-                           await global.highValueCropsModels.StaffAccount.findOne({ $or: [{ email: email }, { phone: phone }]}) ||
-                           await global.highValueCropsModels.ManagerAccount.findOne({ $or: [{ email: email }, { phone: phone }] });
+        let userAlreadyExists = await global.docTrackModels.StaffAccount.findOne({ $or: [{ email: email }, { phone: phone }]}) ||
+                   await global.docTrackModels.ManagerAccount.findOne({ $or: [{ email: email }, { phone: phone }]}) ||
+                   await global.machineriesModels.StaffAccount.findOne({ $or: [{ email: email }, { phone: phone }]}) ||
+                   await global.highValueCropsModels.StaffAccount.findOne({ $or: [{ email: email }, { phone: phone }]}) ||
+                   await global.highValueCropsModels.ManagerAccount.findOne({ $or: [{ email: email }, { phone: phone }] });
 
-        if (userExists) {
+        if (userAlreadyExists) {
             return res.status(400).json({ success: false, message: 'User already exists.' });
         }
 
@@ -51,8 +51,7 @@ export const register = async (req, res) => {  //system admin level access only
         });
         await newUser.save();
         await sendWelcomeEmail(email, defaultPassword);
-
-        hashedPassword = undefined; 
+ 
         res.status(201).json({ 
             message: 'User registered successfully', 
             success: true,
@@ -93,9 +92,9 @@ export const login = async (req, res) => {
             return res.status(401).json({ success: false, message: 'Invalid credentials.'})
         }
 
-        if(!user.is2FAEnabled) {
-            return res.status(400).json({ success: false, message: 'You are required to set up 2FA first before logging in' });
-        };
+        // if(!user.is2FAEnabled) {
+        //     return res.status(400).json({ success: false, message: 'You are required to set up 2FA first before logging in' });
+        // };
 
         //generateTokenAndSetCookie(res, user._id);
 
@@ -117,7 +116,43 @@ export const login = async (req, res) => {
 
 
 export const generate2FASecret = async (req, res) => {
-    
+    const { userId } = req.body;
+
+    try {
+        let user = await global.docTrackModels.StaffAccount.findOne({ _id: userId }) ||
+                     await global.docTrackModels.ManagerAccount.findOne({ _id: userId }) ||
+                     await global.machineriesModels.StaffAccount.findOne({ _id: userId }) ||
+                     await global.highValueCropsModels.StaffAccount.findOne({ _id: userId }) ||
+                     await global.highValueCropsModels.ManagerAccount.findOne({ _id: userId });
+
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found.' });
+        }
+
+        const secret = authenticator.generateSecret();
+        const otpauth = authenticator.keyuri(user.email, 'AgriTrack', secret);
+        const qr = await qrcode.toDataURL(otpauth);
+
+        const hashedSecret = await bcrypt.hash(secret, 12);
+        user.twoFASecret = hashedSecret;
+        user.is2FAEnabled = false;
+        await user.save();
+
+        res.status(200).json({
+            success: true,
+            message: '2FA secret generated successfully.',
+            qr
+        });
+
+    } catch (error) {
+        console.error('Error generating 2FA secret:', error);
+        return res.status(500).json({ success: false, message: 'Internal server error.' });
+    }
+};
+
+
+export const verify2FA = async (req, res) => {
+
 };
 
 
