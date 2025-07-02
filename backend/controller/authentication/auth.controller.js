@@ -6,7 +6,7 @@ import { authenticator } from 'otplib';
 import { sendWelcomeEmail } from '../../mailtrap/emails.controller.js';
 import { generateTokenAndSetCookie } from '../../utils/generateTokenAndSetCookie.js'
 
-export const register = async (req, res) => {  //system admin level access only
+export const register = async (req, res) => {  //system admin level access only (ililipat in the future to a separate route for admin job controllers)
     const { name, email, phone, role, office_position } = req.body;
     try {
 
@@ -14,7 +14,7 @@ export const register = async (req, res) => {  //system admin level access only
             return res.status(400).json({ success: false, message: 'All fields are required.' });
         }
 
-        let userAlreadyExists = await global.docTrackModels.StaffAccount.findOne({ $or: [{ email: email }, { phone: phone }]}) ||
+        const userAlreadyExists = await global.docTrackModels.StaffAccount.findOne({ $or: [{ email: email }, { phone: phone }]}) ||
                    await global.docTrackModels.ManagerAccount.findOne({ $or: [{ email: email }, { phone: phone }]}) ||
                    await global.machineriesModels.StaffAccount.findOne({ $or: [{ email: email }, { phone: phone }]}) ||
                    await global.highValueCropsModels.StaffAccount.findOne({ $or: [{ email: email }, { phone: phone }]}) ||
@@ -93,7 +93,7 @@ export const login = async (req, res) => {
         }
 
         // if(!user.is2FAEnabled) {
-        //     return res.status(400).json({ success: false, message: 'You are required to set up 2FA first before logging in' });
+        //     return res.status(400).json({ success: false, message: 'You are required to set up 2FA first.' });
         // };
 
         //generateTokenAndSetCookie(res, user._id);
@@ -104,7 +104,7 @@ export const login = async (req, res) => {
         res.status(200).json({
             success: true,
             message: 'Login successful.',
-            user: user._id
+            userId: user._id
         });
 
     } catch (error) {
@@ -132,8 +132,8 @@ export const generate2FASecret = async (req, res) => {
         const secret = authenticator.generateSecret();
         const otpauth = authenticator.keyuri(user.email, 'AgriTrack', secret);
         const qr = await qrcode.toDataURL(otpauth);
-
         const hashedSecret = await bcrypt.hash(secret, 12);
+        
         user.twoFASecret = hashedSecret;
         user.is2FAEnabled = false;
         await user.save();
@@ -141,7 +141,8 @@ export const generate2FASecret = async (req, res) => {
         res.status(200).json({
             success: true,
             message: '2FA secret generated successfully.',
-            qr
+            qr,
+            userId: user._id
         });
 
     } catch (error) {
@@ -152,7 +153,54 @@ export const generate2FASecret = async (req, res) => {
 
 
 export const verify2FA = async (req, res) => {
+    const { token, userId } = req.body;
 
+    try {
+        let user = await global.docTrackModels.StaffAccount.findOne({ _id: userId }) ||
+                     await global.docTrackModels.ManagerAccount.findOne({ _id: userId }) ||
+                     await global.machineriesModels.StaffAccount.findOne({ _id: userId }) ||
+                     await global.highValueCropsModels.StaffAccount.findOne({ _id: userId }) ||
+                     await global.highValueCropsModels.ManagerAccount.findOne({ _id: userId });
+
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found.' });
+        }
+
+        if (!user.is2FAEnabled) {
+            return res.status(400).json({ success: false, message: 'You are required to set up 2FA first.' });
+        };
+
+        const twoFASecret = await bcrypt.decrypt(user.twoFASecret);
+
+        const isValid = authenticator.verify({
+            token,
+            secret: twoFASecret
+        });
+
+        if (!isValid) {
+            return res.status(400).json({ success: false, message: 'Invalid 2FA token.' });
+        }
+
+        user.is2FAEnabled = true;
+        await user.save();
+        
+        generateTokenAndSetCookie(res, user._id);
+
+        res.status(200).json({
+            success: true,
+            message: '2FA verified successfully.',
+            user: {
+                id: user._id,
+                name: user.name,
+                role: user.role,
+                office_position: user.office_position
+            }
+        });
+
+    } catch (error) {
+        console.error('Error verifying 2FA:', error);
+        return res.status(500).json({ success: false, message: 'Internal server error.' });
+    }
 };
 
 
