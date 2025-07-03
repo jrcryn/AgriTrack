@@ -1,8 +1,9 @@
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import qrcode from 'qrcode';
-
 import { authenticator } from 'otplib';
+import { encrypt, decrypt } from '../../utils/encryption.js';
+
 import { sendWelcomeEmail } from '../../mailtrap/emails.controller.js';
 import { generateTokenAndSetCookie } from '../../utils/generateTokenAndSetCookie.js'
 
@@ -125,6 +126,7 @@ export const generate2FASecret = async (req, res) => {
                      await global.highValueCropsModels.StaffAccount.findOne({ _id: userId }) ||
                      await global.highValueCropsModels.ManagerAccount.findOne({ _id: userId });
 
+
         if (!user) {
             return res.status(404).json({ success: false, message: 'User not found.' });
         }
@@ -132,9 +134,8 @@ export const generate2FASecret = async (req, res) => {
         const secret = authenticator.generateSecret();
         const otpauth = authenticator.keyuri(user.email, 'AgriTrack', secret);
         const qr = await qrcode.toDataURL(otpauth);
-        const hashedSecret = await bcrypt.hash(secret, 12);
         
-        user.twoFASecret = hashedSecret;
+        user.twoFASecret = encrypt(secret);
         user.is2FAEnabled = false;
         await user.save();
 
@@ -166,15 +167,15 @@ export const verify2FA = async (req, res) => {
             return res.status(404).json({ success: false, message: 'User not found.' });
         }
 
-        if (!user.is2FAEnabled) {
-            return res.status(400).json({ success: false, message: 'You are required to set up 2FA first.' });
-        };
-
-        const twoFASecret = await bcrypt.decrypt(user.twoFASecret);
+        if (!user.twoFASecret) {
+            return res.status(400).json({ success: false, message: '2FA is not enabled for this user.' });
+        }
+        
+        const decryptedSecret = decrypt(user.twoFASecret);
 
         const isValid = authenticator.verify({
             token,
-            secret: twoFASecret
+            secret: decryptedSecret
         });
 
         if (!isValid) {
@@ -192,7 +193,6 @@ export const verify2FA = async (req, res) => {
             user: {
                 id: user._id,
                 name: user.name,
-                role: user.role,
                 office_position: user.office_position
             }
         });
