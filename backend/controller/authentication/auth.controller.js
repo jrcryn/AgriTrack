@@ -4,7 +4,7 @@ import qrcode from 'qrcode';
 import { authenticator } from 'otplib';
 import { encrypt, decrypt } from '../../utils/encryption.js';
 
-import { sendWelcomeEmail } from '../../mailtrap/emails.controller.js';
+import { sendWelcomeEmail, sendPasswordResetEmail, sendPasswordResetSuccessEmail } from '../../mailtrap/emails.controller.js';
 import { generateTokenAndSetCookie } from '../../utils/generateTokenAndSetCookie.js'
 
 export const register = async (req, res) => {  //system admin level access only (ililipat in the future to a separate route for admin job controllers)
@@ -30,7 +30,7 @@ export const register = async (req, res) => {  //system admin level access only 
         // const defaultPasswordExpiry = Date.now() + 12 * 60 * 60 * 1000;
         const defaultPassword = crypto.randomBytes(8).toString('hex'); 
 
-        const hashedPassword = await bcrypt.hash(defaultPassword, 12); // default password sent via email, users are required to change it upon first login
+        const hashedPassword = await bcrypt.hash(defaultPassword, 12);
 
         const model = role === 'DMS' ? global.docTrackModels.StaffAccount :
                       role === 'DMM' ? global.docTrackModels.ManagerAccount :
@@ -56,7 +56,7 @@ export const register = async (req, res) => {  //system admin level access only 
         res.status(201).json({ 
             message: 'User registered successfully', 
             success: true,
-            user: { // only yung mga kailangan lang pala na ibalik sa client sabi ni ai. Akala ko need pa i-redact yung password or gawing undefined, so pag hindi naka state d2 auto redeacted na pala.
+            user: {
                 id: newUser._id,
                 name: newUser.name,
                 role: role,
@@ -170,7 +170,7 @@ export const verify2FA = async (req, res) => {
         if (!user.twoFASecret) {
             return res.status(400).json({ success: false, message: '2FA is not enabled for this user.' });
         }
-        
+
         const decryptedSecret = decrypt(user.twoFASecret);
 
         const isValid = authenticator.verify({
@@ -213,6 +213,80 @@ export const logout = async (req, res) => {
         return res.status(500).json({ success: false, message: 'Internal server error.' });
     }
 };
+
+export const forgotPassword = async (req, res) => {
+    const { email } = req.body;
+
+    try {   
+        if (!email) {
+            return res.status(400).json({ success: false, message: 'Email is required.'})
+        }
+
+        let user = await global.docTrackModels.StaffAccount.findOne({ email }) ||
+                     await global.docTrackModels.ManagerAccount.findOne({ email }) ||
+                     await global.machineriesModels.StaffAccount.findOne({ email }) ||
+                     await global.highValueCropsModels.StaffAccount.findOne({ email }) ||
+                     await global.highValueCropsModels.ManagerAccount.findOne({ email });
+
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found.' });
+        }
+
+        const resetPasswordToken = crypto.randomBytes(32).toString('hex');
+        const resetPasswordExpiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+
+        user.resetPasswordToken = resetPasswordToken;
+        user.resetPasswordExpiresAt = resetPasswordExpiresAt;
+        await user.save();
+
+        await sendPasswordResetEmail(email, `${process.env.CLIENT_URL}/auth/reset-password/${resetPasswordToken}`);
+
+        res.status(200).json({
+            success: true,
+            message: 'Password reset link sent to your email.'
+        });
+
+    } catch (error) {
+        console.error('Error resetting password:', error);
+        return res.status(500).json({ success: false, message: 'Internal server error.' });
+    }
+};
+
+export const resetPassword = async (req, res) => {
+    const { token } = req.params;
+    const { newPassword } = req.body;
+
+    try {
+        let user = await global.docTrackModels.StaffAccount.findOne({ resetPasswordToken: token, resetPasswordExpiresAt: { $gt: Date.now() } }) ||
+                     await global.docTrackModels.ManagerAccount.findOne({ resetPasswordToken: token, resetPasswordExpiresAt: { $gt: Date.now() } }) ||
+                     await global.machineriesModels.StaffAccount.findOne({ resetPasswordToken: token, resetPasswordExpiresAt: { $gt: Date.now() } }) ||
+                     await global.highValueCropsModels.StaffAccount.findOne({ resetPasswordToken: token, resetPasswordExpiresAt: { $gt: Date.now() } }) ||
+                     await global.highValueCropsModels.ManagerAccount.findOne({ resetPasswordToken: token, resetPasswordExpiresAt: { $gt: Date.now() } });
+
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'Invalid or expired reset token.' });
+        }
+
+        const hashedPassword = await bcrypt.hash(newPassword, 12);
+
+        user.password = hashedPassword;
+        user.resetPasswordToken = undefined;  
+        user.resetPasswordExpiresAt = undefined; 
+        await user.save();
+
+        await sendPasswordResetSuccessEmail(user.email);
+        
+        res.status(200).json({
+            success: true,
+            message: 'Password reset successful.'
+        });
+
+    } catch (error) {
+        console.error('Error resetting password:', error);
+        return res.status(500).json({ success: false, message: 'Internal server error.' });
+    }
+};
+
 
 
 
