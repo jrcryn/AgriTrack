@@ -70,6 +70,37 @@ export const register = async (req, res) => {  //system admin level access only 
     }
 };
 
+
+
+
+export const checkAuth = async (req, res) => {
+    try {
+        const user = await global.docTrackModels.StaffAccount.findById( req.userId ) ||
+                     await global.docTrackModels.ManagerAccount.findById( req.userId ) ||
+                     await global.machineriesModels.StaffAccount.findById( req.userId ) ||
+                     await global.highValueCropsModels.StaffAccount.findById( req.userId ) ||
+                     await global.highValueCropsModels.ManagerAccount.findById( req.userId );
+
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found.' });
+        }
+
+        res.status(200).json({
+            success: true,
+            user: {
+                id: user._id,
+                name: user.name,
+                office_position: user.office_position
+            }
+        });
+
+    } catch (error) {
+        console.error('Error checking authentication:', error);
+        return res.status(500).json({ success: false, message: 'Internal server error.' });
+    }
+};
+
+
 export const login = async (req, res) => {
     const { email, password } = req.body;
 
@@ -97,7 +128,7 @@ export const login = async (req, res) => {
         //     return res.status(400).json({ success: false, message: 'You are required to set up 2FA first.' });
         // };
 
-        //generateTokenAndSetCookie(res, user._id);
+        generateTokenAndSetCookie(res, user._id);
 
         // user.lastLogin = new Date();
         // await user.save();
@@ -113,7 +144,6 @@ export const login = async (req, res) => {
         return res.status(500).json({ success: false, message: 'Internal server error.' });
     }
 };
-
 
 
 export const generate2FASecret = async (req, res) => {
