@@ -124,14 +124,14 @@ export const login = async (req, res) => {
             return res.status(401).json({ success: false, message: 'Invalid credentials.'})
         }
 
-        // if(!user.is2FAEnabled) {
-        //     return res.status(400).json({ success: false, message: 'You are required to set up 2FA first.' });
-        // };
-
-        generateTokenAndSetCookie(res, user._id);
-
-        // user.lastLogin = new Date();
-        // await user.save();
+        if(!user.is2FAEnabled) {
+            return res.status(401).json({ 
+                success: false, 
+                message: 'You are required to set up 2FA first.',
+                userId: user._id, // Also send userId for 2FA setup
+            });
+        };
+        
 
         res.status(200).json({
             success: true,
@@ -161,18 +161,29 @@ export const generate2FASecret = async (req, res) => {
             return res.status(404).json({ success: false, message: 'User not found.' });
         }
 
+        if (user.twoFASecret && user.twoFAQRCode) {
+            return res.status(200).json({ 
+                success: true,
+                qr: decrypt(user.twoFAQRCode),
+                secret: decrypt(user.twoFASecret),
+                userId: user._id 
+            });
+        };
+
         const secret = authenticator.generateSecret();
         const otpauth = authenticator.keyuri(user.email, 'AgriTrack', secret);
         const qr = await qrcode.toDataURL(otpauth);
         
         user.twoFASecret = encrypt(secret);
         user.is2FAEnabled = false;
+        user.twoFAQRCode = encrypt(qr); 
         await user.save();
 
         res.status(200).json({
             success: true,
             message: '2FA secret generated successfully.',
             qr,
+            secret,
             userId: user._id
         });
 

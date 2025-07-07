@@ -12,6 +12,7 @@ export const HVCStaffSchema = new mongoose.Schema({
     resetPasswordToken: String,
     resetPasswordExpiresAt: Date,
     twoFASecret: String,
+    twoFAQRCode: String,
 
 
     isActive: { type: Boolean, default: true }

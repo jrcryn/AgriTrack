@@ -9,6 +9,7 @@ export const HVCManagerSchema = new mongoose.Schema({
     lastLogin: { type: Date, default: Date.now },
     is2FAEnabled: {type: Boolean, default: false},
     twoFASecret: String,
+    twoFAQRCode: String,
 
     resetPasswordToken: String,
     resetPasswordExpiresAt: Date,

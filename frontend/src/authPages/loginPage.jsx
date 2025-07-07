@@ -16,12 +16,13 @@ import {
   Flex,
   Image,
   Link,
-  Stack,
-  useColorModeValue,
+  useToast,
 } from '@chakra-ui/react';
 import { FiEye, FiEyeOff, FiMail, FiLock } from 'react-icons/fi';
 import Logo from '../images/Calamba_Seal.png';
 import BackgroundImage from '../images/bg.jpg';
+import { useAuthStore } from '../authPages/store/authStore.js'
+import { useNavigate } from 'react-router-dom';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -30,24 +31,50 @@ const LoginPage = () => {
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
 
+  const { login, isLoading } = useAuthStore()
+  const toast = useToast();
+  const navigate = useNavigate();
+
   const validateEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!email.trim()) return 'Email address is required';
-    if (!emailRegex.test(email)) return 'Please enter a valid email address';
+    if (!email.trim()) return 'Email address is required.';
+    if (!emailRegex.test(email)) return 'Please enter a valid email address.';
     return '';
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const emailValidationError = validateEmail(email);
-    const passwordValidationError = password.trim() ? '' : 'Password is required';
+    const passwordValidationError = password.trim() ? '' : 'Password is required.';
 
     setEmailError(emailValidationError);
     setPasswordError(passwordValidationError);
 
     if (!emailValidationError && !passwordValidationError) {
-      console.log('Valid form submitted');
-      // Future authentication logic will go here
+      try {
+        const response = await login({ email, password });
+        toast({
+          title: 'Login Successful',
+          description: response.message,
+          status: 'success',
+          duration: 3000,
+          isClosable: true,
+        });
+        navigate('/auth/2fa/verify-2fa', { state: { userId: response.userId } });
+      } catch (error) {
+        const errorMessage = error.response?.data?.message;
+        const userId = error.response?.data?.userId; 
+        toast({
+          title: 'Login Failed',
+          description: errorMessage,
+          status: 'warning',
+          duration: 5000,
+          isClosable: true,
+        });
+        if (errorMessage.includes('You are required to set up 2FA first.')) {
+          navigate('/auth/2fa/setup-2fa', { state: { userId } });
+        }
+      }
     }
   };
 
@@ -121,8 +148,13 @@ const LoginPage = () => {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  onBlur={() => setPasswordError(password.trim() ? '' : 'Password is required')}
+                  onBlur={() => setPasswordError(password.trim() ? '' : 'Password is required.')}
                   placeholder="Enter password"
+                  sx={{
+                    '::-ms-reveal': {
+                      display: 'none',
+                    },
+                  }}
                 />
                 <InputRightElement>
                   <Button variant="ghost" size="sm" onClick={() => setShowPassword(!showPassword)}>
@@ -146,8 +178,9 @@ const LoginPage = () => {
               size="lg"
               type="submit"
               borderRadius="lg"
+              isLoading={isLoading}
             >
-              Sign In
+              Log In 
             </Button>
           </VStack>
         </form>
