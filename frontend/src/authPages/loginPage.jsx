@@ -15,13 +15,13 @@ import {
   Icon,
   Flex,
   Image,
-  Link,
-  Stack,
-  useColorModeValue,
+  useToast,
 } from '@chakra-ui/react';
 import { FiEye, FiEyeOff, FiMail, FiLock } from 'react-icons/fi';
 import Logo from '../images/Calamba_Seal.png';
 import BackgroundImage from '../images/bg.jpg';
+import { useAuthStore } from '../authPages/store/authStore.js'
+import { useNavigate, Link } from 'react-router-dom';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -30,24 +30,63 @@ const LoginPage = () => {
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
 
+  const { login, isLoading } = useAuthStore()
+  const toast = useToast();
+  const navigate = useNavigate();
+
   const validateEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!email.trim()) return 'Email address is required';
-    if (!emailRegex.test(email)) return 'Please enter a valid email address';
+    if (!email.trim()) return 'Email address is required.';
+    if (!emailRegex.test(email)) return 'Please enter a valid email address.';
     return '';
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const emailValidationError = validateEmail(email);
-    const passwordValidationError = password.trim() ? '' : 'Password is required';
+    const passwordValidationError = password.trim() ? '' : 'Password is required.';
 
     setEmailError(emailValidationError);
     setPasswordError(passwordValidationError);
 
     if (!emailValidationError && !passwordValidationError) {
-      console.log('Valid form submitted');
-      // Future authentication logic will go here
+      try {
+        const response = await login({ email, password });
+        toast({
+          title: 'Success',
+          description: response.message,
+          status: 'success',
+          duration: 3000,
+          isClosable: true,
+        });
+        navigate('/auth/2fa/verify-2fa', { state: { userId: response.userId } });
+      } catch (error) {
+
+        const errorMessage = error.response?.data?.message;
+        const userId = error.response?.data?.userId; 
+
+        if (errorMessage.includes('Invalid credentials.')) {
+          toast({
+            title: 'Error',
+            description: errorMessage,
+            status: 'error',
+            duration: 5000,
+            isClosable: true,
+          });
+          return;
+        };
+        if (errorMessage.includes('You are required to set up 2FA first.')) {
+           toast({
+            title: 'Login Failed',
+            description: errorMessage,
+            status: 'warning',
+            duration: 5000,
+            isClosable: true,
+          });
+          navigate('/auth/2fa/setup-2fa', { state: { userId } });
+          return;
+        }
+      }
     }
   };
 
@@ -121,8 +160,13 @@ const LoginPage = () => {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  onBlur={() => setPasswordError(password.trim() ? '' : 'Password is required')}
+                  onBlur={() => setPasswordError(password.trim() ? '' : 'Password is required.')}
                   placeholder="Enter password"
+                  sx={{
+                    '::-ms-reveal': {
+                      display: 'none',
+                    },
+                  }}
                 />
                 <InputRightElement>
                   <Button variant="ghost" size="sm" onClick={() => setShowPassword(!showPassword)}>
@@ -135,7 +179,7 @@ const LoginPage = () => {
 
             <Flex w="full" justify="space-between" align="center" fontSize="sm">
               <Box /> {/* Empty Box for spacing if needed, or for a "Remember me" checkbox */}
-              <Link color="blue.600" _hover={{ textDecoration: 'underline' }}>
+              <Link color="blue.600" _hover={{ textDecoration: 'underline' }} as={Link} to="/auth/forgot-password">
                 Forgot Password?
               </Link>
             </Flex>
@@ -146,8 +190,10 @@ const LoginPage = () => {
               size="lg"
               type="submit"
               borderRadius="lg"
+              isLoading={isLoading}
+              isDisabled={!email || !password}
             >
-              Sign In
+              Log In 
             </Button>
           </VStack>
         </form>
