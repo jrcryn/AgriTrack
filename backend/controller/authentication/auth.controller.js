@@ -198,11 +198,11 @@ export const verify2FA = async (req, res) => {
     const { token, userId } = req.body;
 
     try {
-        let user = await global.docTrackModels.StaffAccount.findOne({ _id: userId }) ||
-                     await global.docTrackModels.ManagerAccount.findOne({ _id: userId }) ||
-                     await global.machineriesModels.StaffAccount.findOne({ _id: userId }) ||
-                     await global.highValueCropsModels.StaffAccount.findOne({ _id: userId }) ||
-                     await global.highValueCropsModels.ManagerAccount.findOne({ _id: userId });
+        const user = await global.docTrackModels.StaffAccount.findById(userId).select('+twoFASecret') ||
+                     await global.docTrackModels.ManagerAccount.findById(userId).select('+twoFASecret') ||
+                     await global.machineriesModels.StaffAccount.findById(userId).select('+twoFASecret') ||
+                     await global.highValueCropsModels.StaffAccount.findById(userId).select('+twoFASecret') ||
+                     await global.highValueCropsModels.ManagerAccount.findById(userId).select('+twoFASecret');
 
         if (!user) {
             return res.status(404).json({ success: false, message: 'User not found.' });
