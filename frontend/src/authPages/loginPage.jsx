@@ -62,17 +62,30 @@ const LoginPage = () => {
         });
         navigate('/auth/2fa/verify-2fa', { state: { userId: response.userId } });
       } catch (error) {
+
         const errorMessage = error.response?.data?.message;
         const userId = error.response?.data?.userId; 
-        toast({
-          title: 'Login Failed',
-          description: errorMessage,
-          status: 'warning',
-          duration: 5000,
-          isClosable: true,
-        });
+
+        if (errorMessage.includes('Invalid credentials.')) {
+          toast({
+            title: 'Login Failed',
+            description: errorMessage,
+            status: 'error',
+            duration: 5000,
+            isClosable: true,
+          });
+          return;
+        };
         if (errorMessage.includes('You are required to set up 2FA first.')) {
+           toast({
+            title: 'Login Failed',
+            description: errorMessage,
+            status: 'warning',
+            duration: 5000,
+            isClosable: true,
+          });
           navigate('/auth/2fa/setup-2fa', { state: { userId } });
+          return;
         }
       }
     }
@@ -179,6 +192,7 @@ const LoginPage = () => {
               type="submit"
               borderRadius="lg"
               isLoading={isLoading}
+              isDisabled={!email || !password}
             >
               Log In 
             </Button>

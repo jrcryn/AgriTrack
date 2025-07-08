@@ -42,11 +42,11 @@ export const useAuthStore = create((set) => ({
         set({ isLoading: true, error: null });
         try {
             const response = await axios.post(`${API_URL}/api/auth/2fa/verify-2fa`, { userId, token });
-            set({ isLoading: false });
-            return response.data; 
+            set({ isLoading: false, isAuthenticated: true, user: response.data.user });
+            return response.data;
         } catch (error) {
             set({ error: error.response?.data?.message, isLoading: false });
-            throw error; // Re-throw the error to be caught in the component
+            throw error;
         }
     },
 

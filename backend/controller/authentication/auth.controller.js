@@ -161,7 +161,7 @@ export const generate2FASecret = async (req, res) => {
             return res.status(404).json({ success: false, message: 'User not found.' });
         }
 
-        if (user.twoFASecret && user.twoFAQRCode) {
+        if (user.twoFASecret && user.twoFAQRCode) { // if user already has a generated 2FA secret and QR code
             return res.status(200).json({ 
                 success: true,
                 qr: decrypt(user.twoFAQRCode),

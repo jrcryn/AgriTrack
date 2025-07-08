@@ -13,15 +13,19 @@ import {
   AlertIcon,
   Flex,
   useBreakpointValue,
+  HStack,
+  PinInput,
+  PinInputField,
+  FormControl,
+  FormLabel,
 } from '@chakra-ui/react';
 import { useAuthStore } from './store/authStore';
 import BackgroundImage from '../images/bg.jpg';
-import Logo from '../images/Calamba_Seal.png';
 
 const Setup2FA = () => {
   const [qrCode, setQrCode] = useState('');
   const [secret, setSecret] = useState('');
-  const [error, setError] = useState('');
+  const [token, setToken] = useState('');
   const { generate2FASecret, isLoading } = useAuthStore();
   const location = useLocation();
   const navigate = useNavigate();
@@ -45,9 +49,8 @@ const Setup2FA = () => {
       try {
         const response = await generate2FASecret({ userId });
         setQrCode(response.qr);
-        setSecret(response.secret); // assuming your API sends this
+        setSecret(response.secret); 
       } catch (err) {
-        setError(err.response?.data?.message || 'Failed to generate QR code.');
         toast({
           title: 'Error',
           description: err.response?.data?.message || 'Failed to generate QR code.',
@@ -60,6 +63,39 @@ const Setup2FA = () => {
 
     fetchQRCode();
   }, [userId, generate2FASecret, navigate, toast]);
+
+  const verify2FA = async () => {
+      if (!token || token.length !== 6) {
+        toast({
+          title: 'Error',
+          description: 'Please enter a valid 6-digit code.',
+          status: 'error',
+          duration: 5000,
+          isClosable: true,
+        });
+        return;
+      }
+
+      try {
+        const response = await useAuthStore.getState().verify2FA({ userId, token });
+        toast({
+          title: 'Success',
+          description: response.message,
+          status: 'success',
+          duration: 5000,
+          isClosable: true,
+        });
+        navigate('/dashboard'); // Redirect to the dashboard or home page
+      } catch (err) {
+        toast({
+          title: 'Error',
+          description: err.response?.data?.message,
+          status: 'error',
+          duration: 5000,
+          isClosable: true,
+        });
+      }
+  };
 
   return (
     <Box
@@ -95,8 +131,7 @@ const Setup2FA = () => {
         p={{ base: 6, md: 10 }}
         zIndex="1"
       >
-        <VStack spacing={2} textAlign="center" mb={10}>
-          <Image boxSize="60px" src={Logo} alt="City Logo" />
+        <VStack spacing={2} textAlign="center" mb={6}>
           <Heading size={{ base: 'md', md: 'lg' }}>
             Set Up Two-Factor Authentication
           </Heading>
@@ -107,16 +142,16 @@ const Setup2FA = () => {
           {/* Left - Instructions */}
           <VStack align="start" spacing={4} flex="1" justify="center">
             <Text fontSize="sm" color="gray.700">
-              To enhance the security of your account, two-factor authentication (2FA) is required after your first login. This adds an extra layer of protection by requiring both your password and a time-based verification code.
+              To enhance the security of your account, two-factor authentication (2FA) is <b>required</b> after your first login. This adds an extra layer of protection by requiring both your password and a time-based verification code.
             </Text>
 
             <Box pl={2}>
-              <Text fontSize="sm" color="gray.700">
-                <strong>To enable 2FA:</strong>
+              <Text fontSize="sm" color="gray.700" mb={2}>
+                <b>To enable 2FA:</b>
               </Text>
               <VStack as="ol" align="start" pl={4} spacing={2} fontSize="sm" color="gray.600">
                 <li>
-                  Download the <strong>Google Authenticator</strong> app on your device.
+                  Download the <b>Google Authenticator</b> app on your device.
                 </li>
                 <li>
                   Use the app to scan the QR code shown on the right. This will automatically register your account.
@@ -132,7 +167,7 @@ const Setup2FA = () => {
                   Once set up, your app will generate a 6-digit verification code that refreshes every 30 seconds.
                 </li>
                 <li>
-                  Enter the code in the next step to complete your 2FA setup.
+                  Lastly, enter the code to complete your 2FA setup.
                 </li>
               </VStack>
             </Box>
@@ -145,12 +180,6 @@ const Setup2FA = () => {
           {/* Right - QR Code */}
           <VStack spacing={5} align="center" justify="center" flex="1">
             {isLoading && <Spinner size="xl" thickness="4px" />}
-            {error && (
-              <Alert status="error" w="full" borderRadius="md">
-                <AlertIcon />
-                {error}
-              </Alert>
-            )}
             {qrCode && !isLoading && (
               <Box
                 p={6}
@@ -164,7 +193,22 @@ const Setup2FA = () => {
               </Box>
             )}
             {qrCode && !isLoading && (
-                <Text fontSize="md" color="gray.600" fontWeight={"bold"}>Scan with Google Authenticator</Text>
+                <VStack spacing={4}>
+                    
+                    <FormControl>
+                        <FormLabel textAlign="center" color="gray.600" fontSize="sm">Enter your 6-digit code below</FormLabel>
+                        <HStack justify="center">
+                            <PinInput otp value={token} onChange={setToken}>
+                                <PinInputField boxShadow={"lg"}/>
+                                <PinInputField boxShadow={"lg"}/>
+                                <PinInputField boxShadow={"lg"}/>
+                                <PinInputField boxShadow={"lg"}/>
+                                <PinInputField boxShadow={"lg"}/>
+                                <PinInputField boxShadow={"lg"}/>
+                            </PinInput>
+                        </HStack>
+                    </FormControl>
+                </VStack>
             )}
           </VStack>
         </Flex>
@@ -176,8 +220,9 @@ const Setup2FA = () => {
           width="full"
           size="lg"
           borderRadius="lg"
-          onClick={() => navigate('/auth/2fa/verify-2fa', { state: { userId } })}
-          isDisabled={!qrCode || isLoading}
+          onClick={verify2FA}
+          isLoading={isLoading}
+          isDisabled={!qrCode || !secret || isLoading || token.length !== 6}
         >
           Continue to Verification
         </Button>
