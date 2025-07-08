@@ -15,7 +15,7 @@ const authApp = () => {
                 <Route path="2fa/setup-2fa" element={<Setup2FA />} />
                 <Route path="2fa/verify-2fa" element={<Verify2FA />} />
                 <Route path="forgot-password" element={<ForgotPassword />} />
-                <Route path="reset-password" element={<ResetPassword />} />
+                <Route path="reset-password/:token" element={<ResetPassword />} />
             </Routes>
         </Box>
     );

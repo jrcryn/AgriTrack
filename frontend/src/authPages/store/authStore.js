@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import axios from 'axios';
 import verify2FA from '../verify2FA';
+import forgotPassword from '../forgotPassword';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -49,5 +50,29 @@ export const useAuthStore = create((set) => ({
             throw error;
         }
     },
+
+    forgotPassword: async ({ email }) => {
+        set({ isLoading: true, error: null });
+        try {
+            const response = await axios.post(`${API_URL}/api/auth/forgot-password`, { email });
+            set({ isLoading: false });
+            return response.data; 
+        } catch (error) {
+            set({ error: error.response?.data?.message, isLoading: false });
+            throw error;
+        }
+    },
+
+    resetPassword: async ({ token, newPassword }) => {
+        set({ isLoading: true, error: null });
+        try {
+            const response = await axios.post(`${API_URL}/api/auth/reset-password/${token}`, { newPassword });
+            set({ isLoading: false });
+            return response.data; 
+        } catch (error) {
+            set({ error: error.response?.data?.message, isLoading: false });
+            throw error;
+        }
+    }
 
 }));

@@ -15,14 +15,13 @@ import {
   Icon,
   Flex,
   Image,
-  Link,
   useToast,
 } from '@chakra-ui/react';
 import { FiEye, FiEyeOff, FiMail, FiLock } from 'react-icons/fi';
 import Logo from '../images/Calamba_Seal.png';
 import BackgroundImage from '../images/bg.jpg';
 import { useAuthStore } from '../authPages/store/authStore.js'
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -54,7 +53,7 @@ const LoginPage = () => {
       try {
         const response = await login({ email, password });
         toast({
-          title: 'Login Successful',
+          title: 'Success',
           description: response.message,
           status: 'success',
           duration: 3000,
@@ -68,7 +67,7 @@ const LoginPage = () => {
 
         if (errorMessage.includes('Invalid credentials.')) {
           toast({
-            title: 'Login Failed',
+            title: 'Error',
             description: errorMessage,
             status: 'error',
             duration: 5000,
@@ -180,7 +179,7 @@ const LoginPage = () => {
 
             <Flex w="full" justify="space-between" align="center" fontSize="sm">
               <Box /> {/* Empty Box for spacing if needed, or for a "Remember me" checkbox */}
-              <Link color="blue.600" _hover={{ textDecoration: 'underline' }}>
+              <Link color="blue.600" _hover={{ textDecoration: 'underline' }} as={Link} to="/auth/forgot-password">
                 Forgot Password?
               </Link>
             </Flex>

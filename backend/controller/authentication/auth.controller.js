@@ -284,7 +284,7 @@ export const forgotPassword = async (req, res) => {
 
         res.status(200).json({
             success: true,
-            message: 'Password reset link sent to your email.'
+            message: 'Reset email sent. If not received immediately, check spam or wait a few minutes before requesting again.'
         });
 
     } catch (error) {

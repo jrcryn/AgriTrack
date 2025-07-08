@@ -16,7 +16,6 @@ import {
 } from '@chakra-ui/react';
 import { useAuthStore } from './store/authStore';
 import BackgroundImage from '../images/bg.jpg';
-import Logo from '../images/Calamba_Seal.png';
 
 const Verify2FA = () => {
   const [token, setToken] = useState('');
@@ -52,7 +51,7 @@ const Verify2FA = () => {
     } catch (error) {
       toast({
         title: 'Error',
-        description: error.response?.data?.message || 'An error occurred.',
+        description: error.response?.data?.message,
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -93,25 +92,23 @@ const Verify2FA = () => {
         zIndex="1"
       >
         <VStack spacing={3} textAlign="center" mb={6}>
-          
           <Heading size="lg">Verify Two-Factor Authentication</Heading>
           <Text fontSize="sm" color="gray.500">
             Enter the 6-digit code from your authenticator app.
           </Text>
         </VStack>
 
-        <form onSubmit={handleSubmit}>
           <VStack spacing={6}>
             <FormControl>
               <FormLabel htmlFor="token" srOnly>Verification Code</FormLabel>
               <HStack justify="center">
                 <PinInput id="token" otp value={token} onChange={setToken}>
-                  <PinInputField />
-                  <PinInputField />
-                  <PinInputField />
-                  <PinInputField />
-                  <PinInputField />
-                  <PinInputField />
+                  <PinInputField boxShadow={"lg"}/>
+                  <PinInputField boxShadow={"lg"}/>
+                  <PinInputField boxShadow={"lg"}/>
+                  <PinInputField boxShadow={"lg"}/>
+                  <PinInputField boxShadow={"lg"}/>
+                  <PinInputField boxShadow={"lg"}/>
                 </PinInput>
               </HStack>
             </FormControl>
@@ -124,11 +121,11 @@ const Verify2FA = () => {
               borderRadius="lg"
               isLoading={isLoading}
               isDisabled={token.length !== 6}
+              onClick={handleSubmit}
             >
               Verify
             </Button>
           </VStack>
-        </form>
 
         <Text mt={8} fontSize="xs" color="gray.500" textAlign="center">
           © {new Date().getFullYear()} City Agriculture Services Department. All rights reserved.
