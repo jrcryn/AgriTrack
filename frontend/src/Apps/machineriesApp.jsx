@@ -2,11 +2,11 @@ import { Box } from '@chakra-ui/react';
 import React, { useState } from 'react';
 import { Routes, Route, useNavigate } from 'react-router-dom'
 
-import Layout from '../machineries/pages/Layout.js';
+import Layout from '../machineries/pages/Layout.jsx';
 
-import Metrics from '../machineries/pages/A_Metrics.js';
-import MachineryInventory from '../machineries/pages/B_MachineInventory.js'
-import GenReports from '../machineries/pages/C_GenReports.js';
+import Metrics from '../machineries/pages/A_Metrics.jsx';
+import MachineryInventory from '../machineries/pages/B_MachineInventory.jsx'
+import GenReports from '../machineries/pages/C_GenReports.jsx';
 
 const machineriesApp = () => {
     return (

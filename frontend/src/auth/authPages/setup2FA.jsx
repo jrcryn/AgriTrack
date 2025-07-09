@@ -20,7 +20,7 @@ import {
   FormLabel,
 } from '@chakra-ui/react';
 import { useAuthStore } from '../store/authStore';
-import BackgroundImage from '../images/bg.jpg';
+import BackgroundImage from '../../images/bg.jpg';
 
 const Setup2FA = () => {
   const [qrCode, setQrCode] = useState('');

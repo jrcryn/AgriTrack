@@ -3,12 +3,12 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Routes, Route, useNavigate, useNavigationType, useLocation } from 'react-router-dom';
 
 // Admin imports
-import Layout from '../high-value-crops/pages/Layout.js';
+import Layout from '../high-value-crops/pages/Layout.jsx';
 import Metrics from '../high-value-crops/pages/A_Metrics.jsx';
-import HVCSaMPR from '../high-value-crops/pages/B_HVCSaMPR.js';
+import HVCSaMPR from '../high-value-crops/pages/B_HVCSaMPR.jsx';
 import HVCPR from '../high-value-crops/pages/C_HVCPR.jsx';
-import Responses from '../high-value-crops/pages/D_Responses.js';
-import Farmers from '../high-value-crops/pages/E_Farmers.js';
+import Responses from '../high-value-crops/pages/D_Responses.jsx';
+import Farmers from '../high-value-crops/pages/E_Farmers.jsx';
 
 // Form imports
 import Instructions from '../high-value-crops/formPages/Instructions.jsx';

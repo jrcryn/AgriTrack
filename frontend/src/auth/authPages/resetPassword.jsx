@@ -17,7 +17,7 @@ import {
 } from '@chakra-ui/react';
 import { FiEye, FiEyeOff } from 'react-icons/fi';
 import { useAuthStore } from '../store/authStore';
-import BackgroundImage from '../images/bg.jpg';
+import BackgroundImage from '../../images/bg.jpg';
 
 const ResetPassword = () => {
   const [newPassword, setNewPassword] = useState('');
