@@ -32,8 +32,9 @@ import { FaWpforms } from "react-icons/fa";
 import Logo from '../../images/Calamba_Seal.png'
 
 const LinkItems = [
-  { name: 'Dashboard', icon: FiGrid, path : '/hvc/admin/metrics' },
-  { name: 'Generate Report', icon: FiDownload, path : '/hvc/admin/gen-reports' },
+  { name: 'Metrics', icon: FiGrid, path : '/hvc/admin/metrics' },
+  { name: 'Supply and Market Profile Report', icon: FiDownload, path : '/hvc/admin/hvc-sampr' },
+  { name: 'Production Report', icon: FiDownload, path : '/hvc/admin/hvc-pr' },
   { name: 'New Responses', icon: FaWpforms, path : '/hvc/admin/responses' },
   { name: 'Farmers', icon: FiUsers, path : '/hvc/admin/farmers' },
 ]
@@ -57,7 +58,7 @@ const SidebarContent = ({ onClose, ...rest }) => {
           HIGH-VALUE CROPS
         </Text>
         <Text fontSize="larger"  fontWeight="bold" color="white">
-          ADMIN
+          MANAGER
         </Text>
       </Box>
       {/* Mobile Close Button */}

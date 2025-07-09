@@ -3,11 +3,12 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Routes, Route, useNavigate, useNavigationType, useLocation } from 'react-router-dom';
 
 // Admin imports
-import Layout from '../high-value-crops/adminPages/Layout.jsx';
-import Metrics from '../high-value-crops/adminPages/B_Metrics.jsx';
-import GenReports from '../high-value-crops/adminPages/C_GenReports.jsx';
-import Responses from '../high-value-crops/adminPages/D_Responses.jsx';
-import Farmers from '../high-value-crops/adminPages/E_Farmers.jsx';
+import Layout from '../high-value-crops/pages/Layout.js';
+import Metrics from '../high-value-crops/pages/A_Metrics.jsx';
+import HVCSaMPR from '../high-value-crops/pages/B_HVCSaMPR.js';
+import HVCPR from '../high-value-crops/pages/C_HVCPR.jsx';
+import Responses from '../high-value-crops/pages/D_Responses.js';
+import Farmers from '../high-value-crops/pages/E_Farmers.js';
 
 // Form imports
 import Instructions from '../high-value-crops/formPages/Instructions.jsx';
@@ -67,9 +68,10 @@ const highValueCropsApp = () => {
     <Box>
       <Routes>
         {/* Admin Routes */}
-        <Route path="admin" element={<Layout />}>
+        <Route path="/" element={<Layout />}>
           <Route path="metrics" element={<Metrics />} />
-          <Route path="gen-reports" element={<GenReports />} />
+          <Route path="hvc-sampr" element={<HVCSaMPR />} />
+          <Route path="hvc-pr" element={<HVCPR />} />
           <Route path="responses" element={<Responses />} />
           <Route path="farmers" element={<Farmers />} />
          

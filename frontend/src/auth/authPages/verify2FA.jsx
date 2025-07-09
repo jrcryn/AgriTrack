@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Box,
   Heading,
@@ -7,27 +7,30 @@ import {
   VStack,
   Button,
   useToast,
+  Image,
   FormControl,
-  Input
+  FormLabel,
+  HStack,
+  PinInput,
+  PinInputField,
 } from '@chakra-ui/react';
-import { useAuthStore } from './store/authStore';
+import { useAuthStore } from '../store/authStore';
 import BackgroundImage from '../images/bg.jpg';
 
-const ForgotPassword = () => {
-  const [email, setEmail] = useState('');
-  const toast = useToast();
+const Verify2FA = () => {
+  const [token, setToken] = useState('');
+  const { verify2FA, isLoading } = useAuthStore();
+  const location = useLocation();
   const navigate = useNavigate();
-
-  const { isLoading, forgotPassword } = useAuthStore();
+  const toast = useToast();
+  const userId = location.state?.userId;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    if (token.length !== 6) {
       toast({
         title: 'Error',
-        description: 'Please enter a valid email address.',
+        description: 'Please enter a 6-digit code.',
         status: 'warning',
         duration: 3000,
         isClosable: true,
@@ -36,15 +39,15 @@ const ForgotPassword = () => {
     }
 
     try {
-      const response = await forgotPassword({ email });
+      const response = await verify2FA({ userId, token });
       toast({
         title: 'Success',
         description: response.message,
         status: 'success',
-        duration: 10000,
+        duration: 3000,
         isClosable: true,
       });
-      navigate('/auth/login');
+      navigate('/dashboard'); // Redirect to dashboard or home page
     } catch (error) {
       toast({
         title: 'Error',
@@ -89,20 +92,25 @@ const ForgotPassword = () => {
         zIndex="1"
       >
         <VStack spacing={3} textAlign="center" mb={6}>
-          <Heading size="lg">Forgot Password?</Heading>
+          <Heading size="lg">Verify Two-Factor Authentication</Heading>
           <Text fontSize="sm" color="gray.500">
-            If an account exists for the email address provided, you will receive a password reset email shortly.
+            Enter the 6-digit code from your authenticator app.
           </Text>
         </VStack>
-        <form onSubmit={handleSubmit}>
+
           <VStack spacing={6}>
             <FormControl>
-              <Input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="example@email.com"
-              />
+              <FormLabel htmlFor="token" srOnly>Verification Code</FormLabel>
+              <HStack justify="center">
+                <PinInput id="token" otp value={token} onChange={setToken}>
+                  <PinInputField boxShadow={"lg"}/>
+                  <PinInputField boxShadow={"lg"}/>
+                  <PinInputField boxShadow={"lg"}/>
+                  <PinInputField boxShadow={"lg"}/>
+                  <PinInputField boxShadow={"lg"}/>
+                  <PinInputField boxShadow={"lg"}/>
+                </PinInput>
+              </HStack>
             </FormControl>
 
             <Button
@@ -112,12 +120,12 @@ const ForgotPassword = () => {
               type="submit"
               borderRadius="lg"
               isLoading={isLoading}
-              isDisabled={!email}
+              isDisabled={token.length !== 6}
+              onClick={handleSubmit}
             >
-              Request Reset
+              Verify
             </Button>
           </VStack>
-        </form>
 
         <Text mt={8} fontSize="xs" color="gray.500" textAlign="center">
           © {new Date().getFullYear()} City Agriculture Services Department. All rights reserved.
@@ -127,4 +135,4 @@ const ForgotPassword = () => {
   );
 };
 
-export default ForgotPassword;
+export default Verify2FA;

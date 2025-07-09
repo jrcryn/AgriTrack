@@ -1,11 +1,11 @@
 import { Box } from '@chakra-ui/react';
 import { Routes, Route, useNavigate } from 'react-router-dom'
 
-import LoginPage from '../authPages/loginPage.jsx'
-import Setup2FA from '../authPages/setup2FA.jsx'
-import Verify2FA from '../authPages/verify2FA.jsx'
-import ForgotPassword from '../authPages/forgotPassword.jsx'
-import ResetPassword from '../authPages/resetPassword.jsx'
+import LoginPage from '../auth/authPages/loginPage.jsx'
+import Setup2FA from '../auth/authPages/setup2FA.jsx'
+import Verify2FA from '../auth/authPages/verify2FA.jsx'
+import ForgotPassword from '../auth/authPages/forgotPassword.jsx'
+import ResetPassword from '../auth/authPages/resetPassword.jsx'
 
 const authApp = () => {
     return(

@@ -5,8 +5,8 @@ export const DocTrackStaffSchema = new mongoose.Schema({
 
     role: {
         type: String,
-        enum: ['doc-trackStaff'],
-        default: 'doc-trackStaff',
+        enum: ['staff'],
+        default: 'staff',
         required: true
     },
     office_position: { type: String, required: true },

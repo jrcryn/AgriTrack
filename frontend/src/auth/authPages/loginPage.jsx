@@ -20,7 +20,7 @@ import {
 import { FiEye, FiEyeOff, FiMail, FiLock } from 'react-icons/fi';
 import Logo from '../images/Calamba_Seal.png';
 import BackgroundImage from '../images/bg.jpg';
-import { useAuthStore } from '../authPages/store/authStore.js'
+import { useAuthStore } from '../store/authStore.js'
 import { useNavigate, Link } from 'react-router-dom';
 
 const LoginPage = () => {

@@ -16,7 +16,7 @@ import {
   Icon,
 } from '@chakra-ui/react';
 import { FiEye, FiEyeOff } from 'react-icons/fi';
-import { useAuthStore } from './store/authStore';
+import { useAuthStore } from '../store/authStore';
 import BackgroundImage from '../images/bg.jpg';
 
 const ResetPassword = () => {
@@ -34,7 +34,7 @@ const ResetPassword = () => {
     if (newPassword !== confirmPassword) {
       toast({
         title: 'Error',
-        description: 'Passwords do not match',
+        description: 'Passwords do not match.',
         status: 'error',
         duration: 3000,
         isClosable: true,
@@ -56,7 +56,7 @@ const ResetPassword = () => {
       const response = await resetPassword({ token, newPassword });
       toast({
         title: 'Success',
-        Description: 'Password Reset Successful',
+        Description: 'Password Reset Successful.',
         description: response.message,
         status: 'success',
         duration: 3000,

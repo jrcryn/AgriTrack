@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import axios from 'axios';
-import verify2FA from '../verify2FA';
-import forgotPassword from '../forgotPassword';
+import verify2FA from '../authPages/verify2FA';
+import forgotPassword from '../authPages/forgotPassword';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -73,6 +73,18 @@ export const useAuthStore = create((set) => ({
             set({ error: error.response?.data?.message, isLoading: false });
             throw error;
         }
-    }
+    },
+
+    checkAuth: async () => {
+        set({ isCheckingAuth: true, error: null });
+        try {
+            const response = await axios.get(`${API_URL}/api/auth/check-auth`);
+            set({ user: response.data.user, isAuthenticated: true, isCheckingAuth: false });
+            return response.data;
+        } catch (error) {
+            set({ error: null, isAuthenticated: false, isCheckingAuth: false });
+            throw error;
+        }
+    },
 
 }));

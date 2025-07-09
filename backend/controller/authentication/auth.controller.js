@@ -48,10 +48,10 @@ export const register = async (req, res) => {  //system admin level access only 
             office_position: role === 'DMS' ? office_position : null, // Office position is only required when creating Doc-Track Staff accounts
             email,
             phone,
-            password: hashedPassword,
+            password: defaultPassword,
         });
         await newUser.save();
-        await sendWelcomeEmail(email, defaultPassword);
+        //await sendWelcomeEmail(email, defaultPassword);
  
         res.status(201).json({ 
             message: 'User registered successfully', 
@@ -160,6 +160,10 @@ export const generate2FASecret = async (req, res) => {
         if (!user) {
             return res.status(404).json({ success: false, message: 'User not found.' });
         }
+
+        // if (user.is2FAEnabled) {
+        //     return res.status(400).json({ success: false, message: '2FA is already enabled for this user.' });
+        // }; //hindi na need since need ng user Id para makapunta sa page ng 2FA setup, pero pag may nag report na bug, ito gagamitin pang ayos
 
         if (user.twoFASecret && user.twoFAQRCode) { // if user already has a generated 2FA secret and QR code
             return res.status(200).json({ 
