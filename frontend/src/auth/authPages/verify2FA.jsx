@@ -19,7 +19,7 @@ import BackgroundImage from '../../images/bg.jpg';
 
 const Verify2FA = () => {
   const [token, setToken] = useState('');
-  const { verify2FA, isLoading } = useAuthStore();
+  const { verify2FA, isLoading, user } = useAuthStore();
   const location = useLocation();
   const navigate = useNavigate();
   const toast = useToast();
@@ -47,7 +47,13 @@ const Verify2FA = () => {
         duration: 3000,
         isClosable: true,
       });
-      navigate('/dashboard'); // Redirect to dashboard or home page
+      if (response.user?.role === 'HVCM' || response.user?.role === 'HVCS') {
+        navigate('/hvc/metrics');
+      } else if (response.user?.role === 'DMM' || response.user?.role === 'DMS') {
+        navigate('/doc-track/metrics');
+      } else {
+        navigate('/machineries/metrics');
+      }
     } catch (error) {
       toast({
         title: 'Error',

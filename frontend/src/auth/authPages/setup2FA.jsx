@@ -26,7 +26,7 @@ const Setup2FA = () => {
   const [qrCode, setQrCode] = useState('');
   const [secret, setSecret] = useState('');
   const [token, setToken] = useState('');
-  const { generate2FASecret, isLoading } = useAuthStore();
+  const { generate2FASecret, isLoading, verify2FA } = useAuthStore();
   const location = useLocation();
   const navigate = useNavigate();
   const toast = useToast();
@@ -64,7 +64,7 @@ const Setup2FA = () => {
     fetchQRCode();
   }, [userId, generate2FASecret, navigate, toast]);
 
-  const verify2FA = async () => {
+  const verify2FAuth = async () => {
       if (!token || token.length !== 6) {
         toast({
           title: 'Error',
@@ -77,7 +77,7 @@ const Setup2FA = () => {
       }
 
       try {
-        const response = await useAuthStore.getState().verify2FA({ userId, token });
+        const response = await verify2FA({ userId, token });
         toast({
           title: 'Success',
           description: response.message,
@@ -85,7 +85,13 @@ const Setup2FA = () => {
           duration: 5000,
           isClosable: true,
         });
-        navigate('/dashboard'); // Redirect to the dashboard or home page
+        if (response.user?.role === 'HVCM' || response.user?.role === 'HVCS') {
+          navigate('/hvc/metrics');
+        } else if (response.user?.role === 'DMM' || response.user?.role === 'DMS') {
+          navigate('/doc-track/metrics');
+        } else {
+          navigate('/machineries/metrics');
+        }; 
       } catch (err) {
         toast({
           title: 'Error',
@@ -220,7 +226,7 @@ const Setup2FA = () => {
           width="full"
           size="lg"
           borderRadius="lg"
-          onClick={verify2FA}
+          onClick={verify2FAuth}
           isLoading={isLoading}
           isDisabled={!qrCode || !secret || isLoading || token.length !== 6}
         >

@@ -3,7 +3,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Routes, Route, useNavigate, useNavigationType, useLocation } from 'react-router-dom';
 
 // Admin imports
-import Layout from '../high-value-crops/pages/Layout.jsx';
+import Layout from '../components/layout.jsx';
 import Metrics from '../high-value-crops/pages/A_Metrics.jsx';
 import HVCSaMPR from '../high-value-crops/pages/B_HVCSaMPR.jsx';
 import HVCPR from '../high-value-crops/pages/C_HVCPR.jsx';

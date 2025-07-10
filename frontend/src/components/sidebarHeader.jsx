@@ -26,20 +26,60 @@ import {
   FiDownload,
   FiUsers,
   FiChevronDown,
-  FiMenu
+  FiMenu,
+  FiInbox,
+  FiClock,
+  FiSend,
+  FiArchive,
+  FiBox
 } from 'react-icons/fi'
 import { FaWpforms } from "react-icons/fa";
-import Logo from '../../images/Calamba_Seal.png'
+import Logo from '../images/Calamba_Seal.png'
+import { useAuthStore } from '../auth/store/authStore.js'
 
-const LinkItems = [
-  { name: 'Metrics', icon: FiGrid, path : '/hvc/admin/metrics' },
-  { name: 'Supply and Market Profile Report', icon: FiDownload, path : '/hvc/admin/hvc-sampr' },
-  { name: 'Production Report', icon: FiDownload, path : '/hvc/admin/hvc-pr' },
-  { name: 'New Responses', icon: FaWpforms, path : '/hvc/admin/responses' },
-  { name: 'Farmers', icon: FiUsers, path : '/hvc/admin/farmers' },
+
+const allLinkItems = [
+  // high-value-crops
+  { name: 'Metrics', icon: FiGrid, path : '/hvc/metrics', roles: ['HVCM', 'HVCS'] },
+  { name: 'Supply and Market Profile Report', icon: FiDownload, path : '/hvc/hvc-sampr', roles: ['HVCM'] },
+  { name: 'Production Report', icon: FiDownload, path : '/hvc/hvc-pr', roles: ['HVCM', 'HVCS'] },
+  { name: 'New Responses', icon: FaWpforms, path : '/hvc/responses', roles: ['HVCM', 'HVCS'] },
+  { name: 'Farmers', icon: FiUsers, path : '/hvc/farmers', roles: ['HVCM', 'HVCS'] },
+  
+  //doc-track
+  { name: 'Dashboard', icon: FiGrid, path : '/doc-track/metrics', roles: ['DMS', 'DMM'] },
+  { name: 'Incoming', icon: FiInbox, path : '/doc-track/incoming', count: 8, roles: ['DMS', 'DMM'] },
+  { name: 'Pending', icon: FiClock, path : '/doc-track/pending', count: 6, roles: ['DMS', 'DMM'] },
+  { name: 'Outgoing', icon: FiSend, path : '/doc-track/outgoing', count: 4, roles: ['DMS', 'DMM'] },
+  { name: 'History', icon: FiArchive, path : '/doc-track/history', roles: ['DMS', 'DMM'] },
+  { name: 'Staffs', icon: FiUsers, path : '/doc-track/staffs', roles: ['DMM'] },
+
+  //machineries
+  { name: 'Dashboard', icon: FiGrid, path: '/machineries/admin/metrics', roles: ['MIS'] },
+  { name: 'Machinery Inventory', icon: FiBox, path: '/machineries/admin/machine-inventory', roles: ['MIS'] },
+  { name: 'Generate Report', icon: FiDownload, path: '/machineries/admin/gen-reports', roles: ['MIS'] },
 ]
 
 const SidebarContent = ({ onClose, ...rest }) => {
+
+  const { user } = useAuthStore();
+  const LinkItems = allLinkItems.filter(link => link.roles.includes(user?.role));
+
+  const [ roleName, setRoleName ] = useState('');
+
+  useEffect(() => {
+      const roleMap = {
+        DMS: 'STAFF',
+        DMM: 'MANAGER',
+        MIS: 'STAFF',
+        HVCM: 'MANAGER',
+        HVCS: 'STAFF',
+      };
+      if (user?.role) {
+        setRoleName(roleMap[user.role] || '');
+      }
+    }, [user?.role]);
+
   return (
     <Box
       transition="3s ease"
@@ -58,7 +98,7 @@ const SidebarContent = ({ onClose, ...rest }) => {
           HIGH-VALUE CROPS
         </Text>
         <Text fontSize="larger"  fontWeight="bold" color="white">
-          MANAGER
+          {roleName}
         </Text>
       </Box>
       {/* Mobile Close Button */}
@@ -72,7 +112,12 @@ const SidebarContent = ({ onClose, ...rest }) => {
       />
       {/* Navigation Items */}
       {LinkItems.map((link) => (
-        <NavItem key={link.name} icon={link.icon} path={link.path}>
+        <NavItem 
+          key={link.name} 
+          icon={link.icon} 
+          path={link.path} 
+          count={link.count}>
+            
           {link.name}
         </NavItem>
       ))}

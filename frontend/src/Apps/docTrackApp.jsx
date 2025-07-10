@@ -2,7 +2,7 @@ import { Box } from '@chakra-ui/react';
 import React, { useState } from 'react';
 import { Routes, Route, useNavigate } from 'react-router-dom'
 
-import Layout from '../doc-track/pages/Layout.jsx';
+import Layout from '../components/layout.jsx';
 
 import A_Dashboard from '../doc-track/pages/A_Dashboard.jsx';
 import B_Incoming from '../doc-track/pages/B_Incoming.jsx';

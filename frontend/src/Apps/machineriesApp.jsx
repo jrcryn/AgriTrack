@@ -2,7 +2,7 @@ import { Box } from '@chakra-ui/react';
 import React, { useState } from 'react';
 import { Routes, Route, useNavigate } from 'react-router-dom'
 
-import Layout from '../machineries/pages/Layout.jsx';
+import Layout from '../components/layout.jsx';
 
 import Metrics from '../machineries/pages/A_Metrics.jsx';
 import MachineryInventory from '../machineries/pages/B_MachineInventory.jsx'

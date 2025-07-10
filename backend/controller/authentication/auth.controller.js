@@ -48,7 +48,7 @@ export const register = async (req, res) => {  //system admin level access only 
             office_position: role === 'DMS' ? office_position : null, // Office position is only required when creating Doc-Track Staff accounts
             email,
             phone,
-            password: defaultPassword,
+            password: defaultPassword, //for testing purposes, should be changed to hashedPassword in the future
         });
         await newUser.save();
         //await sendWelcomeEmail(email, defaultPassword);
@@ -75,13 +75,21 @@ export const register = async (req, res) => {  //system admin level access only 
 
 export const checkAuth = async (req, res) => {
     try {
-        const user = await global.docTrackModels.StaffAccount.findById( req.userId ) ||
-                     await global.docTrackModels.ManagerAccount.findById( req.userId ) ||
-                     await global.machineriesModels.StaffAccount.findById( req.userId ) ||
-                     await global.highValueCropsModels.StaffAccount.findById( req.userId ) ||
-                     await global.highValueCropsModels.ManagerAccount.findById( req.userId );
+        let user, role;
 
-        if (!user) {
+        if (( user = await global.docTrackModels.ManagerAccount.findById(req.userId) )) {
+            role = 'DMM';
+        } else if (( user = await global.docTrackModels.StaffAccount.findById(req.userId) )) {
+            role = 'DMS';
+        } else if (( user = await global.machineriesModels.StaffAccount.findById(req.userId) )) {
+            role = 'MIS';
+        } else if (( user = await global.highValueCropsModels.ManagerAccount.findById(req.userId) )) {
+            role = 'HVCM';
+        } else if (( user = await global.highValueCropsModels.StaffAccount.findById(req.userId) )) {
+            role = 'HVCS';
+        }
+
+        if (!user || !role) {
             return res.status(404).json({ success: false, message: 'User not found.' });
         }
 
@@ -90,6 +98,7 @@ export const checkAuth = async (req, res) => {
             user: {
                 id: user._id,
                 name: user.name,
+                role: role,
                 office_position: user.office_position
             }
         });
@@ -119,7 +128,8 @@ export const login = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Invalid credentials.' });
         }
 
-        const isPasswordValid = await bcrypt.compare(password, user.password);
+        //const isPasswordValid = await bcrypt.compare(password, user.password);
+        const isPasswordValid = (password === user.password) ? true : false; // for testing purposes, this will be changed to bcrypt.compare in the future
         if (!isPasswordValid) {
             return res.status(401).json({ success: false, message: 'Invalid credentials.'})
         }
@@ -202,13 +212,21 @@ export const verify2FA = async (req, res) => {
     const { token, userId } = req.body;
 
     try {
-        let user = await global.docTrackModels.StaffAccount.findById(userId) ||
-                     await global.docTrackModels.ManagerAccount.findById(userId) ||
-                     await global.machineriesModels.StaffAccount.findById(userId) ||
-                     await global.highValueCropsModels.StaffAccount.findById(userId) ||
-                     await global.highValueCropsModels.ManagerAccount.findById(userId);
+        let user, role;
 
-        if (!user) {
+        if (( user = await global.docTrackModels.ManagerAccount.findById(userId) )) {
+            role = 'DMM';
+        } else if (( user = await global.docTrackModels.StaffAccount.findById(userId) )) {
+            role = 'DMS';
+        } else if (( user = await global.machineriesModels.StaffAccount.findById(userId) )) {
+            role = 'MIS';
+        } else if (( user = await global.highValueCropsModels.ManagerAccount.findById(userId) )) {
+            role = 'HVCM';
+        } else if (( user = await global.highValueCropsModels.StaffAccount.findById(userId) )) {
+            role = 'HVCS';
+        }
+
+        if (!user || !role) {
             return res.status(404).json({ success: false, message: 'User not found.' });
         }
 
@@ -238,6 +256,7 @@ export const verify2FA = async (req, res) => {
             user: {
                 id: user._id,
                 name: user.name,
+                role: role,
                 office_position: user.office_position
             }
         });
