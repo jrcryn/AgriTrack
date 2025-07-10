@@ -55,30 +55,15 @@ const allLinkItems = [
   { name: 'Staffs', icon: FiUsers, path : '/doc-track/staffs', roles: ['DMM'] },
 
   //machineries
-  { name: 'Dashboard', icon: FiGrid, path: '/machineries/admin/metrics', roles: ['MIS'] },
-  { name: 'Machinery Inventory', icon: FiBox, path: '/machineries/admin/machine-inventory', roles: ['MIS'] },
-  { name: 'Generate Report', icon: FiDownload, path: '/machineries/admin/gen-reports', roles: ['MIS'] },
+  { name: 'Dashboard', icon: FiGrid, path: '/machineries/metrics', roles: ['MIS'] },
+  { name: 'Machinery Inventory', icon: FiBox, path: '/machineries/machine-inventory', roles: ['MIS'] },
+  { name: 'Generate Report', icon: FiDownload, path: '/machineries/gen-reports', roles: ['MIS'] },
 ]
 
 const SidebarContent = ({ onClose, ...rest }) => {
 
   const { user } = useAuthStore();
   const LinkItems = allLinkItems.filter(link => link.roles.includes(user?.role));
-
-  const [ roleName, setRoleName ] = useState('');
-
-  useEffect(() => {
-      const roleMap = {
-        DMS: 'STAFF',
-        DMM: 'MANAGER',
-        MIS: 'STAFF',
-        HVCM: 'MANAGER',
-        HVCS: 'STAFF',
-      };
-      if (user?.role) {
-        setRoleName(roleMap[user.role] || '');
-      }
-    }, [user?.role]);
 
   return (
     <Box
@@ -96,9 +81,6 @@ const SidebarContent = ({ onClose, ...rest }) => {
         </Text>
         <Text fontSize="larger"  fontWeight="bold" color="white">
           HIGH-VALUE CROPS
-        </Text>
-        <Text fontSize="larger"  fontWeight="bold" color="white">
-          {roleName}
         </Text>
       </Box>
       {/* Mobile Close Button */}
@@ -174,6 +156,23 @@ const MobileNav = ({ onOpen, ...rest }) => {
     }, 1000)
     return () => clearInterval(interval)
   }, [])
+
+  const { user } = useAuthStore();
+  const [ userName ] = useState(user?.name || ''); 
+  const [ roleName, setRoleName ] = useState('');
+
+  useEffect(() => {
+      const roleMap = {
+        DMS: 'STAFF',
+        DMM: 'MANAGER',
+        MIS: 'STAFF',
+        HVCM: 'MANAGER',
+        HVCS: 'STAFF',
+      };
+      if (user?.role) {
+        setRoleName(roleMap[user.role] || '');
+      }
+    }, [user?.role]); 
   
   // Format date as "Feb 16, 2024" and time as "10:45 AM"
   const formattedDate = currentTime.toLocaleDateString('en-US', {
@@ -220,14 +219,10 @@ const MobileNav = ({ onOpen, ...rest }) => {
           <Menu>
             <MenuButton py={2} transition="all 0.3s" _focus={{ boxShadow: 'none' }}>
               <HStack>
-                <Avatar
-                  size="sm"
-                  src="https://images.unsplash.com/photo-1619946794135-5bc917a27793?ixlib=rb-0.3.5&q=80&fm=jpg&crop=faces&fit=crop&h=200&w=200&s=b616b2c5b373a80ffc9636ba24f7a4a9"
-                />
                 <VStack display={{ base: 'none', md: 'flex' }} alignItems="flex-start" spacing="1px" ml="2">
-                  <Text fontSize="sm">Jerico Ryan Celestino</Text>
+                  <Text fontSize="sm">{userName}</Text>
                   <Text fontSize="xs" color="gray.600">
-                    Technician
+                    {roleName}
                   </Text>
                 </VStack>
                 <Box display={{ base: 'none', md: 'flex' }}>
