@@ -1,10 +1,11 @@
 import { Box } from '@chakra-ui/react';
-import React, { useEffect, useState, useRef } from 'react';
-import { Routes, Route, useNavigate, useNavigationType, useLocation } from 'react-router-dom';
+import { useEffect, useState, useRef } from 'react';
+import { Routes, Route, useNavigate, useNavigationType, useLocation, Navigate } from 'react-router-dom';
+import { useAuthStore } from '../auth/store/authStore.js';
 
 // Admin imports
 import Layout from '../components/layout.jsx';
-import Metrics from '../high-value-crops/pages/A_Metrics.jsx';
+import Metrics from '../high-value-crops/pages/A_Metrics.jsx';                                  
 import HVCSaMPR from '../high-value-crops/pages/B_HVCSaMPR.jsx';
 import HVCPR from '../high-value-crops/pages/C_HVCPR.jsx';
 import Responses from '../high-value-crops/pages/D_Responses.jsx';
@@ -23,12 +24,26 @@ import D2_bc_Other_fctHarvest from '../high-value-crops/formPages/D2_bc-other-fc
 import D2_bc_Other_fctNew from '../high-value-crops/formPages/D2_bc-other-fctNew.jsx';
 import SuccessPage from '../high-value-crops/formPages/E_successPage.jsx';
 
+//redirect authenticated users
+const ProtectedRoute = ({children}) => {
+    const {isAuthenticated, user} = useAuthStore();
+
+    // If not authenticated or user is missing or 2FA not enabled, redirect
+    if (!isAuthenticated || !user) {
+      return <Navigate to='/auth/login' replace />;
+    }
+
+    return children;
+}
+
 const highValueCropsApp = () => {
   const navigate = useNavigate();
   const navigationType = useNavigationType();
   const location = useLocation();
 
   const [selectedCropType, setSelectedCropType] = useState('');
+
+  // PAGE DIRECTION CONTROLLER FOR FARMER FORM PAGES
 
   // this ref will flip to true whenever we do an in-app Next/Back
   const hasInteractedRef = useRef(false);
@@ -67,17 +82,23 @@ const highValueCropsApp = () => {
   return (
     <Box>
       <Routes>
-        {/* Admin Routes */}
-        <Route path="/" element={<Layout />}>
+
+        {/* Protected HVC User Routes */}
+        <Route path="/" element={
+          <ProtectedRoute>
+            <Layout />
+          </ProtectedRoute>
+        }>
+
           <Route path="metrics" element={<Metrics />} />
           <Route path="hvc-sampr" element={<HVCSaMPR />} />
           <Route path="hvc-pr" element={<HVCPR />} />
           <Route path="responses" element={<Responses />} />
           <Route path="farmers" element={<Farmers />} />
-         
         </Route>
 
-        {/* Form Routes */}
+
+        {/* Form Form Routes */}
         <Route path="form">
           <Route path='istcns' element={<Instructions onNext={() => handleNext('/dpa')} />} />
           <Route path='dpa' element={<DataPrivacyAct onNext={() => handleNext('/a_fi')} onBack={handleBack} />} />

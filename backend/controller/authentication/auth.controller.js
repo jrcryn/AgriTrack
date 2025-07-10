@@ -77,15 +77,15 @@ export const checkAuth = async (req, res) => {
     try {
         let user, role;
 
-        if (( user = await global.docTrackModels.ManagerAccount.findById(req.userId) )) {
+        if (( user = await global.docTrackModels.ManagerAccount.findById(req.decodedToken.payload.userId) )) {
             role = 'DMM';
-        } else if (( user = await global.docTrackModels.StaffAccount.findById(req.userId) )) {
+        } else if (( user = await global.docTrackModels.StaffAccount.findById(req.decodedToken.payload.userId) )) {
             role = 'DMS';
-        } else if (( user = await global.machineriesModels.StaffAccount.findById(req.userId) )) {
+        } else if (( user = await global.machineriesModels.StaffAccount.findById(req.decodedToken.payload.userId) )) {
             role = 'MIS';
-        } else if (( user = await global.highValueCropsModels.ManagerAccount.findById(req.userId) )) {
+        } else if (( user = await global.highValueCropsModels.ManagerAccount.findById(req.decodedToken.payload.userId) )) {
             role = 'HVCM';
-        } else if (( user = await global.highValueCropsModels.StaffAccount.findById(req.userId) )) {
+        } else if (( user = await global.highValueCropsModels.StaffAccount.findById(req.decodedToken.payload.userId) )) {
             role = 'HVCS';
         }
 
@@ -248,7 +248,7 @@ export const verify2FA = async (req, res) => {
         user.is2FAEnabled = true;
         await user.save();
         
-        generateTokenAndSetCookie(res, user._id);
+        generateTokenAndSetCookie(res, user._id, role);
 
         res.status(200).json({
             success: true,

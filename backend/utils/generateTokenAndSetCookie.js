@@ -1,7 +1,16 @@
 import jwt from 'jsonwebtoken';
 
-export const generateTokenAndSetCookie = (res, userId) => {
-    const token = jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '1d' });
+export const generateTokenAndSetCookie = (res, userId, role) => {
+
+    if (!userId || !role) {
+        throw new Error('User ID and role are required to generate token and set cookie');
+    }
+
+    const payload = {
+        userId,
+        role,
+    };
+    const token = jwt.sign({ payload }, process.env.JWT_SECRET, { expiresIn: '1d' });
 
     res.cookie('authToken', token, {
         httpOnly: true,

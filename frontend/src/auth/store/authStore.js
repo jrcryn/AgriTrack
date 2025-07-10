@@ -1,7 +1,5 @@
 import { create } from 'zustand';
 import axios from 'axios';
-import verify2FA from '../authPages/verify2FA';
-import forgotPassword from '../authPages/forgotPassword';
 
 const API_URL = import.meta.env.VITE_API_URL;
 

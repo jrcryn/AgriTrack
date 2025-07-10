@@ -19,7 +19,8 @@ import {
   MenuItem,
   MenuList,
   Divider,
-  Image
+  Image,
+  Badge
 } from '@chakra-ui/react'
 import {
   FiGrid,
@@ -63,7 +64,21 @@ const allLinkItems = [
 const SidebarContent = ({ onClose, ...rest }) => {
 
   const { user } = useAuthStore();
+  const [ dashboardName, setDashboardName ] = useState('');
   const LinkItems = allLinkItems.filter(link => link.roles.includes(user?.role));
+
+  useEffect(() => {
+      const roleMap = {
+        DMS: 'DOC-TRACK',
+        DMM: 'DOC-TRACK',
+        MIS: 'MACHINERIES',
+        HVCM: 'HIGH-VALUE CROPS',
+        HVCS: 'HIGH-VALUE CROPS',
+      };
+      if (user?.role) {
+        setDashboardName(roleMap[user.role] || '');
+      }
+    }, [user?.role]);
 
   return (
     <Box
@@ -80,7 +95,7 @@ const SidebarContent = ({ onClose, ...rest }) => {
           CITY AGRI. SERVICES DEPT.
         </Text>
         <Text fontSize="larger"  fontWeight="bold" color="white">
-          HIGH-VALUE CROPS
+          {dashboardName}
         </Text>
       </Box>
       {/* Mobile Close Button */}
@@ -98,7 +113,8 @@ const SidebarContent = ({ onClose, ...rest }) => {
           key={link.name} 
           icon={link.icon} 
           path={link.path} 
-          count={link.count}>
+          count={link.count}
+          linkName={link.name}>
             
           {link.name}
         </NavItem>
@@ -107,11 +123,27 @@ const SidebarContent = ({ onClose, ...rest }) => {
   )
 }
 
-const NavItem = ({ icon, children, path, ...rest }) => {
+const NavItem = ({ icon, children, path, linkName, ...rest }) => {
 
   const location = useLocation();
   const isActive = location.pathname === path;
   
+  const { count, ...otherProps } = rest;
+
+  const getBadgeStyles = () => {
+    switch(linkName) {
+      case 'Incoming':
+        return { bg: "green.500", color: "white" };
+      case 'Pending':
+        return { bg: "yellow.500", color: "white" };
+      case 'Outgoing':
+        return { bg: "red.500", color: "white" };
+      default:
+        return { bg: "gray.500", color: "white" };
+    }
+  };
+
+  const badgeStyles = getBadgeStyles();
 
   return (
     <Box 
@@ -132,7 +164,7 @@ const NavItem = ({ icon, children, path, ...rest }) => {
           bg: 'white',
           color: 'black',
         }}
-        {...rest}>
+        {...otherProps}>
         {icon && (
           <Icon 
             mr="4" 
@@ -141,7 +173,18 @@ const NavItem = ({ icon, children, path, ...rest }) => {
             _groupHover={{ color: 'black' }} 
             as={icon} />
         )}
-        {children}
+        <Text flex="1">{children}</Text>
+        {count !== undefined && (
+          <Badge
+            bg={badgeStyles.bg}
+            color={badgeStyles.color}
+            borderRadius="full"
+            px="2"
+            fontSize="0.8em"
+          >
+            {count}
+          </Badge>
+        )}
       </Flex>
     </Box>
   )

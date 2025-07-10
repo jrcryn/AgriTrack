@@ -29,6 +29,9 @@ import {
     formD2_bc_ofn
 } from '../controller/high-value-crops/farmerForm.controller.js';
 
+import { verifyToken } from '../middleware/verifyToken.js';
+import { verifyRole } from '../middleware/verifyRole.js';
+
 
 const router = express.Router();
 
@@ -36,33 +39,33 @@ const router = express.Router();
 //________________________________ DASHBOARD (NEW REPONSES) PAGE ____________________________________
 
 
-router.get('/get-unvalidated-inputs', getUnvalidatedFarmerInputs);
-router.get('/get-validated-inputs', getValidatedFarmerInputs);
+router.get('/get-unvalidated-inputs', verifyToken, verifyRole(['HVCM', 'HVCS']), getUnvalidatedFarmerInputs);
+router.get('/get-validated-inputs', verifyToken, verifyRole(['HVCM', 'HVCS']), getValidatedFarmerInputs);
 
 
 //________________________________ DASHBOARD (FARMERS) PAGE ____________________________________
 
 
-router.post('/create-farmer-account', createFarmerAccount);
-router.get('/get-farmer-accounts', getFarmerAccounts);
-router.post('/get-farmer-account', getFarmerAccountById);
-router.post('/create-unified-farmer-response', createUnifiedFarmerResponse);
-router.put('/farmer-accounts/update', updateFarmerAccount);
+router.post('/create-farmer-account', verifyToken, verifyRole(['HVCM', 'HVCS']), createFarmerAccount);
+router.get('/get-farmer-accounts', verifyToken, verifyRole(['HVCM', 'HVCS']), getFarmerAccounts);
+router.post('/get-farmer-account', verifyToken, verifyRole(['HVCM', 'HVCS']), getFarmerAccountById);
+router.post('/create-unified-farmer-response', verifyToken, verifyRole(['HVCM', 'HVCS']), createUnifiedFarmerResponse);
+router.put('/farmer-accounts/update', verifyToken, verifyRole(['HVCM', 'HVCS']), updateFarmerAccount);
 
 
 //________________________________ DASHBOARD (METRICS) PAGE ____________________________________
 
 
-router.get('/metrics/available-years', getAvailableMetricsYears);
-router.get('/metrics/available-months/:year', getAvailableMonthsForYear);
-router.get('/metrics/data/:year/:month', getMetricsForYearMonth);
+router.get('/metrics/available-years', verifyToken, verifyRole(['HVCM', 'HVCS']), getAvailableMetricsYears);
+router.get('/metrics/available-months/:year', verifyToken, verifyRole(['HVCM', 'HVCS']), getAvailableMonthsForYear);
+router.get('/metrics/data/:year/:month', verifyToken, verifyRole(['HVCM', 'HVCS']), getMetricsForYearMonth);
 
 
 //________________________________ DASHBOARD (GENERATE REPORTS) PAGE ____________________________________
 
 
-router.get('/report-date-ranges/:year/:month', getAvailableDateRanges);
-router.post('/generate-excel-report', generateExcelReport);
+router.get('/report-date-ranges/:year/:month', verifyToken, verifyRole(['HVCM']), getAvailableDateRanges);
+router.post('/generate-excel-report', verifyToken, verifyRole(['HVCM']), generateExcelReport);
 
 
 //________________________________ FARMER FORM PAGES ____________________________________
