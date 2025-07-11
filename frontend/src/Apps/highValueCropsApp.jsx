@@ -90,7 +90,7 @@ const highValueCropsApp = () => {
 
   useEffect(() => {
     checkAuth();
-  }, [checkAuth, location.pathname]);
+  }, [checkAuth]);
 
   return (
     <Box>

@@ -118,6 +118,7 @@ const Verify2FA = () => {
           </Text>
         </VStack>
 
+        <form onSubmit={handleSubmit}>
           <VStack spacing={6}>
             <FormControl>
               <FormLabel htmlFor="token" srOnly>Verification Code</FormLabel>
@@ -132,7 +133,7 @@ const Verify2FA = () => {
                 </PinInput>
               </HStack>
             </FormControl>
-
+            
             <Button
               colorScheme="blue"
               width="full"
@@ -141,12 +142,12 @@ const Verify2FA = () => {
               borderRadius="lg"
               isLoading={isLoading}
               isDisabled={token.length !== 6}
-              onClick={handleSubmit}
             >
               Verify
             </Button>
           </VStack>
-
+          </form>
+          
         <Text mt={8} fontSize="xs" color="gray.500" textAlign="center">
           © {new Date().getFullYear()} City Agriculture Services Department. All rights reserved.
         </Text>

@@ -112,8 +112,7 @@ export const checkAuth = async (req, res) => {
 
 export const checkPreAuth = async (req, res) => {
     try {
-        let user;
-
+        var user;
         if (user = await global.docTrackModels.StaffAccount.findById(req.decodedPreAuthToken.userId) ||
             await global.docTrackModels.ManagerAccount.findById(req.decodedPreAuthToken.userId) ||
             await global.machineriesModels.StaffAccount.findById(req.decodedPreAuthToken.userId) ||

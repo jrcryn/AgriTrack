@@ -2,7 +2,6 @@ import { Box, Spinner, Text } from '@chakra-ui/react';
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useEffect } from 'react';
 import { useAuthStore } from '../auth/store/authStore.js'
-import { useNavigate } from 'react-router-dom';
 
 import LoginPage from '../auth/authPages/loginPage.jsx'
 import Setup2FA from '../auth/authPages/setup2FA.jsx'
@@ -14,9 +13,7 @@ const RedirectAuthenticatedUser = ({ children }) => {
   const { isAuthenticated, user, isCheckingAuth } = useAuthStore();
 
     if (isCheckingAuth) {
-      return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <Spinner size={'xl'} /><Text ml={4}>Please wait...</Text>
-      </div>;
+      return null;
     }
 
   if (isAuthenticated) {
