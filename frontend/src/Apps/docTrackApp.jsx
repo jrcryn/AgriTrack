@@ -1,4 +1,4 @@
-import { Box } from '@chakra-ui/react';
+import { Box, Spinner, Text } from '@chakra-ui/react';
 import React, { useState } from 'react';
 import { Routes, Route, useNavigate } from 'react-router-dom'
 
@@ -12,9 +12,35 @@ import E_GenReports from '../doc-track/pages/E_GenReports.jsx';
 import F_History from '../doc-track/pages/F_History.jsx';
 import G_Staffs from '../doc-track/pages/G_Staffs.jsx';
 
+import { useAuthStore } from '../auth/store/authStore.js';
+
+const ProtectedRoute = ({children}) => {
+    const {isAuthenticated, user, isCheckingAuth} = useAuthStore();
+
+    if (isCheckingAuth) {
+      return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <Spinner size={'xl'} /><Text ml={4}>Please wait...</Text>
+      </div>;
+    }
+
+    if (!isAuthenticated || !user) {
+      return <Navigate to='/auth/login' replace />;
+    }
+
+    return children;
+}
+
 const doctrackApp = () => {
+
+    const { checkAuth } = useAuthStore();
+
+    useEffect(() => {
+        checkAuth();
+    }, [checkAuth]);
+    
     return (
         <Box>
+            <ProtectedRoute>
             <Routes>
                 <Route path="/" element={<Layout />}>
                     <Route path="metrics" element={<A_Dashboard />} />
@@ -26,6 +52,7 @@ const doctrackApp = () => {
                     <Route path="staffs" element={<G_Staffs />} />
                 </Route>    
             </Routes>
+            </ProtectedRoute>
         </Box>
     );
 };

@@ -1,7 +1,8 @@
-import { Box } from '@chakra-ui/react';
+import { Box, Spinner, Text } from '@chakra-ui/react';
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useEffect } from 'react';
 import { useAuthStore } from '../auth/store/authStore.js'
+import { useNavigate } from 'react-router-dom';
 
 import LoginPage from '../auth/authPages/loginPage.jsx'
 import Setup2FA from '../auth/authPages/setup2FA.jsx'
@@ -9,9 +10,14 @@ import Verify2FA from '../auth/authPages/verify2FA.jsx'
 import ForgotPassword from '../auth/authPages/forgotPassword.jsx'
 import ResetPassword from '../auth/authPages/resetPassword.jsx'
 
-
 const RedirectAuthenticatedUser = ({ children }) => {
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated, user, isCheckingAuth } = useAuthStore();
+
+    if (isCheckingAuth) {
+      return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <Spinner size={'xl'} /><Text ml={4}>Please wait...</Text>
+      </div>;
+    }
 
   if (isAuthenticated) {
      if (user.role === 'HVCM' || user.role === 'HVCS') {
@@ -28,7 +34,14 @@ const RedirectAuthenticatedUser = ({ children }) => {
   // User is not authenticated, so allow access to the auth pages
   return children;
 };
+
 const authApp = () => {
+    const { checkPreAuth, checkAuth } = useAuthStore();
+
+    useEffect(() => {
+      checkPreAuth();
+      checkAuth();
+    }, []);
 
     return(
         <Box>

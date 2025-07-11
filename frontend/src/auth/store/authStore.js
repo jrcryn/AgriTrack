@@ -8,9 +8,11 @@ axios.defaults.withCredentials = true; // Ensure cookies are sent with requests
 export const useAuthStore = create((set) => ({
     user: null,
     isAuthenticated: false,
+    isPreAuthenticated: false,
     isLoading: false,
     error: null,
     isCheckingAuth: false,
+    isCheckingPreAuth: false,
 
 
     login: async ({ email, password }) => {
@@ -81,6 +83,17 @@ export const useAuthStore = create((set) => ({
             return response.data;
         } catch (error) {
             set({ error: null, isAuthenticated: false, isCheckingAuth: false });
+            throw error;
+        }
+    },
+
+    checkPreAuth: async () => {
+        set({ isCheckingPreAuth: true, error: null });
+        try {
+            await axios.get(`${API_URL}/api/auth/check-pre-auth`);
+            set({ isPreAuthenticated: true, isCheckingPreAuth: false });
+        } catch (error) {
+            set({ error: null, isPreAuthenticated: false, isCheckingPreAuth: false });
             throw error;
         }
     },

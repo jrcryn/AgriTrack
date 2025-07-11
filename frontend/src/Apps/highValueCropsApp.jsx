@@ -1,4 +1,4 @@
-import { Box } from '@chakra-ui/react';
+import { Box, Spinner, Text } from '@chakra-ui/react';
 import { useEffect, useState, useRef } from 'react';
 import { Routes, Route, useNavigate, useNavigationType, useLocation, Navigate } from 'react-router-dom';
 import { useAuthStore } from '../auth/store/authStore.js';
@@ -26,7 +26,13 @@ import SuccessPage from '../high-value-crops/formPages/E_successPage.jsx';
 
 //redirect authenticated users
 const ProtectedRoute = ({children}) => {
-    const {isAuthenticated, user} = useAuthStore();
+    const {isAuthenticated, isCheckingAuth, user} = useAuthStore();
+
+    if (isCheckingAuth) {
+      return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <Spinner size={'xl'} /><Text ml={4}>Please wait...</Text>
+      </div>;
+    }
 
     // If not authenticated or user is missing or 2FA not enabled, redirect
     if (!isAuthenticated || !user) {
@@ -79,17 +85,20 @@ const highValueCropsApp = () => {
     navigate(-1);
   };
 
+  // CHECK AUTHENTICATION STATUS
+  const { checkAuth } = useAuthStore();
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth, location.pathname]);
+
   return (
     <Box>
       <Routes>
 
         {/* Protected HVC User Routes */}
-        <Route path="/" element={
-          <ProtectedRoute>
-            <Layout />
-          </ProtectedRoute>
-        }>
-
+        
+        <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
           <Route path="metrics" element={<Metrics />} />
           <Route path="hvc-sampr" element={<HVCSaMPR />} />
           <Route path="hvc-pr" element={<HVCPR />} />

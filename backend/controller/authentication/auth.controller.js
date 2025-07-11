@@ -4,8 +4,9 @@ import qrcode from 'qrcode';
 import { authenticator } from 'otplib';
 import { encrypt, decrypt } from '../../utils/encryption.js';
 
-import { sendWelcomeEmail, sendPasswordResetEmail, sendPasswordResetSuccessEmail } from '../../mailtrap/emails.controller.js';
+import { sendPasswordResetEmail, sendPasswordResetSuccessEmail } from '../../mailtrap/emails.controller.js';
 import { generateTokenAndSetCookie } from '../../utils/generateTokenAndSetCookie.js'
+import { generatePreTokenAndSetCookie } from '../../utils/generatePreTokenAndSetCookie.js';
 
 export const register = async (req, res) => {  //system admin level access only (ililipat in the future to a separate route for admin job controllers)
     const { name, email, phone, role, office_position } = req.body;
@@ -77,15 +78,15 @@ export const checkAuth = async (req, res) => {
     try {
         let user, role;
 
-        if (( user = await global.docTrackModels.ManagerAccount.findById(req.decodedToken.payload.userId) )) {
+        if (( user = await global.docTrackModels.ManagerAccount.findById(req.decodedAuthToken.payload.userId) )) {
             role = 'DMM';
-        } else if (( user = await global.docTrackModels.StaffAccount.findById(req.decodedToken.payload.userId) )) {
+        } else if (( user = await global.docTrackModels.StaffAccount.findById(req.decodedAuthToken.payload.userId) )) {
             role = 'DMS';
-        } else if (( user = await global.machineriesModels.StaffAccount.findById(req.decodedToken.payload.userId) )) {
+        } else if (( user = await global.machineriesModels.StaffAccount.findById(req.decodedAuthToken.payload.userId) )) {
             role = 'MIS';
-        } else if (( user = await global.highValueCropsModels.ManagerAccount.findById(req.decodedToken.payload.userId) )) {
+        } else if (( user = await global.highValueCropsModels.ManagerAccount.findById(req.decodedAuthToken.payload.userId) )) {
             role = 'HVCM';
-        } else if (( user = await global.highValueCropsModels.StaffAccount.findById(req.decodedToken.payload.userId) )) {
+        } else if (( user = await global.highValueCropsModels.StaffAccount.findById(req.decodedAuthToken.payload.userId) )) {
             role = 'HVCS';
         }
 
@@ -109,6 +110,25 @@ export const checkAuth = async (req, res) => {
     }
 };
 
+export const checkPreAuth = async (req, res) => {
+    try {
+        let user;
+
+        if (user = await global.docTrackModels.StaffAccount.findById(req.decodedPreAuthToken.userId) ||
+            await global.docTrackModels.ManagerAccount.findById(req.decodedPreAuthToken.userId) ||
+            await global.machineriesModels.StaffAccount.findById(req.decodedPreAuthToken.userId) ||
+            await global.highValueCropsModels.StaffAccount.findById(req.decodedPreAuthToken.userId) ||
+            await global.highValueCropsModels.ManagerAccount.findById(req.decodedPreAuthToken.userId)) {
+            return res.status(200).json({ success: true });
+        } else {
+            return res.status(404).json({ success: false, message: 'User not found.' });
+        }
+        
+    } catch (error) {
+        console.error('Error checking pre-authentication:', error);
+        return res.status(500).json({ success: false, message: 'Internal server error.' });
+    }
+};
 
 export const login = async (req, res) => {
     const { email, password } = req.body;
@@ -134,6 +154,8 @@ export const login = async (req, res) => {
             return res.status(401).json({ success: false, message: 'Invalid credentials.'})
         }
 
+        generatePreTokenAndSetCookie(res, user._id);
+
         if(!user.is2FAEnabled) {
             return res.status(401).json({ 
                 success: false, 
@@ -142,7 +164,6 @@ export const login = async (req, res) => {
             });
         };
         
-
         res.status(200).json({
             success: true,
             message: 'Login successful.',
@@ -160,11 +181,11 @@ export const generate2FASecret = async (req, res) => {
     const { userId } = req.body;
 
     try {
-        let user = await global.docTrackModels.StaffAccount.findOne({ _id: userId }) ||
-                     await global.docTrackModels.ManagerAccount.findOne({ _id: userId }) ||
-                     await global.machineriesModels.StaffAccount.findOne({ _id: userId }) ||
-                     await global.highValueCropsModels.StaffAccount.findOne({ _id: userId }) ||
-                     await global.highValueCropsModels.ManagerAccount.findOne({ _id: userId });
+        let user = await global.docTrackModels.StaffAccount.findById( userId ) ||
+                     await global.docTrackModels.ManagerAccount.findById( userId ) ||
+                     await global.machineriesModels.StaffAccount.findById( userId ) ||
+                     await global.highValueCropsModels.StaffAccount.findById( userId ) ||
+                     await global.highValueCropsModels.ManagerAccount.findById( userId );
 
 
         if (!user) {
@@ -247,7 +268,8 @@ export const verify2FA = async (req, res) => {
 
         user.is2FAEnabled = true;
         await user.save();
-        
+
+        res.clearCookie('preAuthToken'); 
         generateTokenAndSetCookie(res, user._id, role);
 
         res.status(200).json({

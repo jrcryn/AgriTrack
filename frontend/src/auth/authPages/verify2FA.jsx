@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -24,6 +24,20 @@ const Verify2FA = () => {
   const navigate = useNavigate();
   const toast = useToast();
   const userId = location.state?.userId;
+
+  useEffect(() => {
+      if (!userId) {
+        toast({
+          title: 'Error',
+          description: 'User ID not found. Please log in again.',
+          status: 'error',
+          duration: 5000,
+          isClosable: true,
+        });
+        navigate('/auth/login');
+        return;
+      }
+    }, [userId, toast, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

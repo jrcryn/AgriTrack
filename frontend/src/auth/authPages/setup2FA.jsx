@@ -64,7 +64,7 @@ const Setup2FA = () => {
     fetchQRCode();
   }, [userId, generate2FASecret, navigate, toast]);
 
-  const verify2FAuth = async () => {
+  const handleSubmit = async () => {
       if (!token || token.length !== 6) {
         toast({
           title: 'Error',
@@ -226,7 +226,7 @@ const Setup2FA = () => {
           width="full"
           size="lg"
           borderRadius="lg"
-          onClick={verify2FAuth}
+          onClick={handleSubmit}
           isLoading={isLoading}
           isDisabled={!qrCode || !secret || isLoading || token.length !== 6}
         >
