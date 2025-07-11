@@ -10,13 +10,13 @@ export const generateTokenAndSetCookie = (res, userId, role) => {
         userId,
         role,
     };
-    const token = jwt.sign({ payload }, process.env.JWT_SECRET, { expiresIn: '1d' });
+    const token = jwt.sign({ payload }, process.env.JWT_SECRET, { expiresIn: '4h' });
 
     res.cookie('authToken', token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
         sameSite: 'Strict',
-        maxAge: 1 * 24 * 60 * 60 * 1000 
+        maxAge: 4 * 60 * 60 * 1000, // 4 hours in milliseconds
     });
 
     return token;

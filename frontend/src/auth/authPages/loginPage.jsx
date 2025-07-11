@@ -64,8 +64,7 @@ const LoginPage = () => {
 
         const errorMessage = error.response?.data?.message;
         const userId = error.response?.data?.userId; 
-
-        if (errorMessage.includes('Invalid credentials.')) {
+        
           toast({
             title: 'Error',
             description: errorMessage,
@@ -73,8 +72,6 @@ const LoginPage = () => {
             duration: 5000,
             isClosable: true,
           });
-          return;
-        };
         if (errorMessage.includes('You are required to set up 2FA first.')) {
            toast({
             title: 'Login Failed',
