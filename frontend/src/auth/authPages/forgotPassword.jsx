@@ -41,7 +41,7 @@ const ForgotPassword = () => {
         title: 'Success',
         description: response.message,
         status: 'success',
-        duration: 10000,
+        duration: 20000,
         isClosable: true,
       });
       navigate('/auth/login');
@@ -91,7 +91,7 @@ const ForgotPassword = () => {
         <VStack spacing={3} textAlign="center" mb={6}>
           <Heading size="lg">Forgot Password?</Heading>
           <Text fontSize="sm" color="gray.500">
-            If an account exists for the email address provided, you will receive a password reset email shortly.
+            Enter you email and we'll send you a link to reset your password.
           </Text>
         </VStack>
         <form onSubmit={handleSubmit}>

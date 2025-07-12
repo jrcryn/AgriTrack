@@ -8,7 +8,7 @@ export const generateTokenAndSetCookie = (res, userId, role) => {
 
     const payload = {
         userId,
-        role,
+        role, // Include role in the payload for API route authorization check, and para narin sa frontend, kasi dynamic yung render ng sidebar buttons based sa role.
     };
     const token = jwt.sign({ payload }, process.env.JWT_SECRET, { expiresIn: '4h' });
 

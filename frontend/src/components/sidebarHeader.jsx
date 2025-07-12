@@ -200,9 +200,13 @@ const MobileNav = ({ onOpen, ...rest }) => {
     return () => clearInterval(interval)
   }, [])
 
-  const { user } = useAuthStore();
+  const { user, logout } = useAuthStore();
   const [ userName ] = useState(user?.name || ''); 
   const [ roleName, setRoleName ] = useState('');
+
+  const handleLogout = () => {
+    logout();
+  };
 
   useEffect(() => {
       const roleMap = {
@@ -274,9 +278,13 @@ const MobileNav = ({ onOpen, ...rest }) => {
               </HStack>
             </MenuButton>
             <MenuList bg="white" borderColor="gray.200">
-              <MenuItem>Profile Settings</MenuItem>
+              <MenuItem>
+                Profile Settings
+              </MenuItem>
               <MenuDivider />
-              <MenuItem>Sign out</MenuItem>
+              <MenuItem as="button" onClick={handleLogout} color={"red.500"}>
+                Log out
+              </MenuItem>
             </MenuList>
           </Menu>
         </Flex>

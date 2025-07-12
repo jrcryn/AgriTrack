@@ -49,7 +49,7 @@ export const register = async (req, res) => {  //system admin level access only 
             office_position: role === 'DMS' ? office_position : null, // Office position is only required when creating Doc-Track Staff accounts
             email,
             phone,
-            password: defaultPassword, //for testing purposes, should be changed to hashedPassword in the future
+            password: hashedPassword, //for testing purposes, should be changed to hashedPassword in the future
         });
         await newUser.save();
         //await sendWelcomeEmail(email, defaultPassword);
@@ -76,20 +76,15 @@ export const register = async (req, res) => {  //system admin level access only 
 
 export const checkAuth = async (req, res) => {
     try {
-        let user, role;
 
-        if (( user = await global.docTrackModels.ManagerAccount.findById(req.decodedAuthToken.payload.userId) )) {
-            role = 'DMM';
-        } else if (( user = await global.docTrackModels.StaffAccount.findById(req.decodedAuthToken.payload.userId) )) {
-            role = 'DMS';
-        } else if (( user = await global.machineriesModels.StaffAccount.findById(req.decodedAuthToken.payload.userId) )) {
-            role = 'MIS';
-        } else if (( user = await global.highValueCropsModels.ManagerAccount.findById(req.decodedAuthToken.payload.userId) )) {
-            role = 'HVCM';
-        } else if (( user = await global.highValueCropsModels.StaffAccount.findById(req.decodedAuthToken.payload.userId) )) {
-            role = 'HVCS';
-        }
+        const user = await global.docTrackModels.StaffAccount.findById(req.decodedAuthToken.payload.userId) ||
+                     await global.docTrackModels.ManagerAccount.findById(req.decodedAuthToken.payload.userId) ||
+                     await global.machineriesModels.StaffAccount.findById(req.decodedAuthToken.payload.userId) ||
+                     await global.highValueCropsModels.StaffAccount.findById(req.decodedAuthToken.payload.userId) ||
+                     await global.highValueCropsModels.ManagerAccount.findById(req.decodedAuthToken.payload.userId);
 
+        const role = req.decodedAuthToken.payload.role;
+        
         if (!user || !role) {
             return res.status(404).json({ success: false, message: 'User not found.' });
         }
@@ -112,14 +107,14 @@ export const checkAuth = async (req, res) => {
 
 export const checkPreAuth = async (req, res) => {
     try {
-        let user;
-        if (user = await global.docTrackModels.StaffAccount.findById(req.decodedPreAuthToken.userId) ||
-            await global.docTrackModels.ManagerAccount.findById(req.decodedPreAuthToken.userId) ||
-            await global.machineriesModels.StaffAccount.findById(req.decodedPreAuthToken.userId) ||
-            await global.highValueCropsModels.StaffAccount.findById(req.decodedPreAuthToken.userId) ||
-            await global.highValueCropsModels.ManagerAccount.findById(req.decodedPreAuthToken.userId)) {
-            return res.status(200).json({ success: true });
-        } else {
+
+        const user = await global.docTrackModels.StaffAccount.findById(req.decodedPreAuthToken.userId) ||
+                     await global.docTrackModels.ManagerAccount.findById(req.decodedPreAuthToken.userId) ||
+                     await global.machineriesModels.StaffAccount.findById(req.decodedPreAuthToken.userId) ||
+                     await global.highValueCropsModels.StaffAccount.findById(req.decodedPreAuthToken.userId) ||
+                     await global.highValueCropsModels.ManagerAccount.findById(req.decodedPreAuthToken.userId);
+
+        if (!user) {
             return res.status(404).json({ success: false, message: 'User not found.' });
         }
         
@@ -151,8 +146,8 @@ export const login = async (req, res) => {
             return res.status(403).json({ success: false, message: 'Account locked. Contact IT support to regain access.' });
         }
 
-        //const isPasswordValid = await bcrypt.compare(password, user.password);
-        const isPasswordValid = (password === user.password) ? true : false; // for testing purposes, this will be changed to bcrypt.compare in the future
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+        //const isPasswordValid = (password === user.password) ? true : false; // for testing purposes, this will be changed to bcrypt.compare in the future
 
         if (!isPasswordValid) {
 
@@ -345,7 +340,7 @@ export const forgotPassword = async (req, res) => {
                      await global.highValueCropsModels.ManagerAccount.findOne({ email });
 
         if (!user) {
-            return res.status(404).json({ success: false, message: 'User not found.' });
+            return res.status(404).json({ success: false, message: 'We cannot find your email.' });
         }
 
         const resetPasswordToken = crypto.randomBytes(32).toString('hex');

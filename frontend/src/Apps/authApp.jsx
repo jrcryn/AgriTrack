@@ -38,7 +38,7 @@ const authApp = () => {
     useEffect(() => {
       checkPreAuth();
       checkAuth();
-    }, []);
+    }, [checkAuth, checkPreAuth]);
 
     return(
         <Box>
