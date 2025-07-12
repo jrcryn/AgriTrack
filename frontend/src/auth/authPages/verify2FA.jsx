@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -14,16 +14,30 @@ import {
   PinInput,
   PinInputField,
 } from '@chakra-ui/react';
-import { useAuthStore } from './store/authStore';
-import BackgroundImage from '../images/bg.jpg';
+import { useAuthStore } from '../store/authStore';
+import BackgroundImage from '../../images/bg.jpg';
 
 const Verify2FA = () => {
   const [token, setToken] = useState('');
-  const { verify2FA, isLoading } = useAuthStore();
+  const { verify2FA, isLoading, user } = useAuthStore();
   const location = useLocation();
   const navigate = useNavigate();
   const toast = useToast();
   const userId = location.state?.userId;
+
+  useEffect(() => {
+      if (!userId) {
+        toast({
+          title: 'Error',
+          description: 'User ID not found. Please log in again.',
+          status: 'error',
+          duration: 5000,
+          isClosable: true,
+        });
+        navigate('/auth/login');
+        return;
+      }
+    }, [userId, toast, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -47,11 +61,32 @@ const Verify2FA = () => {
         duration: 3000,
         isClosable: true,
       });
-      navigate('/dashboard'); // Redirect to dashboard or home page
+      if (response.user?.role === 'HVCM' || response.user?.role === 'HVCS') {
+        navigate('/hvc/metrics');
+      } else if (response.user?.role === 'DMM' || response.user?.role === 'DMS') {
+        navigate('/doc-track/metrics');
+      } else {
+        navigate('/machineries/metrics');
+      }
     } catch (error) {
+      
+      const errorMessage = error.response?.data?.message;
+
+      if (errorMessage.includes('Account is now locked due to multiple failed 2FA attempts.')) {
+        toast({
+          title: 'Error',
+          description: errorMessage,
+          status: 'error',
+          duration: 5000,
+          isClosable: true,
+        });
+        navigate('/auth/login');
+        return;
+      }
+
       toast({
         title: 'Error',
-        description: error.response?.data?.message,
+        description: errorMessage,
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -98,6 +133,7 @@ const Verify2FA = () => {
           </Text>
         </VStack>
 
+        <form onSubmit={handleSubmit}>
           <VStack spacing={6}>
             <FormControl>
               <FormLabel htmlFor="token" srOnly>Verification Code</FormLabel>
@@ -112,7 +148,7 @@ const Verify2FA = () => {
                 </PinInput>
               </HStack>
             </FormControl>
-
+            
             <Button
               colorScheme="blue"
               width="full"
@@ -121,12 +157,12 @@ const Verify2FA = () => {
               borderRadius="lg"
               isLoading={isLoading}
               isDisabled={token.length !== 6}
-              onClick={handleSubmit}
             >
               Verify
             </Button>
           </VStack>
-
+          </form>
+          
         <Text mt={8} fontSize="xs" color="gray.500" textAlign="center">
           © {new Date().getFullYear()} City Agriculture Services Department. All rights reserved.
         </Text>

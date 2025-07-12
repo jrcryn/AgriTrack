@@ -2,8 +2,8 @@ import mongoose from 'mongoose';
 
 export const HVCManagerSchema = new mongoose.Schema({
     name: { type: String, required: true },
-    email: { type: String, unique: true },
-    phone: { type: String, unique: true },
+    email: { type: String, required: true, unique: true },
+    phone: { type: String, required: true, unique: true },
 
     password: { type: String, required: true },
     lastLogin: { type: Date, default: Date.now },
@@ -14,7 +14,17 @@ export const HVCManagerSchema = new mongoose.Schema({
     resetPasswordToken: String,
     resetPasswordExpiresAt: Date,
 
+    failedLoginAttempts:  {
+        count: { type: Number, default: 0 },
+        lastAttempt: { type: Date, default: Date.now }
+    },
 
-    isActive: { type: Boolean, default: true }
+    failedOTPVerifications:  {
+        count: { type: Number, default: 0 },
+        lastAttempt: { type: Date, default: Date.now }
+    },
     
-}, { versionKey: false, timestamps: true });
+    isLocked: { type: Boolean, default: false },
+    createdAt: { type: Date, default: Date.now },
+    
+}, { versionKey: false, timestamps: false });

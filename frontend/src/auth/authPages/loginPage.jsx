@@ -16,11 +16,19 @@ import {
   Flex,
   Image,
   useToast,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  useDisclosure,
 } from '@chakra-ui/react';
 import { FiEye, FiEyeOff, FiMail, FiLock } from 'react-icons/fi';
-import Logo from '../images/Calamba_Seal.png';
-import BackgroundImage from '../images/bg.jpg';
-import { useAuthStore } from '../authPages/store/authStore.js'
+import { WarningIcon } from '@chakra-ui/icons';
+import Logo from '../../images/Calamba_Seal.png';
+import BackgroundImage from '../../images/bg.jpg';
+import { useAuthStore } from '../store/authStore.js'
 import { useNavigate, Link } from 'react-router-dom';
 
 const LoginPage = () => {
@@ -29,10 +37,12 @@ const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
+  const [modalMessage, setModalMessage] = useState('');
 
   const { login, isLoading } = useAuthStore()
   const toast = useToast();
   const navigate = useNavigate();
+  const { isOpen, onOpen, onClose } = useDisclosure();
 
   const validateEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -65,7 +75,11 @@ const LoginPage = () => {
         const errorMessage = error.response?.data?.message;
         const userId = error.response?.data?.userId; 
 
-        if (errorMessage.includes('Invalid credentials.')) {
+        if (errorMessage.includes('Account locked. Contact IT support to regain access.')) {
+            setModalMessage(errorMessage);
+            onOpen();
+            return;
+        }
           toast({
             title: 'Error',
             description: errorMessage,
@@ -73,8 +87,7 @@ const LoginPage = () => {
             duration: 5000,
             isClosable: true,
           });
-          return;
-        };
+
         if (errorMessage.includes('You are required to set up 2FA first.')) {
            toast({
             title: 'Login Failed',
@@ -86,6 +99,8 @@ const LoginPage = () => {
           navigate('/auth/2fa/setup-2fa', { state: { userId } });
           return;
         }
+
+        
       }
     }
   };
@@ -202,7 +217,29 @@ const LoginPage = () => {
           © {new Date().getFullYear()} City Agriculture Services Department. All rights reserved.
         </Text>
       </Box>
-    </Box>
+
+      <Modal isOpen={isOpen} onClose={onClose} isCentered>
+        <ModalOverlay />
+        <ModalContent borderTop="6px solid red" borderRadius="md" bg="white">
+          <ModalHeader display="flex" alignItems="center" gap={2} color="red.600">
+            <WarningIcon boxSize={5} />
+            Account Locked
+          </ModalHeader>
+          <ModalBody>
+            <Box p={2} rounded="md" bg="red.50" border="1px solid" borderColor="red.200">
+              <Text fontSize="md" color="red.700" fontWeight="medium">
+                {modalMessage}
+              </Text>
+            </Box>
+          </ModalBody>
+          <ModalFooter>
+            <Button onClick={onClose} colorScheme="red" variant="solid">
+              Close
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+    </Box> 
   );
 };
 

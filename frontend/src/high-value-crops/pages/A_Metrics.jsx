@@ -36,7 +36,7 @@ import {
   FaChartLine,
   FaUsers      
 } from "react-icons/fa";
-import { useAdminDashboard } from "../store/adminDashboard.store";
+import { useAdminDashboard } from "../store/adminDashboard.store.js";
 import Barangays from "../../components/barangays.js";
 import Commodities from "../../components/commodities.js";
 

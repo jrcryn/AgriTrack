@@ -8,6 +8,7 @@ import Auth from './Apps/authApp.jsx'
 const queryClient = new QueryClient();
 
 function App() {
+
   return (
     <QueryClientProvider client={queryClient}>
       <Routes>

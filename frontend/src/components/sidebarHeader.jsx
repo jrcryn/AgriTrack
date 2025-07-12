@@ -19,25 +19,67 @@ import {
   MenuItem,
   MenuList,
   Divider,
-  Image
+  Image,
+  Badge
 } from '@chakra-ui/react'
-import { 
-  FiGrid,          
-  FiBox,          
-  FiDownload,      
-  FiPlusSquare,    
-  FiRepeat,         
+import {
+  FiGrid,
+  FiDownload,
+  FiUsers,
+  FiChevronDown,
   FiMenu,
-  FiChevronDown
-} from 'react-icons/fi';
-import Logo from '../../images/Calamba_Seal.png'
+  FiInbox,
+  FiClock,
+  FiSend,
+  FiArchive,
+  FiBox
+} from 'react-icons/fi'
+import { FaWpforms } from "react-icons/fa";
+import Logo from '../images/Calamba_Seal.png'
+import { useAuthStore } from '../auth/store/authStore.js'
 
-const LinkItems = [
-  { name: 'Dashboard', icon: FiGrid, path: '/machineries/admin/metrics' },
-  { name: 'Machinery Inventory', icon: FiBox, path: '/machineries/admin/machine-inventory' },
-  { name: 'Generate Report', icon: FiDownload, path: '/machineries/admin/gen-reports' },
-];
+
+const allLinkItems = [
+  // high-value-crops
+  { name: 'Metrics', icon: FiGrid, path : '/hvc/metrics', roles: ['HVCM', 'HVCS'] },
+  { name: 'Supply and Market Profile Report', icon: FiDownload, path : '/hvc/hvc-sampr', roles: ['HVCM'] },
+  { name: 'Production Report', icon: FiDownload, path : '/hvc/hvc-pr', roles: ['HVCM', 'HVCS'] },
+  { name: 'New Responses', icon: FaWpforms, path : '/hvc/responses', roles: ['HVCM', 'HVCS'] },
+  { name: 'Farmers', icon: FiUsers, path : '/hvc/farmers', roles: ['HVCM', 'HVCS'] },
+  
+  //doc-track
+  { name: 'Dashboard', icon: FiGrid, path : '/doc-track/metrics', roles: ['DMS', 'DMM'] },
+  { name: 'Incoming', icon: FiInbox, path : '/doc-track/incoming', count: 8, roles: ['DMS', 'DMM'] },
+  { name: 'Pending', icon: FiClock, path : '/doc-track/pending', count: 6, roles: ['DMS', 'DMM'] },
+  { name: 'Outgoing', icon: FiSend, path : '/doc-track/outgoing', count: 4, roles: ['DMS', 'DMM'] },
+  { name: 'History', icon: FiArchive, path : '/doc-track/history', roles: ['DMS', 'DMM'] },
+  { name: 'Staffs', icon: FiUsers, path : '/doc-track/staffs', roles: ['DMM'] },
+
+  //machineries
+  { name: 'Dashboard', icon: FiGrid, path: '/machineries/metrics', roles: ['MIS'] },
+  { name: 'Machinery Inventory', icon: FiBox, path: '/machineries/machine-inventory', roles: ['MIS'] },
+  { name: 'Generate Report', icon: FiDownload, path: '/machineries/gen-reports', roles: ['MIS'] },
+]
+
 const SidebarContent = ({ onClose, ...rest }) => {
+
+  const { user } = useAuthStore();
+  const [ dashboardName, setDashboardName ] = useState('');
+  const LinkItems = allLinkItems.filter(link => link.roles.includes(user?.role));
+
+  useEffect(() => {
+      const roleMap = {
+        DMS: 'DOC-TRACK',
+        DMM: 'DOC-TRACK',
+        MIS: 'MACHINERIES',
+        HVCM: 'HIGH-VALUE CROPS',
+        HVCS: 'HIGH-VALUE CROPS',
+      };
+      if (user?.role) {
+        setDashboardName(roleMap[user.role] || '');
+      }
+    }, [user?.role]);
+
   return (
     <Box
       transition="3s ease"
@@ -53,7 +95,7 @@ const SidebarContent = ({ onClose, ...rest }) => {
           CITY AGRI. SERVICES DEPT.
         </Text>
         <Text fontSize="larger"  fontWeight="bold" color="white">
-          MACHINERIES
+          {dashboardName}
         </Text>
       </Box>
       {/* Mobile Close Button */}
@@ -67,7 +109,13 @@ const SidebarContent = ({ onClose, ...rest }) => {
       />
       {/* Navigation Items */}
       {LinkItems.map((link) => (
-        <NavItem key={link.name} icon={link.icon} path={link.path}>
+        <NavItem 
+          key={link.name} 
+          icon={link.icon} 
+          path={link.path} 
+          count={link.count}
+          linkName={link.name}>
+            
           {link.name}
         </NavItem>
       ))}
@@ -75,11 +123,27 @@ const SidebarContent = ({ onClose, ...rest }) => {
   )
 }
 
-const NavItem = ({ icon, children, path, ...rest }) => {
+const NavItem = ({ icon, children, path, linkName, ...rest }) => {
 
   const location = useLocation();
   const isActive = location.pathname === path;
   
+  const { count, ...otherProps } = rest;
+
+  const getBadgeStyles = () => {
+    switch(linkName) {
+      case 'Incoming':
+        return { bg: "green.500", color: "white" };
+      case 'Pending':
+        return { bg: "yellow.500", color: "white" };
+      case 'Outgoing':
+        return { bg: "red.500", color: "white" };
+      default:
+        return { bg: "gray.500", color: "white" };
+    }
+  };
+
+  const badgeStyles = getBadgeStyles();
 
   return (
     <Box 
@@ -100,7 +164,7 @@ const NavItem = ({ icon, children, path, ...rest }) => {
           bg: 'white',
           color: 'black',
         }}
-        {...rest}>
+        {...otherProps}>
         {icon && (
           <Icon 
             mr="4" 
@@ -109,7 +173,18 @@ const NavItem = ({ icon, children, path, ...rest }) => {
             _groupHover={{ color: 'black' }} 
             as={icon} />
         )}
-        {children}
+        <Text flex="1">{children}</Text>
+        {count !== undefined && (
+          <Badge
+            bg={badgeStyles.bg}
+            color={badgeStyles.color}
+            borderRadius="full"
+            px="2"
+            fontSize="0.8em"
+          >
+            {count}
+          </Badge>
+        )}
       </Flex>
     </Box>
   )
@@ -124,6 +199,27 @@ const MobileNav = ({ onOpen, ...rest }) => {
     }, 1000)
     return () => clearInterval(interval)
   }, [])
+
+  const { user, logout } = useAuthStore();
+  const [ userName ] = useState(user?.name || ''); 
+  const [ roleName, setRoleName ] = useState('');
+
+  const handleLogout = () => {
+    logout();
+  };
+
+  useEffect(() => {
+      const roleMap = {
+        DMS: 'STAFF',
+        DMM: 'MANAGER',
+        MIS: 'STAFF',
+        HVCM: 'MANAGER',
+        HVCS: 'STAFF',
+      };
+      if (user?.role) {
+        setRoleName(roleMap[user.role] || '');
+      }
+    }, [user?.role]); 
   
   // Format date as "Feb 16, 2024" and time as "10:45 AM"
   const formattedDate = currentTime.toLocaleDateString('en-US', {
@@ -170,14 +266,10 @@ const MobileNav = ({ onOpen, ...rest }) => {
           <Menu>
             <MenuButton py={2} transition="all 0.3s" _focus={{ boxShadow: 'none' }}>
               <HStack>
-                <Avatar
-                  size="sm"
-                  src="https://images.unsplash.com/photo-1619946794135-5bc917a27793?ixlib=rb-0.3.5&q=80&fm=jpg&crop=faces&fit=crop&h=200&w=200&s=b616b2c5b373a80ffc9636ba24f7a4a9"
-                />
                 <VStack display={{ base: 'none', md: 'flex' }} alignItems="flex-start" spacing="1px" ml="2">
-                  <Text fontSize="sm">Jerico Ryan Celestino</Text>
+                  <Text fontSize="sm">{userName}</Text>
                   <Text fontSize="xs" color="gray.600">
-                    Technician
+                    {roleName}
                   </Text>
                 </VStack>
                 <Box display={{ base: 'none', md: 'flex' }}>
@@ -186,9 +278,13 @@ const MobileNav = ({ onOpen, ...rest }) => {
               </HStack>
             </MenuButton>
             <MenuList bg="white" borderColor="gray.200">
-              <MenuItem>Profile Settings</MenuItem>
+              <MenuItem>
+                Profile Settings
+              </MenuItem>
               <MenuDivider />
-              <MenuItem>Sign out</MenuItem>
+              <MenuItem as="button" onClick={handleLogout} color={"red.500"}>
+                Log out
+              </MenuItem>
             </MenuList>
           </Menu>
         </Flex>

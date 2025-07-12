@@ -1,24 +1,31 @@
 import jwt from 'jsonwebtoken';
 
-export const verifyToken = (req, res, next) => {
+export const verifyAuthToken = (req, res, next) => {
 
-    const authToken = req.cookies.authToken
+    const token = req.cookies.authToken;
+
+    if (!token) return res.status(401).json({ success: false, message: 'Unauthorized. Login again.' });
 
     try {
-        if (!authToken) {
-            return res.status(401).json({ success: false, message: 'Unauthorized - no token provided.' });
-        }
+        req.decodedAuthToken = jwt.verify(token, process.env.JWT_SECRET);
 
-        const decoded = jwt.verify(authToken, process.env.JWT_SECRET);
-
-        if (!decoded) {
-            return res.status(401).json({ success: false, message: 'Unauthorized - invalid token.' });
-        }
-        
-        req.userId = decoded.userId; 
         next();
+    } catch {
+        return res.status(401).json({ success: false, message: 'Invalid or expired token.' });
+    }
+};
 
-    } catch (error) {
-        return res.status(401).json({ message: 'Internal server error.' });
+export const verifyPreAuthToken = (req, res, next) => {
+
+    const token = req.cookies.preAuthToken;
+
+    if (!token) return res.status(401).json({ success: false, message: 'Unauthorized. Login again.' });
+
+    try {
+        req.decodedPreAuthToken = jwt.verify(token, process.env.JWT_SECRET);
+
+        next();
+    } catch {
+        return res.status(401).json({ success: false, message: 'Invalid or expired token.' });
     }
 };
