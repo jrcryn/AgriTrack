@@ -22,7 +22,16 @@ export const DocTrackStaffSchema = new mongoose.Schema({
     resetPasswordToken: String,
     resetPasswordExpiresAt: Date,
 
+    failedLoginAttempts:  {
+        count: { type: Number, default: 0 },
+        lastAttempt: { type: Date, default: Date.now }
+    },
 
-    isActive: { type: Boolean, default: true }
-
+    failedOTPVerifications:  {
+        count: { type: Number, default: 0 },
+        lastAttempt: { type: Date, default: Date.now }
+    },
+    
+    isLocked: { type: Boolean, default: false },
+    
 }, { versionKey: false, timestamps: true });

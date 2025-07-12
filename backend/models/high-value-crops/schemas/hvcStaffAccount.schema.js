@@ -14,7 +14,16 @@ export const HVCStaffSchema = new mongoose.Schema({
     twoFASecret: String,
     twoFAQRCode: String,
 
-
-    isActive: { type: Boolean, default: true }
+    failedLoginAttempts:  {
+        count: { type: Number, default: 0 },
+        lastAttempt: { type: Date, default: Date.now }
+    },
+    
+    failedOTPVerifications:  {
+        count: { type: Number, default: 0 },
+        lastAttempt: { type: Date, default: Date.now }
+    },
+    
+    isLocked: { type: Boolean, default: false },
 
 }, { versionKey: false, timestamps: true });

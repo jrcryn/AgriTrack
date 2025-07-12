@@ -69,9 +69,24 @@ const Verify2FA = () => {
         navigate('/machineries/metrics');
       }
     } catch (error) {
+      
+      const errorMessage = error.response?.data?.message;
+
+      if (errorMessage.includes('Account is now locked due to multiple failed 2FA attempts.')) {
+        toast({
+          title: 'Error',
+          description: errorMessage,
+          status: 'error',
+          duration: 5000,
+          isClosable: true,
+        });
+        navigate('/auth/login');
+        return;
+      }
+
       toast({
         title: 'Error',
-        description: error.response?.data?.message,
+        description: errorMessage,
         status: 'error',
         duration: 5000,
         isClosable: true,

@@ -112,7 +112,7 @@ export const checkAuth = async (req, res) => {
 
 export const checkPreAuth = async (req, res) => {
     try {
-        var user;
+        let user;
         if (user = await global.docTrackModels.StaffAccount.findById(req.decodedPreAuthToken.userId) ||
             await global.docTrackModels.ManagerAccount.findById(req.decodedPreAuthToken.userId) ||
             await global.machineriesModels.StaffAccount.findById(req.decodedPreAuthToken.userId) ||
@@ -147,11 +147,30 @@ export const login = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Invalid credentials.' });
         }
 
+        if (user.isLocked) {
+            return res.status(403).json({ success: false, message: 'Account locked. Contact IT support to regain access.' });
+        }
+
         //const isPasswordValid = await bcrypt.compare(password, user.password);
         const isPasswordValid = (password === user.password) ? true : false; // for testing purposes, this will be changed to bcrypt.compare in the future
+
         if (!isPasswordValid) {
+
+            user.failedLoginAttempts.count += 1;
+            user.failedLoginAttempts.lastAttempt = Date.now();
+            await user.save();
+
+            if (user.failedLoginAttempts.count >= 10) {
+                user.isLocked = true;
+                await user.save();
+                return res.status(403).json({ success: false, message: 'Account is now locked due to multiple failed login attempts. Contact IT support to regain access.' });
+            }
+
             return res.status(401).json({ success: false, message: 'Invalid credentials.'})
         }
+
+        user.failedLoginAttempts = { count: 0, lastAttempt: null };
+        await user.save();
 
         generatePreTokenAndSetCookie(res, user._id);
 
@@ -159,14 +178,14 @@ export const login = async (req, res) => {
             return res.status(401).json({ 
                 success: false, 
                 message: 'You are required to set up 2FA first.',
-                userId: user._id, // Also send userId for 2FA setup
+                userId: user._id, //  redirect to setup 2fa page send userId for 2FA setup
             });
         };
         
         res.status(200).json({
             success: true,
             message: 'Login successful.',
-            userId: user._id
+            userId: user._id // redirect to 2fa verification page send userId too
         });
 
     } catch (error) {
@@ -180,7 +199,7 @@ export const generate2FASecret = async (req, res) => {
     const { userId } = req.body;
 
     try {
-        let user = await global.docTrackModels.StaffAccount.findById( userId ) ||
+        const user = await global.docTrackModels.StaffAccount.findById( userId ) ||
                      await global.docTrackModels.ManagerAccount.findById( userId ) ||
                      await global.machineriesModels.StaffAccount.findById( userId ) ||
                      await global.highValueCropsModels.StaffAccount.findById( userId ) ||
@@ -262,10 +281,22 @@ export const verify2FA = async (req, res) => {
         });
 
         if (!isValid) {
+
+            user.failedOTPVerifications.count += 1;
+            user.failedOTPVerifications.lastAttempt = Date.now();
+            await user.save();
+
+            if (user.failedOTPVerifications.count >= 10) {
+                user.isLocked = true;
+                await user.save();
+                return res.status(403).json({ success: false, message: 'Account is now locked due to multiple failed 2FA attempts. Contact IT support to regain access.' });
+            }
             return res.status(400).json({ success: false, message: 'Invalid 2FA token.' });
         }
 
         user.is2FAEnabled = true;
+        user.lastLogin = Date.now();
+        user.failedOTPVerifications = { count: 0, lastAttempt: null };
         await user.save();
 
         res.clearCookie('preAuthToken'); 
