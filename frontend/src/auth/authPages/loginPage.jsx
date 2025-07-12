@@ -89,13 +89,6 @@ const LoginPage = () => {
           });
 
         if (errorMessage.includes('You are required to set up 2FA first.')) {
-           toast({
-            title: 'Login Failed',
-            description: errorMessage,
-            status: 'warning',
-            duration: 5000,
-            isClosable: true,
-          });
           navigate('/auth/2fa/setup-2fa', { state: { userId } });
           return;
         }

@@ -93,10 +93,12 @@ const Setup2FA = () => {
         } else {
           navigate('/machineries/metrics');
         }; 
-      } catch (err) {
+      } catch (error) {
+
+        const errorMessage = error.response?.data?.message;
         toast({
           title: 'Error',
-          description: err.response?.data?.message,
+          description: errorMessage,
           status: 'error',
           duration: 5000,
           isClosable: true,
