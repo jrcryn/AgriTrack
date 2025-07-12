@@ -10,9 +10,9 @@ export const generatePreTokenAndSetCookie = (res, userId) => {
 
     res.cookie('preAuthToken', preToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'Strict',
-        maxAge: 5 * 60 * 1000 
+        secure: process.env.NODE_ENV === 'production' ? true : false, // Set to true in production for secure cookies
+        sameSite: 'None',
+        maxAge: 5 * 60 * 1000 //5 minutes
     });
 
     return preToken;

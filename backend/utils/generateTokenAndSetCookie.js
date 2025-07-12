@@ -14,8 +14,8 @@ export const generateTokenAndSetCookie = (res, userId, role) => {
 
     res.cookie('authToken', token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
-        sameSite: 'Strict',
+        secure: process.env.NODE_ENV === 'production' ? true : false, // Set to true in production for secure cookies
+        sameSite: 'None',
         maxAge: 4 * 60 * 60 * 1000, // 4 hours in milliseconds
     });
 
