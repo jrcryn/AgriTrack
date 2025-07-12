@@ -299,7 +299,12 @@ export const verify2FA = async (req, res) => {
         user.failedOTPVerifications = { count: 0, lastAttempt: null };
         await user.save();
 
-        res.clearCookie('preAuthToken'); 
+        res.clearCookie('preAuthToken', {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production' ? true : false, // Set to true in production for secure cookies
+            sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Strict', // Use 'None' for cross-site cookies in production, 'Strict' for local development
+            path: '/' //cookie is cleared for the entire domain
+        }); 
         generateTokenAndSetCookie(res, user._id, role);
 
         res.status(200).json({
