@@ -7,6 +7,7 @@ import { encrypt, decrypt } from '../../utils/encryption.js';
 import { sendWelcomeEmail, sendPasswordResetEmail, sendPasswordResetSuccessEmail } from '../../mailtrap/emails.controller.js';
 import { generateTokenAndSetCookie } from '../../utils/generateTokenAndSetCookie.js'
 import { generatePreTokenAndSetCookie } from '../../utils/generatePreTokenAndSetCookie.js';
+import path from 'path';
 
 export const register = async (req, res) => {  //system admin level access only (ililipat in the future to a separate route for admin job controllers)
     const { name, email, phone, role, office_position } = req.body;
@@ -321,7 +322,12 @@ export const verify2FA = async (req, res) => {
 
 export const logout = async (req, res) => {
     try {
-        res.clearCookie('authToken');
+        res.clearCookie('authToken', {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production' ? true : false, // Set to true in production for secure cookies
+            sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Strict', // Use 'None' for cross-site cookies in production, 'Strict' for local development
+            path: '/' //cookie is cleared for the entire domain
+        });
         res.status(200).json({ success: true, message: 'Logout successful.' });
     } catch (error) {
         console.error('Error logging out:', error);
@@ -351,7 +357,7 @@ export const forgotPassword = async (req, res) => {
         const resetPasswordExpiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
 
         await sendPasswordResetEmail(email, `${process.env.CLIENT_URL}/auth/reset-password/${resetPasswordToken}`); 
-        
+
         user.resetPasswordToken = resetPasswordToken;
         user.resetPasswordExpiresAt = resetPasswordExpiresAt;
         await user.save();
