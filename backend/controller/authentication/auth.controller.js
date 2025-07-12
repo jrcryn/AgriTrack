@@ -4,7 +4,7 @@ import qrcode from 'qrcode';
 import { authenticator } from 'otplib';
 import { encrypt, decrypt } from '../../utils/encryption.js';
 
-import { sendPasswordResetEmail, sendPasswordResetSuccessEmail } from '../../mailtrap/emails.controller.js';
+import { sendWelcomeEmail, sendPasswordResetEmail, sendPasswordResetSuccessEmail } from '../../mailtrap/emails.controller.js';
 import { generateTokenAndSetCookie } from '../../utils/generateTokenAndSetCookie.js'
 import { generatePreTokenAndSetCookie } from '../../utils/generatePreTokenAndSetCookie.js';
 
@@ -30,7 +30,6 @@ export const register = async (req, res) => {  //system admin level access only 
         // TO BE IMPLEMENTED:
         // const defaultPasswordExpiry = Date.now() + 12 * 60 * 60 * 1000;
         const defaultPassword = crypto.randomBytes(8).toString('hex'); 
-
         const hashedPassword = await bcrypt.hash(defaultPassword, 12);
 
         const model = role === 'DMS' ? global.docTrackModels.StaffAccount :
@@ -44,6 +43,7 @@ export const register = async (req, res) => {  //system admin level access only 
             return res.status(400).json({ success: false, message: 'Invalid account type specified.' });
         }
 
+        await sendWelcomeEmail(email, defaultPassword);
         const newUser = new model({
             name,
             office_position: role === 'DMS' ? office_position : null, // Office position is only required when creating Doc-Track Staff accounts
@@ -52,8 +52,7 @@ export const register = async (req, res) => {  //system admin level access only 
             password: hashedPassword, //for testing purposes, should be changed to hashedPassword in the future
         });
         await newUser.save();
-        //await sendWelcomeEmail(email, defaultPassword);
- 
+        
         res.status(201).json({ 
             message: 'User registered successfully', 
             success: true,
@@ -66,6 +65,9 @@ export const register = async (req, res) => {  //system admin level access only 
         }); 
 
     } catch (error) {
+        if (error.code === 11000) {
+            return res.status(400).json({ success: false, message: 'User already exists.' });
+        }
         console.error('Error signing up:', error);
         return res.status(500).json({ success: false ,message: 'Internal server error.' });
     }
@@ -150,10 +152,11 @@ export const login = async (req, res) => {
         //const isPasswordValid = (password === user.password) ? true : false; // for testing purposes, this will be changed to bcrypt.compare in the future
 
         if (!isPasswordValid) {
-
-            user.failedLoginAttempts.count += 1;
-            user.failedLoginAttempts.lastAttempt = Date.now();
-            await user.save();
+            // to avoid race conditions, suggestion ni ai, kasi atomic sya imbis na mag hahanap, modify then save.
+            await user.updateOne({
+                $inc: { 'failedLoginAttempts.count': 1 }, //incremment
+                $set: { 'failedLoginAttempts.lastAttempt': Date.now() } //set
+            });
 
             if (user.failedLoginAttempts.count >= 10) {
                 user.isLocked = true;
@@ -277,9 +280,10 @@ export const verify2FA = async (req, res) => {
 
         if (!isValid) {
 
-            user.failedOTPVerifications.count += 1;
-            user.failedOTPVerifications.lastAttempt = Date.now();
-            await user.save();
+            await user.updateOne({
+                $inc: { 'failedOTPVerifications.count': 1 }, // increment failed attempts
+                $set: { 'failedOTPVerifications.lastAttempt': Date.now() } // set last attempt time
+            });
 
             if (user.failedOTPVerifications.count >= 10) {
                 user.isLocked = true;
@@ -346,11 +350,13 @@ export const forgotPassword = async (req, res) => {
         const resetPasswordToken = crypto.randomBytes(32).toString('hex');
         const resetPasswordExpiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
 
+        await sendPasswordResetEmail(email, `${process.env.CLIENT_URL}/auth/reset-password/${resetPasswordToken}`); 
+        
         user.resetPasswordToken = resetPasswordToken;
         user.resetPasswordExpiresAt = resetPasswordExpiresAt;
         await user.save();
 
-        await sendPasswordResetEmail(email, `${process.env.CLIENT_URL}/auth/reset-password/${resetPasswordToken}`);
+        
 
         res.status(200).json({
             success: true,

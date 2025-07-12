@@ -2,8 +2,8 @@ import mongoose from 'mongoose';
 
 export const HVCManagerSchema = new mongoose.Schema({
     name: { type: String, required: true },
-    email: { type: String, unique: true },
-    phone: { type: String, unique: true },
+    email: { type: String, required: true, unique: true },
+    phone: { type: String, required: true, unique: true },
 
     password: { type: String, required: true },
     lastLogin: { type: Date, default: Date.now },
@@ -25,5 +25,6 @@ export const HVCManagerSchema = new mongoose.Schema({
     },
     
     isLocked: { type: Boolean, default: false },
+    createdAt: { type: Date, default: Date.now },
     
-}, { versionKey: false, timestamps: true });
+}, { versionKey: false, timestamps: false });
