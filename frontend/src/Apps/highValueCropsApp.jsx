@@ -4,13 +4,14 @@ import { Routes, Route, useNavigate, useNavigationType, useLocation, Navigate } 
 import { useAuthStore } from '../auth/store/authStore.js';
 import axios from 'axios';
 
-// Admin imports
+// User page imports
 import Layout from '../components/layout.jsx';
 import Metrics from '../high-value-crops/pages/A_Metrics.jsx';                                  
 import HVCSaMPR from '../high-value-crops/pages/B_HVCSaMPR.jsx';
 import HVCPR from '../high-value-crops/pages/C_HVCPR.jsx';
 import Responses from '../high-value-crops/pages/D_Responses.jsx';
 import Farmers from '../high-value-crops/pages/E_Farmers.jsx';
+import ProfileSettings from '../components/profileSettings.jsx';
 
 // Form imports
 import Instructions from '../high-value-crops/formPages/Instructions.jsx';
@@ -121,6 +122,7 @@ const highValueCropsApp = () => {
           <Route path="hvc-pr" element={<HVCPR />} />
           <Route path="responses" element={<Responses />} />
           <Route path="farmers" element={<Farmers />} />
+          <Route path="profile-settings" element={<ProfileSettings />} />
         </Route>
 
 

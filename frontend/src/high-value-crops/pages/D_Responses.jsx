@@ -1189,7 +1189,6 @@ const Responses = () => {
         size="3xl" 
         closeOnOverlayClick={false} 
         scrollBehavior="inside"
-        motionPreset="none"
       >
         <ModalOverlay />
         <ModalContent borderRadius="lg" overflow="hidden">

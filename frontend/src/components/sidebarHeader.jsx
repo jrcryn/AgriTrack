@@ -20,7 +20,13 @@ import {
   MenuList,
   Divider,
   Image,
-  Badge
+  Badge,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
 } from '@chakra-ui/react'
 import {
   FiGrid,
@@ -208,6 +214,8 @@ const MobileNav = ({ onOpen, ...rest }) => {
     logout();
   };
 
+  const { isOpen, onOpen1, onClose } = useDisclosure()
+
   useEffect(() => {
       const roleMap = {
         DMS: 'STAFF',
@@ -257,6 +265,7 @@ const MobileNav = ({ onOpen, ...rest }) => {
         variant="outline"
         aria-label="open menu"
         icon={<FiMenu />}
+        size={"sm"}
       />
       {/* Removed the Logo text for mobile view */}
       <HStack spacing={{ base: '2', md: '4' }}>
@@ -266,19 +275,19 @@ const MobileNav = ({ onOpen, ...rest }) => {
           <Menu>
             <MenuButton py={2} transition="all 0.3s" _focus={{ boxShadow: 'none' }}>
               <HStack>
-                <VStack display={{ base: 'none', md: 'flex' }} alignItems="flex-start" spacing="1px" ml="2">
+                <VStack display={{ base: 'none', md: 'flex' }} alignItems="flex-start" spacing="1px">
                   <Text fontSize="sm">{userName}</Text>
                   <Text fontSize="xs" color="gray.600">
                     {roleName}
                   </Text>
                 </VStack>
-                <Box display={{ base: 'none', md: 'flex' }}>
+                <Box display="flex">
                   <FiChevronDown />
                 </Box>
               </HStack>
             </MenuButton>
-            <MenuList bg="white" borderColor="gray.200">
-              <MenuItem>
+            <MenuList bg="white" borderColor="gray.200" boxShadow={'md'}>
+              <MenuItem as={RouterLink} to="/hvc/profile-settings">
                 Profile Settings
               </MenuItem>
               <MenuDivider />

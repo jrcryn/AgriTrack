@@ -604,7 +604,7 @@ const E_Farmers = () => {
       </Box>
       
       {/* Add/Edit Farmer Modal */}
-      <Modal isOpen={isOpen} onClose={handleCloseModal} size="2xl" closeOnOverlayClick={false} scrollBehavior="inside" motionPreset="none">
+      <Modal isOpen={isOpen} onClose={handleCloseModal} size="2xl" closeOnOverlayClick={false} scrollBehavior="inside">
         <ModalOverlay/>
         <ModalContent borderRadius="md" overflow="hidden" boxShadow="lg">
           <ModalHeader bg="white" borderBottomWidth="1px" borderColor="gray.200" display="flex" alignItems="center" py={4}>

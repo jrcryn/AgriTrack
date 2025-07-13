@@ -134,9 +134,9 @@ const LoginPage = () => {
       >
         {/* Logo and Title */}
         <VStack spacing={3} textAlign="center" mb={6}>
-          <Image boxSize="80px" src={Logo} alt="City Logo" />
+          <Image boxSize="80px" src={Logo} alt="Calamba City Logo" mb={-1} />
           <Heading size="lg">AgriTrack</Heading>
-          <Text fontSize="sm" color="gray.500">City Agriculture Services Department - Calamba</Text>
+          <Text fontSize="sm" color="gray.500">City Agricultural Services Department - Calamba</Text>
         </VStack>
 
         <form onSubmit={handleSubmit}>
