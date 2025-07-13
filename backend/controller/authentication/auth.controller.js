@@ -7,7 +7,6 @@ import { encrypt, decrypt } from '../../utils/encryption.js';
 import { sendWelcomeEmail, sendPasswordResetEmail, sendPasswordResetSuccessEmail } from '../../mailtrap/emails.controller.js';
 import { generateTokenAndSetCookie } from '../../utils/generateTokenAndSetCookie.js'
 import { generatePreTokenAndSetCookie } from '../../utils/generatePreTokenAndSetCookie.js';
-import path from 'path';
 
 export const register = async (req, res) => {  //system admin level access only (ililipat in the future to a separate route for admin job controllers)
     const { name, email, phone, role, office_position } = req.body;
@@ -108,24 +107,24 @@ export const checkAuth = async (req, res) => {
     }
 };
 
-export const checkPreAuth = async (req, res) => {
-    try {
+// export const checkPreAuth = async (req, res) => {
+//     try {
 
-        const user = await global.docTrackModels.StaffAccount.findById(req.decodedPreAuthToken.userId) ||
-                     await global.docTrackModels.ManagerAccount.findById(req.decodedPreAuthToken.userId) ||
-                     await global.machineriesModels.StaffAccount.findById(req.decodedPreAuthToken.userId) ||
-                     await global.highValueCropsModels.StaffAccount.findById(req.decodedPreAuthToken.userId) ||
-                     await global.highValueCropsModels.ManagerAccount.findById(req.decodedPreAuthToken.userId);
+//         const user = await global.docTrackModels.StaffAccount.findById(req.decodedPreAuthToken.userId) ||
+//                      await global.docTrackModels.ManagerAccount.findById(req.decodedPreAuthToken.userId) ||
+//                      await global.machineriesModels.StaffAccount.findById(req.decodedPreAuthToken.userId) ||
+//                      await global.highValueCropsModels.StaffAccount.findById(req.decodedPreAuthToken.userId) ||
+//                      await global.highValueCropsModels.ManagerAccount.findById(req.decodedPreAuthToken.userId);
 
-        if (!user) {
-            return res.status(404).json({ success: false, message: 'User not found.' });
-        }
+//         if (!user) {
+//             return res.status(404).json({ success: false, message: 'User not found.' });
+//         }
         
-    } catch (error) {
-        console.error('Error checking pre-authentication:', error);
-        return res.status(500).json({ success: false, message: 'Internal server error.' });
-    }
-};
+//     } catch (error) {
+//         console.error('Error checking pre-authentication:', error);
+//         return res.status(500).json({ success: false, message: 'Internal server error.' });
+//     }
+// };
 
 export const login = async (req, res) => {
     const { email, password } = req.body;

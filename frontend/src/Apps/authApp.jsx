@@ -33,12 +33,11 @@ const RedirectAuthenticatedUser = ({ children }) => {
 };
 
 const authApp = () => {
-    const { checkPreAuth, checkAuth } = useAuthStore();
+    const { checkAuth } = useAuthStore();
 
     useEffect(() => {
-      checkPreAuth();
       checkAuth();
-    }, [checkAuth, checkPreAuth]);
+    }, [checkAuth]);
 
     return(
         <Box>
