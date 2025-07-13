@@ -1,6 +1,7 @@
 import { Box, Spinner, Text } from '@chakra-ui/react';
 import { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom'
+import axios from 'axios';
 
 import Layout from '../components/layout.jsx';
 
@@ -26,6 +27,22 @@ const ProtectedRoute = ({children}) => {
 
     return children;
 }
+
+axios.interceptors.response.use(
+  response => response,
+  error => {
+    // Prevent infinite redirect loop, dati kasi nag re-redirect parin after makapunta na sa login page
+    const currentPath = window.location.pathname;
+    if (
+      error.response &&
+      error.response.status === 401 &&
+      !currentPath.startsWith('/auth')
+    ) {
+      window.location.href = '/auth/login';
+    }
+    return Promise.reject(error);
+  }
+);
 
 const machineriesApp = () => {
 

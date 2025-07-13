@@ -2,6 +2,7 @@ import { Box, Spinner, Text } from '@chakra-ui/react';
 import { useEffect, useState, useRef } from 'react';
 import { Routes, Route, useNavigate, useNavigationType, useLocation, Navigate } from 'react-router-dom';
 import { useAuthStore } from '../auth/store/authStore.js';
+import axios from 'axios';
 
 // Admin imports
 import Layout from '../components/layout.jsx';
@@ -41,6 +42,22 @@ const ProtectedRoute = ({children}) => {
 
     return children;
 }
+
+axios.interceptors.response.use(
+  response => response,
+  error => {
+    // Prevent infinite redirect loop, dati kasi nag re-redirect parin after makapunta na sa login page
+    const currentPath = window.location.pathname;
+    if (
+      error.response &&
+      error.response.status === 401 &&
+      !currentPath.startsWith('/auth')
+    ) {
+      window.location.href = '/auth/login';
+    }
+    return Promise.reject(error);
+  }
+);
 
 const highValueCropsApp = () => {
   const navigate = useNavigate();
