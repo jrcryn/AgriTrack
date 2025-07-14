@@ -1,22 +1,273 @@
-import React from 'react'
+import React, { useState } from 'react';
+import {
+  Box,
+  Heading,
+  Text,
+  VStack,
+  FormControl,
+  FormLabel,
+  Input,
+  Button,
+  FormErrorMessage,
+  InputGroup,
+  InputRightElement,
+  Icon,
+  Image,
+  useToast,
+  Divider,
+  Spinner,
+  Stack,
+  useBreakpointValue,
+} from '@chakra-ui/react';
+import { FiEye, FiEyeOff } from 'react-icons/fi';
+import { useUserSettingsStore } from './userSettings.store';
 
 const ProfileSettings = () => {
-return (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'center',
-      alignItems: 'center',
-    }}>
-      <text>/components/profileSettings.jsx</text>
-      <h1 style={{ color: '#ff9800', fontSize: '3rem', marginBottom: '1rem' }}>
-        🚧 Under Construction 🚧
-      </h1>
-      <p style={{ color: '#555', fontSize: '1.2rem' }}>
-        This page is currently being built.
-      </p>
-    </div>
-  )
-}
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
-export default ProfileSettings
+  const [show2FA, setShow2FA] = useState(false);
+  const [qr, setQr] = useState('');
+  const [secret, setSecret] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassoword] = useState(false);
+
+  const toast = useToast();
+  const {
+    changeUserPassword,
+    fetch2FASecret,
+    isChangingPassword,
+    isFetching2FASecret,
+    error,
+  } = useUserSettingsStore();
+
+  const isStrongPassword = (password) => {
+    const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    return regex.test(password);
+  };
+
+  const handlePasswordChange = async (e) => {
+    e.preventDefault();
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      toast({
+        title: 'Error',
+        description: 'All fields are required.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: 'Error',
+        description: 'Passwords do not match.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+    if (!isStrongPassword(newPassword)) {
+      toast({
+        title: 'Error',
+        description:
+          'Password must be at least 8 characters and include uppercase, lowercase, number, and special character.',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+      return;
+    }
+    try {
+      const response = await changeUserPassword({ currentPassword, newPassword });
+      toast({
+        title: 'Success',
+        description: response.message,
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.message,
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const handleShow2FA = async () => {
+    setShow2FA(true);
+    setQr('');
+    setSecret('');
+    try {
+      const response = await fetch2FASecret({ password });
+      setQr(response.qr);
+      setSecret(response.secret);
+      setPassword('');
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.message,
+        status: 'error',
+        duration: 4000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const stackDirection = useBreakpointValue({ base: 'column', md: 'row' });
+
+  return (
+    <Box p={4} maxW="6xl" mx="auto">
+      <Text fontSize="sm" color="gray.500" mb={6}>
+        Manage your password and two-factor authentication.
+      </Text>
+      <Stack direction={stackDirection} spacing={10} align="start">
+        <VStack align="stretch" flex={1} spacing={4} w="100%">
+          <Heading size="md">Two-Factor Authentication (2FA)</Heading>
+          <Text fontSize="sm" color="gray.500">
+            View your 2FA QR code and secret for authenticator apps.
+          </Text>
+            <FormControl isRequired>
+            <FormLabel>Enter Password to View 2FA</FormLabel>
+            <InputGroup>
+            <Input
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              placeholder='Enter password'
+              onChange={e => setPassword(e.target.value)}
+              sx={{ '::-ms-reveal': { display: 'none' } }}
+            />
+              <InputRightElement>
+                <Button variant="ghost" size="sm" onClick={() => setShowPassoword(v => !v)}>
+                  <Icon as={showPassword ? FiEyeOff : FiEye} />
+                </Button>
+              </InputRightElement>
+          </InputGroup>
+          </FormControl>
+          <Button
+            colorScheme="teal"
+            onClick={handleShow2FA}
+            isLoading={isFetching2FASecret}
+          >
+            View 2FA QR Code & Secret
+          </Button>
+
+          {show2FA && (
+            <Box textAlign="center" mt={2}>
+              {isFetching2FASecret ? (
+                <Spinner size="lg" />
+              ) : (
+                <>
+                  {qr && (
+                    <Image src={qr} alt="2FA QR Code" mx="auto" boxSize="180px" mb={2} />
+                  )}
+                  {secret && (
+                    <Text fontFamily="mono" fontWeight="bold" fontSize="lg" color="gray.700">
+                      {secret}
+                    </Text>
+                  )}
+                  {!qr && !secret && (
+                    <Text color="red.500" fontSize="sm">No 2FA secret found.</Text>
+                  )}
+                </>
+              )}
+            </Box>
+          )}
+        </VStack>
+
+        <Divider orientation={stackDirection === 'row' ? 'vertical' : 'horizontal'} h="auto" />
+
+        <VStack as="form" align="stretch" spacing={5} onSubmit={handlePasswordChange} flex={1} w="100%">
+          <Heading size="md">Change Password</Heading>
+          <FormControl isRequired>
+            <FormLabel>Current Password</FormLabel>
+            <InputGroup>
+              <Input
+                type={showCurrent ? 'text' : 'password'}
+                value={currentPassword}
+                onChange={e => setCurrentPassword(e.target.value)}
+                placeholder="Enter current password"
+                sx={{ '::-ms-reveal': { display: 'none' } }}
+              />
+              <InputRightElement>
+                <Button variant="ghost" size="sm" onClick={() => setShowCurrent(v => !v)}>
+                  <Icon as={showCurrent ? FiEyeOff : FiEye} />
+                </Button>
+              </InputRightElement>
+            </InputGroup>
+          </FormControl>
+          <FormControl isRequired isInvalid={newPassword && !isStrongPassword(newPassword)}>
+            <FormLabel>New Password</FormLabel>
+            <InputGroup>
+              <Input
+                type={showNew ? 'text' : 'password'}
+                value={newPassword}
+                onChange={e => setNewPassword(e.target.value)}
+                placeholder="Enter new password"
+                sx={{ '::-ms-reveal': { display: 'none' } }}
+              />
+              <InputRightElement>
+                <Button variant="ghost" size="sm" onClick={() => setShowNew(v => !v)}>
+                  <Icon as={showNew ? FiEyeOff : FiEye} />
+                </Button>
+              </InputRightElement>
+            </InputGroup>
+
+            <FormErrorMessage>
+              Password must be at least 8 characters and include uppercase, lowercase, number, and special character.
+            </FormErrorMessage>
+
+          </FormControl>
+          <FormControl isRequired isInvalid={confirmPassword && confirmPassword !== newPassword}>
+            <FormLabel>Confirm New Password</FormLabel>
+            <InputGroup>
+              <Input
+                type={showConfirm ? 'text' : 'password'}
+                value={confirmPassword}
+                onChange={e => setConfirmPassword(e.target.value)}
+                placeholder="Confirm new password"
+                sx={{ '::-ms-reveal': { display: 'none' } }}
+              />
+              <InputRightElement>
+                <Button variant="ghost" size="sm" onClick={() => setShowConfirm(v => !v)}>
+                  <Icon as={showConfirm ? FiEyeOff : FiEye} />
+                </Button>
+              </InputRightElement>
+            </InputGroup>
+            <FormErrorMessage>
+              Passwords do not match.
+            </FormErrorMessage>
+          </FormControl>
+          <Button
+            colorScheme="blue"
+            type="submit"
+            isLoading={isChangingPassword}
+            isDisabled={
+              !currentPassword ||
+              !newPassword ||
+              !confirmPassword ||
+              newPassword !== confirmPassword ||
+              !isStrongPassword(newPassword)
+            }
+          >
+            Change Password
+          </Button>
+        </VStack>
+      </Stack>
+    </Box>
+  );
+};
+
+export default ProfileSettings;

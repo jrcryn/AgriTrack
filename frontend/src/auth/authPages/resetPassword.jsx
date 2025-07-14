@@ -14,6 +14,7 @@ import {
   InputGroup,
   InputRightElement,
   Icon,
+  FormErrorMessage,
 } from '@chakra-ui/react';
 import { FiEye, FiEyeOff } from 'react-icons/fi';
 import { useAuthStore } from '../store/authStore';
@@ -28,6 +29,11 @@ const ResetPassword = () => {
   const navigate = useNavigate();
   const toast = useToast();
   const { resetPassword, isLoading } = useAuthStore();
+
+  const isStrongPassword = (newPassword) => {
+    const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    return regex.test(newPassword);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -115,7 +121,7 @@ const ResetPassword = () => {
 
         <form onSubmit={handleSubmit}>
           <VStack spacing={6}>
-            <FormControl>
+            <FormControl  isRequired isInvalid={newPassword && !isStrongPassword(newPassword)}>
               <FormLabel>New Password</FormLabel>
               <InputGroup>
                 <Input
@@ -135,9 +141,13 @@ const ResetPassword = () => {
                   </Button>
                 </InputRightElement>
               </InputGroup>
+
+              <FormErrorMessage>
+                Password must be at least 8 characters and include uppercase, lowercase, number, and special character.
+              </FormErrorMessage>
             </FormControl>
 
-            <FormControl>
+            <FormControl isRequired isInvalid={confirmPassword && confirmPassword !== newPassword}>
               <FormLabel>Confirm New Password</FormLabel>
               <InputGroup>
               <Input
@@ -157,6 +167,10 @@ const ResetPassword = () => {
                   </Button>
                 </InputRightElement>
               </InputGroup>
+
+            <FormErrorMessage>
+              Passwords do not match.
+            </FormErrorMessage>
             </FormControl>
 
             <Button
@@ -166,7 +180,7 @@ const ResetPassword = () => {
               type="submit"
               borderRadius="lg"
               isLoading={isLoading}
-              isDisabled={!newPassword || !confirmPassword}
+              isDisabled={!newPassword || !confirmPassword || !isStrongPassword(newPassword) || newPassword !== confirmPassword}
             >
               Reset Password
             </Button>

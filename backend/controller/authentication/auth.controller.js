@@ -86,7 +86,7 @@ export const checkAuth = async (req, res) => {
                      await global.highValueCropsModels.ManagerAccount.findById(req.decodedAuthToken.payload.userId);
 
         const role = req.decodedAuthToken.payload.role;
-        
+
         if (!user || !role) {
             return res.status(404).json({ success: false, message: 'User not found.' });
         }
