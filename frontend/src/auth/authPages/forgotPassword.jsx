@@ -91,7 +91,7 @@ const ForgotPassword = () => {
         <VStack spacing={3} textAlign="center" mb={6}>
           <Heading size="lg">Forgot Password?</Heading>
           <Text fontSize="sm" color="gray.500">
-            Enter you email and we'll send you a link to reset your password.
+            Enter your email and we'll send you a link to reset your password.
           </Text>
         </VStack>
         <form onSubmit={handleSubmit}>

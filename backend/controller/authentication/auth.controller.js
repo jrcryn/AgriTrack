@@ -308,7 +308,7 @@ export const verify2FA = async (req, res) => {
 
         res.status(200).json({
             success: true,
-            message: '2FA verified successfully.',
+            message: '2FA verified successfully.', 
             user: {
                 id: user._id,
                 name: user.name,

@@ -1,14 +1,14 @@
 import React from 'react'
 
-const C_HVCPR = () => {
-  return (
+const ProfileSettings = () => {
+return (
     <div style={{
       display: 'flex',
       flexDirection: 'column',
       justifyContent: 'center',
       alignItems: 'center',
     }}>
-      <text>/high-value-crops/pages/C_HVCPR.jsx</text>
+      <text>/components/profileSettings.jsx</text>
       <h1 style={{ color: '#ff9800', fontSize: '3rem', marginBottom: '1rem' }}>
         🚧 Under Construction 🚧
       </h1>
@@ -19,4 +19,4 @@ const C_HVCPR = () => {
   )
 }
 
-export default C_HVCPR
+export default ProfileSettings
