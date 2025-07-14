@@ -27,6 +27,7 @@ import {
   ModalHeader,
   ModalBody,
   ModalFooter,
+  Button,
 } from '@chakra-ui/react'
 import {
   FiGrid,
@@ -40,9 +41,10 @@ import {
   FiArchive,
   FiBox
 } from 'react-icons/fi'
-import { FaWpforms } from "react-icons/fa";
+import { FaWpforms, FaUser, FaPowerOff, FaDoorOpen } from "react-icons/fa";
 import Logo from '../images/Calamba_Seal.png'
 import { useAuthStore } from '../auth/store/authStore.js'
+import ProfileSettings from './profileSettings.jsx';
 
 
 const allLinkItems = [
@@ -210,11 +212,11 @@ const MobileNav = ({ onOpen, ...rest }) => {
   const [ userName ] = useState(user?.name || ''); 
   const [ roleName, setRoleName ] = useState('');
 
+  const { isOpen, onOpen: onOpen1, onClose } = useDisclosure();
+
   const handleLogout = () => {
     logout();
   };
-
-  const { isOpen, onOpen1, onClose } = useDisclosure()
 
   useEffect(() => {
       const roleMap = {
@@ -243,6 +245,7 @@ const MobileNav = ({ onOpen, ...rest }) => {
   const currentDateTime = `${formattedDate} ${formattedTime}`
 
   return (
+    <>
     <Flex
       ml={{ base: 0, md: 260 }}
       px={{ base: 4, md: 4 }}
@@ -287,11 +290,13 @@ const MobileNav = ({ onOpen, ...rest }) => {
               </HStack>
             </MenuButton>
             <MenuList bg="white" borderColor="gray.200" boxShadow={'md'}>
-              <MenuItem as={RouterLink} to="/hvc/profile-settings">
+              <MenuItem as="button" onClick={onOpen1} _focus={{ bg: 'blue.50' }}>
+              <Icon as={FaUser} mr={1.5} ml={2}/>
                 Profile Settings
               </MenuItem>
-              <MenuDivider />
-              <MenuItem as="button" onClick={handleLogout} color={"red.500"}>
+              <MenuDivider mt={'1'} mb={'1'}/>
+              <MenuItem as="button" onClick={handleLogout} color={"red.500"} _focus={{ bg: 'blue.50' }}>
+              <Icon as={FaDoorOpen} mr={1.5} ml={2}/>
                 Log out
               </MenuItem>
             </MenuList>
@@ -299,6 +304,32 @@ const MobileNav = ({ onOpen, ...rest }) => {
         </Flex>
       </HStack>
     </Flex>
+
+    <Modal isOpen={isOpen} onClose={onClose} isCentered size={'full'}>
+        <ModalOverlay />
+        <ModalContent borderRadius="lg" overflow="hidden">
+          <ModalHeader
+            bg="blue.50" 
+            borderBottomWidth="1px"
+            borderColor="gray.200"
+            py={4}
+            display="flex" 
+            alignItems="center"
+          >
+          <Icon as={FaUser} mr={2} color={"blue.500"}/>
+            Profile Settings
+          </ModalHeader>
+
+          <ModalBody>
+            <ProfileSettings/>
+          </ModalBody>
+
+          <ModalFooter bg="gray.50" borderTopWidth="1px" borderColor="gray.200">
+            <Button colorScheme="blue" onClick={onClose}>Close</Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+    </>
   )
 }
 
