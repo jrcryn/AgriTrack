@@ -305,7 +305,7 @@ const MobileNav = ({ onOpen, ...rest }) => {
       </HStack>
     </Flex>
 
-    <Modal isOpen={isOpen} onClose={onClose} isCentered size={'full'}>
+    <Modal isOpen={isOpen} onClose={onClose} isCentered size={'4xl'} scrollBehavior={'inside'} closeOnOverlayClick={false}>
         <ModalOverlay />
         <ModalContent borderRadius="lg" overflow="hidden">
           <ModalHeader

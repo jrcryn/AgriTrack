@@ -24,7 +24,8 @@ import {
   TagLabel,
   TagCloseButton,
   SimpleGrid,
-  FormControl
+  FormControl,
+  Tooltip
 } from "@chakra-ui/react";
 import { 
   FaCalendarAlt,     
@@ -406,13 +407,16 @@ const Metrics = () => {
           </Stack>
         
           <Flex justifyContent="flex-end" mt={3}>
+            <Tooltip  label="Function currently being built." hasArrow placement="left">
             <Button 
               colorScheme="green" 
               size="sm"
               rightIcon={<FaChartLine />}
+              isDisabled
             >
               See more
             </Button>
+            </Tooltip>
           </Flex>
         </Box>
     
@@ -521,13 +525,16 @@ const Metrics = () => {
           </Stack>
         
           <Flex justifyContent="flex-end" mt={3}>
+            <Tooltip  label="Function currently being built." hasArrow placement="left">
             <Button 
               colorScheme="orange" 
               size="sm"
               rightIcon={<FaChartLine />}
+              isDisabled
             >
               See more
             </Button>
+            </Tooltip>
           </Flex>
         </Box>
       </Box>
