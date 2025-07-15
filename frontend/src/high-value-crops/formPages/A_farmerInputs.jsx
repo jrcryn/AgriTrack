@@ -19,7 +19,7 @@ import {
   InputLeftAddon,
 } from '@chakra-ui/react';
 import { useFarmerFormStore } from '../store/farmerForm.store.js';
-import { useAdminDashboard } from '../store/adminDashboard.store.js';
+import { usePublicFormStore } from '../store/farmerForm.store.js';
 import Barangays from '../../components/barangays';
 import { FaUserCheck, FaSearch } from 'react-icons/fa';
 
@@ -27,7 +27,7 @@ const FarmerInput = ({ onNext, onBack }) => {
 
   // Get the existing farmer input data from the store
   const { formData, updateFarmerInput, isLoading } = useFarmerFormStore();
-  const { getFarmerAccountById } = useAdminDashboard();
+  const { getFarmerAccountById } = usePublicFormStore();
   
   // Initialize form data with existing data from the store
   const [localFormData, setLocalFormData] = useState(formData.farmerInput);
@@ -195,6 +195,7 @@ const FarmerInput = ({ onNext, onBack }) => {
             <VStack spacing={6} align="stretch" key={isFarmerSelected ? 'selected' : 'not-selected'}>
               <Box>                
                 {/* Improved Farmer ID Search */}
+                <form onSubmit={handleFindFarmer}>
                 <Box>
                   <FormControl isRequired>
                   <FormLabel mb={3} fontWeight="medium">
@@ -267,6 +268,7 @@ const FarmerInput = ({ onNext, onBack }) => {
                         leftIcon={<FaSearch />}
                         colorScheme="blue"
                         onClick={handleFindFarmer}
+                        type="submit"
                         isLoading={isSearching}
                         loadingText="Searching"
                       >
@@ -283,6 +285,7 @@ const FarmerInput = ({ onNext, onBack }) => {
                     )}
                   </Flex>
                 </Box>
+                </form>
               </Box>
 
               <Divider />

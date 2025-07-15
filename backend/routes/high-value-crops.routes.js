@@ -3,11 +3,11 @@ import express from 'express';
 import { 
     getUnvalidatedFarmerInputs, 
     getValidatedFarmerInputs, 
-    createFarmerAccount, 
+    createFarmerAccount, //manipulate data
     getFarmerAccounts,
     getFarmerAccountById,
-    updateFarmerAccount,
-    createUnifiedFarmerResponse,
+    updateFarmerAccount, //manipulate data
+    createUnifiedFarmerResponse, //manipulate data
     getAvailableMetricsYears,
     getAvailableMonthsForYear,
     getMetricsForYearMonth
@@ -15,7 +15,7 @@ import {
 
 import { 
     getAvailableDateRanges, 
-    generateExcelReport 
+    generateExcelReport //manipulate data
 } from '../controller/high-value-crops/genReports.controller.js';
 
 import {
@@ -48,7 +48,7 @@ router.get('/get-validated-inputs', verifyAuthToken, verifyRole(['HVCM', 'HVCS']
 
 router.post('/create-farmer-account', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), createFarmerAccount);
 router.get('/get-farmer-accounts', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), getFarmerAccounts);
-router.post('/get-farmer-account', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), getFarmerAccountById); // NEEDS FIXING: REFER TO NOTES KUNG NAKALIMUTAN NA, PAGE 8 STARTING FROM THE FIRST WRITTEN PAGE
+router.post('/get-farmer-account', getFarmerAccountById, verifyAuthToken, verifyRole(['HVCM', 'HVCS']), getFarmerAccountById); // NEEDS FIXING: REFER TO NOTES KUNG NAKALIMUTAN NA, PAGE 8 STARTING FROM THE FIRST WRITTEN PAGE
 router.post('/create-unified-farmer-response', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), createUnifiedFarmerResponse);
 router.put('/farmer-accounts/update', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), updateFarmerAccount);
 
@@ -79,6 +79,8 @@ router.post('/farmerForm-d1-cih', formD1_cih);
 router.post('/farmerForm-d1-cin', formD1_cin);
 router.post('/farmerForm-d2-bc-ofh', formD2_bc_ofh);
 router.post('/farmerForm-d2-bc-ofn', formD2_bc_ofn);
+router.post('/get-farmer-account-by-id', getFarmerAccountById, verifyAuthToken, verifyRole(['HVCM', 'HVCS']), getFarmerAccountById);
+
 
 
 export default router;

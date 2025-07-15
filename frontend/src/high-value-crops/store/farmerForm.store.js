@@ -75,11 +75,11 @@ export const useFarmerFormStore = create((set, get) => ({
     
     try {
       // Step 1: Create the farmer input record
-      const farmerResponse = await axios.post(`${API_URL}/farmerForm-a`, formData.farmerInput);
+      const farmerResponse = await axios.post(`${API_URL}/api/hvc/farmerForm-a`, formData.farmerInput);
       const farmerId = farmerResponse.data._id;
       
       // Step 2: Create the crop type record, na naka reference kay farmer input id
-      const cropTypeResponse = await axios.post(`${API_URL}/farmerForm-b`, {
+      const cropTypeResponse = await axios.post(`${API_URL}/api/hvc/farmerForm-b`, {
         farmer_input_id: farmerId, //farmer input id
         crop_type: formData.cropType
       });
@@ -94,17 +94,17 @@ export const useFarmerFormStore = create((set, get) => ({
           crop_type_id: cropTypeId
         };
         
-        const cropRecordResponse = await axios.post(`${API_URL}/farmerForm-c1-cri`, cropRecordData);
+        const cropRecordResponse = await axios.post(`${API_URL}/api/hvc/farmerForm-c1-cri`, cropRecordData);
         recordId = cropRecordResponse.data._id; //record id ng crop record industrial (uri ng tanim, variety and crop stage)
         
         // Step 4A: Based on the crop stage, submit either harvesting or new planting data
         if (formData.cropRecordIndus.crop_stage === 'HARVESTING' && formData.cropIndusHarvest) {
-          await axios.post(`${API_URL}/farmerForm-d1-cih`, {
+          await axios.post(`${API_URL}/api/hvc/farmerForm-d1-cih`, {
             ...formData.cropIndusHarvest,
             record_id: recordId
           });
         } else if (formData.cropRecordIndus.crop_stage === 'NEWLY PLANTED' && formData.cropIndusNew) {
-          await axios.post(`${API_URL}/farmerForm-d1-cin`, {
+          await axios.post(`${API_URL}/api/hvc/farmerForm-d1-cin`, {
             ...formData.cropIndusNew,
             record_id: recordId
           });
@@ -118,17 +118,17 @@ export const useFarmerFormStore = create((set, get) => ({
           crop_type_id: cropTypeId
         };
         
-        const cropRecordResponse = await axios.post(`${API_URL}/farmerForm-c2-cro`, cropRecordData);
+        const cropRecordResponse = await axios.post(`${API_URL}/api/hvc/farmerForm-c2-cro`, cropRecordData);
         recordId = cropRecordResponse.data._id; //record id ng crop record other (variety and crop stage)
         
         // Step 4B: Based on the crop stage, submit either harvesting or new planting data
         if (formData.cropRecordOther.crop_stage === 'HARVESTING' && formData.cropOtherHarvest) {
-          await axios.post(`${API_URL}/farmerForm-d2-bc-ofh`, {
+          await axios.post(`${API_URL}/api/hvc/farmerForm-d2-bc-ofh`, {
             ...formData.cropOtherHarvest,
             record_id: recordId
           });
         } else if (formData.cropRecordOther.crop_stage === 'NEWLY PLANTED' && formData.cropOtherNew) {
-          await axios.post(`${API_URL}/farmerForm-d2-bc-ofn`, {
+          await axios.post(`${API_URL}/api/hvc/farmerForm-d2-bc-ofn`, {
             ...formData.cropOtherNew,
             record_id: recordId
           });
@@ -169,4 +169,20 @@ export const useFarmerFormStore = create((set, get) => ({
     error: null,
     success: false
   })
+}));
+
+export const usePublicFormStore = create((set) => ({
+  error: null,
+  
+  getFarmerAccountById: async (farmerId) => {
+    try {
+      const response = await axios.post(`${API_URL}/api/hvc/get-farmer-account-by-id`, farmerId);
+      return response.data;
+    } catch (error) {
+      set({ error: error.message || 'Failed to fetch farmer account by ID' });
+      throw error;
+    }
+  },
+  
+  clearError: () => set({ error: null }),
 }));

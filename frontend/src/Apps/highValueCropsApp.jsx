@@ -28,7 +28,11 @@ import SuccessPage from '../high-value-crops/formPages/E_successPage.jsx';
 
 //redirect authenticated users
 const ProtectedRoute = ({children}) => {
-    const {isAuthenticated, isCheckingAuth, user} = useAuthStore();
+    const {isAuthenticated, isCheckingAuth, user, checkAuth} = useAuthStore();
+
+    useEffect(() => {
+      checkAuth();
+    }, [checkAuth]);
 
     if (isCheckingAuth) {
       return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
@@ -52,7 +56,8 @@ axios.interceptors.response.use(
     if (
       error.response &&
       error.response.status === 401 &&
-      !currentPath.startsWith('/auth')
+      !currentPath.startsWith('/auth') &&
+      !currentPath.startsWith('/hvc/form')
     ) {
       window.location.href = '/auth/login';
     }
@@ -104,11 +109,6 @@ const highValueCropsApp = () => {
   };
 
   // CHECK AUTHENTICATION STATUS
-  const { checkAuth } = useAuthStore();
-
-  useEffect(() => {
-    checkAuth();
-  }, [checkAuth]);
 
   return (
     <Box>
