@@ -400,7 +400,7 @@ const deleteRelatedDocuments = async (farmerId, session) => {
         } else {
           await global.highValueCropsModels.D1_crop_indus_harvest.deleteOne({ record_id: cropRecord._id }, {session});
         }
-        await global.highValueCropsModels.C_crop_records_indus.deleteOne({ _id: cropRecord._id })
+        await global.highValueCropsModels.C_crop_records_indus.deleteOne({ _id: cropRecord._id }, {session})
       }
     } else {
       // Similar process for non-industrial crops
