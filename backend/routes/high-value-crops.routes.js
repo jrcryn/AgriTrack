@@ -4,6 +4,7 @@ import {
     getUnvalidatedFarmerInputs, 
     getValidatedFarmerInputs, 
     createFarmerAccount, //manipulate data
+    deleteFarmerAccount,
     getFarmerAccounts,
     getFarmerAccountById,
     updateFarmerAccount, //manipulate data
@@ -40,6 +41,7 @@ router.get('/get-validated-inputs', verifyAuthToken, verifyRole(['HVCM', 'HVCS']
 
 
 router.post('/create-farmer-account', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), createFarmerAccount);
+router.post('/delete-farmer-account', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), deleteFarmerAccount);
 router.get('/get-farmer-accounts', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), getFarmerAccounts);
 router.post('/get-farmer-account', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), getFarmerAccountById);
 router.post('/create-unified-farmer-response', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), createUnifiedFarmerResponse);

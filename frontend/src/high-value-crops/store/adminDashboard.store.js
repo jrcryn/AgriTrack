@@ -162,6 +162,7 @@ export const useAdminDashboard = () => {
   const { data: dateRanges = [], isLoading: isLoadingDateRanges, error: dateRangesError } = useDateRangesQuery(selectedYear, selectedMonth);
 
   const [isCreatingUnifiedResponse, setIsCreatingUnifiedResponse] = useState(false);
+  const [isDeletingFarmerAccount, setIsDeletingFarmerAccount] = useState(false);
   const [isCreatingFarmerAccount, setIsCreatingFarmerAccount] = useState(false);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [isUpdatingFarmerAccount, setIsUpdatingFarmerAccount] = useState(false);
@@ -198,6 +199,19 @@ export const useAdminDashboard = () => {
       throw error;
     } finally {
       setIsCreatingFarmerAccount(false);
+    }
+  };
+
+  const deleteFarmerAccount = async (farmerId) => {
+    setIsDeletingFarmerAccount(true);
+    try {
+      const response = await axios.post(`${API_URL}/api/hvc/delete-farmer-account`, farmerId );
+      return response.data;
+    } catch (error) {
+      setError(error.message || 'Failed to delete farmer account');
+      throw error;
+    } finally {
+      setIsDeletingFarmerAccount(false);
     }
   };
 
@@ -296,6 +310,7 @@ export const useAdminDashboard = () => {
     //isUpdating,
     isCreatingUnifiedResponse,
     isCreatingFarmerAccount,
+    isDeletingFarmerAccount,
     isGeneratingReport,
     isUpdatingFarmerAccount,
     
@@ -306,6 +321,7 @@ export const useAdminDashboard = () => {
     // Actions
     //updateFarmerInput,
     createFarmerAccount,
+    deleteFarmerAccount,
     createUnifiedFarmerResponse,
     generateExcelReport,
     updateFarmerAccount

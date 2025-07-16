@@ -481,6 +481,22 @@ export const createFarmerAccount = async (req, res) => {
 };
 
 
+export const deleteFarmerAccount = async (req, res) => {
+  const { farmerId } = req.body;
+  if (!farmerId) {
+    return res.status(400).json({ message: 'Farmer ID is required.' });
+  }
+  try {
+    const result = await global.highValueCropsModels.FarmerAccount.deleteOne({ farmerId: farmerId });
+    if (result.deleteCount === 0) {
+      return res.status(404).json({ message: 'Farmer account not found' });
+    }
+    return res.status(200).json({ message: 'Farmer account deleted successfully.' });
+  } catch (error) {
+    return res.status(500).json({ message: 'Error deleting farmer account.', error: error.message });
+  }
+};
+
 // Get all farmer accounts
 export const getFarmerAccounts = async (req, res) => {
   try {
