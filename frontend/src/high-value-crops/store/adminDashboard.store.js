@@ -144,6 +144,7 @@ export const useAdminDashboard = () => {
   const [selectedMonth, setSelectedMonth] = useState(null);
   const [selectedBarangay, setSelectedBarangay] = useState('');
   const [selectedCommodity, setSelectedCommodity] = useState('');
+  const [error, setError] = useState(null);
 
   const { data: unvalidatedInputs = [], isLoading: isLoadingUnvalidated, error: unvalidatedError } = useUnvalidatedInputsQuery();
   const { data: validatedInputs = [], isLoading: isLoadingValidated, error: validatedError } = useValidatedInputsQuery();
@@ -202,6 +203,7 @@ export const useAdminDashboard = () => {
 
   const createUnifiedFarmerResponse = async (responseData) => {
     setIsCreatingUnifiedResponse(true);
+    setError(null);
     try {
       const response = await axios.post(`${API_URL}/api/hvc/create-unified-farmer-response`, responseData);
       return response.data; 
