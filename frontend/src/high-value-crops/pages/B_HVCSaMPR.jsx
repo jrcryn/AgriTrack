@@ -167,7 +167,7 @@ const C_GenReports = () => {
           minH="100vh"
         >
           <Heading as="h1" size="xl" mb={2} color="black">
-            High-Value Crops Metrics
+            Generate Reports
           </Heading>
           <Alert status="info" borderRadius="md" mt={4} bgColor={"green.100"}>
             <AlertIcon color="green.500"/>
