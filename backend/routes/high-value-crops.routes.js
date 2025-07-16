@@ -3,11 +3,12 @@ import express from 'express';
 import { 
     getUnvalidatedFarmerInputs, 
     getValidatedFarmerInputs, 
-    createFarmerAccount, 
+    createFarmerAccount, //manipulate data
+    deleteFarmerAccount,
     getFarmerAccounts,
     getFarmerAccountById,
-    updateFarmerAccount,
-    createUnifiedFarmerResponse,
+    updateFarmerAccount, //manipulate data
+    createUnifiedFarmerResponse, //manipulate data
     getAvailableMetricsYears,
     getAvailableMonthsForYear,
     getMetricsForYearMonth
@@ -15,18 +16,11 @@ import {
 
 import { 
     getAvailableDateRanges, 
-    generateExcelReport 
+    generateExcelReport //manipulate data
 } from '../controller/high-value-crops/genReports.controller.js';
 
 import {
-    formA_fi,
-    formB_ct,
-    formC1_cri,
-    formC2_cro,
-    formD1_cih,
-    formD1_cin,
-    formD2_bc_ofh,
-    formD2_bc_ofn
+    submitCompleteFarmerForm
 } from '../controller/high-value-crops/farmerForm.controller.js';
 
 import { verifyAuthToken } from '../middleware/verifyToken.js';
@@ -47,8 +41,9 @@ router.get('/get-validated-inputs', verifyAuthToken, verifyRole(['HVCM', 'HVCS']
 
 
 router.post('/create-farmer-account', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), createFarmerAccount);
+router.post('/delete-farmer-account', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), deleteFarmerAccount);
 router.get('/get-farmer-accounts', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), getFarmerAccounts);
-router.post('/get-farmer-account', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), getFarmerAccountById); // NEEDS FIXING: REFER TO NOTES KUNG NAKALIMUTAN NA, PAGE 8 STARTING FROM THE FIRST WRITTEN PAGE
+router.post('/get-farmer-account', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), getFarmerAccountById);
 router.post('/create-unified-farmer-response', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), createUnifiedFarmerResponse);
 router.put('/farmer-accounts/update', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), updateFarmerAccount);
 
@@ -71,14 +66,9 @@ router.post('/generate-excel-report', verifyAuthToken, verifyRole(['HVCM']), gen
 //________________________________ FARMER FORM PAGES ____________________________________
 
 
-router.post('/farmerForm-a', formA_fi);
-router.post('/farmerForm-b', formB_ct);
-router.post('/farmerForm-c1-cri', formC1_cri);
-router.post('/farmerForm-c2-cro', formC2_cro);
-router.post('/farmerForm-d1-cih', formD1_cih);
-router.post('/farmerForm-d1-cin', formD1_cin);
-router.post('/farmerForm-d2-bc-ofh', formD2_bc_ofh);
-router.post('/farmerForm-d2-bc-ofn', formD2_bc_ofn);
+router.post('/farmer-form-submission', submitCompleteFarmerForm)
+router.post('/get-farmer-account-by-id', getFarmerAccountById);
+
 
 
 export default router;

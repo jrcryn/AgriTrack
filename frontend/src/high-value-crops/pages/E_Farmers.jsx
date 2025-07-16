@@ -39,9 +39,11 @@ import {
   AlertIcon,
   AlertTitle,
   AlertDescription,
-  Center
+  Center,
+  Spacer
 } from "@chakra-ui/react";
 import { FaSearch, FaEye, FaEdit, FaUserPlus, FaUsers, FaUser, FaAddressCard, FaWifi } from "react-icons/fa";
+import { GoAlertFill } from "react-icons/go";
 import { useAdminDashboard } from '../store/adminDashboard.store';
 import { useQueryClient } from '@tanstack/react-query';
 import Barangays from '../../components/barangays';
@@ -52,7 +54,17 @@ import "react-datepicker/dist/react-datepicker.css";
 
 const E_Farmers = () => {
 
-  const { farmerAccounts, isCreatingFarmerAccount, error, createFarmerAccount, isLoading, isUpdatingFarmerAccount, updateFarmerAccount } = useAdminDashboard();
+  const { 
+    farmerAccounts,
+    isCreatingFarmerAccount, 
+    deleteFarmerAccount,
+    isDeletingFarmerAccount,
+    error, 
+    createFarmerAccount, 
+    isLoading, 
+    isUpdatingFarmerAccount, 
+    updateFarmerAccount
+   } = useAdminDashboard();
 
   const [isEditMode, setIsEditMode] = useState(false);
   const [originalFormData, setOriginalFormData] = useState(null);
@@ -223,7 +235,7 @@ const E_Farmers = () => {
         responseResult = await updateFarmerAccount(selectedFarmerId, formattedData);
         toast({
           title: "Success",
-          description: "Farmer information updated successfully",
+          description: "Farmer information updated successfully.",
           status: "success",
           duration: 5000,
           isClosable: true,
@@ -233,7 +245,7 @@ const E_Farmers = () => {
         responseResult = await createFarmerAccount(formattedData);
         toast({
           title: "Success",
-          description: responseResult.message || "Farmer registered successfully",
+          description: responseResult.message || "Farmer registered successfully.",
           status: "success",
           duration: 5000,
           isClosable: true,
@@ -250,7 +262,32 @@ const E_Farmers = () => {
     } catch (error) {
       toast({
         title: "Error",
-        description: isEditMode ? "Failed to update farmer account" : (error.response?.data?.message || "Failed to register farmer"),
+        description: isEditMode ? "Failed to update farmer account." : (error.response?.data?.message || "Failed to register farmer."),
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const handleFarmerAccountDeletion = async () => {
+    try {
+      await deleteFarmerAccount({farmerId: selectedFarmerId});
+      toast({
+        title: "Success",
+        description: "Farmer account deleted successfully.",
+        status: "success",
+        duration: 5000,
+        isClosable: true,
+      });
+      // Refetch farmer accounts data
+      queryClient.invalidateQueries({ queryKey: ['farmerAccounts'] });
+      onClose();
+      onDeleteClose();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Failed to delete farmer account.",
         status: "error",
         duration: 5000,
         isClosable: true,
@@ -289,6 +326,7 @@ const E_Farmers = () => {
   
   // Modal controls
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const { isOpen: isDeleteModalOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure();
   
   // Filter farmers based on search query
   const searchedFarmers = farmerAccounts.filter((farmers) => {
@@ -804,6 +842,20 @@ const E_Farmers = () => {
           </ModalBody>
           
           <ModalFooter bg="gray.50" borderTopWidth="1px" borderColor="gray.200" py={4}>
+            <Flex w='100%'>
+            {isEditMode && (
+              <Button
+                colorScheme="red"
+                mr={3}
+                onClick={onDeleteOpen}
+                isLoading={isDeletingFarmerAccount}
+                size="md"
+                _hover={{ boxShadow: "md", bg: "red.600" }}
+              >
+                Delete Farmer Record
+              </Button>
+            )}
+            <Spacer />
             <Button 
               variant="outline" 
               mr={3} 
@@ -825,6 +877,42 @@ const E_Farmers = () => {
             >
               {submitButtonText}
             </Button>
+            </Flex>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+      <Modal isOpen={isDeleteModalOpen} size="xs" onClose={onDeleteClose} closeOnOverlayClick={false} scrollBehavior="inside" isCentered>
+        <ModalOverlay/>
+        <ModalContent borderRadius="lg" overflow="hidden">
+          <ModalHeader
+            bg="red.50" 
+            borderBottomWidth="1px"
+            borderColor="gray.200"
+            py={4}
+            display="flex" 
+            alignItems="center"
+          >
+            <Icon as={GoAlertFill} mr={2} color="red.500" />
+            Warning!
+          </ModalHeader>
+
+          <ModalFooter bg="gray.50" borderTopWidth="1px" borderColor="gray.200">
+            <Button 
+              variant="outline" 
+              mr={3} 
+              onClick={onDeleteClose}
+              size="md"
+              _hover={{ bg: "gray.100" }}
+            >
+              Cancel
+            </Button>
+            <Button 
+                colorScheme="red"
+                onClick={handleFarmerAccountDeletion}
+                isLoading={isDeletingFarmerAccount}
+                size="md"
+                _hover={{ boxShadow: "md", bg: "red.600" }}
+            >Delete Farmer Record</Button>
           </ModalFooter>
         </ModalContent>
       </Modal>

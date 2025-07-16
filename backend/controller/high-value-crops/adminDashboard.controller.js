@@ -1,4 +1,5 @@
 import { getHighValueCropsDB } from '../../config/dbAccessHelper.js'; // import hvc db access
+import mongoose from 'mongoose';
 
 
 //________________________________ FARMERS NEW RESPONSES PAGE ____________________________________
@@ -119,7 +120,7 @@ export const getValidatedFarmerInputs = async (req, res) => {
 
 
 // Update farmer input and all referenced documents
-export const updateFarmerInputAndReferences = async (req, res) => {
+export const updateFarmerInputAndReferences = async (req, res) => { //not currently in use
   try {
     const { farmerId, updateData } = req.body;
 
@@ -276,7 +277,7 @@ export const updateFarmerInputAndReferences = async (req, res) => {
 
 
 // Helper function to get complete record by farmer input ID
-const getCompleteRecordById = async (farmerId) => {
+const getCompleteRecordById = async (farmerId) => { //currently not in use
   const farmerInput = await global.highValueCropsModels.A_farmer_inputs.findById(farmerId).lean();
   if (!farmerInput) return null;
   
@@ -326,6 +327,9 @@ export const createUnifiedFarmerResponse = async (req, res) => {
     return res.status(400).json({ message: `Required data aren't provided.` });
   }
 
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
     // Determine the year based on available dates
     let year;
@@ -348,7 +352,7 @@ export const createUnifiedFarmerResponse = async (req, res) => {
     // Get the appropriate model for this year
     const UnifiedFarmerRecordModel = global.getUnifiedFarmerRecordModel(year);
     
-    const newUnifiedRecord = await UnifiedFarmerRecordModel.create({
+    const newUnifiedRecord = await UnifiedFarmerRecordModel.create([{
       farmer_account_id, farm_location,
       crop_type, commodity, crop_stage,
       plantation_start_date, plantation_end_date, harvest_month_year,
@@ -356,12 +360,14 @@ export const createUnifiedFarmerResponse = async (req, res) => {
       harvest_start_date, harvest_end_date, total_weight,
       crop_purpose, destination, mode_of_payment, mode_of_delivery,
       total_area_harvested, total_area_trees_harvested
-    });
+    }], {session});
 
     if (original_farmer_input_id) {
       // Delete all related documents
-      await deleteRelatedDocuments(original_farmer_input_id);
+      await deleteRelatedDocuments(original_farmer_input_id, session);
     }
+
+    await session.commitTransaction();
 
     return res.status(201).json({
       message: `Successfully pushed to the main records.`,
@@ -369,51 +375,53 @@ export const createUnifiedFarmerResponse = async (req, res) => {
     });
 
   } catch (error) {
+    await session.abortTransaction();
     res.status(500).json({ message: 'Error pushing to the main records.', error: error.message });
+  } finally {
+    session.endSession();
   }
 };
 
 
 // helper controller for deleting initial farmer response and its related documents
-const deleteRelatedDocuments = async (farmerId) => {
+const deleteRelatedDocuments = async (farmerId, session) => {
   // Find crop type to determine which documents to delete
-  const cropType = await global.highValueCropsModels.B_crop_types.findOne({ farmer_input_id: farmerId });
-  
+  const cropType = await global.highValueCropsModels.B_crop_types.findOne({ farmer_input_id: farmerId }, {session});
   if (cropType) {
     const isIndustrialCrop = cropType.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS';
     
     if (isIndustrialCrop) {
       // Get crop record to determine if newly planted or harvesting
-      const cropRecord = await global.highValueCropsModels.C_crop_records_indus.findOne({ farmer_input_id: farmerId });
+      const cropRecord = await global.highValueCropsModels.C_crop_records_indus.findOne({ farmer_input_id: farmerId }).session(session);
       
       if (cropRecord) {
         if (cropRecord.crop_stage === 'NEWLY PLANTED') {
-          await global.highValueCropsModels.D1_crop_indus_new.deleteOne({ record_id: cropRecord._id });
+          await global.highValueCropsModels.D1_crop_indus_new.deleteOne({ record_id: cropRecord._id }, {session});
         } else {
-          await global.highValueCropsModels.D1_crop_indus_harvest.deleteOne({ record_id: cropRecord._id });
+          await global.highValueCropsModels.D1_crop_indus_harvest.deleteOne({ record_id: cropRecord._id }, {session});
         }
-        await global.highValueCropsModels.C_crop_records_indus.deleteOne({ _id: cropRecord._id });
+        await global.highValueCropsModels.C_crop_records_indus.deleteOne({ _id: cropRecord._id }, {session})
       }
     } else {
       // Similar process for non-industrial crops
-      const cropRecord = await global.highValueCropsModels.C_crop_records_others.findOne({ farmer_input_id: farmerId });
+      const cropRecord = await global.highValueCropsModels.C_crop_records_others.findOne({ farmer_input_id: farmerId }).session(session);
       
       if (cropRecord) {
         if (cropRecord.crop_stage === 'NEWLY PLANTED') {
-          await global.highValueCropsModels.D2_bc_other_fct_new.deleteOne({ record_id: cropRecord._id });
+          await global.highValueCropsModels.D2_bc_other_fct_new.deleteOne({ record_id: cropRecord._id }, {session});
         } else {
-          await global.highValueCropsModels.D2_bc_other_fct_harvest.deleteOne({ record_id: cropRecord._id });
+          await global.highValueCropsModels.D2_bc_other_fct_harvest.deleteOne({ record_id: cropRecord._id }, {session});
         }
-        await global.highValueCropsModels.C_crop_records_others.deleteOne({ _id: cropRecord._id });
+        await global.highValueCropsModels.C_crop_records_others.deleteOne({ _id: cropRecord._id }, {session});
       }
     }
     
     // Delete crop type
-    await global.highValueCropsModels.B_crop_types.deleteOne({ _id: cropType._id });
+    await global.highValueCropsModels.B_crop_types.deleteOne({ _id: cropType._id }, {session});
   }
   
   // Finally delete the farmer input document
-  await global.highValueCropsModels.A_farmer_inputs.deleteOne({ _id: farmerId });
+  await global.highValueCropsModels.A_farmer_inputs.deleteOne({ _id: farmerId }, {session});
 };
 
 
@@ -438,51 +446,8 @@ export const createFarmerAccount = async (req, res) => {
     return res.status(400).json({ message: 'Please provide all the required fields.' });
   }
 
-  try {
-    // Check if farmer already exists using multiple criteria
-    const existingFarmerQueries = [];
-    
-    // Check for same name (first, middle, last) and birthdate if available
-    const nameQuery = {
-      surname: { $regex: new RegExp(`^${surname.trim()}$`, "i") },
-      first_name: { $regex: new RegExp(`^${first_name.trim()}$`, "i") },
-    };
-    
-    // Add middle_name to query if provided
-    if (middle_name) {
-      nameQuery.middle_name = { $regex: new RegExp(`^${middle_name.trim()}$`, "i") };
-    }
-    
-    // If birthdate available, add it to the first query
-    if (birthdate) {
-      nameQuery.birthdate = birthdate;
-    }
-    
-    existingFarmerQueries.push(nameQuery);
-    
-    // Check for same mobile number if provided
-    if (mobile_number && mobile_number.trim()) {
-      existingFarmerQueries.push({ mobile_number: mobile_number.trim() });
-    }
-    
-    // Check for same Facebook account if provided
-    if (facebook && facebook.trim()) {
-      existingFarmerQueries.push({ facebook: { $regex: new RegExp(`^${facebook.trim()}$`, "i") } });
-    }
-    
-    // Use $or to check if farmer exists using any of the above criteria
-    if (existingFarmerQueries.length > 0) {
-      const existingFarmer = await global.highValueCropsModels.FarmerAccount.findOne({
-        $or: existingFarmerQueries
-      });
-      
-      if (existingFarmer) {
-        return res.status(409).json({
-          message: 'Farmer already exists in the system',
-          data: existingFarmer,
-        });
-      }
-    }
+  try { // updated okay lang may magkatokayo kasi hindi namna maiiwasan, mahalaga they're uniquely identified by farmerId
+  
 
     // Continue with creating new farmer account
     const newNumber = await getNextSequence('farmer_account');
@@ -508,10 +473,29 @@ export const createFarmerAccount = async (req, res) => {
       data: newFarmerAccount,
     });
   } catch (error) {
+    if (error.code === 11000) {
+      return res.status(409).json({ message: 'Farmer account already exists with the same farmer ID, try again.' });
+    }
     return res.status(500).json({ message: 'Error creating farmer account', error });
   }
 };
 
+
+export const deleteFarmerAccount = async (req, res) => {
+  const { farmerId } = req.body;
+  if (!farmerId) {
+    return res.status(400).json({ message: 'Farmer ID is required.' });
+  }
+  try {
+    const result = await global.highValueCropsModels.FarmerAccount.deleteOne({ farmerId: farmerId });
+    if (result.deleteCount === 0) {
+      return res.status(404).json({ message: 'Farmer account not found' });
+    }
+    return res.status(200).json({ message: 'Farmer account deleted successfully.' });
+  } catch (error) {
+    return res.status(500).json({ message: 'Error deleting farmer account.', error: error.message });
+  }
+};
 
 // Get all farmer accounts
 export const getFarmerAccounts = async (req, res) => {
@@ -619,12 +603,7 @@ export const getAvailableMetricsYears = async (req, res) => {
     // Sort years descending (newest first)
     years.sort((a, b) => b - a);
 
-    // If no collections found, return current year as fallback
-    if (years.length === 0) {
-      const currentYear = new Date().getFullYear();
-      years.push(currentYear);
-      console.log('No matching collections found, using current year fallback:', currentYear);
-    }
+
 
     res.json(years);
   } catch (error) {
