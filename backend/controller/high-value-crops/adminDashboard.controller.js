@@ -446,51 +446,8 @@ export const createFarmerAccount = async (req, res) => {
     return res.status(400).json({ message: 'Please provide all the required fields.' });
   }
 
-  try {
-    // Check if farmer already exists using multiple criteria
-    const existingFarmerQueries = [];
-    
-    // Check for same name (first, middle, last) and birthdate if available
-    const nameQuery = {
-      surname: { $regex: new RegExp(`^${surname.trim()}$`, "i") },
-      first_name: { $regex: new RegExp(`^${first_name.trim()}$`, "i") },
-    };
-    
-    // Add middle_name to query if provided
-    if (middle_name) {
-      nameQuery.middle_name = { $regex: new RegExp(`^${middle_name.trim()}$`, "i") };
-    }
-    
-    // If birthdate available, add it to the first query
-    if (birthdate) {
-      nameQuery.birthdate = birthdate;
-    }
-    
-    existingFarmerQueries.push(nameQuery);
-    
-    // Check for same mobile number if provided
-    if (mobile_number && mobile_number.trim()) {
-      existingFarmerQueries.push({ mobile_number: mobile_number.trim() });
-    }
-    
-    // Check for same Facebook account if provided
-    if (facebook && facebook.trim()) {
-      existingFarmerQueries.push({ facebook: { $regex: new RegExp(`^${facebook.trim()}$`, "i") } });
-    }
-    
-    // Use $or to check if farmer exists using any of the above criteria
-    if (existingFarmerQueries.length > 0) {
-      const existingFarmer = await global.highValueCropsModels.FarmerAccount.findOne({
-        $or: existingFarmerQueries
-      });
-      
-      if (existingFarmer) {
-        return res.status(409).json({
-          message: 'Farmer already exists in the system',
-          data: existingFarmer,
-        });
-      }
-    }
+  try { // updated okay lang may magkatokayo kasi hindi namna maiiwasan, mahalaga they're uniquely identified by farmerId
+  
 
     // Continue with creating new farmer account
     const newNumber = await getNextSequence('farmer_account');
@@ -516,6 +473,9 @@ export const createFarmerAccount = async (req, res) => {
       data: newFarmerAccount,
     });
   } catch (error) {
+    if (error.code === 11000) {
+      return res.status(409).json({ message: 'Farmer account already exists with the same farmer ID, try again.' });
+    }
     return res.status(500).json({ message: 'Error creating farmer account', error });
   }
 };
