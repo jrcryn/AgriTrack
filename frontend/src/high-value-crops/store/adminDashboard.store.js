@@ -222,7 +222,7 @@ export const useAdminDashboard = () => {
       const response = await axios.post(`${API_URL}/api/hvc/create-unified-farmer-response`, responseData);
       return response.data; 
     } catch (error) {
-      setError(error.message || 'Failed to create unified farmer response');
+      setError(error.message || 'Failed to create unified farmer response.');
       throw error; 
     } finally {
       setIsCreatingUnifiedResponse(false); 

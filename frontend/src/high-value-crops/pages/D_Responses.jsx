@@ -605,7 +605,7 @@ const Responses = () => {
       
       toast({
         title: "Error",
-        description: error.message || error.response?.data?.message || "Failed to push response to records. Please try again.",
+        description: error.response?.data?.message,
         status: "error",
         duration: 10000,
         isClosable: true,

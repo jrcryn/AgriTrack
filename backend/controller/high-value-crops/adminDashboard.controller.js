@@ -386,7 +386,7 @@ export const createUnifiedFarmerResponse = async (req, res) => {
 // helper controller for deleting initial farmer response and its related documents
 const deleteRelatedDocuments = async (farmerId, session) => {
   // Find crop type to determine which documents to delete
-  const cropType = await global.highValueCropsModels.B_crop_types.findOne({ farmer_input_id: farmerId }, {session});
+  const cropType = await global.highValueCropsModels.B_crop_types.findOne({ farmer_input_id: farmerId }).session(session);
   if (cropType) {
     const isIndustrialCrop = cropType.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS';
     
@@ -396,11 +396,11 @@ const deleteRelatedDocuments = async (farmerId, session) => {
       
       if (cropRecord) {
         if (cropRecord.crop_stage === 'NEWLY PLANTED') {
-          await global.highValueCropsModels.D1_crop_indus_new.deleteOne({ record_id: cropRecord._id }, {session});
+          await global.highValueCropsModels.D1_crop_indus_new.deleteOne({ record_id: cropRecord._id }).session(session);
         } else {
-          await global.highValueCropsModels.D1_crop_indus_harvest.deleteOne({ record_id: cropRecord._id }, {session});
+          await global.highValueCropsModels.D1_crop_indus_harvest.deleteOne({ record_id: cropRecord._id }).session(session);
         }
-        await global.highValueCropsModels.C_crop_records_indus.deleteOne({ _id: cropRecord._id }, {session})
+        await global.highValueCropsModels.C_crop_records_indus.deleteOne({ _id: cropRecord._id }).session(session);
       }
     } else {
       // Similar process for non-industrial crops
@@ -408,20 +408,20 @@ const deleteRelatedDocuments = async (farmerId, session) => {
       
       if (cropRecord) {
         if (cropRecord.crop_stage === 'NEWLY PLANTED') {
-          await global.highValueCropsModels.D2_bc_other_fct_new.deleteOne({ record_id: cropRecord._id }, {session});
+          await global.highValueCropsModels.D2_bc_other_fct_new.deleteOne({ record_id: cropRecord._id }).session(session);
         } else {
-          await global.highValueCropsModels.D2_bc_other_fct_harvest.deleteOne({ record_id: cropRecord._id }, {session});
+          await global.highValueCropsModels.D2_bc_other_fct_harvest.deleteOne({ record_id: cropRecord._id }).session(session);
         }
-        await global.highValueCropsModels.C_crop_records_others.deleteOne({ _id: cropRecord._id }, {session});
+        await global.highValueCropsModels.C_crop_records_others.deleteOne({ _id: cropRecord._id }).session(session);
       }
     }
     
     // Delete crop type
-    await global.highValueCropsModels.B_crop_types.deleteOne({ _id: cropType._id }, {session});
+    await global.highValueCropsModels.B_crop_types.deleteOne({ _id: cropType._id }).session(session);
   }
   
   // Finally delete the farmer input document
-  await global.highValueCropsModels.A_farmer_inputs.deleteOne({ _id: farmerId }, {session});
+  await global.highValueCropsModels.A_farmer_inputs.deleteOne({ _id: farmerId }).session(session);
 };
 
 
