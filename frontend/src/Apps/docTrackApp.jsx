@@ -1,6 +1,6 @@
 import { Box, Spinner, Text } from '@chakra-ui/react';
-import React, { useState } from 'react';
-import { Routes, Route, useNavigate } from 'react-router-dom'
+import React, { useState, useEffect } from 'react';
+import { Routes, Route, useNavigate, Navigate } from 'react-router-dom'
 import axios from 'axios';
 
 import Layout from '../components/layout.jsx';
@@ -57,9 +57,9 @@ const doctrackApp = () => {
     
     return (
         <Box>
-            <ProtectedRoute>
+           
             <Routes>
-                <Route path="/" element={<Layout />}>
+                <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
                     <Route path="metrics" element={<A_Dashboard />} />
                     <Route path="incoming" element={<B_Incoming />} />
                     <Route path="pending" element={<C_Pending />} />
@@ -69,7 +69,7 @@ const doctrackApp = () => {
                     <Route path="staffs" element={<G_Staffs />} />
                 </Route>    
             </Routes>
-            </ProtectedRoute>
+            
         </Box>
     );
 };
