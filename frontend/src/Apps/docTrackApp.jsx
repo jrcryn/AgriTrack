@@ -1,6 +1,6 @@
 import { Box, Spinner, Text } from '@chakra-ui/react';
-import React, { useState } from 'react';
-import { Routes, Route, useNavigate } from 'react-router-dom'
+import { useEffect, useState, useRef } from 'react';
+import { Routes, Route, useNavigate, Navigate } from 'react-router-dom'
 import axios from 'axios';
 
 import Layout from '../components/layout.jsx';
@@ -16,7 +16,11 @@ import G_Staffs from '../doc-track/pages/G_Staffs.jsx';
 import { useAuthStore } from '../auth/store/authStore.js';
 
 const ProtectedRoute = ({children}) => {
-    const {isAuthenticated, user, isCheckingAuth} = useAuthStore();
+    const {isAuthenticated, isCheckingAuth, user, checkAuth} = useAuthStore();
+
+    useEffect(() => {
+      checkAuth();
+    }, [checkAuth]);
 
     if (isCheckingAuth) {
       return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
@@ -24,6 +28,7 @@ const ProtectedRoute = ({children}) => {
       </div>;
     }
 
+    // If not authenticated or user is missing or 2FA not enabled, redirect
     if (!isAuthenticated || !user) {
       return <Navigate to='/auth/login' replace />;
     }
@@ -48,18 +53,12 @@ axios.interceptors.response.use(
 );
 
 const doctrackApp = () => {
-
-    const { checkAuth } = useAuthStore();
-
-    useEffect(() => {
-        checkAuth();
-    }, [checkAuth]);
     
     return (
         <Box>
-            <ProtectedRoute>
+           
             <Routes>
-                <Route path="/" element={<Layout />}>
+                <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
                     <Route path="metrics" element={<A_Dashboard />} />
                     <Route path="incoming" element={<B_Incoming />} />
                     <Route path="pending" element={<C_Pending />} />
@@ -69,7 +68,7 @@ const doctrackApp = () => {
                     <Route path="staffs" element={<G_Staffs />} />
                 </Route>    
             </Routes>
-            </ProtectedRoute>
+            
         </Box>
     );
 };
