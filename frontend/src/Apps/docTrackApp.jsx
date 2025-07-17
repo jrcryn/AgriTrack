@@ -1,5 +1,5 @@
 import { Box, Spinner, Text } from '@chakra-ui/react';
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Routes, Route, useNavigate, Navigate } from 'react-router-dom'
 import axios from 'axios';
 
@@ -16,7 +16,11 @@ import G_Staffs from '../doc-track/pages/G_Staffs.jsx';
 import { useAuthStore } from '../auth/store/authStore.js';
 
 const ProtectedRoute = ({children}) => {
-    const {isAuthenticated, user, isCheckingAuth} = useAuthStore();
+    const {isAuthenticated, isCheckingAuth, user, checkAuth} = useAuthStore();
+
+    useEffect(() => {
+      checkAuth();
+    }, [checkAuth]);
 
     if (isCheckingAuth) {
       return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
@@ -24,6 +28,7 @@ const ProtectedRoute = ({children}) => {
       </div>;
     }
 
+    // If not authenticated or user is missing or 2FA not enabled, redirect
     if (!isAuthenticated || !user) {
       return <Navigate to='/auth/login' replace />;
     }
@@ -48,12 +53,6 @@ axios.interceptors.response.use(
 );
 
 const doctrackApp = () => {
-
-    const { checkAuth } = useAuthStore();
-
-    useEffect(() => {
-        checkAuth();
-    }, [checkAuth]);
     
     return (
         <Box>
