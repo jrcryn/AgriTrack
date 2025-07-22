@@ -583,6 +583,8 @@ const E_Farmers = () => {
                               colorScheme="green"
                               leftIcon={<FaEdit />}
                               onClick={() => handleEditClick(farmers)}
+                              boxShadow="sm"
+                              _hover={{ boxShadow: "md", bg: "green.600" }}
                             >
                               Edit
                             </Button>
@@ -912,7 +914,9 @@ const E_Farmers = () => {
                 isLoading={isDeletingFarmerAccount}
                 size="md"
                 _hover={{ boxShadow: "md", bg: "red.600" }}
-            >Delete Farmer Record</Button>
+            >
+              Delete Farmer Record
+            </Button>
           </ModalFooter>
         </ModalContent>
       </Modal>

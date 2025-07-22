@@ -14,6 +14,7 @@ export const useFarmerFormStore = create((set, get) => ({
       middle_name: '',
       suffix: '',
       farm_location: '',
+      farmer_location: '', 
     },
     cropType: '',
     cropRecordIndus: null,
@@ -25,6 +26,7 @@ export const useFarmerFormStore = create((set, get) => ({
   },
   
   formattedFarmerId: '',
+  isContinueAnswering: false,
   isLoading: false,
   error: null,
   success: false,
@@ -100,6 +102,7 @@ export const useFarmerFormStore = create((set, get) => ({
         middle_name: '',
         suffix: '',
         farm_location: '',
+        farmer_barangay: '',
       },
       cropType: '',
       cropRecordIndus: null,
@@ -112,18 +115,45 @@ export const useFarmerFormStore = create((set, get) => ({
     isLoading: false,
     error: null,
     success: false
-  })
+  }),
+
+  continueAnswering: () => set((state) => ({
+    formData: {
+      ...state.formData,
+      farmerInput: {
+        ...state.formData.farmerInput,
+        farm_location: '',
+      },
+      cropType: '',
+      cropRecordIndus: null,
+      cropRecordOther: null,
+      cropIndusHarvest: null,
+      cropIndusNew: null,
+      cropOtherHarvest: null,
+      cropOtherNew: null,
+    },
+    isLoading: false,
+    error: null,
+    success: false,
+    isContinueAnswering: true,
+  })),
 }));
 
 export const usePublicFormStore = create((set) => ({
   error: null,
   
-  getFarmerAccountById: async (farmerId) => {
+  getFarmerAccountByName: async (farmerSurname, farmerName, farmerMiddleName, farmerSuffix, farmerLocation) => { //need location
     try {
-      const response = await axios.post(`${API_URL}/api/hvc/get-farmer-account-by-id`, farmerId);
+      const response = await axios.post(`${API_URL}/api/hvc/get-farmer-account-by-name`, {
+        surname: farmerSurname,
+        first_name: farmerName,
+        middle_name: farmerMiddleName,
+        suffix: farmerSuffix,
+        farmer_barangay: farmerLocation
+      });
       return response.data;
     } catch (error) {
-      set({ error: error.message || 'Failed to fetch farmer account by ID' });
+      set({ error: error.message || 'Failed to fetch farmer account by name.' });
       throw error;
     }
   },

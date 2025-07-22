@@ -20,7 +20,8 @@ import {
 } from '../controller/high-value-crops/genReports.controller.js';
 
 import {
-    submitCompleteFarmerForm
+    submitCompleteFarmerForm,
+    getFarmerAccountByName
 } from '../controller/high-value-crops/farmerForm.controller.js';
 
 import { verifyAuthToken } from '../middleware/verifyToken.js';
@@ -67,7 +68,7 @@ router.post('/generate-excel-report', verifyAuthToken, verifyRole(['HVCM']), gen
 
 
 router.post('/farmer-form-submission', submitCompleteFarmerForm)
-router.post('/get-farmer-account-by-id', getFarmerAccountById);
+router.post('/get-farmer-account-by-name', getFarmerAccountByName);
 
 
 

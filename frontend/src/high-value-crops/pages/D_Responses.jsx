@@ -39,6 +39,7 @@ import {
   AlertTitle,
   AlertDescription,
   Checkbox,
+  Spacer,
 } from '@chakra-ui/react';
 import numOfTreesToHectares from '../../components/conversions.js';
 import { FaSearch, FaEye, FaSeedling, FaBoxes, FaUser, FaLeaf, FaWifi, FaUpload } from 'react-icons/fa';
@@ -56,6 +57,8 @@ const Responses = () => {
   const [selectedNewlyPlanted, setSelectedNewlyPlanted] = useState([]);
   const [selectedHarvesting, setSelectedHarvesting] = useState([]);
   const [isBatchProcessing, setIsBatchProcessing] = useState(false);
+
+  const [isForReview, setIsForReview] = useState(false);
   
   // Unvalidated farmer inputs
   const { 
@@ -299,6 +302,12 @@ const Responses = () => {
       
       return responseData;
     };
+
+    const handleSetForReview = () => {
+      setIsForReview(true);
+      onClose();
+    };
+
 
   // Table component to reuse for both sections
   const ResponseTable = ({ data, status, selectedItems, onSelectItem, onSelectAll }) => {
@@ -1237,16 +1246,37 @@ const Responses = () => {
           </ModalBody>
           
           <ModalFooter bg="gray.50" borderTopWidth="1px" borderColor="gray.200">
-            <Button variant="outline" mr={3} onClick={onClose}>
+
+            <Flex w='100%'>
+
+            <Button 
+              colorScheme="purple" 
+              onClick={handleSetForReview}
+              boxShadow="sm"
+              _hover={{ boxShadow: "md", bg: "purple.600" }}
+            >
+              Flag for Review
+            </Button>
+
+            <Spacer />
+
+            </Flex>
+            <Button variant="outline" mr={3} onClick={onClose} _hover={{ bg: "gray.100" }}>
               Close
             </Button>
             <Button 
               colorScheme="green" 
               onClick={handleModalSubmit}
               isLoading={isCreatingUnifiedResponse}
+              size={"md"}
+              pl={8}
+              pr={8}
+              boxShadow="sm"
+              _hover={{ boxShadow: "md", bg: "green.600" }}
             >
               Push to Records
             </Button>
+
           </ModalFooter>
         </ModalContent>
       </Modal>
