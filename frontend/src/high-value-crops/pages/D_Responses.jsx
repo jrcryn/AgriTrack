@@ -59,7 +59,7 @@ const Responses = () => {
   const [selectedHarvesting, setSelectedHarvesting] = useState([]);
   const [isBatchProcessing, setIsBatchProcessing] = useState(false);
 
-  const [setForReview, setIsForReview] = useState(false);
+  const [isUpdatingForReview, setIsUpdatingForReview] = useState(false);
 
   // Unvalidated farmer inputs
   const { 
@@ -320,6 +320,7 @@ const Responses = () => {
         return;
       }
       try {
+        setIsUpdatingForReview(true);
         const response = await flagResponseForReview(responseToReview.farmerInput._id);
 
         toast({
@@ -331,6 +332,7 @@ const Responses = () => {
           colorScheme: "yellow",
         });
         queryClient.invalidateQueries({ queryKey: ['unvalidatedInputs'] });
+        setIsUpdatingForReview(false);
         onClose();
       } catch (error) {
         toast({
@@ -355,6 +357,7 @@ const Responses = () => {
         return;
       }
       try {
+        setIsUpdatingForReview(true);
         const response = await unflagResponseForReview(responseToUnreview.farmerInput._id);
 
         toast({
@@ -366,6 +369,7 @@ const Responses = () => {
           colorScheme: "yellow",
         });
         queryClient.invalidateQueries({ queryKey: ['unvalidatedInputs'] });
+        setIsUpdatingForReview(false);
         onClose();
       } catch (error) {
         toast({
@@ -1333,6 +1337,7 @@ const Responses = () => {
                   onClick={() => handleUnsetForReview(selectedResponse)}
                   boxShadow="sm"
                   _hover={{ boxShadow: "md", bg: "yellow.500" }}
+                  isLoading={isUpdatingForReview}
                 >
                   Unflag for Review
                 </Button>
@@ -1344,6 +1349,7 @@ const Responses = () => {
                 onClick={() => handleSetForReview(selectedResponse)}
                 boxShadow="sm"
                 _hover={{ boxShadow: "md", bg: "yellow.500" }}
+                isLoading={isUpdatingForReview}
               >
                 Flag for Review
               </Button>
