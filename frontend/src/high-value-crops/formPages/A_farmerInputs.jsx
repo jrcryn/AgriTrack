@@ -264,7 +264,7 @@ const FarmerInput = ({ onNext, onBack }) => {
                     name='middle_name'
                     value={farmerMiddleName}
                     onChange={(e) => setFarmerMiddleName(e.target.value)}
-                    placeholder="Your answer (optional)"
+                    placeholder="Your answer"
                     borderRadius="md"
                     focusBorderColor={accentColor}
                     isDisabled={isFarmerSelected}
@@ -283,7 +283,7 @@ const FarmerInput = ({ onNext, onBack }) => {
                     name='suffix'
                     value={farmerSuffix}
                     onChange={(e) => setFarmerSuffix(e.target.value)}
-                    placeholder="E.g., Jr., Sr., III (optional)"
+                    placeholder="E.g., Jr., Sr., III"
                     borderRadius="md"
                     focusBorderColor={accentColor}
                     isDisabled={isFarmerSelected}
