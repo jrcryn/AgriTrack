@@ -327,6 +327,12 @@ export const createUnifiedFarmerResponse = async (req, res) => {
     return res.status(400).json({ message: `Required data aren't provided.` });
   }
 
+  const checkFlagForReview = await global.highValueCropsModels.A_farmer_inputs.findById({ _id: original_farmer_input_id });
+
+  if (checkFlagForReview.isForReview === true) {
+    return res.status(400).json({ success: false, message: "Cannot push responses that are flagged for review." });
+  }
+
   const session = await mongoose.startSession();
   session.startTransaction();
 
