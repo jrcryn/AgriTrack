@@ -10,7 +10,8 @@ app.use(express.json());
 app.use(cookieParser());
 
 const allowedOrigins = [
-    'https://frontend-service-cpbs.onrender.com',
+    'https://frontend-service-cpbs.onrender.com', //production
+    'https://staging-backend-y6jo.onrender.com', //staging
     'http://localhost:5173',  
     process.env.CLIENT_URL,
 ];
