@@ -39,6 +39,8 @@ import {
   AlertTitle,
   AlertDescription,
   Checkbox,
+  Spacer,
+  Tooltip,
 } from '@chakra-ui/react';
 import numOfTreesToHectares from '../../components/conversions.js';
 import { FaSearch, FaEye, FaSeedling, FaBoxes, FaUser, FaLeaf, FaWifi, FaUpload } from 'react-icons/fa';
@@ -56,12 +58,16 @@ const Responses = () => {
   const [selectedNewlyPlanted, setSelectedNewlyPlanted] = useState([]);
   const [selectedHarvesting, setSelectedHarvesting] = useState([]);
   const [isBatchProcessing, setIsBatchProcessing] = useState(false);
-  
+
+  const [isUpdatingForReview, setIsUpdatingForReview] = useState(false);
+
   // Unvalidated farmer inputs
   const { 
     unvalidatedInputs, 
     isLoading,
     isCreatingUnifiedResponse,
+    flagResponseForReview,
+    unflagResponseForReview,
     error,
     updateFarmerInput,
     clearError,
@@ -136,10 +142,11 @@ const Responses = () => {
     };
     
     const handleSelectAllNewlyPlanted = (items) => {
-      if (selectedNewlyPlanted.length === currentNewlyPlanted.length) {
+      const selectableItems = items.filter(item => item.farmerInput.isForReview === false);
+      if (selectedNewlyPlanted.length === selectableItems.length) {
         setSelectedNewlyPlanted([]);
       } else {
-        setSelectedNewlyPlanted(items.map(item => item.farmerInput._id));
+        setSelectedNewlyPlanted(selectableItems.map(item => item.farmerInput._id));
       }
     };
     
@@ -150,10 +157,11 @@ const Responses = () => {
     };
     
     const handleSelectAllHarvesting = (items) => {
-      if (selectedHarvesting.length === currentHarvesting.length) {
+      const selectableItems = items.filter(item => item.farmerInput.isForReview === false);
+      if (selectedHarvesting.length === selectableItems.length) {
         setSelectedHarvesting([]);
       } else {
-        setSelectedHarvesting(items.map(item => item.farmerInput._id));
+        setSelectedHarvesting(selectableItems.map(item => item.farmerInput._id));
       }
     };
   
@@ -300,11 +308,87 @@ const Responses = () => {
       return responseData;
     };
 
+    const handleSetForReview = async (responseToReview) => {
+      if (!responseToReview?.farmerInput?._id) {
+        toast({
+          title: "Error",
+          description: "Cannot identify the response to flag.",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
+        return;
+      }
+      try {
+        setIsUpdatingForReview(true);
+        const response = await flagResponseForReview(responseToReview.farmerInput._id);
+
+        toast({
+          title: "Success",
+          description: response.message,
+          status: "success",
+          duration: 5000,
+          isClosable: true,
+          colorScheme: "yellow",
+        });
+        queryClient.invalidateQueries({ queryKey: ['unvalidatedInputs'] });
+        setIsUpdatingForReview(false);
+        onClose();
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: error.response?.data?.message,
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
+      }
+    };
+
+    const handleUnsetForReview = async (responseToUnreview) => {
+      if (!responseToUnreview?.farmerInput?._id) {
+        toast({
+          title: "Error",
+          description: "Cannot identify the response to flag.",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
+        return;
+      }
+      try {
+        setIsUpdatingForReview(true);
+        const response = await unflagResponseForReview(responseToUnreview.farmerInput._id);
+
+        toast({
+          title: "Success",
+          description: response.message,
+          status: "success",
+          duration: 5000,
+          isClosable: true,
+          colorScheme: "yellow",
+        });
+        queryClient.invalidateQueries({ queryKey: ['unvalidatedInputs'] });
+        setIsUpdatingForReview(false);
+        onClose();
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: error.response?.data?.message,
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
+      }
+    };
+
+
   // Table component to reuse for both sections
   const ResponseTable = ({ data, status, selectedItems, onSelectItem, onSelectAll }) => {
 
     const isNewlyPlanted = status === 'NEWLY PLANTED';
-    const allSelected = data.length > 0 && data.every(item => selectedItems?.includes(item.farmerInput._id));
+    const selectableItems = data.filter(item => item.farmerInput.isForReview === false);
+    const allSelected = selectableItems.length > 0 && selectableItems.every(item => selectedItems?.includes(item.farmerInput._id));
 
     return(
         <TableContainer>
@@ -360,7 +444,9 @@ const Responses = () => {
             <Tbody>
               {data.length > 0 ? (
                 data.map((response, index) => (
-                  <Tr key={response.farmerInput._id || index}>
+                  <Tr key={response.farmerInput._id || index} bg={response.farmerInput.isForReview === true ? 'yellow.100' : 'white'}>
+                    {response.farmerInput.isForReview === false ? (
+                      <>
                     <Td>
                       <Checkbox
                         isChecked={selectedItems?.includes(response.farmerInput._id)}
@@ -368,6 +454,9 @@ const Responses = () => {
                         colorScheme={isNewlyPlanted ? "green" : "orange"}
                       />
                     </Td>
+                    </>
+                    ) : (<><Td></Td></>)}
+
                     <Td fontWeight="medium">
                     {`${response.farmerInput?.farmer_account_id?.first_name} ${response.farmerInput?.farmer_account_id?.middle_name ? response.farmerInput?.farmer_account_id?.middle_name +'.':''} ${response.farmerInput?.farmer_account_id?.surname} ${response.farmerInput?.farmer_account_id?.suffix || ''}`.trim()}
                     </Td>
@@ -403,7 +492,7 @@ const Responses = () => {
                               : (response.cropDetails?.total_area_harvested || '-')}</Td>
                         </>
                       )}
-                    <Td isNumeric position={{ base: 'static', md: 'sticky' }} right={0} bg={'white'} zIndex={1}>
+                    <Td isNumeric position={{ base: 'static', md: 'sticky' }} right={0} zIndex={1} bg={response.farmerInput.isForReview === true ? 'yellow.100' : 'white'}>
                       <Button
                         size="sm"
                         colorScheme={status === 'NEWLY PLANTED' ? 'green' : 'orange'}
@@ -412,6 +501,7 @@ const Responses = () => {
                           setSelectedResponse(response);
                           onOpen();
                         }}
+                        
                       >
                         Details
                       </Button>
@@ -1019,47 +1109,47 @@ const Responses = () => {
     );
   };
   
-  return (
-    <Box 
-      overflow="hidden" 
-      bg="white" 
-      p={5} 
-      minH="100vh"
-    >
-      <Heading as="h1" size="xl" mb={2}>
-        Farmer New Responses
-      </Heading>
-      <Text color="gray.600" mb={5}>
-        View and validate farmer responses of high-value crops before pushing to main record.
-      </Text>
+    return (
+      <Box 
+        overflow="hidden" 
+        bg="white" 
+        p={5} 
+        minH="100vh"
+      >
+        <Heading as="h1" size="xl" mb={2}>
+          Farmer New Responses
+        </Heading>
+        <Text color="gray.600" mb={5}>
+          View and validate farmer responses of high-value crops before pushing to main record.
+        </Text>
       
-{/* Search Section */}
-<Flex 
-  direction={{ base: "column", md: "row" }} 
-  mb={6} 
-  p={4}
-  bg="blue.50"
-  borderRadius="md"
-  alignItems={{ base: "flex-start", md: "center" }}  // This is the key change
->
-  <HStack spacing={2} mb={{ base: 2, md: 0 }}>
-    <Icon as={FaSearch} color="blue.500" />
-    <Text fontSize='sm' fontWeight={'medium'}>Search:</Text>
-  </HStack>
-  
-  <InputGroup width={{ base: "full", md: "sm" }} ml={{ base: 0, md: 4 }}>
-    <Input 
-      placeholder="Search by name, crop, barangay..." 
-      bg="white"
-      value={searchQuery}
-      onChange={(e) => setSearchQuery(e.target.value)}
-      _focus={{ borderColor: "blue.400" }}
-    />
-    <InputRightElement pointerEvents="none">
-      <FaSearch color="gray.300" />
-    </InputRightElement>
-  </InputGroup>
-</Flex>
+        {/* Search Section */}
+        <Flex 
+          direction={{ base: "column", md: "row" }} 
+          mb={6} 
+          p={4}
+          bg="blue.50"
+          borderRadius="md"
+          alignItems={{ base: "flex-start", md: "center" }}  // This is the key change
+        >
+          <HStack spacing={2} mb={{ base: 2, md: 0 }}>
+            <Icon as={FaSearch} color="blue.500" />
+            <Text fontSize='sm' fontWeight={'medium'}>Search:</Text>
+          </HStack>
+          
+          <InputGroup width={{ base: "full", md: "sm" }} ml={{ base: 0, md: 4 }}>
+            <Input 
+              placeholder="Search by name, crop, barangay..." 
+              bg="white"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              _focus={{ borderColor: "blue.400" }}
+            />
+            <InputRightElement pointerEvents="none">
+              <FaSearch color="gray.300" />
+            </InputRightElement>
+          </InputGroup>
+        </Flex>
     
         <>
           {/* NEWLY PLANTED SECTION */}
@@ -1193,7 +1283,7 @@ const Responses = () => {
         <ModalOverlay />
         <ModalContent borderRadius="lg" overflow="hidden">
           <ModalHeader 
-            bg="blue.50" 
+            bg={selectedResponse?.farmerInput?.isForReview === true ? "yellow.100" : "gray.50"}
             borderBottomWidth="1px"
             borderColor="gray.200"
             py={4}
@@ -1237,16 +1327,60 @@ const Responses = () => {
           </ModalBody>
           
           <ModalFooter bg="gray.50" borderTopWidth="1px" borderColor="gray.200">
-            <Button variant="outline" mr={3} onClick={onClose}>
+
+            <Flex w='100%'>
+
+            {selectedResponse?.farmerInput?.isForReview === true ? (
+              <>
+                <Button 
+                  colorScheme="yellow" 
+                  onClick={() => handleUnsetForReview(selectedResponse)}
+                  boxShadow="sm"
+                  _hover={{ boxShadow: "md", bg: "yellow.500" }}
+                  isLoading={isUpdatingForReview}
+                >
+                  Unflag for Review
+                </Button>
+              </>
+            ) : (
+            <>
+              <Button 
+                colorScheme="yellow" 
+                onClick={() => handleSetForReview(selectedResponse)}
+                boxShadow="sm"
+                _hover={{ boxShadow: "md", bg: "yellow.500" }}
+                isLoading={isUpdatingForReview}
+              >
+                Flag for Review
+              </Button>
+            </>
+          )}
+
+
+            <Spacer />
+
+            </Flex>
+            <Button variant="outline" mr={3} onClick={onClose} _hover={{ bg: "gray.100" }}>
               Close
             </Button>
+
+            <Tooltip label="Cannot push responses that are flagged for review." placement="top" hasArrow isDisabled={!selectedResponse?.farmerInput?.isForReview === true}>
             <Button 
               colorScheme="green" 
               onClick={handleModalSubmit}
               isLoading={isCreatingUnifiedResponse}
+              size={"md"}
+              pl={8}
+              pr={8}
+              boxShadow="sm"
+              _hover={{ boxShadow: "md", bg: "green.600" }}
+              isDisabled={selectedResponse?.farmerInput?.isForReview === true}
             >
+            
               Push to Records
             </Button>
+            </Tooltip>
+
           </ModalFooter>
         </ModalContent>
       </Modal>

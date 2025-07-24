@@ -17,5 +17,6 @@ export const AFarmerInputsSchema = new mongoose.Schema({
   },
   farm_location: { type: String, required: true, trim: true },
   isValidated: { type: Boolean, default: false },
+  isForReview: { type: Boolean, default: false },
 }, { versionKey: false }, { timestamps: true });
 

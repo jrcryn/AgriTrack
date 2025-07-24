@@ -5,12 +5,17 @@ import { useFarmerFormStore } from '../store/farmerForm.store.js';
 import { useNavigate } from 'react-router-dom';
 
 const SuccessPage = () => {
-  const { resetForm } = useFarmerFormStore();
+  const { resetForm, continueAnswering } = useFarmerFormStore();
   const navigate = useNavigate();
 
   const handleNewForm = () => {
     resetForm();
     navigate('/hvc/form/istcns');
+  };
+
+  const handleContinueAnswering = () => {
+    continueAnswering();
+    navigate('/hvc/form/a_fi');
   };
 
   const cardBg = 'white';
@@ -46,8 +51,20 @@ const SuccessPage = () => {
             </Text>  
 
           </Box>
-          {/* Content */}
-          <Box p={8} textAlign="center">
+          {/* Footer */}
+          <Box pt={8} pb={5} textAlign="center">
+            <Button
+              bg={'green.600'}
+              color="white"
+              _hover={{ bg: 'green.700' }}
+              size="lg"
+              onClick={handleContinueAnswering}
+            >
+              Magpasa ng Panibago
+            </Button>
+          </Box>
+
+          <Box pb={8} textAlign="center">
             <Button
               bg={accentColor}
               color="white"
@@ -55,7 +72,7 @@ const SuccessPage = () => {
               size="lg"
               onClick={handleNewForm}
             >
-              Magpasa ng Panibago
+              I-reset ang Form
             </Button>
           </Box>
         </Box>

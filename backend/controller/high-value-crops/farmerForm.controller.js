@@ -167,7 +167,31 @@ import mongoose from 'mongoose';
 //       return res.status(500).json({ message: 'Error creating others new', error });
 //   }
 // };
+export const getFarmerAccountByName = async (req, res) => {
+  const {  surname, first_name, middle_name, suffix, farmer_barangay } = req.body;
+  if (!surname || !first_name ) {
+    return res.status(400).json({ message: 'Farmer not found.' });
+  }
+  try {
+    const farmerAccount = await global.highValueCropsModels.FarmerAccount.findOne({
+      surname,
+      first_name,
+      middle_name: middle_name || '',
+      suffix: suffix|| '',
+      farmer_barangay
+    });
 
+    if (!farmerAccount) {
+      return res.status(404).json({ message: 'Farmer not found.' });
+    }
+
+    res.status(200).json(farmerAccount);
+  } catch (error) {
+    console.error('Error fetching farmer account:', error);
+    res.status(500).json({ message: 'Error fetching farmer account.', error: error.message });
+  }
+
+};
 
 export const submitCompleteFarmerForm = async (req, res) => {
   const {

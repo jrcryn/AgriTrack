@@ -9,6 +9,8 @@ import {
     getFarmerAccountById,
     updateFarmerAccount, //manipulate data
     createUnifiedFarmerResponse, //manipulate data
+    flagResponseForReview,
+    unflagResponseForReview,
     getAvailableMetricsYears,
     getAvailableMonthsForYear,
     getMetricsForYearMonth
@@ -20,7 +22,8 @@ import {
 } from '../controller/high-value-crops/genReports.controller.js';
 
 import {
-    submitCompleteFarmerForm
+    submitCompleteFarmerForm,
+    getFarmerAccountByName
 } from '../controller/high-value-crops/farmerForm.controller.js';
 
 import { verifyAuthToken } from '../middleware/verifyToken.js';
@@ -35,6 +38,8 @@ const router = express.Router();
 
 router.get('/get-unvalidated-inputs', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), getUnvalidatedFarmerInputs);
 router.get('/get-validated-inputs', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), getValidatedFarmerInputs);
+router.post('/flag-response-for-review/:farmerId', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), flagResponseForReview);
+router.post('/unflag-response-for-review/:farmerId', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), unflagResponseForReview);
 
 
 //________________________________ DASHBOARD (FARMERS) PAGE ____________________________________
@@ -67,7 +72,7 @@ router.post('/generate-excel-report', verifyAuthToken, verifyRole(['HVCM']), gen
 
 
 router.post('/farmer-form-submission', submitCompleteFarmerForm)
-router.post('/get-farmer-account-by-id', getFarmerAccountById);
+router.post('/get-farmer-account-by-name', getFarmerAccountByName);
 
 
 

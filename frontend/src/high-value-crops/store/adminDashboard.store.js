@@ -229,6 +229,28 @@ export const useAdminDashboard = () => {
     }
   };
 
+  const flagResponseForReview = async (farmerId) => {
+    setError(null);
+    try {
+      const response = await axios.post(`${API_URL}/api/hvc/flag-response-for-review/${farmerId}`);
+      return response.data; 
+    } catch (error) {
+      setError(error.message || 'Failed to flag farmer response for review.');
+      throw error; 
+    } 
+  };
+
+  const unflagResponseForReview = async (farmerId) => {
+    setError(null);
+    try {
+      const response = await axios.post(`${API_URL}/api/hvc/unflag-response-for-review/${farmerId}`);
+      return response.data; 
+    } catch (error) {
+      setError(error.message || 'Failed to flag farmer response for review.');
+      throw error; 
+    } 
+  };
+
   const getFarmerAccountById = async (farmerId) => {
     try {
       const response = await axios.post(`${API_URL}/api/hvc/get-farmer-account`, farmerId);
@@ -323,6 +345,8 @@ export const useAdminDashboard = () => {
     createFarmerAccount,
     deleteFarmerAccount,
     createUnifiedFarmerResponse,
+    flagResponseForReview,
+    unflagResponseForReview,
     generateExcelReport,
     updateFarmerAccount
   };

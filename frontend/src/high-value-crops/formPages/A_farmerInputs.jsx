@@ -20,36 +20,42 @@ import {
 } from '@chakra-ui/react';
 import { useFarmerFormStore } from '../store/farmerForm.store.js';
 import { usePublicFormStore } from '../store/farmerForm.store.js';
-import Barangays from '../../components/barangays';
+import Barangays from '../../components/barangays.js';
 import { FaUserCheck, FaSearch } from 'react-icons/fa';
 
 const FarmerInput = ({ onNext, onBack }) => {
 
   // Get the existing farmer input data from the store
   const { formData, updateFarmerInput, isLoading } = useFarmerFormStore();
-  const { getFarmerAccountById } = usePublicFormStore();
+  const { getFarmerAccountByName } = usePublicFormStore();
   
   // Initialize form data with existing data from the store
   const [localFormData, setLocalFormData] = useState(formData.farmerInput);
   const [isFormValid, setIsFormValid] = useState(false);
   
-  // State for farmer ID search
-  const [farmerInitials, setFarmerInitials] = useState('');
-  const [farmerIdNumber, setFarmerIdNumber] = useState('');
   const [isSearching, setIsSearching] = useState(false);
+
+  //for farmer account search
+  const [farmerName, setFarmerName] = useState('');
+  const [farmerMiddleName, setFarmerMiddleName] = useState('');
+  const [farmerSurname, setFarmerSurname] = useState('');
+  const [farmerSuffix, setFarmerSuffix] = useState('');
+  const [farmerLocation, setFarmerLocation] = useState('');
+
+
   // Set isFarmerSelected based on whether farmerId exists in the store
   const [isFarmerSelected, setIsFarmerSelected] = useState(!!formData.farmerInput.farmerId);
 
   // Set initial search fields if a farmer is already selected
   useEffect(() => {
     if (formData.farmerInput.farmerId) {
-      const idParts = formData.farmerInput.farmerId.split('-');
-      if (idParts.length === 3) { // format: F-ABC-1234
-        setFarmerInitials(idParts[1]);
-        setFarmerIdNumber(idParts[2]);
-      }
+      setFarmerSurname(formData.farmerInput.surname);
+      setFarmerName(formData.farmerInput.first_name);
+      setFarmerMiddleName(formData.farmerInput.middle_name);
+      setFarmerSuffix(formData.farmerInput.suffix);
+      setFarmerLocation(formData.farmerInput.farmer_location);
     }
-  }, [formData.farmerInput.farmerId]);
+  }, [formData.farmerInput]);
 
   const toast = useToast();
 
@@ -66,12 +72,12 @@ const FarmerInput = ({ onNext, onBack }) => {
 
   // Find farmer by ID
   const handleFindFarmer = async () => {
-    if (!farmerInitials || !farmerIdNumber) {
+    if (!farmerName || !farmerSurname) {
       toast({
-        title: "Incomplete Farmer ID",
-        description: "Please enter both initials and number",
+        title: "Incomplete Farmer Information",
+        description: "Please enter at least a name and surname to search.",
         status: "warning",
-        duration: 3000,
+        duration: 5000,
         isClosable: true,
       });
       return;
@@ -79,20 +85,19 @@ const FarmerInput = ({ onNext, onBack }) => {
 
     setIsSearching(true);
     try {
-      const formattedFarmerId = `F-${farmerInitials.toUpperCase()}-${farmerIdNumber}`;
       
-      const response = await getFarmerAccountById({ farmerId: formattedFarmerId });
+      const response = await getFarmerAccountByName( farmerSurname, farmerName, farmerMiddleName, farmerSuffix, farmerLocation );
       
       if (response) {
         // Populate form data with farmer information
         const updatedFormData = {
-          farmerId: response._id, // This is the MongoDB ObjectId
-          displayFarmerId: formattedFarmerId, // formatted ID for display
-          surname: response.surname || '',
-          first_name: response.first_name || '',
-          middle_name: response.middle_name || '',
-          suffix: response.suffix || '',
+          farmerId: response._id, // MongoDB ObjectId
+          surname: farmerSurname || '',
+          first_name: farmerName || '',
+          middle_name: farmerMiddleName || '',
+          suffix: farmerSuffix || '',
           farm_location: '',
+          farmer_location: farmerLocation || '',
         };
         
         setLocalFormData(updatedFormData);
@@ -102,8 +107,8 @@ const FarmerInput = ({ onNext, onBack }) => {
         setIsFarmerSelected(true);
         
         toast({
-          title: "Farmer Found",
-          description: `Found ${response.first_name} ${response.surname}`,
+          title: "Success",
+          description: `Found ${farmerName} ${farmerSurname}.`,
           status: "success",
           duration: 3000,
           isClosable: true,
@@ -111,8 +116,8 @@ const FarmerInput = ({ onNext, onBack }) => {
       }
     } catch (error) {
       toast({
-        title: "Farmer Not Found",
-        description: "No farmer with that ID exists in the system",
+        title: "Error",
+        description: "Farmer not found.",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -126,8 +131,6 @@ const FarmerInput = ({ onNext, onBack }) => {
   const handleResetFarmerSelection = () => {
     // First update the form data
     const resetData = {
-      farmerId: '', 
-      displayFarmerId: '', 
       surname: '',
       first_name: '',
       middle_name: '',
@@ -143,15 +146,18 @@ const FarmerInput = ({ onNext, onBack }) => {
     
     // Finally update UI state with small delay to ensure re-render
     setTimeout(() => {
+      setFarmerName('');
+      setFarmerSurname('');
+      setFarmerMiddleName('');
+      setFarmerSuffix('');
+      setFarmerLocation('');
       setIsFarmerSelected(false);
-      setFarmerInitials('');
-      setFarmerIdNumber('');
     }, 10);
   };
 
   useEffect(() => {
-    const { surname, first_name, farm_location } = localFormData;
-    setIsFormValid(surname && first_name && farm_location);
+    const { farm_location } = localFormData;
+    setIsFormValid(farm_location);
   }, [localFormData]);
   
   const cardBg = 'white';
@@ -193,103 +199,7 @@ const FarmerInput = ({ onNext, onBack }) => {
           <Box p={8}>
 
             <VStack spacing={6} align="stretch" key={isFarmerSelected ? 'selected' : 'not-selected'}>
-              <Box>                
-                {/* Improved Farmer ID Search */}
-                <form onSubmit={handleFindFarmer}>
-                <Box>
-                  <FormControl isRequired>
-                  <FormLabel mb={3} fontWeight="medium">
-                    Enter your Farmer ID:
-                  </FormLabel>
-                  </FormControl>
-                  
-                  <Flex 
-                    direction={{ base: "column", md: "row" }}
-                    align={{ base: "stretch", md: "flex-end" }}
-                    gap={4}
-                  >
-                    <Box width={{ base: "100%", md: "60%" }}>
-                      <HStack spacing={0} width="100%">
-                        <Box
-                          bg="gray.100"
-                          px={3}
-                          py={2}
-                          borderLeftRadius="md"
-                          fontWeight="medium"
-                          height="40px"
-                          display="flex"
-                          alignItems="center"
-                        >
-                          F-
-                        </Box>
-                        <Input
-                          placeholder="Initials"
-                          bg="white"
-                          type="text"
-                          borderRadius="0"
-                          maxLength={4}
-                          value={farmerInitials}
-                          onChange={(e) => setFarmerInitials(e.target.value.toUpperCase())}
-                          isDisabled={isFarmerSelected}
-                          _focus={{ borderColor: "blue.400" }}
-                        />
-                        <Box
-                          bg="gray.100"
-                          px={2}
-                          py={2}
-                          fontWeight="medium"
-                          height="40px"
-                          display="flex"
-                          alignItems="center"
-                        >
-                          -
-                        </Box>
-                        <Input
-                          placeholder="Number"
-                          bg="white"
-                          type="text"
-                          inputMode="numeric"
-                          pattern="\d*"
-                          borderRightRadius="md"
-                          borderLeftRadius="0"
-                          value={farmerIdNumber}
-                          onChange={(e) => {
-                            const value = e.target.value.replace(/\D/g, '').slice(0, 4);
-                            setFarmerIdNumber(value);
-                          }}
-                          isDisabled={isFarmerSelected}
-                          _focus={{ borderColor: "blue.400" }}
-                        />
-                      </HStack>
-                    </Box>
-                    
-                    {!isFarmerSelected ? (
-                      <Button
-                        leftIcon={<FaSearch />}
-                        colorScheme="blue"
-                        onClick={handleFindFarmer}
-                        type="submit"
-                        isLoading={isSearching}
-                        loadingText="Searching"
-                      >
-                        Find Farmer
-                      </Button>
-                    ) : (
-                      <Button
-                        colorScheme="gray"
-                        onClick={handleResetFarmerSelection}
-                        variant="outline"
-                      >
-                        Reset Selection
-                      </Button>
-                    )}
-                  </Flex>
-                </Box>
-                </form>
-              </Box>
 
-              <Divider />
-              
               <Text 
                 fontSize="sm" 
                 fontWeight="bold" 
@@ -301,95 +211,8 @@ const FarmerInput = ({ onNext, onBack }) => {
                 Personal Information
               </Text>
               
-              {!isFarmerSelected ? (
-                <>
                 <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
-                <FormControl id="surname">
-                  <FormLabel 
-                    fontSize="sm" 
-                    fontWeight="medium"
-                    color="gray.200"
-                  >
-                    APELYIDO
-                  </FormLabel>
-                  <Input 
-                    name='surname'
-                    borderRadius="md"
-                    isDisabled
-                  />
-                </FormControl>
-
-                <FormControl id="firstname">
-                  <FormLabel 
-                    fontSize="sm" 
-                    fontWeight="medium"
-                    color="gray.200"
-                  >
-                    UNANG PANGALAN 
-                  </FormLabel>
-                  <Input 
-                    name='first_name'
-                    borderRadius="md"
-                    isDisabled
-                  />
-                </FormControl>
-              </SimpleGrid>
-
-              <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
-                <FormControl id="middleName">
-                  <FormLabel 
-                    fontSize="sm" 
-                    fontWeight="medium"
-                    color="gray.200"
-                  >
-                    GITNANG PANGALAN
-                  </FormLabel>
-                  <Input 
-                    name='middle_name'
-                    borderRadius="md"
-                    focusBorderColor={accentColor}
-                    isDisabled
-                  />
-                </FormControl>
-
-                <FormControl id="suffix">
-                  <FormLabel 
-                    fontSize="sm" 
-                    fontWeight="medium"
-                    color="gray.200"
-                  >
-                    SUFFIX
-                  </FormLabel>
-                  <Input 
-                    name='suffix'
-                    borderRadius="md"
-                    focusBorderColor={accentColor}
-                    isDisabled
-                  />
-                </FormControl>
-              </SimpleGrid>
-
-              <SimpleGrid>
-                <FormControl id="farmLocation">
-                  <FormLabel 
-                    fontSize="sm" 
-                    fontWeight="medium"
-                    color="gray.200"
-                  >
-                    FARM LOCATION (PILIIN ANG BARANGAY KUNG NASAAN ANG INYONG TANIMAN)
-                  </FormLabel>
-                  <Input
-                    name='farm_location'
-                    borderRadius="md"
-                    isDisabled
-                  />
-                </FormControl>
-              </SimpleGrid>
-              </>
-              ) : (
-                <>
-                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
-                <FormControl id="surname">
+                <FormControl id="surname" isRequired>
                   <FormLabel 
                     fontSize="sm" 
                     fontWeight="medium"
@@ -399,16 +222,16 @@ const FarmerInput = ({ onNext, onBack }) => {
                   </FormLabel>
                   <Input 
                     name='surname'
-                    value={localFormData.surname}
-                    onChange={handleChange}
+                    value={farmerSurname}
+                    onChange={(e) => setFarmerSurname(e.target.value)}
                     placeholder="Your answer"
                     borderRadius="md"
                     focusBorderColor={accentColor}
-                    isReadOnly
+                    isDisabled={isFarmerSelected}
                   />
                 </FormControl>
 
-                <FormControl id="firstname">
+                <FormControl id="firstname" isRequired>
                   <FormLabel 
                     fontSize="sm" 
                     fontWeight="medium"
@@ -418,12 +241,12 @@ const FarmerInput = ({ onNext, onBack }) => {
                   </FormLabel>
                   <Input 
                     name='first_name'
-                    value={localFormData.first_name}
-                    onChange={handleChange}
+                    value={farmerName}
+                    onChange={(e) => setFarmerName(e.target.value)}
                     placeholder="Your answer"
                     borderRadius="md"
                     focusBorderColor={accentColor}
-                    isReadOnly
+                    isDisabled={isFarmerSelected}
                   />
                 </FormControl>
               </SimpleGrid>
@@ -439,12 +262,12 @@ const FarmerInput = ({ onNext, onBack }) => {
                   </FormLabel>
                   <Input 
                     name='middle_name'
-                    value={localFormData.middle_name}
-                    onChange={handleChange}
+                    value={farmerMiddleName}
+                    onChange={(e) => setFarmerMiddleName(e.target.value)}
                     placeholder="Your answer (optional)"
                     borderRadius="md"
                     focusBorderColor={accentColor}
-                    isReadOnly
+                    isDisabled={isFarmerSelected}
                   />
                 </FormControl>
 
@@ -456,19 +279,83 @@ const FarmerInput = ({ onNext, onBack }) => {
                   >
                     SUFFIX
                   </FormLabel>
-                  <Input
+                  <Select
                     name='suffix'
-                    value={localFormData.suffix}
-                    onChange={handleChange}
-                    placeholder="-"
+                    value={farmerSuffix}
+                    onChange={(e) => setFarmerSuffix(e.target.value)}
+                    placeholder="E.g., Jr., Sr., III (optional)"
                     borderRadius="md"
                     focusBorderColor={accentColor}
-                    isReadOnly
-                  />
+                    isDisabled={isFarmerSelected}
+                  >
+                      <option value="Jr.">Jr.</option>
+                      <option value="Sr.">Sr.</option>
+                      <option value="II">II</option>
+                      <option value="III">III</option>
+                      <option value="IV">IV</option>
+                      <option value="V">V</option>
+                  </Select>
+                </FormControl>
+
+                <FormControl id="farmerLocation" isRequired>
+                  <FormLabel 
+                    fontSize="sm" 
+                    fontWeight="medium"
+                    color="gray.600"
+                  >
+                    FARMER RESIDENT BARANGAY
+                  </FormLabel>
+                  <Select 
+                    name='farmer_location'
+                    value={farmerLocation}
+                    onChange={(e) => setFarmerLocation(e.target.value)}
+                    placeholder="Select Barangay"
+                    borderRadius="md"
+                    focusBorderColor={accentColor}
+                    isDisabled={isFarmerSelected}
+                  >
+                    {Barangays.map((barangay) => (
+                      <option key={barangay} value={barangay}>
+                        {barangay}
+                      </option>
+                    ))}
+                  </Select>
                 </FormControl>
               </SimpleGrid>
 
-              <SimpleGrid>
+              {!isFarmerSelected ? (
+                 <Button
+                  bg={accentColor}
+                  color="white"
+                  _hover={{ bg: 'blue.700' }}
+                  isLoading={isSearching}
+                  onClick={handleFindFarmer}
+                  px={8}
+                  borderRadius="md"
+                  isDisabled={!farmerName || !farmerSurname || !farmerLocation}
+                >
+                  Find Farmer
+                </Button>
+              ): (
+                  <Button 
+                    variant={'outline'}
+                    colorScheme='green'
+                    isLoading={isSearching}
+                    onClick={handleResetFarmerSelection}
+                    px={8}
+                    borderRadius="md"
+                  >
+                    Reset Farmer Selection
+                  </Button>
+              )}
+
+
+
+              {isFarmerSelected && (
+                 <Divider my={1} borderWidth={1} borderColor="gray.300" />
+              )}
+              {isFarmerSelected && (
+                <SimpleGrid>
                 <FormControl id="farmLocation" isRequired>
                   <FormLabel 
                     fontSize="sm" 
@@ -493,9 +380,8 @@ const FarmerInput = ({ onNext, onBack }) => {
                   </Select>
                 </FormControl>
               </SimpleGrid>
-              
-              </>
               )}
+
             </VStack>
 
             {/* Navigation Buttons */}

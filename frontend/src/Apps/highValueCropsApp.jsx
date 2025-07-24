@@ -26,6 +26,8 @@ import D2_bc_Other_fctHarvest from '../high-value-crops/formPages/D2_bc-other-fc
 import D2_bc_Other_fctNew from '../high-value-crops/formPages/D2_bc-other-fctNew.jsx';
 import SuccessPage from '../high-value-crops/formPages/E_successPage.jsx';
 
+import { useFarmerFormStore } from '../high-value-crops/store/farmerForm.store.js';
+
 //redirect authenticated users
 const ProtectedRoute = ({children}) => {
     const {isAuthenticated, isCheckingAuth, user, checkAuth} = useAuthStore();
@@ -76,6 +78,7 @@ const highValueCropsApp = () => {
 
   // this ref will flip to true whenever we do an in-app Next/Back
   const hasInteractedRef = useRef(false);
+  const { isContinueAnswering } = useFarmerFormStore();
 
   useEffect(() => {
     const isFormPath        = location.pathname.startsWith('/hvc/form');

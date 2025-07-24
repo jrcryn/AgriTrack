@@ -425,6 +425,51 @@ const deleteRelatedDocuments = async (farmerId, session) => {
 };
 
 
+export const flagResponseForReview = async (req, res) => {
+  const { farmerId } = req.params;
+
+  try {
+    const response = await global.highValueCropsModels.A_farmer_inputs.findById(farmerId);
+
+    if (!response) {
+      return res.status(404).json({ message: 'Farmer response not found.' });
+    };
+
+    await global.highValueCropsModels.A_farmer_inputs.updateOne(
+      { _id: farmerId },
+      { $set: { isForReview: true } }
+    );
+
+    return res.status(200).json({ message: 'Farmer response flagged for review.' });
+
+  } catch (error) {
+    res.status(500).json({ message: 'Error flagging response for review', error: error.message });
+  }
+};
+
+export const unflagResponseForReview = async (req, res) => {
+  const { farmerId } = req.params;
+
+  try {
+    const response = await global.highValueCropsModels.A_farmer_inputs.findById(farmerId);
+
+    if (!response) {
+      return res.status(404).json({ message: 'Farmer response not found.' });
+    };
+
+    await global.highValueCropsModels.A_farmer_inputs.updateOne(
+      { _id: farmerId },
+      { $set: { isForReview: false } }
+    );
+
+    return res.status(200).json({ message: 'Farmer response unflagged for review.' });
+
+  } catch (error) {
+    res.status(500).json({ message: 'Error unflagging response for review', error: error.message });
+  }
+};
+
+
 //________________________________ FARMERS ACCOUNT MANAGEMENT PAGE ____________________________________
 
 
