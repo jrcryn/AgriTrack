@@ -12,6 +12,7 @@ app.use(cookieParser());
 const allowedOrigins = [
     'https://frontend-service-cpbs.onrender.com', //production
     'https://staging-backend-y6jo.onrender.com', //staging
+    'https://agritrack-main.vercel.app',
     'http://localhost:5173',  
     process.env.CLIENT_URL,
 ];
