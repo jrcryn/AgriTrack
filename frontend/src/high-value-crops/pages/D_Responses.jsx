@@ -44,6 +44,7 @@ import {
 } from '@chakra-ui/react';
 import numOfTreesToHectares from '../../components/conversions.js';
 import { FaSearch, FaEye, FaSeedling, FaBoxes, FaUser, FaLeaf, FaWifi, FaUpload } from 'react-icons/fa';
+import { GoAlertFill } from "react-icons/go";
 import { useAdminDashboard } from '../store/adminDashboard.store.js';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -54,10 +55,13 @@ const Responses = () => {
   const [harvestingPage, setHarvestingPage] = useState(1);
   const [selectedResponse, setSelectedResponse] = useState(null);
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const { isOpen: isOpenWarning, onOpen: onOpenWarning, onClose: onCloseWarning } = useDisclosure();
+  const { isOpen: isOpenWarningBatch, onOpen: onOpenWarningBatch, onClose: onCloseWarningBatch } = useDisclosure();
 
   const [selectedNewlyPlanted, setSelectedNewlyPlanted] = useState([]);
   const [selectedHarvesting, setSelectedHarvesting] = useState([]);
   const [isBatchProcessing, setIsBatchProcessing] = useState(false);
+  const [pushType, setPushType] = useState(null);
 
   const [isUpdatingForReview, setIsUpdatingForReview] = useState(false);
 
@@ -216,14 +220,15 @@ const Responses = () => {
         } else {
           setSelectedHarvesting([]);
         }
-        
+
+        onCloseWarningBatch();
         // Refresh the data
         queryClient.invalidateQueries({ queryKey: ['unvalidatedInputs'] });
         
       } catch (error) {
         toast({
           title: "Error",
-          description: "An error occurred during batch processing.",
+          description:  error.response?.data?.message,
           status: "error",
           duration: 5000,
           isClosable: true,
@@ -688,6 +693,7 @@ const Responses = () => {
       
       // Close the modal after successful submission
       onClose();
+      onCloseWarning();
       
     } catch (error) {
       console.error("Error submitting response:", error);
@@ -1172,8 +1178,7 @@ const Responses = () => {
                 <Button
                   colorScheme="green"
                   leftIcon={<Icon as={FaUpload} />}
-                  onClick={() => handleBatchPush(selectedNewlyPlanted, newlyPlantedResponses, 'NEWLY_PLANTED')}
-                  isLoading={isBatchProcessing}
+                  onClick={() => {setPushType('NEWLY_PLANTED'); onOpenWarningBatch();}}
                   ml={4}
                   p={3}
                   size="sm"
@@ -1232,8 +1237,7 @@ const Responses = () => {
                 <Button
                   colorScheme="orange"
                   leftIcon={<Icon as={FaUpload} />}
-                  onClick={() => handleBatchPush(selectedHarvesting, harvestingResponses, 'HARVESTING')}
-                  isLoading={isBatchProcessing}
+                  onClick={() => {setPushType('HARVESTING'); onOpenWarningBatch();}}
                   ml={4}
                   p={3}
                   size="sm"
@@ -1367,8 +1371,7 @@ const Responses = () => {
             <Tooltip label="Cannot push responses that are flagged for review." placement="top" hasArrow isDisabled={!selectedResponse?.farmerInput?.isForReview === true}>
             <Button 
               colorScheme="green" 
-              onClick={handleModalSubmit}
-              isLoading={isCreatingUnifiedResponse}
+              onClick={onOpenWarning}
               size={"md"}
               pl={8}
               pr={8}
@@ -1381,6 +1384,98 @@ const Responses = () => {
             </Button>
             </Tooltip>
 
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      <Modal isOpen={isOpenWarning} size="xs" onClose={onCloseWarning} closeOnOverlayClick={false} scrollBehavior="inside" isCentered>
+        <ModalOverlay/>
+        <ModalContent borderRadius="lg" overflow="hidden">
+          <ModalHeader
+            bg="orange.50" 
+            borderBottomWidth="1px"
+            borderColor="gray.200"
+            py={4}
+            display="flex" 
+            alignItems="center"
+          >
+            <Icon as={GoAlertFill} mr={2} color="orange.500" />
+            Confirm Action
+          </ModalHeader>
+
+          <ModalFooter bg="gray.50" borderTopWidth="1px" borderColor="gray.200">
+            <Flex w="100%">
+            <Button 
+              variant="outline" 
+              mr={3} 
+              onClick={onCloseWarning}
+              size="md"
+              _hover={{ bg: "gray.100" }}
+              w={"40%"}
+            >
+              Cancel
+            </Button>
+            <Spacer/>
+            <Button 
+                colorScheme="green"
+                onClick={handleModalSubmit}
+                isLoading={isCreatingUnifiedResponse}
+                size="md"
+                _hover={{ boxShadow: "md", bg: "green.600" }}
+                w={"60%"}
+            >
+              Push To Records
+            </Button>
+            </Flex>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      <Modal isOpen={isOpenWarningBatch} size="xs" onClose={onCloseWarningBatch} closeOnOverlayClick={false} scrollBehavior="inside" isCentered>
+        <ModalOverlay/>
+        <ModalContent borderRadius="lg" overflow="hidden">
+          <ModalHeader
+            bg="orange.50" 
+            borderBottomWidth="1px"
+            borderColor="gray.200"
+            py={4}
+            display="flex" 
+            alignItems="center"
+          >
+            <Icon as={GoAlertFill} mr={2} color="orange.500" />
+            Confirm Action
+          </ModalHeader>
+
+          <ModalFooter bg="gray.50" borderTopWidth="1px" borderColor="gray.200">
+            <Flex w="100%">
+            <Button 
+              variant="outline" 
+              mr={3} 
+              onClick={onCloseWarningBatch}
+              size="md"
+              _hover={{ bg: "gray.100" }}
+              w={"40%"}
+            >
+              Cancel
+            </Button>
+            <Spacer/>
+            <Button 
+                colorScheme="green"
+                size="md"
+                _hover={{ boxShadow: "md", bg: "green.600" }}
+                w={"60%"}
+                onClick={() => {
+                  if (pushType === 'NEWLY_PLANTED') {
+                    handleBatchPush(selectedNewlyPlanted, newlyPlantedResponses, 'NEWLY_PLANTED');
+                  } else if (pushType === 'HARVESTING') {
+                    handleBatchPush(selectedHarvesting, harvestingResponses, 'HARVESTING');
+                  }
+                }}
+                isLoading={isBatchProcessing}
+            >
+              Push {pushType === 'NEWLY_PLANTED' ? selectedNewlyPlanted.length : selectedHarvesting.length} Selected
+            </Button>
+            </Flex>
           </ModalFooter>
         </ModalContent>
       </Modal>
