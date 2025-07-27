@@ -43,7 +43,7 @@ import {
   Spacer,
   Tooltip
 } from "@chakra-ui/react";
-import { FaSearch, FaEye, FaEdit, FaUserPlus, FaUsers, FaUser, FaAddressCard, FaWifi } from "react-icons/fa";
+import { FaSearch, FaEye, FaEdit, FaUserPlus, FaUsers, FaUser, FaAddressCard, FaInfo } from "react-icons/fa";
 import { GoAlertFill } from "react-icons/go";
 import { useAdminDashboard } from '../store/adminDashboard.store';
 import { useQueryClient } from '@tanstack/react-query';
@@ -423,7 +423,7 @@ const E_Farmers = () => {
       >
         <SimpleGrid columns={{ base: 1, md: 2 }} spacing={{ base: 4, md: 6 }} alignItems="flex-end">
           {/* General Search */}
-          <Tooltip label="Complete details give more accurate results." position="bottom" hasArrow>
+          
           <Box>
             
             <HStack
@@ -432,7 +432,9 @@ const E_Farmers = () => {
               justifyContent="flex-start"
             >
               <Icon as={FaSearch} color="blue.500" />
-              <Text fontWeight="medium" fontSize={'sm'}>Search by:</Text>
+              <Text fontWeight="medium" fontSize={'sm'}>
+                Search by: <Tooltip label="Complete details give more accurate results. It is case insensitive and can handle complex search queries, but WRONG SPELLING and SPACES may give no results. " position="bottom" hasArrow>(<Icon as={FaInfo} color="blue.500" boxSize={3} />)</Tooltip>
+              </Text>
             </HStack>
             
             
@@ -449,7 +451,7 @@ const E_Farmers = () => {
               </InputRightElement>
             </InputGroup>
           </Box>
-          </Tooltip>
+          
           
           {/* Add Farmer Button */}
           <Button

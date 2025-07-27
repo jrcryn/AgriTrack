@@ -552,19 +552,31 @@ export const deleteFarmerAccount = async (req, res) => {
 export const getFarmerAccounts = async (req, res) => {
   try {
     const { farmerName } = req.query;
-    const filter = {};
+    let filter = {};
 
-    if (farmerName) {
-      const searchRegex = new RegExp(farmerName, 'i'); // 'i' for case-insensitive
-      filter.$or = [
-        { first_name: searchRegex },
-        { surname: searchRegex },
-        { farmer_barangay: searchRegex },
-        { mobile_number: searchRegex },
-        { farmerId: searchRegex },
-        // A bit more complex to search full name
-        { $expr: { $regexMatch: { input: { $concat: ["$first_name", " ", "$surname"] }, regex: searchRegex } } }
+    if (farmerName && farmerName.trim() !== '') {
+      // Split the search query into individual words
+      const searchWords = farmerName.trim().split(/\s+/);
+      
+      const fieldsToSearch = [
+        'first_name', 
+        'middle_name', 
+        'surname', 
+        'suffix', 
+        'farmer_barangay', 
+        'mobile_number', 
+        'farmerId'
       ];
+
+      // Build an $and query where each word must be found in at least one of the fields
+      filter = {
+        $and: searchWords.map(word => {
+          const orConditions = fieldsToSearch.map(field => ({
+            [field]: { $regex: new RegExp(word, 'i') }
+          }));
+          return { $or: orConditions };
+        })
+      };
     }
 
     const farmerAccounts = await global.highValueCropsModels.FarmerAccount.find(filter).lean();
