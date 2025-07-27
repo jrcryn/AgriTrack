@@ -174,10 +174,10 @@ export const getFarmerAccountByName = async (req, res) => {
   }
   try {
     const farmerAccount = await global.highValueCropsModels.FarmerAccount.findOne({
-      surname,
-      first_name,
-      middle_name: middle_name || '',
-      suffix: suffix|| '',
+      surname: {$regex: `^${surname}$`, $options: 'i'},
+      first_name: {$regex: `^${first_name}$`, $options: 'i'},
+      middle_name: middle_name ? {$regex: `^${middle_name}$`, $options: 'i'} : '',
+      suffix: suffix || '',
       farmer_barangay
     });
 

@@ -551,7 +551,35 @@ export const deleteFarmerAccount = async (req, res) => {
 // Get all farmer accounts
 export const getFarmerAccounts = async (req, res) => {
   try {
-    const farmerAccounts = await global.highValueCropsModels.FarmerAccount.find().lean();
+    const { farmerName } = req.query;
+    let filter = {};
+
+    if (farmerName && farmerName.trim() !== '') {
+      // Split the search query into individual words
+      const searchWords = farmerName.trim().split(/\s+/);
+      
+      const fieldsToSearch = [
+        'first_name', 
+        'middle_name', 
+        'surname', 
+        'suffix', 
+        'farmer_barangay', 
+        'mobile_number', 
+        'farmerId'
+      ];
+
+      // Build an $and query where each word must be found in at least one of the fields
+      filter = {
+        $and: searchWords.map(word => {
+          const orConditions = fieldsToSearch.map(field => ({
+            [field]: { $regex: new RegExp(word, 'i') }
+          }));
+          return { $or: orConditions };
+        })
+      };
+    }
+
+    const farmerAccounts = await global.highValueCropsModels.FarmerAccount.find(filter).lean();
     res.json(farmerAccounts);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching farmer accounts', error: error.message });
@@ -579,6 +607,33 @@ export const getFarmerAccountById = async (req, res) => {
   }
 };
 
+// get farmer accounts by name or farmer Id
+export const getFarmerAccountByNameUser = async (req, res) => {
+  const {  surname, first_name, middle_name, suffix, farmer_barangay, farmer_id } = req.body;
+  if (!surname || !first_name ) {
+    return res.status(400).json({ message: 'Farmer not found.' });
+  }
+  try {
+    const farmerAccount = await global.highValueCropsModels.FarmerAccount.find({
+      surname: {$regex: `^${surname}$`, $options: 'i'},
+      first_name: {$regex: `^${first_name}$`, $options: 'i'},
+      middle_name: middle_name ? {$regex: `^${middle_name}$`, $options: 'i'} : '',
+      suffix: suffix || '',
+      farmer_barangay,
+      farmerId: farmer_id
+    });
+
+    if (!farmerAccount) {
+      return res.status(404).json({ message: 'Farmer not found.' });
+    }
+
+    res.status(200).json(farmerAccount);
+  } catch (error) {
+    console.error('Error fetching farmer account:', error);
+    res.status(500).json({ message: 'Error fetching farmer account.', error: error.message });
+  }
+
+};
 
 // Update a farmer account by ID
 export const updateFarmerAccount = async (req, res) => {
