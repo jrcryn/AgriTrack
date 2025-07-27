@@ -6,7 +6,7 @@ import { loginLimiter, forgotPasswordLimiter } from '../middleware/rateLimiter.j
 
 const router = express.Router();
 
-router.post('/register', register); // ililipat in the future to a separate route for admin job controllers
+router.post('/register', verifyAuthToken, register); // ililipat in the future to a separate route for admin job controllers
 
 router.get('/check-auth', verifyAuthToken, checkAuth);
 router.post('/login', loginLimiter, login);
