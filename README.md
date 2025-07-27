@@ -7,6 +7,6 @@ Researchers:
       Jerico Ryan M. Celestino – Developer,
       Rainer M. Culubong,
       John Christian G. Guevara,
-      Jenelle G. Recalde,
+      Jenelle G. Recalde
 
 //more details after project completion
