@@ -92,10 +92,10 @@ const FarmerInput = ({ onNext, onBack }) => {
         // Populate form data with farmer information
         const updatedFormData = {
           farmerId: response._id, // MongoDB ObjectId
-          surname: farmerSurname || '',
-          first_name: farmerName || '',
-          middle_name: farmerMiddleName || '',
-          suffix: farmerSuffix || '',
+          surname: response.surname || '',
+          first_name: response.first_name || '',
+          middle_name: response.middle_name || '',
+          suffix: response.suffix || '',
           farm_location: '',
           farmer_location: farmerLocation || '',
         };
@@ -108,7 +108,7 @@ const FarmerInput = ({ onNext, onBack }) => {
         
         toast({
           title: "Success",
-          description: `Found ${farmerName} ${farmerSurname}.`,
+          description: `Found ${response.first_name} ${response.surname}.`,
           status: "success",
           duration: 3000,
           isClosable: true,

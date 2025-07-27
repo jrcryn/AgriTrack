@@ -2,6 +2,7 @@ import axios from 'axios';
 import { create } from 'zustand';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
+import debounce from 'lodash/debounce';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -48,17 +49,44 @@ export const useValidatedInputsQuery = () =>
 //   });
 // };
 
-export const useFarmerAccountsQuery = () => 
-  useQuery({
-    queryKey: ['farmerAccounts'],
-    queryFn: async () => {
+const useDebounce = (value, delay) => {
+  const [debouncedValue, setDebouncedValue] = useState(value);
 
-      const response = await axios.get(`${API_URL}/api/hvc/get-farmer-accounts`);
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+};
+
+export const useFarmerAccountsQuery = (searchParams = {}) => {
+  const debouncedSearchParams = useDebounce(searchParams, 300);
+
+  return useQuery({
+    queryKey: ['farmerAccounts', debouncedSearchParams],
+    queryFn: async () => {
+      //await new Promise(resolve => setTimeout(resolve, 5000));
+      const params = new URLSearchParams();
+
+      if (debouncedSearchParams.farmerName) {
+        params.append('farmerName', debouncedSearchParams.farmerName);
+      };
+
+
+      const response = await axios.get(`${API_URL}/api/hvc/get-farmer-accounts`, { params });
       return response.data;
     },
     staleTime: 0, // Data is always fresh
-    refetchInterval: 1000 // Refetch every second
+    refetchInterval: 10000, // Refetch every 10 seconds
+    keepPreviousData: true, // Keep previous data while loading new data
   });
+};
 
 export const useUnifiedFarmerResponseYearQuery = () =>
   useQuery({
@@ -138,7 +166,7 @@ export const useDateRangesQuery = (year, month) =>
 
 
 // Composite hook that combines React Query and Zustand
-export const useAdminDashboard = () => {
+export const useAdminDashboard = (searchParams = {}) => {
 
   const [selectedYear, setSelectedYear] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState(null);
@@ -149,7 +177,7 @@ export const useAdminDashboard = () => {
   const { data: unvalidatedInputs = [], isLoading: isLoadingUnvalidated, error: unvalidatedError } = useUnvalidatedInputsQuery();
   const { data: validatedInputs = [], isLoading: isLoadingValidated, error: validatedError } = useValidatedInputsQuery();
   //const { mutate: updateFarmerInput, isPending: isUpdating, error: updateError } = useUpdateFarmerInputMutation();
-  const { data: farmerAccounts = [], isLoading: isLoadingAccounts, error: accountsError } = useFarmerAccountsQuery();
+  const { data: farmerAccounts = [], isLoading: isLoadingAccounts, error: accountsError } = useFarmerAccountsQuery(searchParams);
 
   const { data: availableYears = [], isLoading: isLoadingUFRY } = useUnifiedFarmerResponseYearQuery();
   const { data: availableMonths = [], isLoading: isLoadingUFRM } = useUnifiedFarmerResponseMonthsQuery(selectedYear);
@@ -164,6 +192,7 @@ export const useAdminDashboard = () => {
   const [isCreatingUnifiedResponse, setIsCreatingUnifiedResponse] = useState(false);
   const [isDeletingFarmerAccount, setIsDeletingFarmerAccount] = useState(false);
   const [isCreatingFarmerAccount, setIsCreatingFarmerAccount] = useState(false);
+  const [isFindingFarmerAccount, setIsFindingFarmerAccount] = useState(false);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [isUpdatingFarmerAccount, setIsUpdatingFarmerAccount] = useState(false);
 
@@ -189,6 +218,16 @@ export const useAdminDashboard = () => {
   }, [selectedYear]);
 
 
+  useEffect(() => {
+    const firstError = unvalidatedError || validatedError || accountsError || dateRangesError;
+    if (firstError) {
+      setError(firstError.message || 'An unexpected error occurred.');
+    } else {
+      setError(null);
+    }
+  }, [unvalidatedError, validatedError, accountsError, dateRangesError]);
+
+
   const createFarmerAccount = async (farmerData) => {
     setIsCreatingFarmerAccount(true);
     try {
@@ -201,6 +240,19 @@ export const useAdminDashboard = () => {
       setIsCreatingFarmerAccount(false);
     }
   };
+
+  const getFarmerAccountByNameUser = async (farmerData) => {
+    setIsFindingFarmerAccount(true);
+    try {
+      const response =  await axios.post(`${API_URL}/api/hvc/get-farmer-account-by-name-user`, farmerData);
+      return response.data;
+    } catch (error) {
+      setError(error.message || 'Failed to create farmer account');
+      throw error;
+    } finally {
+      setIsFindingFarmerAccount(false);
+    }
+  };////////////////////////////////////////////////////////////////////////////
 
   const deleteFarmerAccount = async (farmerId) => {
     setIsDeletingFarmerAccount(true);
@@ -300,11 +352,11 @@ export const useAdminDashboard = () => {
 
 
   // Combine errors from different sources
-  if (unvalidatedError) setError(unvalidatedError.message || 'Failed to fetch unvalidated inputs');
-  if (validatedError) setError(validatedError.message || 'Failed to fetch validated inputs');
-  // if (updateError) setError(updateError.message || 'Failed to update farmer input');
-  if (accountsError) setError(accountsError.message || 'Failed to fetch farmer accounts');
-  if (dateRangesError) setError(dateRangesError.message || 'Failed to fetch date ranges');
+  // if (unvalidatedError) setError(unvalidatedError.message || 'Failed to fetch unvalidated inputs');
+  // if (validatedError) setError(validatedError.message || 'Failed to fetch validated inputs');
+  // // if (updateError) setError(updateError.message || 'Failed to update farmer input');
+  // if (accountsError) setError(accountsError.message || 'Failed to fetch farmer accounts');
+  // if (dateRangesError) setError(dateRangesError.message || 'Failed to fetch date ranges');
 
   return {
     // Data
@@ -337,12 +389,13 @@ export const useAdminDashboard = () => {
     isUpdatingFarmerAccount,
     
     // Error state
-    error: unvalidatedError || validatedError || accountsError || dateRangesError,
+    error,
     clearError: () => setError(null),
 
     // Actions
     //updateFarmerInput,
     createFarmerAccount,
+    getFarmerAccountByNameUser,
     deleteFarmerAccount,
     createUnifiedFarmerResponse,
     flagResponseForReview,

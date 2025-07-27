@@ -40,7 +40,8 @@ import {
   AlertTitle,
   AlertDescription,
   Center,
-  Spacer
+  Spacer,
+  Tooltip
 } from "@chakra-ui/react";
 import { FaSearch, FaEye, FaEdit, FaUserPlus, FaUsers, FaUser, FaAddressCard, FaWifi } from "react-icons/fa";
 import { GoAlertFill } from "react-icons/go";
@@ -54,6 +55,10 @@ import "react-datepicker/dist/react-datepicker.css";
 
 const E_Farmers = () => {
 
+  const [farmerNameSearch, setFarmerNameSearch] = useState(''); //name and resident barangay search
+  const [currentPage, setCurrentPage] = useState(1);
+  const tableRef = useRef(null);
+
   const { 
     farmerAccounts,
     isCreatingFarmerAccount, 
@@ -64,12 +69,17 @@ const E_Farmers = () => {
     isLoading, 
     isUpdatingFarmerAccount, 
     updateFarmerAccount
-   } = useAdminDashboard();
+   } = useAdminDashboard({farmerName: farmerNameSearch});
 
   const [isEditMode, setIsEditMode] = useState(false);
   const [originalFormData, setOriginalFormData] = useState(null);
   const [selectedFarmerId, setSelectedFarmerId] = useState(null);
   const [hasChanges, setHasChanges] = useState(false);
+
+  // Reset pagination when search terms change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [farmerNameSearch]);
 
   useEffect(() => {
     // Apply styles directly to the DOM
@@ -317,46 +327,40 @@ const E_Farmers = () => {
     resetForm();
     onClose();
   };
-
-  const [searchQuery, setSearchQuery] = useState('');
-  const [farmerInitials, setFarmerInitials] = useState('');
-  const [farmerIdNumber, setFarmerIdNumber] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const tableRef = useRef(null);
   
   // Modal controls
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { isOpen: isDeleteModalOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure();
   
   // Filter farmers based on search query
-  const searchedFarmers = farmerAccounts.filter((farmers) => {
-    const fullName = `${farmers.first_name} ${farmers.middle_name} ${farmers.last_name} ${farmers.suffix}`.toLowerCase();
-    const farmerId = farmers.farmerId ? farmers.farmerId.toLowerCase() : '';
-    const location = farmers.farmer_barangay ? farmers.farmer_barangay.toLowerCase() : '';
-    const number = farmers.mobile_number ? farmers.mobile_number.toLowerCase() : '';
+  // const searchedFarmers = farmerAccounts.filter((farmers) => {
+  //   const fullName = `${farmers.first_name} ${farmers.middle_name} ${farmers.last_name} ${farmers.suffix}`.toLowerCase();
+  //   const farmerId = farmers.farmerId ? farmers.farmerId.toLowerCase() : '';
+  //   const location = farmers.farmer_barangay ? farmers.farmer_barangay.toLowerCase() : '';
+  //   const number = farmers.mobile_number ? farmers.mobile_number.toLowerCase() : '';
     
-    // General search
-    const matchesGeneralSearch = searchQuery ? (
-      fullName.includes(searchQuery.toLowerCase()) ||
-      location.includes(searchQuery.toLowerCase()) ||
-      number.includes(searchQuery.toLowerCase()) ||
-      farmerId.includes(searchQuery.toLowerCase())
-    ) : true;
+  //   // General search
+  //   const matchesGeneralSearch = searchQuery ? (
+  //     fullName.includes(searchQuery.toLowerCase()) ||
+  //     location.includes(searchQuery.toLowerCase()) ||
+  //     number.includes(searchQuery.toLowerCase()) ||
+  //     farmerId.includes(searchQuery.toLowerCase())
+  //   ) : true;
     
-    // Farmer ID specific search
-    let matchesFarmerId = true;
-    if (farmerInitials || farmerIdNumber) {
-      const farmerIdPattern = `f-${farmerInitials.toLowerCase()}-${farmerIdNumber.toLowerCase()}`;
-      matchesFarmerId = farmerId.includes(farmerIdPattern);
-    }
+  //   // Farmer ID specific search
+  //   let matchesFarmerId = true;
+  //   if (farmerInitials || farmerIdNumber) {
+  //     const farmerIdPattern = `f-${farmerInitials.toLowerCase()}-${farmerIdNumber.toLowerCase()}`;
+  //     matchesFarmerId = farmerId.includes(farmerIdPattern);
+  //   }
     
-    return matchesGeneralSearch && matchesFarmerId;
-  });
+  //   return matchesGeneralSearch && matchesFarmerId;
+  // });
   
   // Pagination calculation
   const itemsPerPage = 10;
-  const totalPages = Math.ceil(searchedFarmers.length / itemsPerPage);
-  const currentFarmers = searchedFarmers.slice(
+  const totalPages = Math.ceil(farmerAccounts.length / itemsPerPage);
+  const currentFarmers = farmerAccounts.slice(
     (currentPage - 1) * itemsPerPage, 
     currentPage * itemsPerPage
   );
@@ -417,9 +421,11 @@ const E_Farmers = () => {
         bg="blue.50"
         borderRadius="md"
       >
-        <SimpleGrid columns={{ base: 1, md: 3 }} spacing={{ base: 4, md: 6 }} alignItems="flex-end">
+        <SimpleGrid columns={{ base: 1, md: 2 }} spacing={{ base: 4, md: 6 }} alignItems="flex-end">
           {/* General Search */}
+          <Tooltip label="Complete details give more accurate results." position="bottom" hasArrow>
           <Box>
+            
             <HStack
               spacing={2}
               mb={2}
@@ -429,12 +435,13 @@ const E_Farmers = () => {
               <Text fontWeight="medium" fontSize={'sm'}>Search by:</Text>
             </HStack>
             
+            
             <InputGroup>
               <Input
-                placeholder="name or location..."
+                placeholder="Name, Barangay or Farmer ID..."
                 bg="white"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                value={farmerNameSearch}
+                onChange={(e) => setFarmerNameSearch(e.target.value)}
                 _focus={{ borderColor: "blue.400" }}
               />
               <InputRightElement pointerEvents="none">
@@ -442,61 +449,7 @@ const E_Farmers = () => {
               </InputRightElement>
             </InputGroup>
           </Box>
-          
-          {/* Farmer ID Search */}
-          <Box>
-            <HStack
-              spacing={2}
-              mb={2}
-              justifyContent="flex-start"
-            >
-              <Icon as={FaAddressCard} color="blue.500" />
-              <Text fontWeight="medium" fontSize={'sm'}>Search by Farmer ID:</Text>
-            </HStack>
-            
-            <Flex>
-              <Box
-                bg="gray.100"
-                px={3}
-                py={2}
-                borderLeftRadius="md"
-                display="flex"
-                alignItems="center"
-                fontWeight="medium"
-              >
-                F-
-              </Box>
-              <Input
-                placeholder="Initials"
-                bg="white"
-                value={farmerInitials}
-                onChange={(e) => setFarmerInitials(e.target.value)}
-                borderRadius="0"
-                maxLength={4}
-                _focus={{ borderColor: "blue.400" }}
-              />
-              <Box
-                bg="gray.100"
-                px={2}
-                py={2}
-                display="flex"
-                alignItems="center"
-                fontWeight="medium"
-              >
-                -
-              </Box>
-              <Input
-                placeholder="Number"
-                bg="white"
-                value={farmerIdNumber}
-                onChange={(e) => setFarmerIdNumber(e.target.value)}
-                borderRightRadius="md"
-                borderLeftRadius="0"
-                maxLength={4}
-                _focus={{ borderColor: "blue.400" }}
-              />
-            </Flex>
-          </Box>
+          </Tooltip>
           
           {/* Add Farmer Button */}
           <Button
@@ -615,7 +568,7 @@ const E_Farmers = () => {
             gap={{ base: 3, md: 0 }}
           >
             <Text color="gray.600">
-              Page {currentPage} of {totalPages || 1} ({searchedFarmers.length} total)
+              Page {currentPage} of {totalPages || 1} ({farmerAccounts.length} total)
             </Text>
             
             <HStack spacing={2}>

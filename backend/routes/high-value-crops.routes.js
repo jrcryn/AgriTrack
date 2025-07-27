@@ -6,7 +6,8 @@ import {
     createFarmerAccount, //manipulate data
     deleteFarmerAccount,
     getFarmerAccounts,
-    getFarmerAccountById,
+    getFarmerAccountByNameUser, 
+    getFarmerAccountById, // not in use
     updateFarmerAccount, //manipulate data
     createUnifiedFarmerResponse, //manipulate data
     flagResponseForReview,
@@ -48,6 +49,7 @@ router.post('/unflag-response-for-review/:farmerId', verifyAuthToken, verifyRole
 router.post('/create-farmer-account', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), createFarmerAccount);
 router.post('/delete-farmer-account', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), deleteFarmerAccount);
 router.get('/get-farmer-accounts', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), getFarmerAccounts);
+router.post('/get-farmer-account-by-name-user', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), getFarmerAccountByNameUser);
 router.post('/get-farmer-account', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), getFarmerAccountById);
 router.post('/create-unified-farmer-response', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), createUnifiedFarmerResponse);
 router.put('/farmer-accounts/update', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), updateFarmerAccount);
