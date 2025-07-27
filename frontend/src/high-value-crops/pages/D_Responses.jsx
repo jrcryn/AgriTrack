@@ -1140,7 +1140,7 @@ const Responses = () => {
         >
           <HStack spacing={2} mb={{ base: 2, md: 0 }}>
             <Icon as={FaSearch} color="blue.500" />
-            <Text fontSize='sm' fontWeight={'medium'}>Search:</Text>
+            <Text fontSize='sm' fontWeight={'medium'}>Search by:</Text>
           </HStack>
           
           <InputGroup width={{ base: "full", md: "sm" }} ml={{ base: 0, md: 4 }}>
