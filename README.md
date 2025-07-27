@@ -4,9 +4,9 @@ In Partial Fulfillment of the Requirements for the Degree of B.Sc., in Informati
 In collaboration with the City Agricultural Services Department, City Government of Calamba, Laguna, Philippines.
 
 Researchers:
-      Jerico Ryan M. Celestino – Developer
-      Rainer M. Culubong
-      John Christian G. Guevara
-      Jenelle G. Recalde
+      Jerico Ryan M. Celestino – Developer,
+      Rainer M. Culubong,
+      John Christian G. Guevara,
+      Jenelle G. Recalde,
 
 //more details after project completion
