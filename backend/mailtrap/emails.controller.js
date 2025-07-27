@@ -4,7 +4,7 @@ import { WELCOME_EMAIL_TEMPLATE, PASSWORD_RESET_REQUEST_TEMPLATE, PASSWORD_RESET
 export const sendWelcomeEmail = async (email, defaultPassword) => {
     const recipients = [{ email }];
 
-    const subject = "AgriTrack Credentials *TEST*";
+    const subject = "AgriTrack Credentials";
     const htmlContent = WELCOME_EMAIL_TEMPLATE
         .replace("{email}", email)
         .replace("{password}", defaultPassword);
@@ -26,7 +26,7 @@ export const sendWelcomeEmail = async (email, defaultPassword) => {
 export const sendPasswordResetEmail = async (email, resetURL) => {
     const recipients = [{ email }];
 
-    const subject = "Password Reset Request *TEST*";
+    const subject = "Password Reset Request";
     const htmlContent = PASSWORD_RESET_REQUEST_TEMPLATE
         .replace("{resetURL}", resetURL)
 
@@ -47,7 +47,7 @@ export const sendPasswordResetEmail = async (email, resetURL) => {
 export const sendPasswordResetSuccessEmail = async (email) => {
     const recipients = [{ email }];
 
-    const subject = "Password Reset Success *TEST*";
+    const subject = "Password Reset Success";
     const htmlContent = PASSWORD_RESET_SUCCESS_TEMPLATE;
 
     try {
