@@ -16,6 +16,7 @@ if (process.env.NODE_ENV === 'production') {
     '%cAny attempt to tamper with the system may be logged.',
     'font-size: 14px; font-style: italic; color: red;'
   );
+  console.log = () => {};
   console.warn = () => {};
   console.error = () => {};
 }
