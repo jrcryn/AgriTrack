@@ -757,7 +757,7 @@ const Responses = () => {
           <FormControl>
             <FormLabel fontWeight="medium">Full Name</FormLabel>
             <Input 
-              value={`${response.farmerInput.farmer_account_id?.first_name} ${response.farmerInput.farmer_account_id?.middle_name ? response.farmerInput.farmer_account_id.middle_name + ' ' : ''}${response.farmerInput.farmer_account_id?.surname} ${response.farmerInput.farmer_account_id?.suffix || ''}`}
+              value={`${response.farmerInput?.farmer_account_id?.first_name} ${response.farmerInput?.farmer_account_id?.middle_name ? response.farmerInput?.farmer_account_id.middle_name + ' ' : ''}${response.farmerInput?.farmer_account_id?.surname} ${response.farmerInput?.farmer_account_id?.suffix || ''}`}
               isReadOnly
               bg="gray.50"
               borderColor="gray.200"
@@ -1283,6 +1283,8 @@ const Responses = () => {
         size="3xl" 
         closeOnOverlayClick={false} 
         scrollBehavior="inside"
+        isCentered
+        motionPreset="none"
       >
         <ModalOverlay />
         <ModalContent borderRadius="lg" overflow="hidden">
@@ -1388,7 +1390,7 @@ const Responses = () => {
         </ModalContent>
       </Modal>
 
-      <Modal isOpen={isOpenWarning} size="xs" onClose={onCloseWarning} closeOnOverlayClick={false} scrollBehavior="inside" isCentered>
+      <Modal isOpen={isOpenWarning} size="xs" onClose={onCloseWarning} closeOnOverlayClick={false} scrollBehavior="inside" isCentered  motionPreset="none">
         <ModalOverlay/>
         <ModalContent borderRadius="lg" overflow="hidden">
           <ModalHeader
@@ -1431,7 +1433,7 @@ const Responses = () => {
         </ModalContent>
       </Modal>
 
-      <Modal isOpen={isOpenWarningBatch} size="xs" onClose={onCloseWarningBatch} closeOnOverlayClick={false} scrollBehavior="inside" isCentered>
+      <Modal isOpen={isOpenWarningBatch} size="xs" onClose={onCloseWarningBatch} closeOnOverlayClick={false} scrollBehavior="inside" isCentered  motionPreset="none">
         <ModalOverlay/>
         <ModalContent borderRadius="lg" overflow="hidden">
           <ModalHeader
