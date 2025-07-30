@@ -49,33 +49,17 @@ export const useValidatedInputsQuery = () =>
 //   });
 // };
 
-const useDebounce = (value, delay) => {
-  const [debouncedValue, setDebouncedValue] = useState(value);
-
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedValue(value);
-    }, delay);
-
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [value, delay]);
-
-  return debouncedValue;
-};
 
 export const useFarmerAccountsQuery = (searchParams = {}) => {
-  const debouncedSearchParams = useDebounce(searchParams, 300);
-
+ 
   return useQuery({
-    queryKey: ['farmerAccounts', debouncedSearchParams],
+    queryKey: ['farmerAccounts', searchParams],
     queryFn: async () => {
       //await new Promise(resolve => setTimeout(resolve, 5000));
       const params = new URLSearchParams();
 
-      if (debouncedSearchParams.farmerName) {
-        params.append('farmerName', debouncedSearchParams.farmerName);
+      if (searchParams.farmerName) {
+        params.append('farmerName', searchParams.farmerName);
       };
 
 

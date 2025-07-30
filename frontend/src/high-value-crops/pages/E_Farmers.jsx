@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
   Box,
   Heading,
@@ -48,6 +48,7 @@ import { GoAlertFill } from "react-icons/go";
 import { useAdminDashboard } from '../store/adminDashboard.store';
 import { useQueryClient } from '@tanstack/react-query';
 import Barangays from '../../components/barangays';
+import debounce from 'lodash/debounce';
 
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
@@ -56,8 +57,21 @@ import "react-datepicker/dist/react-datepicker.css";
 const E_Farmers = () => {
 
   const [farmerNameSearch, setFarmerNameSearch] = useState(''); //name and resident barangay search
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const tableRef = useRef(null);
+
+  const debouncedSetSearch = useMemo(
+    () => debounce((value) => setDebouncedSearch(value), 1000),
+    []
+  );
+
+  useEffect(() => {
+    debouncedSetSearch(farmerNameSearch);
+    return () => {
+      debouncedSetSearch.cancel();
+    };
+  }, [farmerNameSearch, debouncedSetSearch]);
 
   const { 
     farmerAccounts,
@@ -599,7 +613,7 @@ const E_Farmers = () => {
       </Box>
       
       {/* Add/Edit Farmer Modal */}
-      <Modal isOpen={isOpen} onClose={handleCloseModal} size="2xl" closeOnOverlayClick={false} scrollBehavior="inside">
+      <Modal isOpen={isOpen} onClose={handleCloseModal} size="2xl" closeOnOverlayClick={false} scrollBehavior="inside"  motionPreset="none">
         <ModalOverlay/>
         <ModalContent borderRadius="md" overflow="hidden" boxShadow="lg">
           <ModalHeader bg="blue.50" borderBottomWidth="1px" borderColor="gray.200" display="flex" alignItems="center" py={4}>
@@ -838,7 +852,8 @@ const E_Farmers = () => {
           </ModalFooter>
         </ModalContent>
       </Modal>
-      <Modal isOpen={isDeleteModalOpen} size="xs" onClose={onDeleteClose} closeOnOverlayClick={false} scrollBehavior="inside" isCentered>
+      {/* Delete Confirmation Modal */}
+      <Modal isOpen={isDeleteModalOpen} size="xs" onClose={onDeleteClose} closeOnOverlayClick={false} scrollBehavior="inside" isCentered  motionPreset="none">
         <ModalOverlay/>
         <ModalContent borderRadius="lg" overflow="hidden">
           <ModalHeader
