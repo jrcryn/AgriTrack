@@ -7,16 +7,28 @@ import debounce from 'lodash/debounce';
 const API_URL = import.meta.env.VITE_API_URL;
 
 // React Query hooks for data fetching
-export const useUnvalidatedInputsQuery = () => 
+export const useUnvalidatedNewlyPlantedQuery = (page = 1) => 
   useQuery({
-    queryKey: ['unvalidatedInputs'],
+    queryKey: ['unvalidatedNewlyPlanted', page],
     queryFn: async () => {
-
-      const response = await axios.get(`${API_URL}/api/hvc/get-unvalidated-inputs`);
+      const params = new URLSearchParams({ page, limit: 5, crop_stage: 'NEWLY PLANTED' });
+      const response = await axios.get(`${API_URL}/api/hvc/get-unvalidated-inputs`, { params });
       return response.data;
     },
-    staleTime: 0, // Data is always fresh
-    refetchInterval: 1000 // Refetch every second
+    staleTime: 0,
+    refetchInterval: 1000
+  });
+
+export const useUnvalidatedHarvestingQuery = (page = 1) => 
+  useQuery({
+    queryKey: ['unvalidatedHarvesting', page],
+    queryFn: async () => {
+      const params = new URLSearchParams({ page, limit: 5, crop_stage: 'HARVESTING' });
+      const response = await axios.get(`${API_URL}/api/hvc/get-unvalidated-inputs`, { params });
+      return response.data;
+    },
+    staleTime: 0,
+    refetchInterval: 1000
   });
 
 export const useValidatedInputsQuery = () => 
@@ -53,7 +65,7 @@ export const useValidatedInputsQuery = () =>
 export const useFarmerAccountsQuery = (searchParams = {}) => {
  
   return useQuery({
-    queryKey: ['farmerAccounts', searchParams],
+   queryKey: ['farmerAccounts', searchParams],
     queryFn: async () => {
       //await new Promise(resolve => setTimeout(resolve, 5000));
       const params = new URLSearchParams();
@@ -61,6 +73,11 @@ export const useFarmerAccountsQuery = (searchParams = {}) => {
       if (searchParams.farmerName) {
         params.append('farmerName', searchParams.farmerName);
       };
+
+      if (searchParams.page) {
+        params.append('page', searchParams.page);
+      }
+      params.append('limit', 10); // Set items per page
 
 
       const response = await axios.get(`${API_URL}/api/hvc/get-farmer-accounts`, { params });
@@ -157,8 +174,11 @@ export const useAdminDashboard = (searchParams = {}) => {
   const [selectedBarangay, setSelectedBarangay] = useState('');
   const [selectedCommodity, setSelectedCommodity] = useState('');
   const [error, setError] = useState(null);
+  const [newlyPlantedPage, setNewlyPlantedPage] = useState(1);
+  const [harvestingPage, setHarvestingPage] = useState(1);
 
-  const { data: unvalidatedInputs = [], isLoading: isLoadingUnvalidated, error: unvalidatedError } = useUnvalidatedInputsQuery();
+  const { data: newlyPlantedInputs = { results: [], totalPages: 1, totalCount: 0 }, isLoading: isLoadingNewlyPlanted, error: newlyPlantedError } = useUnvalidatedNewlyPlantedQuery(newlyPlantedPage);
+  const { data: harvestingInputs = { results: [], totalPages: 1, totalCount: 0 }, isLoading: isLoadingHarvesting, error: harvestingError } = useUnvalidatedHarvestingQuery(harvestingPage);
   const { data: validatedInputs = [], isLoading: isLoadingValidated, error: validatedError } = useValidatedInputsQuery();
   //const { mutate: updateFarmerInput, isPending: isUpdating, error: updateError } = useUpdateFarmerInputMutation();
   const { data: farmerAccounts = [], isLoading: isLoadingAccounts, error: accountsError } = useFarmerAccountsQuery(searchParams);
@@ -203,13 +223,13 @@ export const useAdminDashboard = (searchParams = {}) => {
 
 
   useEffect(() => {
-    const firstError = unvalidatedError || validatedError || accountsError || dateRangesError;
+    const firstError = newlyPlantedError || harvestingError || validatedError || accountsError || dateRangesError;
     if (firstError) {
       setError(firstError.message || 'An unexpected error occurred.');
     } else {
       setError(null);
     }
-  }, [unvalidatedError, validatedError, accountsError, dateRangesError]);
+  }, [newlyPlantedError, harvestingError, validatedError, accountsError, dateRangesError]);
 
 
   const createFarmerAccount = async (farmerData) => {
@@ -344,7 +364,8 @@ export const useAdminDashboard = (searchParams = {}) => {
 
   return {
     // Data
-    unvalidatedInputs,
+    newlyPlantedInputs,
+    harvestingInputs,
     validatedInputs,
     farmerAccounts,
     getFarmerAccountById,
@@ -360,9 +381,15 @@ export const useAdminDashboard = (searchParams = {}) => {
     selectedCommodity,
     setSelectedCommodity,
     dateRanges,
+    newlyPlantedPage,
+    setNewlyPlantedPage,
+    harvestingPage,
+    setHarvestingPage,
     
     // Loading states
-    isLoading: isLoadingUnvalidated || isLoadingValidated || isLoadingAccounts || isLoadingMetrics || isLoadingDateRanges,
+    isLoading: isLoadingValidated || isLoadingAccounts || isLoadingMetrics || isLoadingDateRanges,
+    isLoadingNewlyPlanted,
+    isLoadingHarvesting,
     isLoadingUFRY,
     isLoadingUFRM,
     //isUpdating,

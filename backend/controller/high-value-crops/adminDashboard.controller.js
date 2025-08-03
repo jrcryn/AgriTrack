@@ -1,3 +1,4 @@
+import { parse } from 'path';
 import { getHighValueCropsDB } from '../../config/dbAccessHelper.js'; // import hvc db access
 import mongoose from 'mongoose';
 
@@ -8,13 +9,44 @@ import mongoose from 'mongoose';
 // Get all unvalidated farmer inputs with their referenced documents
 export const getUnvalidatedFarmerInputs = async (req, res) => {
   try {
-    // Only find farmer inputs where isValidated is false
-    const farmerInputs = await global.highValueCropsModels.A_farmer_inputs.find({ isValidated: false }).populate('farmer_account_id').lean();
-    
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 5; // Default to 5 per page for each section
+    const skip = (page - 1) * limit;
+    const cropStage = req.query.crop_stage; // 'NEWLY PLANTED' or 'HARVESTING'
+
+    if (!cropStage) {
+      return res.status(400).json({ message: 'crop_stage query parameter is required.' });
+    }
+
+    // Base query for unvalidated farmer inputs
+    const baseQuery = { isValidated: false };
+
+    // Find all unvalidated farmer inputs and get their IDs
+    const unvalidatedInputIds = (await global.highValueCropsModels.A_farmer_inputs.find(baseQuery).select('_id')).map(doc => doc._id);
+
+    // Find related crop records based on the crop stage
+    const indusRecords = await global.highValueCropsModels.C_crop_records_indus.find({ farmer_input_id: { $in: unvalidatedInputIds }, crop_stage: cropStage }).select('farmer_input_id');
+    const othersRecords = await global.highValueCropsModels.C_crop_records_others.find({ farmer_input_id: { $in: unvalidatedInputIds }, crop_stage: cropStage }).select('farmer_input_id');
+
+    const relevantFarmerInputIds = [
+      ...indusRecords.map(r => r.farmer_input_id),
+      ...othersRecords.map(r => r.farmer_input_id)
+    ];
+
+    const totalCount = relevantFarmerInputIds.length;
+
+    // Fetch the paginated farmer inputs based on the filtered IDs
+    const farmerInputs = await global.highValueCropsModels.A_farmer_inputs
+      .find({ _id: { $in: relevantFarmerInputIds } })
+      .populate('farmer_account_id')
+      .lean()
+      .skip(skip)
+      .limit(limit);
+
     const results = await Promise.all(farmerInputs.map(async (farmerInput) => {
       const cropType = await global.highValueCropsModels.B_crop_types.findOne({ farmer_input_id: farmerInput._id }).lean();
       
-      // Handle case where no crop type exists
+      // This check is now less likely to fail, but good for safety
       if (!cropType) {
         return { farmerInput, cropType: null, cropRecord: null, cropDetails: null };
       }
@@ -55,7 +87,12 @@ export const getUnvalidatedFarmerInputs = async (req, res) => {
       };
     }));
 
-    res.json(results);
+    res.json({
+      results,
+      totalCount,
+      totalPages: Math.ceil(totalCount / limit),
+      currentPage: page
+    });
   } catch (error) {
     res.status(500).json({ message: 'Error fetching unvalidated farmer inputs', error: error.message });
   }
@@ -551,6 +588,10 @@ export const deleteFarmerAccount = async (req, res) => {
 // Get all farmer accounts
 export const getFarmerAccounts = async (req, res) => {
   try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
     const { farmerName } = req.query;
     let filter = {};
 
@@ -579,8 +620,15 @@ export const getFarmerAccounts = async (req, res) => {
       };
     }
 
-    const farmerAccounts = await global.highValueCropsModels.FarmerAccount.find(filter).lean();
-    res.json(farmerAccounts);
+    const totalCount = await global.highValueCropsModels.FarmerAccount.countDocuments(filter);
+    const farmerAccounts = await global.highValueCropsModels.FarmerAccount.find(filter).lean().skip(skip).limit(limit);
+    
+    res.json({ 
+      farmerAccounts, 
+      totalCount,
+      totalPages: Math.ceil(totalCount / limit),
+      currentPage: page 
+    });
   } catch (error) {
     res.status(500).json({ message: 'Error fetching farmer accounts', error: error.message });
   }
