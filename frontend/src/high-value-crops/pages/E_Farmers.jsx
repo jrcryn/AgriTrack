@@ -62,7 +62,7 @@ const E_Farmers = () => {
   const tableRef = useRef(null);
 
   const debouncedSetSearch = useMemo(
-    () => debounce((value) => setDebouncedSearch(value), 1000),
+    () => debounce((value) => setDebouncedSearch(value), 300),
     []
   );
 
@@ -83,7 +83,7 @@ const E_Farmers = () => {
     isLoading, 
     isUpdatingFarmerAccount, 
     updateFarmerAccount
-   } = useAdminDashboard({farmerName: farmerNameSearch});
+   } = useAdminDashboard({farmerName: debouncedSearch, page: currentPage});
 
   const [isEditMode, setIsEditMode] = useState(false);
   const [originalFormData, setOriginalFormData] = useState(null);
@@ -93,7 +93,7 @@ const E_Farmers = () => {
   // Reset pagination when search terms change
   useEffect(() => {
     setCurrentPage(1);
-  }, [farmerNameSearch]);
+  }, [debouncedSearch]);
 
   useEffect(() => {
     // Apply styles directly to the DOM
@@ -373,11 +373,8 @@ const E_Farmers = () => {
   
   // Pagination calculation
   const itemsPerPage = 10;
-  const totalPages = Math.ceil(farmerAccounts.length / itemsPerPage);
-  const currentFarmers = farmerAccounts.slice(
-    (currentPage - 1) * itemsPerPage, 
-    currentPage * itemsPerPage
-  );
+  const totalPages = farmerAccounts?.totalPages || 1;
+  const currentFarmers = farmerAccounts?.farmerAccounts || [];
   
   // Format date
   const formatDate = (date) => {
@@ -447,14 +444,14 @@ const E_Farmers = () => {
             >
               <Icon as={FaSearch} color="blue.500" />
               <Text fontWeight="medium" fontSize={'sm'}>
-                Search by: <Tooltip label="Complete details give more accurate results. It is case insensitive and can handle complex search queries, but WRONG SPELLING and SPACES may give no results. " position="bottom" hasArrow>(<Icon as={FaInfo} color="blue.500" boxSize={3} />)</Tooltip>
+                Search by: <Tooltip label="WRONG SPELLING and SPACES may give no results. " position="bottom" hasArrow>(<Icon as={FaInfo} color="blue.500" boxSize={3} />)</Tooltip>
               </Text>
             </HStack>
             
             
             <InputGroup>
               <Input
-                placeholder="Name, Barangay or Farmer ID..."
+                placeholder="Name, Barangay, Farmer ID, or Contact Number..."
                 bg="white"
                 value={farmerNameSearch}
                 onChange={(e) => setFarmerNameSearch(e.target.value)}
@@ -584,7 +581,7 @@ const E_Farmers = () => {
             gap={{ base: 3, md: 0 }}
           >
             <Text color="gray.600">
-              Page {currentPage} of {totalPages || 1} ({farmerAccounts.length} total)
+              Page {currentPage} of {totalPages || 1} ({farmerAccounts?.totalCount || 0} total)
             </Text>
             
             <HStack spacing={2}>

@@ -43,7 +43,7 @@ import {
   Tooltip,
 } from '@chakra-ui/react';
 import numOfTreesToHectares from '../../components/conversions.js';
-import { FaSearch, FaEye, FaSeedling, FaBoxes, FaUser, FaLeaf, FaWifi, FaUpload } from 'react-icons/fa';
+import { FaSearch, FaEye, FaSeedling, FaBoxes, FaUser, FaLeaf, FaWifi, FaUpload, FaInfo } from 'react-icons/fa';
 import { GoAlertFill } from "react-icons/go";
 import { useAdminDashboard } from '../store/adminDashboard.store.js';
 import { useQueryClient } from '@tanstack/react-query';
@@ -51,8 +51,6 @@ import { useQueryClient } from '@tanstack/react-query';
 const Responses = () => {
   // States for search and pagination
   const [searchQuery, setSearchQuery] = useState('');
-  const [newlyPlantedPage, setNewlyPlantedPage] = useState(1);
-  const [harvestingPage, setHarvestingPage] = useState(1);
   const [selectedResponse, setSelectedResponse] = useState(null);
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { isOpen: isOpenWarning, onOpen: onOpenWarning, onClose: onCloseWarning } = useDisclosure();
@@ -67,8 +65,10 @@ const Responses = () => {
 
   // Unvalidated farmer inputs
   const { 
-    unvalidatedInputs, 
-    isLoading,
+    newlyPlantedInputs,
+    harvestingInputs,
+    isLoadingNewlyPlanted,
+    isLoadingHarvesting,
     isCreatingUnifiedResponse,
     flagResponseForReview,
     unflagResponseForReview,
@@ -76,6 +76,10 @@ const Responses = () => {
     updateFarmerInput,
     clearError,
     createUnifiedFarmerResponse,
+    newlyPlantedPage,
+    setNewlyPlantedPage,
+    harvestingPage,
+    setHarvestingPage
   } = useAdminDashboard();
 
   const toast = useToast();
@@ -83,41 +87,24 @@ const Responses = () => {
 
 
   // Filter responses based on search query
-  const searchedResponses = unvalidatedInputs.filter((response) => {
-    if (!response.farmerInput || !response.cropType || !response.cropRecord) {
-      return false;
-    }
+  // const searchedResponses = unvalidatedInputs.filter((response) => {
+  //   if (!response.farmerInput || !response.cropType || !response.cropRecord) {
+  //     return false;
+  //   }
     
-    const farmerName = `${response.farmerInput.surname} ${response.farmerInput.first_name}`.toLowerCase();
-    const cropType = response.cropType?.crop_type.toLowerCase() || '';
-    const location = response.farmerInput.farm_location?.toLowerCase() || '';
+  //   const farmerName = `${response.farmerInput.surname} ${response.farmerInput.first_name}`.toLowerCase();
+  //   const cropType = response.cropType?.crop_type.toLowerCase() || '';
+  //   const location = response.farmerInput.farm_location?.toLowerCase() || '';
     
-    return farmerName.includes(searchQuery.toLowerCase()) ||
-           cropType.includes(searchQuery.toLowerCase()) ||
-           location.includes(searchQuery.toLowerCase());
-  });
+  //   return farmerName.includes(searchQuery.toLowerCase()) ||
+  //          cropType.includes(searchQuery.toLowerCase()) ||
+  //          location.includes(searchQuery.toLowerCase());
+  // });
 
   // Date format for harvest date, plantation date, and month-year
-  const plnt_harvDate = { year: 'numeric', month: 'short', day: 'numeric' };
+  const plnt_harvDate = { year: 'numeric', month: 'short', day: 'numeric' };  
   const harvMonthYear = { year: 'numeric', month: 'short' };
   const harvMonthYearFull = { year: 'numeric', month: 'long' };
-  
-  // Split data into newly planted and harvesting
-  const newlyPlantedResponses = searchedResponses.filter(
-    response => response.cropRecord.crop_stage === 'NEWLY PLANTED'
-  );
-  
-  const harvestingResponses = searchedResponses.filter(
-    response => response.cropRecord.crop_stage === 'HARVESTING'
-  );
-  
-  // Pagination calculation for newly planted
-  const currentNewlyPlanted = newlyPlantedResponses.slice((newlyPlantedPage - 1) * 5, newlyPlantedPage * 5);
-  const newlyPlantedTotalPages = Math.ceil(newlyPlantedResponses.length / 5);
-  
-  // Pagination calculation for harvesting
-  const currentHarvesting = harvestingResponses.slice((harvestingPage - 1) * 5, harvestingPage * 5);
-  const harvestingTotalPages = Math.ceil(harvestingResponses.length / 5);
   
     // Show error state
     if (error) {
@@ -181,18 +168,51 @@ const Responses = () => {
         });
         return;
       }
-
+    
       setIsBatchProcessing(true);
-      
+    
       try {
         let successCount = 0;
         let failCount = 0;
-        
-        // Find selected responses
-        const selectedResponses = responses.filter(response => 
-          selectedIds.includes(response.farmerInput._id)
-        );
-        
+    
+        // Fetch all selected responses across all pages
+        // This assumes you have a backend endpoint or a store method to fetch by IDs
+        // Replace this with your actual data fetching logic if needed
+        let selectedResponses = [];
+        if (type === 'NEWLY_PLANTED') {
+          // Fetch all newly planted responses by IDs
+          if (typeof newlyPlantedInputs.fetchByIds === 'function') {
+            selectedResponses = await newlyPlantedInputs.fetchByIds(selectedIds);
+          } else {
+            // fallback: filter from all loaded pages (may be incomplete if not all pages loaded)
+            selectedResponses = newlyPlantedInputs.allResults
+              ? newlyPlantedInputs.allResults.filter(response => selectedIds.includes(response.farmerInput._id))
+              : newlyPlantedInputs.results.filter(response => selectedIds.includes(response.farmerInput._id));
+          }
+        } else {
+          // Fetch all harvesting responses by IDs
+          if (typeof harvestingInputs.fetchByIds === 'function') {
+            selectedResponses = await harvestingInputs.fetchByIds(selectedIds);
+          } else {
+            selectedResponses = harvestingInputs.allResults
+              ? harvestingInputs.allResults.filter(response => selectedIds.includes(response.farmerInput._id))
+              : harvestingInputs.results.filter(response => selectedIds.includes(response.farmerInput._id));
+          }
+        }
+    
+        // If still not found, warn user
+        if (!selectedResponses || selectedResponses.length === 0) {
+          toast({
+            title: "No selected responses found",
+            description: "Could not find selected responses. Please refresh and try again.",
+            status: "error",
+            duration: 5000,
+            isClosable: true,
+          });
+          setIsBatchProcessing(false);
+          return;
+        }
+    
         // Process each response
         for (const response of selectedResponses) {
           try {
@@ -204,7 +224,7 @@ const Responses = () => {
             failCount++;
           }
         }
-        
+    
         // Show results
         toast({
           title: "Batch processing complete",
@@ -213,22 +233,23 @@ const Responses = () => {
           duration: 5000,
           isClosable: true,
         });
-        
+    
         // Clear selections after processing
         if (type === 'NEWLY_PLANTED') {
           setSelectedNewlyPlanted([]);
         } else {
           setSelectedHarvesting([]);
         }
-
+    
         onCloseWarningBatch();
         // Refresh the data
-        queryClient.invalidateQueries({ queryKey: ['unvalidatedInputs'] });
-        
+        queryClient.invalidateQueries({ queryKey: ['unvalidatedNewlyPlanted', newlyPlantedPage] });
+        queryClient.invalidateQueries({ queryKey: ['unvalidatedHarvesting', harvestingPage] });
+    
       } catch (error) {
         toast({
           title: "Error",
-          description:  error.response?.data?.message,
+          description: error.response?.data?.message,
           status: "error",
           duration: 5000,
           isClosable: true,
@@ -336,7 +357,8 @@ const Responses = () => {
           isClosable: true,
           colorScheme: "yellow",
         });
-        queryClient.invalidateQueries({ queryKey: ['unvalidatedInputs'] });
+        queryClient.invalidateQueries({ queryKey: ['unvalidatedNewlyPlanted'] });
+        queryClient.invalidateQueries({ queryKey: ['unvalidatedHarvesting'] });
         setIsUpdatingForReview(false);
         onClose();
       } catch (error) {
@@ -373,7 +395,8 @@ const Responses = () => {
           isClosable: true,
           colorScheme: "yellow",
         });
-        queryClient.invalidateQueries({ queryKey: ['unvalidatedInputs'] });
+        queryClient.invalidateQueries({ queryKey: ['unvalidatedNewlyPlanted'] });
+        queryClient.invalidateQueries({ queryKey: ['unvalidatedHarvesting'] });
         setIsUpdatingForReview(false);
         onClose();
       } catch (error) {
@@ -678,7 +701,8 @@ const Responses = () => {
       }
       
       // Invalidate the query to refresh the data
-      queryClient.invalidateQueries({ queryKey: ['unvalidatedInputs'] });
+      queryClient.invalidateQueries({ queryKey: ['unvalidatedNewlyPlanted'] });
+      queryClient.invalidateQueries({ queryKey: ['unvalidatedHarvesting'] });
   
       // Create unified record (will be saved to year-based collection)
       const responseResult = await createUnifiedFarmerResponse(responseData);
@@ -697,7 +721,8 @@ const Responses = () => {
       
     } catch (error) {
       console.error("Error submitting response:", error);
-      queryClient.invalidateQueries({ queryKey: ['unvalidatedInputs'] });
+      queryClient.invalidateQueries({ queryKey: ['unvalidatedNewlyPlanted'] });
+      queryClient.invalidateQueries({ queryKey: ['unvalidatedHarvesting'] });
       
       toast({
         title: "Error",
@@ -1030,8 +1055,8 @@ const Responses = () => {
                       />
                       <InputRightAddon children="hectares" bg="blue.100" color="blue.800" />
                     </InputGroup>
-                  </FormControl>
-              </Box>
+                    </FormControl>
+                </Box>
               ) : (
                 <Box 
                 p={4} 
@@ -1130,7 +1155,7 @@ const Responses = () => {
         </Text>
       
         {/* Search Section */}
-        <Flex 
+        {/* <Flex 
           direction={{ base: "column", md: "row" }} 
           mb={6} 
           p={4}
@@ -1145,7 +1170,7 @@ const Responses = () => {
           
           <InputGroup width={{ base: "full", md: "sm" }} ml={{ base: 0, md: 4 }}>
             <Input 
-              placeholder="Search by name, crop, barangay..." 
+              placeholder="Name, Crop, Commodity, or Barangay..." 
               bg="white"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -1155,7 +1180,7 @@ const Responses = () => {
               <FaSearch color="gray.300" />
             </InputRightElement>
           </InputGroup>
-        </Flex>
+        </Flex> */}
     
         <>
           {/* NEWLY PLANTED SECTION */}
@@ -1172,7 +1197,7 @@ const Responses = () => {
               borderLeftColor="green.500"
             >
               <Heading as="h2" size="md" display="flex" alignItems="center">
-                <Icon as={FaSeedling} mr={2} color="green.600" /> NEWLY PLANTED RESPONSES
+                <Icon as={FaSeedling} mr={2} color="green.600" /> NEWLY PLANTED RESPONSES <Text pl={2}><Tooltip label="Only select responses from the CURRENT PAGE for batch processing, any selected responses from other pages will be ignored. " position="bottom" hasArrow>(<Icon as={FaInfo} color="blue.500" boxSize={3}/>)</Tooltip></Text>
               </Heading>
               {selectedNewlyPlanted.length > 0 && (
                 <Button
@@ -1188,7 +1213,7 @@ const Responses = () => {
               )}
             </Flex>
           
-            {isLoading ? (
+            {isLoadingNewlyPlanted ? (
               <Flex justifyContent="center" alignItems="center" minH="200px">
                 <Spinner size="lg" color="green.500" thickness="3px" />
                 <Text ml={5}>Loading newly planted responses...</Text>
@@ -1196,11 +1221,11 @@ const Responses = () => {
             ) : (
             <Box overflowX="auto" >
               <ResponseTable 
-                data={currentNewlyPlanted} 
+                data={newlyPlantedInputs.results} 
                 status="NEWLY PLANTED" 
                 selectedItems={selectedNewlyPlanted}
                 onSelectItem={handleSelectNewlyPlanted}
-                onSelectAll={handleSelectAllNewlyPlanted}
+                onSelectAll={() => handleSelectAllNewlyPlanted(newlyPlantedInputs.results)}
               />
             </Box>
             )}
@@ -1209,8 +1234,8 @@ const Responses = () => {
               <PaginationControls 
                 currentPage={newlyPlantedPage}
                 setCurrentPage={setNewlyPlantedPage}
-                totalPages={newlyPlantedTotalPages}
-                totalItems={newlyPlantedResponses.length}
+                totalPages={newlyPlantedInputs.totalPages}
+                totalItems={newlyPlantedInputs.totalCount}
                 colorScheme="green"
               />
             </Flex>
@@ -1230,7 +1255,7 @@ const Responses = () => {
               borderLeftColor="orange.500"
             >
               <Heading as="h2" size="md" display="flex" alignItems="center">
-                <Icon as={FaBoxes} mr={2} color="orange.600" /> HARVESTING RESPONSES
+                <Icon as={FaBoxes} mr={2} color="orange.600" /> HARVESTING RESPONSES <Text pl={2}><Tooltip label="Only select responses from the CURRENT PAGE for batch processing, any selected responses from other pages will be ignored. " position="bottom" hasArrow>(<Icon as={FaInfo} color="blue.500" boxSize={3}/>)</Tooltip></Text>
               </Heading>
 
               {selectedHarvesting.length > 0 && (
@@ -1247,7 +1272,7 @@ const Responses = () => {
               )}
             </Flex>
           
-            {isLoading ? (
+            {isLoadingHarvesting ? (
               <Flex justifyContent="center" alignItems="center" minH="200px">
                 <Spinner size="lg" color="orange.500" thickness="3px" />
                 <Text ml={5}>Loading harvesting responses...</Text>
@@ -1255,11 +1280,11 @@ const Responses = () => {
             ) : (
             <Box overflowX="auto">
               <ResponseTable 
-                data={currentHarvesting} 
+                data={harvestingInputs.results} 
                 status="HARVESTING" 
                 selectedItems={selectedHarvesting}
                 onSelectItem={handleSelectHarvesting}
-                onSelectAll={handleSelectAllHarvesting}
+                onSelectAll={() => handleSelectAllHarvesting(harvestingInputs.results)}
               />
             </Box>
             )}
@@ -1267,8 +1292,8 @@ const Responses = () => {
               <PaginationControls 
                 currentPage={harvestingPage}
                 setCurrentPage={setHarvestingPage}
-                totalPages={harvestingTotalPages}
-                totalItems={harvestingResponses.length}
+                totalPages={harvestingInputs.totalPages}
+                totalItems={harvestingInputs.totalCount}
                 colorScheme="orange"
               />
               
@@ -1468,9 +1493,9 @@ const Responses = () => {
                 w={"60%"}
                 onClick={() => {
                   if (pushType === 'NEWLY_PLANTED') {
-                    handleBatchPush(selectedNewlyPlanted, newlyPlantedResponses, 'NEWLY_PLANTED');
+                    handleBatchPush(selectedNewlyPlanted, newlyPlantedInputs.results, 'NEWLY_PLANTED');
                   } else if (pushType === 'HARVESTING') {
-                    handleBatchPush(selectedHarvesting, harvestingResponses, 'HARVESTING');
+                    handleBatchPush(selectedHarvesting, harvestingInputs.results, 'HARVESTING');
                   }
                 }}
                 isLoading={isBatchProcessing}
