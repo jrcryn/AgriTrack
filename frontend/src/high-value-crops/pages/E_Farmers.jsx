@@ -444,7 +444,7 @@ const E_Farmers = () => {
             >
               <Icon as={FaSearch} color="blue.500" />
               <Text fontWeight="medium" fontSize={'sm'}>
-                Search by: <Tooltip label="Complete details give more accurate results. It is case insensitive and can handle complex search queries, but WRONG SPELLING and SPACES may give no results. " position="bottom" hasArrow>(<Icon as={FaInfo} color="blue.500" boxSize={3} />)</Tooltip>
+                Search by: <Tooltip label="WRONG SPELLING and SPACES may give no results. " position="bottom" hasArrow>(<Icon as={FaInfo} color="blue.500" boxSize={3} />)</Tooltip>
               </Text>
             </HStack>
             
