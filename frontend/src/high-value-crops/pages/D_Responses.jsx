@@ -486,38 +486,48 @@ const Responses = () => {
                     ) : (<><Td></Td></>)}
 
                     <Td fontWeight="medium">
-                    {`${response.farmerInput?.farmer_account_id?.first_name} ${response.farmerInput?.farmer_account_id?.middle_name ? response.farmerInput?.farmer_account_id?.middle_name +'.':''} ${response.farmerInput?.farmer_account_id?.surname} ${response.farmerInput?.farmer_account_id?.suffix || ''}`.trim()}
+                    {`${response.farmerInput?.farmer_account_id?.first_name ?? ''} ${response.farmerInput?.farmer_account_id?.middle_name ? response.farmerInput?.farmer_account_id.middle_name +'.':''} ${response.farmerInput?.farmer_account_id?.surname ?? ''} ${response.farmerInput?.farmer_account_id?.suffix ?? ''}`.trim()}
                     </Td>
-                    <Td>{response.farmerInput.farm_location}</Td>
+                    <Td>{response.farmerInput?.farm_location ?? '-'}</Td>
                     {status === 'NEWLY PLANTED' ? (
                         <>
-                          <Td>{response.cropRecord &&  
-                                (response.cropType.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS' 
-                                  ? response.cropRecord.crop_type
-                                  : response.cropRecord.crop_variety) || '-' }</Td> {/* commodity */}
-
-                          <Td>{response.cropDetails && response.cropDetails?.plantation_start_date && response.cropDetails?.plantation_end_date ?
-                            `${new Date(response.cropDetails.plantation_start_date).toLocaleDateString('en-US', plnt_harvDate)} to ${new Date(response.cropDetails.plantation_end_date).toLocaleDateString('en-US', plnt_harvDate)}`
-                            : '-'}</Td> {/* plantation date */}
-
-                          <Td>{response.cropDetails && response.cropDetails?.total_trees && response.cropRecord?.crop_variety ?
-                              `${numOfTreesToHectares(response.cropRecord.crop_variety, response.cropDetails.total_trees)?.toFixed(4) || 'invalid commodity'}`
-                              : (response.cropDetails?.total_area_planted || '-')}</Td> {/* total area planted */}
+                          <Td>
+                            {response.cropRecord
+                              ? (response.cropType?.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS'
+                                  ? (response.cropRecord.crop_type ?? '-')
+                                  : (response.cropRecord.crop_variety ?? '-'))
+                            : '-'}
+                          </Td>
+                          <Td>
+                            {response.cropDetails?.plantation_start_date && response.cropDetails?.plantation_end_date
+                              ? `${new Date(response.cropDetails.plantation_start_date).toLocaleDateString('en-US', plnt_harvDate)} to ${new Date(response.cropDetails.plantation_end_date).toLocaleDateString('en-US', plnt_harvDate)}`
+                              : '-'}
+                          </Td>
+                          <Td>
+                            {response.cropDetails?.total_trees != null && response.cropRecord?.crop_variety
+                              ? `${numOfTreesToHectares(response.cropRecord.crop_variety, response.cropDetails.total_trees)?.toFixed(4) || 'invalid commodity'}`
+                              : (response.cropDetails?.total_area_planted != null ? response.cropDetails.total_area_planted : '-')}
+                          </Td>
                         </>
                       ) : (
                         <>
-                          <Td>{response.cropRecord &&  
-                                (response.cropType.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS' 
-                                  ? response.cropRecord.crop_type
-                                  : response.cropRecord.crop_variety) || '-' }</Td> {/* commodity */}
                           <Td>
-                          {response.cropDetails && response.cropDetails?.harvest_start_date && response.cropDetails?.harvest_end_date ?
-                          `${new Date(response.cropDetails.harvest_start_date).toLocaleDateString('en-US', plnt_harvDate)} to ${new Date(response.cropDetails.harvest_end_date).toLocaleDateString('en-US', plnt_harvDate)}` 
+                            {response.cropRecord
+                              ? (response.cropType?.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS'
+                                  ? (response.cropRecord.crop_type ?? '-')
+                                  : (response.cropRecord.crop_variety ?? '-'))
                             : '-'}
-                          </Td> {/* harvest date */}
-                          <Td>{response.cropDetails && response.cropDetails?.trees_harvested && response.cropRecord?.crop_variety ?
-                              `${numOfTreesToHectares(response.cropRecord.crop_variety, response.cropDetails.trees_harvested)?.toFixed(4) || 'invalid commodity'}`
-                              : (response.cropDetails?.total_area_harvested || '-')}</Td>
+                          </Td>
+                          <Td>
+                          {response.cropDetails?.harvest_start_date && response.cropDetails?.harvest_end_date
+                            ? `${new Date(response.cropDetails.harvest_start_date).toLocaleDateString('en-US', plnt_harvDate)} to ${new Date(response.cropDetails.harvest_end_date).toLocaleDateString('en-US', plnt_harvDate)}`
+                            : '-'}
+                          </Td>
+                          <Td>
+                            {response.cropDetails?.trees_harvested != null && response.cropRecord?.crop_variety
+                              ? `${numOfTreesToHectares(response.cropRecord.crop_variety, response.cropDetails.trees_harvested)?.toFixed(4) || 'invalid commodity'}`
+                              : (response.cropDetails?.total_area_harvested != null ? response.cropDetails.total_area_harvested : '-')}
+                          </Td>
                         </>
                       )}
                     <Td isNumeric position={{ base: 'static', md: 'sticky' }} right={0} zIndex={1} bg={response.farmerInput.isForReview === true ? 'yellow.100' : 'white'}>
@@ -782,7 +792,7 @@ const Responses = () => {
           <FormControl>
             <FormLabel fontWeight="medium">Full Name</FormLabel>
             <Input 
-              value={`${response.farmerInput?.farmer_account_id?.first_name} ${response.farmerInput?.farmer_account_id?.middle_name ? response.farmerInput?.farmer_account_id.middle_name + ' ' : ''}${response.farmerInput?.farmer_account_id?.surname} ${response.farmerInput?.farmer_account_id?.suffix || ''}`}
+              value={`${response.farmerInput?.farmer_account_id?.first_name ?? ''} ${response.farmerInput?.farmer_account_id?.middle_name ? response.farmerInput?.farmer_account_id.middle_name + ' ' : ''}${response.farmerInput?.farmer_account_id?.surname ?? ''} ${response.farmerInput?.farmer_account_id?.suffix ?? ''}`}
               isReadOnly
               bg="gray.50"
               borderColor="gray.200"
@@ -791,7 +801,7 @@ const Responses = () => {
           <FormControl>
             <FormLabel fontWeight="medium">Farm Location</FormLabel>
             <Input 
-              value={response.farmerInput?.farm_location || '-'}
+              value={response.farmerInput?.farm_location ?? '-'}
               isReadOnly
               bg="gray.50"
               borderColor="gray.200"
@@ -822,7 +832,7 @@ const Responses = () => {
               <FormControl>
                 <FormLabel fontWeight="medium">Crop Type</FormLabel>
                 <Input
-                  value={response.cropType?.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS' ? 'INDUSTRIAL' : '-' }
+                  value={response.cropType?.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS' ? 'INDUSTRIAL' : '-'}
                   isReadOnly
                   bg="gray.50"
                   borderColor="gray.200"
@@ -832,7 +842,7 @@ const Responses = () => {
               <FormControl>
                 <FormLabel fontWeight="medium">Commodity</FormLabel>
                 <Input
-                  value={response.cropRecord?.crop_type || '-'}
+                  value={response.cropRecord?.crop_type ?? '-'}
                   isReadOnly
                   bg="gray.50"
                   borderColor="gray.200"
@@ -842,7 +852,7 @@ const Responses = () => {
               <FormControl>
                 <FormLabel fontWeight="medium">Variety</FormLabel>
                 <Input
-                  value={response.cropRecord?.crop_variety || '-'}
+                  value={response.cropRecord?.crop_variety ?? '-'}
                   isReadOnly
                   bg="gray.50"
                   borderColor="gray.200"
@@ -854,7 +864,7 @@ const Responses = () => {
               <FormControl>
                 <FormLabel fontWeight="medium">Crop Type</FormLabel>
                 <Input
-                  value={response.cropType?.crop_type || '-'}
+                  value={response.cropType?.crop_type ?? '-'}
                   isReadOnly
                   bg="gray.50"
                   borderColor="gray.200"
@@ -864,7 +874,7 @@ const Responses = () => {
               <FormControl>
                 <FormLabel fontWeight="medium">Commodity</FormLabel>
                 <Input
-                  value={response.cropRecord?.crop_variety || '-'}
+                  value={response.cropRecord?.crop_variety ?? '-'}
                   isReadOnly
                   bg="gray.50"
                   borderColor="gray.200"
@@ -896,8 +906,8 @@ const Responses = () => {
             <FormControl>
               <FormLabel fontWeight="medium">Date of Plantation</FormLabel>
               <Input
-                value={response.cropDetails && response.cropDetails?.plantation_start_date && response.cropDetails?.plantation_end_date ?
-                  `${formatDate(response.cropDetails.plantation_start_date)} to ${formatDate(response.cropDetails.plantation_end_date)}`
+                value={response.cropDetails?.plantation_start_date && response.cropDetails?.plantation_end_date
+                  ? `${formatDate(response.cropDetails.plantation_start_date)} to ${formatDate(response.cropDetails.plantation_end_date)}`
                   : '-'}
                 isReadOnly
                 bg="gray.50"
@@ -908,8 +918,8 @@ const Responses = () => {
             <FormControl>
               <FormLabel fontWeight="medium">Date of Harvesting</FormLabel>
               <Input
-                value={response.cropDetails && response.cropDetails?.harvest_month_year ?
-                  new Date(response.cropDetails.harvest_month_year).toLocaleDateString('en-US', harvMonthYearFull)
+                value={response.cropDetails?.harvest_month_year
+                  ? new Date(response.cropDetails.harvest_month_year).toLocaleDateString('en-US', harvMonthYearFull)
                   : '-'}
                 isReadOnly
                 bg="gray.50"
@@ -931,7 +941,7 @@ const Responses = () => {
                 <FormLabel fontWeight="medium">Total Area Planted (ha)</FormLabel>
                 <InputGroup>
                   <Input
-                    value={response.cropDetails?.total_area_planted || ''}
+                    value={response.cropDetails?.total_area_planted != null ? response.cropDetails.total_area_planted : '-'}
                     isReadOnly
                     bg="gray.50"
                     borderColor="gray.200"
@@ -954,7 +964,7 @@ const Responses = () => {
                   <FormLabel fontWeight="medium" color="gray.700">Total Number of Trees</FormLabel>
                   <InputGroup>
                     <Input
-                      value={response.cropDetails?.total_trees || '-'}
+                      value={response.cropDetails?.total_trees != null ? response.cropDetails.total_trees : '-'}
                       isReadOnly
                       bg="white"
                       borderColor="gray.300"
@@ -967,8 +977,8 @@ const Responses = () => {
                   <FormLabel fontWeight="medium" color="gray.700">Equivalent Area - {response.cropRecord?.crop_variety}</FormLabel>
                   <InputGroup>
                     <Input
-                      value={response.cropDetails?.total_trees && response.cropRecord?.crop_variety ?
-                        `${numOfTreesToHectares(response.cropRecord.crop_variety, response.cropDetails.total_trees)?.toFixed(4) || 'invalid commodity'}`
+                      value={response.cropDetails?.total_trees != null && response.cropRecord?.crop_variety
+                        ? `${numOfTreesToHectares(response.cropRecord.crop_variety, response.cropDetails.total_trees)?.toFixed(4) || 'invalid commodity'}`
                         : '-'}
                       isReadOnly
                       bg="white"
@@ -1004,7 +1014,11 @@ const Responses = () => {
             <FormControl>
               <FormLabel fontWeight="medium">Date of Harvest</FormLabel>
               <Input
-                value={`${formatDate(response.cropDetails?.harvest_start_date)} to ${formatDate(response.cropDetails?.harvest_end_date)}`}
+                value={
+                  response.cropDetails?.harvest_start_date && response.cropDetails?.harvest_end_date
+                    ? `${formatDate(response.cropDetails.harvest_start_date)} to ${formatDate(response.cropDetails.harvest_end_date)}`
+                    : '-'
+                }
                 isReadOnly
                 bg="gray.50"
                 borderColor="gray.200"
@@ -1015,7 +1029,7 @@ const Responses = () => {
               <FormLabel fontWeight="medium">Total Weight</FormLabel>
               <InputGroup>
                 <Input
-                  value={response.cropDetails?.total_weight || ''}
+                  value={response.cropDetails?.total_weight != null ? response.cropDetails.total_weight : '-'}
                   isReadOnly
                   bg="gray.50"
                   borderColor="gray.200"
@@ -1027,7 +1041,7 @@ const Responses = () => {
             <FormControl>
               <FormLabel fontWeight="medium">Crop Purpose</FormLabel>
               <Input
-                value={response.cropDetails?.crop_purpose || ''}
+                value={response.cropDetails?.crop_purpose ?? '-'}
                 isReadOnly
                 bg="gray.50"
                 borderColor="gray.200"
@@ -1048,7 +1062,7 @@ const Responses = () => {
                     <FormLabel fontWeight="medium">Total Area Harvested (Ha)</FormLabel>
                     <InputGroup>
                       <Input
-                        value={response.cropDetails?.total_area_harvested || ''}
+                        value={response.cropDetails?.total_area_harvested != null ? response.cropDetails.total_area_harvested : '-'}
                         isReadOnly
                         bg="gray.50"
                         borderColor="gray.200"
@@ -1071,7 +1085,7 @@ const Responses = () => {
                     <FormLabel fontWeight="medium" color="gray.700">Total Number of Trees Harvested</FormLabel>
                     <InputGroup>
                       <Input
-                        value={response.cropDetails?.trees_harvested || '-'}
+                        value={response.cropDetails?.trees_harvested != null ? response.cropDetails.trees_harvested : '-'}
                         isReadOnly
                         bg="white"
                         borderColor="gray.300"
@@ -1084,8 +1098,8 @@ const Responses = () => {
                     <FormLabel fontWeight="medium" color="gray.700">Equivalent Area - {response.cropRecord?.crop_variety}</FormLabel>
                     <InputGroup>
                       <Input
-                        value={response.cropDetails?.trees_harvested && response.cropRecord?.crop_variety ?
-                          `${numOfTreesToHectares(response.cropRecord.crop_variety, response.cropDetails.trees_harvested)?.toFixed(4) || 'invalid commodity'}`
+                        value={response.cropDetails?.trees_harvested != null && response.cropRecord?.crop_variety
+                          ? `${numOfTreesToHectares(response.cropRecord.crop_variety, response.cropDetails.trees_harvested)?.toFixed(4) || 'invalid commodity'}`
                           : '-'}
                         isReadOnly
                         bg="white"
@@ -1106,7 +1120,7 @@ const Responses = () => {
                 <FormControl>
                   <FormLabel fontWeight="medium">Destination</FormLabel>
                   <Input
-                    value={response.cropDetails?.destination || ''}
+                    value={response.cropDetails?.destination ?? '-'}
                     isReadOnly
                     bg="gray.50"
                     borderColor="gray.200"
@@ -1116,7 +1130,7 @@ const Responses = () => {
                 <FormControl>
                   <FormLabel fontWeight="medium">Mode of Payment</FormLabel>
                   <Input
-                    value={response.cropDetails?.mode_of_payment || ''}
+                    value={response.cropDetails?.mode_of_payment ?? '-'}
                     isReadOnly
                     bg="gray.50"
                     borderColor="gray.200"
@@ -1126,7 +1140,7 @@ const Responses = () => {
                 <FormControl>
                   <FormLabel fontWeight="medium">Mode of Delivery</FormLabel>
                   <Input
-                    value={response.cropDetails?.mode_of_delivery || ''}
+                    value={response.cropDetails?.mode_of_delivery ?? '-'}
                     isReadOnly
                     bg="gray.50"
                     borderColor="gray.200"
@@ -1197,7 +1211,7 @@ const Responses = () => {
               borderLeftColor="green.500"
             >
               <Heading as="h2" size="md" display="flex" alignItems="center">
-                <Icon as={FaSeedling} mr={2} color="green.600" /> NEWLY PLANTED RESPONSES <Text pl={2}><Tooltip label="Only select responses from the CURRENT PAGE for batch processing, any selected responses from other pages will be ignored. " position="bottom" hasArrow>(<Icon as={FaInfo} color="blue.500" boxSize={3}/>)</Tooltip></Text>
+                <Icon as={FaSeedling} mr={2} color="green.600" /> NEWLY PLANTED RESPONSES <Text pl={2}><Tooltip label="Only select responses from the CURRENT PAGE for batch processing. Any selected responses from other pages will be ignored during batch processing." position="bottom" hasArrow>(<Icon as={FaInfo} color="blue.500" boxSize={3}/>)</Tooltip></Text>
               </Heading>
               {selectedNewlyPlanted.length > 0 && (
                 <Button
@@ -1255,7 +1269,7 @@ const Responses = () => {
               borderLeftColor="orange.500"
             >
               <Heading as="h2" size="md" display="flex" alignItems="center">
-                <Icon as={FaBoxes} mr={2} color="orange.600" /> HARVESTING RESPONSES <Text pl={2}><Tooltip label="Only select responses from the CURRENT PAGE for batch processing, any selected responses from other pages will be ignored. " position="bottom" hasArrow>(<Icon as={FaInfo} color="blue.500" boxSize={3}/>)</Tooltip></Text>
+                <Icon as={FaBoxes} mr={2} color="orange.600" /> HARVESTING RESPONSES <Text pl={2}><Tooltip label="Only select responses from the CURRENT PAGE for batch processing. Any selected responses from other pages will be ignored during batch processing." position="bottom" hasArrow>(<Icon as={FaInfo} color="blue.500" boxSize={3}/>)</Tooltip></Text>
               </Heading>
 
               {selectedHarvesting.length > 0 && (
