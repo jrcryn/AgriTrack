@@ -1249,7 +1249,7 @@ const Responses = () => {
               borderLeftColor="green.500"
             >
               <Heading as="h2" size="md" display="flex" alignItems="center">
-                <Icon as={FaSeedling} mr={2} color="green.600" /> NEWLY PLANTED RESPONSES <Text pl={2}><Tooltip label="Only select responses from the CURRENT PAGE for batch processing. Any selected responses from other pages will be ignored during batch processing." position="bottom" hasArrow>(<Icon as={FaInfo} color="blue.500" boxSize={3}/>)</Tooltip></Text>
+                <Icon as={FaSeedling} mr={2} color="green.600" /> NEWLY PLANTED RESPONSES <Text pl={2}><Tooltip label="Only select responses from the CURRENT PAGE for batch processing. Any selected responses from other pages will be ignored." position="bottom" hasArrow>(<Icon as={FaInfo} color="blue.500" boxSize={3}/>)</Tooltip></Text>
               </Heading>
               {selectedNewlyPlanted.length > 0 && (
                 <Button
@@ -1307,7 +1307,7 @@ const Responses = () => {
               borderLeftColor="orange.500"
             >
               <Heading as="h2" size="md" display="flex" alignItems="center">
-                <Icon as={FaBoxes} mr={2} color="orange.600" /> HARVESTING RESPONSES <Text pl={2}><Tooltip label="Only select responses from the CURRENT PAGE for batch processing. Any selected responses from other pages will be ignored during batch processing." position="bottom" hasArrow>(<Icon as={FaInfo} color="blue.500" boxSize={3}/>)</Tooltip></Text>
+                <Icon as={FaBoxes} mr={2} color="orange.600" /> HARVESTING RESPONSES <Text pl={2}><Tooltip label="Only select responses from the CURRENT PAGE for batch processing. Any selected responses from other pages will be ignored." position="bottom" hasArrow>(<Icon as={FaInfo} color="blue.500" boxSize={3}/>)</Tooltip></Text>
               </Heading>
 
               {selectedHarvesting.length > 0 && (
