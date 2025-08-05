@@ -82,7 +82,9 @@ const E_Farmers = () => {
     createFarmerAccount, 
     isLoading, 
     isUpdatingFarmerAccount, 
-    updateFarmerAccount
+    updateFarmerAccount,
+
+    farmerAccountsError
    } = useAdminDashboard({farmerName: debouncedSearch, page: currentPage});
 
   const [isEditMode, setIsEditMode] = useState(false);
@@ -386,7 +388,7 @@ const E_Farmers = () => {
   };
 
   // Show error state
-  if (error) {
+  if (farmerAccountsError) {
     return (
       <Box 
         overflow="hidden" 

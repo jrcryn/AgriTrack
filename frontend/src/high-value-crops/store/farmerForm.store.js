@@ -97,13 +97,14 @@ export const useFarmerFormStore = create((set, get) => ({
     formData: {
       privacyConsent: '',
       farmerInput: {
-        farmerId: '',
+        _id: '',
+        farmerId: '', // unique farmer ID
         surname: '',
         first_name: '',
         middle_name: '',
         suffix: '',
         farm_location: '',
-        farmer_barangay: '',
+        farmer_location: '', 
       },
       cropType: '',
       cropRecordIndus: null,

@@ -74,12 +74,14 @@ const Responses = () => {
     unflagResponseForReview,
     error,
     updateFarmerInput,
-    clearError,
     createUnifiedFarmerResponse,
     newlyPlantedPage,
     setNewlyPlantedPage,
     harvestingPage,
-    setHarvestingPage
+    setHarvestingPage,
+
+    newlyPlantedError,
+    harvestingError,
   } = useAdminDashboard();
 
   const toast = useToast();
@@ -107,7 +109,7 @@ const Responses = () => {
   const harvMonthYearFull = { year: 'numeric', month: 'long' };
   
     // Show error state
-    if (error) {
+    if (newlyPlantedError && harvestingError) {
       return (
         <Box 
           overflow="hidden" 
@@ -1281,6 +1283,22 @@ const Responses = () => {
               />
             </Box>
             )}
+
+            {newlyPlantedError && (
+              <Box 
+                overflow="hidden" 
+                bg="white" 
+                p={5} 
+              >
+                <Alert status="error" borderRadius="md">
+                  <AlertIcon />
+                  <AlertTitle>Error loading data!</AlertTitle>
+                  <AlertDescription>
+                    {newlyPlantedError || "Unable to load newly planted responses."}
+                  </AlertDescription>
+                </Alert>
+              </Box>
+            )}
             
             <Flex justifyContent="space-between" alignItems="center" mt={4}>
               <PaginationControls 
@@ -1340,6 +1358,23 @@ const Responses = () => {
               />
             </Box>
             )}
+
+            {harvestingError && (
+              <Box 
+                overflow="hidden" 
+                bg="white" 
+                p={5} 
+              >
+                <Alert status="error" borderRadius="md">
+                  <AlertIcon />
+                  <AlertTitle>Error loading data!</AlertTitle>
+                  <AlertDescription>
+                    {harvestingError || "Unable to load harvesting responses."}
+                  </AlertDescription>
+                </Alert>
+              </Box>
+            )}
+
             <Flex justifyContent="space-between" alignItems="center" mt={4}>
               <PaginationControls 
                 currentPage={harvestingPage}
@@ -1447,26 +1482,41 @@ const Responses = () => {
               Close
             </Button>
 
-            <Tooltip label="Cannot push responses that are flagged for review." placement="top" hasArrow isDisabled={!selectedResponse?.farmerInput?.isForReview === true}>
-            <Button 
-              colorScheme="green" 
-              onClick={onOpenWarning}
-              size={"md"}
-              pl={8}
-              pr={8}
-              boxShadow="sm"
-              _hover={{ boxShadow: "md", bg: "green.600" }}
-              isDisabled={selectedResponse?.farmerInput?.isForReview === true}
-            >
+            {selectedResponse?.farmerInput?.isForReview === true && (
+              <Button 
+                colorScheme="blue" 
+                pl={6}
+                pr={6}
+                boxShadow="sm"
+                _hover={{ boxShadow: "md", bg: "blue.600" }}
+              >
+              
+                Update
+              </Button>
+            )}
             
-              Push to Records
-            </Button>
-            </Tooltip>
+            {selectedResponse?.farmerInput?.isForReview === false && (
+              <Tooltip label="Cannot push responses that are flagged for review." placement="top" hasArrow isDisabled={!selectedResponse?.farmerInput?.isForReview === true}>
+                <Button 
+                  colorScheme="green" 
+                  onClick={onOpenWarning}
+                  pl={6}
+                  pr={6}
+                  boxShadow="sm"
+                  _hover={{ boxShadow: "md", bg: "green.600" }}
+                >
+                
+                  Push
+                </Button>
+              </Tooltip>
+            )}
+            
 
           </ModalFooter>
         </ModalContent>
       </Modal>
-
+      
+      {/* Warning Modals */}
       <Modal isOpen={isOpenWarning} size="xs" onClose={onCloseWarning} closeOnOverlayClick={false} scrollBehavior="inside" isCentered  motionPreset="none">
         <ModalOverlay/>
         <ModalContent borderRadius="lg" overflow="hidden">
