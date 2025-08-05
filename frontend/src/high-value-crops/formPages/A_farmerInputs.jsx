@@ -91,7 +91,7 @@ const FarmerInput = ({ onNext, onBack }) => {
       if (response) {
         // Populate form data with farmer information
         const updatedFormData = {
-          _id: response._id, // MongoDB ObjectId
+          farmer_account_id: response._id, // MongoDB ObjectId
           farmerId: response.farmerId || '', 
           surname: response.surname || '',
           first_name: response.first_name || '',

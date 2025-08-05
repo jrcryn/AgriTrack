@@ -230,6 +230,7 @@ export const submitCompleteFarmerForm = async (req, res) => {
     // 1. Create Farmer Input
     const newFarmerInput = await global.highValueCropsModels.A_farmer_inputs.create(
       [{
+        // farmer_account_id refers to the FarmerAccount's ObjectId
         farmer_account_id: farmerInput._id,
         farmerId: farmerInput.farmerId,
         farm_location: farmerInput.farm_location
