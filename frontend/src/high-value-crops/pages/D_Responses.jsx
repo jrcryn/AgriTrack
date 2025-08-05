@@ -760,6 +760,15 @@ const Responses = () => {
       });
     };
 
+    const formatTime = (dateString) => {
+      if (!dateString) return '';
+      return new Date(dateString).toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: 'numeric',
+        hour12: true
+      });
+    };
+
     const handleChange = (section, field, value) => {
       setFormData(prev => ({
         ...prev,
@@ -802,6 +811,33 @@ const Responses = () => {
             <FormLabel fontWeight="medium">Farm Location</FormLabel>
             <Input 
               value={response.farmerInput?.farm_location ?? '-'}
+              isReadOnly
+              bg="gray.50"
+              borderColor="gray.200"
+            />
+          </FormControl>
+          <FormControl>
+            <FormLabel fontWeight="medium">Date of Submission</FormLabel>
+            <Input 
+              value={formatDate(response.farmerInput?.createdAt)}
+              isReadOnly
+              bg="gray.50"
+              borderColor="gray.200"
+            />
+          </FormControl>
+          <FormControl>
+            <FormLabel fontWeight="medium">Time of Submission</FormLabel>
+            <Input 
+              value={formatTime(response.farmerInput?.createdAt)}
+              isReadOnly
+              bg="gray.50"
+              borderColor="gray.200"
+            />
+          </FormControl>
+          <FormControl>
+            <FormLabel fontWeight="medium">Farmer ID</FormLabel>
+            <Input 
+              value={response.farmerInput?.farmerId ?? '-'}
               isReadOnly
               bg="gray.50"
               borderColor="gray.200"

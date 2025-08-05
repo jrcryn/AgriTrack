@@ -6,6 +6,7 @@ export const D1CropIndusHarvestSchema = new mongoose.Schema({
     ref: 'C1_crop_records_indus', 
     required: true 
   },
+  farmerId: { type: String, required: true }, // unique farmer ID
 
   //harvest date
   harvest_start_date: { type: Date, required: true },
@@ -21,5 +22,5 @@ export const D1CropIndusHarvestSchema = new mongoose.Schema({
   destination: { type: String, set: (value) => value.toUpperCase() },
   mode_of_payment: { type: String, set: (value) => value.toUpperCase() },
   mode_of_delivery: { type: String, set: (value) => value.toUpperCase() }
-}, { versionKey: false });
+}, { versionKey: false, timestamps: true });
 

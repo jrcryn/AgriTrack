@@ -6,6 +6,7 @@ export const C2CropRecordsOthersSchema = new mongoose.Schema({
     ref: 'A_farmer_inputs', 
     required: true 
   },
+  farmerId: { type: String, required: true }, // unique farmer ID
   crop_type_id: { 
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'B_crop_types', 
@@ -17,5 +18,5 @@ export const C2CropRecordsOthersSchema = new mongoose.Schema({
     enum: ['NEWLY PLANTED', 'HARVESTING'], 
     required: true 
   }
-}, { versionKey: false });
+}, { versionKey: false, timestamps: true });
 

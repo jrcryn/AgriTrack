@@ -229,14 +229,22 @@ export const submitCompleteFarmerForm = async (req, res) => {
   try {
     // 1. Create Farmer Input
     const newFarmerInput = await global.highValueCropsModels.A_farmer_inputs.create(
-      [{ farmer_account_id: farmerInput.farmerId, farm_location: farmerInput.farm_location }],
+      [{
+        farmer_account_id: farmerInput._id,
+        farmerId: farmerInput.farmerId,
+        farm_location: farmerInput.farm_location
+      }],
       { session }
     );
     const farmerInputId = newFarmerInput[0]._id;
 
     // 2. Create Crop Type
     const newCropType = await global.highValueCropsModels.B_crop_types.create(
-      [{ farmer_input_id: farmerInputId, crop_type: cropType }],
+      [{
+        farmer_input_id: farmerInputId,
+        farmerId: farmerInput.farmerId,
+        crop_type: cropType
+      }],
       { session }
     );
     const cropTypeId = newCropType[0]._id;
@@ -246,7 +254,12 @@ export const submitCompleteFarmerForm = async (req, res) => {
     // 3A. Handle Industrial Crops
     if (cropRecordIndus) {
       const newIndusRecord = await global.highValueCropsModels.C_crop_records_indus.create(
-        [{ ...cropRecordIndus, farmer_input_id: farmerInputId, crop_type_id: cropTypeId }],
+        [{
+          ...cropRecordIndus,
+          farmer_input_id: farmerInputId,
+          crop_type_id: cropTypeId,
+          farmerId: farmerInput.farmerId
+        }],
         { session }
       );
       recordId = newIndusRecord[0]._id;
@@ -254,12 +267,20 @@ export const submitCompleteFarmerForm = async (req, res) => {
       // 4A. Handle Industrial Crop Details
       if (cropRecordIndus.crop_stage === 'HARVESTING' && cropIndusHarvest) {
         await global.highValueCropsModels.D1_crop_indus_harvest.create(
-          [{ ...cropIndusHarvest, record_id: recordId }],
+          [{
+            ...cropIndusHarvest,
+            record_id: recordId,
+            farmerId: farmerInput.farmerId
+          }],
           { session }
         );
       } else if (cropRecordIndus.crop_stage === 'NEWLY PLANTED' && cropIndusNew) {
         await global.highValueCropsModels.D1_crop_indus_new.create(
-          [{ ...cropIndusNew, record_id: recordId }],
+          [{
+            ...cropIndusNew,
+            record_id: recordId,
+            farmerId: farmerInput.farmerId
+          }],
           { session }
         );
       }
@@ -267,7 +288,12 @@ export const submitCompleteFarmerForm = async (req, res) => {
     // 3B. Handle Other Crops
     else if (cropRecordOther) {
       const newOthersRecord = await global.highValueCropsModels.C_crop_records_others.create(
-        [{ ...cropRecordOther, farmer_input_id: farmerInputId, crop_type_id: cropTypeId }],
+        [{
+          ...cropRecordOther,
+          farmer_input_id: farmerInputId,
+          crop_type_id: cropTypeId,
+          farmerId: farmerInput.farmerId
+        }],
         { session }
       );
       recordId = newOthersRecord[0]._id;
@@ -275,12 +301,20 @@ export const submitCompleteFarmerForm = async (req, res) => {
       // 4B. Handle Other Crop Details
       if (cropRecordOther.crop_stage === 'HARVESTING' && cropOtherHarvest) {
         await global.highValueCropsModels.D2_bc_other_fct_harvest.create(
-          [{ ...cropOtherHarvest, record_id: recordId }],
+          [{
+            ...cropOtherHarvest,
+            record_id: recordId,
+            farmerId: farmerInput.farmerId
+          }],
           { session }
         );
       } else if (cropRecordOther.crop_stage === 'NEWLY PLANTED' && cropOtherNew) {
         await global.highValueCropsModels.D2_bc_other_fct_new.create(
-          [{ ...cropOtherNew, record_id: recordId }],
+          [{
+            ...cropOtherNew,
+            record_id: recordId,
+            farmerId: farmerInput.farmerId
+          }],
           { session }
         );
       }

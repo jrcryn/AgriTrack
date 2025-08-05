@@ -6,6 +6,7 @@ export const D2BcOtherFctNewSchema = new mongoose.Schema({
     ref: 'C2_crop_records_others', 
     required: true 
   },
+  farmerId: { type: String, required: true }, // unique farmer ID
 
     //plantation date
     plantation_start_date: { type: Date, required: true },
@@ -13,5 +14,5 @@ export const D2BcOtherFctNewSchema = new mongoose.Schema({
 
   harvest_month_year: { type: Date, required: true },
   total_trees: { type: Number, required: true }
-}, { versionKey: false });
+}, { versionKey: false, timestamps: true });
 
