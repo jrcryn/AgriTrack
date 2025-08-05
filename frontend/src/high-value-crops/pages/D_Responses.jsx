@@ -268,6 +268,7 @@ const Responses = () => {
       // Format response data
       const responseData = {
         farmer_account_id: selectedResponse.farmerInput.farmer_account_id._id,
+        farmerId: selectedResponse.farmerInput.farmerId,
         farm_location: selectedResponse.farmerInput.farm_location || "",
         crop_type: selectedResponse.cropType.crop_type,
         commodity: isIndustrialCrop ? 
@@ -626,6 +627,7 @@ const Responses = () => {
       const responseData = {
         // Farmer details
         farmer_account_id: selectedResponse.farmerInput.farmer_account_id._id,
+        farmerId: selectedResponse.farmerInput.farmerId,
         farm_location: selectedResponse.farmerInput.farm_location || "",
         
         // Crop information

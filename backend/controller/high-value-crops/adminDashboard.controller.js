@@ -350,7 +350,7 @@ const getCompleteRecordById = async (farmerId) => { //currently not in use
 // Create unified farmer response
 export const createUnifiedFarmerResponse = async (req, res) => {
   const { 
-    farmer_account_id, farm_location,
+    farmer_account_id, farmerId, farm_location,
     crop_type, commodity, crop_stage,
     plantation_start_date, plantation_end_date, harvest_month_year,
     total_area_planted, total_area_trees_planted,
@@ -396,7 +396,7 @@ export const createUnifiedFarmerResponse = async (req, res) => {
     const UnifiedFarmerRecordModel = global.getUnifiedFarmerRecordModel(year);
     
     const newUnifiedRecord = await UnifiedFarmerRecordModel.create([{
-      farmer_account_id, farm_location,
+      farmer_account_id, farmerId, farm_location,
       crop_type, commodity, crop_stage,
       plantation_start_date, plantation_end_date, harvest_month_year,
       total_area_planted, total_area_trees_planted,
