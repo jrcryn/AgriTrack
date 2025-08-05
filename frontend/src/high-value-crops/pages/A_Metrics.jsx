@@ -58,7 +58,10 @@ const Metrics = () => {
     isLoading,
     isLoadingUFRY,
     isLoadingUFRM,
-    error 
+    error,
+    ufrYearsError,
+    ufrMonthsError,
+    metricsError,
   } = useAdminDashboard();
 
   // useEffect(() => {
@@ -96,7 +99,7 @@ const Metrics = () => {
   };
 
   // Show error state
-  if (error) {
+  if (ufrYearsError || metricsError) {
     return (
       <Box 
         overflow="hidden" 
@@ -108,7 +111,7 @@ const Metrics = () => {
           <AlertIcon />
           <AlertTitle>Error loading data!</AlertTitle>
           <AlertDescription>
-            {error || "Unable to load metrics data. Please try again later."}
+            {ufrYearsError || "Unable to load metrics data. Please try again later."}
           </AlertDescription>
         </Alert>
       </Box>
@@ -247,6 +250,9 @@ const Metrics = () => {
                       </option>
                     ))}
                   </>
+                )}
+                {ufrMonthsError && (
+                  <option value="" disabled>Error loading months...</option>
                 )}
               </Select>
             </FormControl>  

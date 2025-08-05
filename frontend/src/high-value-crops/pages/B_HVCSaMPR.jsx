@@ -23,11 +23,12 @@ const C_GenReports = () => {
     isLoadingUFRM,
     isGeneratingReport, 
     generateExcelReport, 
-    error,
+    ufrYearsError, 
+    ufrMonthsError,
+    dateRangesError, 
   } = useAdminDashboard();
   
   const toast = useToast();
-  const API_URL = import.meta.env.VITE_API_URL;
 
   // Reset selectedMonth when year changes
   useEffect(() => {
@@ -181,7 +182,7 @@ const C_GenReports = () => {
     }
 
   // Show error state
-  if (error) {
+  if (ufrYearsError) {
     return (
       <Box 
         overflow="hidden" 
@@ -193,7 +194,7 @@ const C_GenReports = () => {
           <AlertIcon />
           <AlertTitle>Error loading data!</AlertTitle>
           <AlertDescription>
-            {error || "Unable to load metrics data. Please try again later."}
+            {ufrYearsError || "Unable to load metrics data. Please try again later."}
           </AlertDescription>
         </Alert>
       </Box>
@@ -274,6 +275,10 @@ const C_GenReports = () => {
                   ) : (
                     <option value="">No months available</option>
                   )}
+
+                  {ufrMonthsError && (
+                    <option value="" disabled>Error loading months...</option>
+                  )}
                 </Select>
               </FormControl>
             </HStack>
@@ -311,6 +316,13 @@ const C_GenReports = () => {
                 <Alert status="info" borderRadius="md">
                   <AlertIcon />
                   Please select both a year and month first
+                </Alert>
+              )}
+
+              {dateRangesError && (
+                <Alert status="error" borderRadius="md" mt={2}>
+                  <AlertIcon />
+                  Error loading date ranges...
                 </Alert>
               )}
             </FormControl>

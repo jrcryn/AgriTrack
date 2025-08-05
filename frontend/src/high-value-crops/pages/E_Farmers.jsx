@@ -82,7 +82,9 @@ const E_Farmers = () => {
     createFarmerAccount, 
     isLoading, 
     isUpdatingFarmerAccount, 
-    updateFarmerAccount
+    updateFarmerAccount,
+
+    farmerAccountsError
    } = useAdminDashboard({farmerName: debouncedSearch, page: currentPage});
 
   const [isEditMode, setIsEditMode] = useState(false);
@@ -386,7 +388,7 @@ const E_Farmers = () => {
   };
 
   // Show error state
-  if (error) {
+  if (farmerAccountsError) {
     return (
       <Box 
         overflow="hidden" 
@@ -408,7 +410,7 @@ const E_Farmers = () => {
   //modal header based on mode (edit mode or register mode)
   const modalTitle = isEditMode ? "Edit Farmer Information" : "Register New Farmer";
   const modalIcon = isEditMode ? FaEdit : FaUserPlus;
-  const submitButtonText = isEditMode ? "Update Farmer" : "Register Farmer";
+  const submitButtonText = isEditMode ? "Update" : "Register";
   const isSubmitting = isEditMode ? isUpdatingFarmerAccount : isCreatingFarmerAccount;
 
   return (
@@ -820,7 +822,7 @@ const E_Farmers = () => {
                 size="md"
                 _hover={{ boxShadow: "md", bg: "red.600" }}
               >
-                Delete Farmer Record
+                Delete Record
               </Button>
             )}
             <Spacer />

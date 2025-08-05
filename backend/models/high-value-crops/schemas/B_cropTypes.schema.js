@@ -6,9 +6,10 @@ export const BCropTypesSchema = new mongoose.Schema({
     ref: 'A_farmer_inputs', 
     required: true 
   },
+  farmerId: { type: String, required: true }, // unique farmer ID
   crop_type: { 
     type: String,
     required: true,
   }
-}, { versionKey: false });
+}, { versionKey: false, timestamps: true });
 

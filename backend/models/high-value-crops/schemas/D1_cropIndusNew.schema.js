@@ -6,6 +6,7 @@ export const D1CropIndusNewSchema = new mongoose.Schema({
     ref: 'C1_crop_records_indus', 
     required: true 
   },
+  farmerId: { type: String, required: true }, // unique farmer ID
   
     //plantation date
     plantation_start_date: { type: Date, required: true },
@@ -13,5 +14,5 @@ export const D1CropIndusNewSchema = new mongoose.Schema({
 
   harvest_month_year: { type: Date, required: true },
   total_area_planted: { type: Number, required: true }
-}, { versionKey: false });
+}, { versionKey: false, timestamps: true });
 

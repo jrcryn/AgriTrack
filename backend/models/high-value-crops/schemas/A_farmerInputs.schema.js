@@ -15,8 +15,9 @@ export const AFarmerInputsSchema = new mongoose.Schema({
     ref: 'Farmer_Account',
     required: true,
   },
+  farmerId: { type: String, required: true }, // unique farmer ID
   farm_location: { type: String, required: true, trim: true },
   isValidated: { type: Boolean, default: false },
   isForReview: { type: Boolean, default: false },
-}, { versionKey: false }, { timestamps: true });
+}, { versionKey: false, timestamps: true });
 

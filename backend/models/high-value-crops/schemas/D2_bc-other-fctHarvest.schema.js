@@ -6,6 +6,7 @@ export const D2BcOtherFctHarvestSchema = new mongoose.Schema({
     ref: 'C2_crop_records_others', 
     required: true 
   },
+  farmerId: { type: String, required: true }, // unique farmer ID
 
     //harvest date
     harvest_start_date: { type: Date, required: true },
@@ -17,5 +18,5 @@ export const D2BcOtherFctHarvestSchema = new mongoose.Schema({
   destination: { type: String, set: (value) => value.toUpperCase() },
   mode_of_payment: { type: String, set: (value) => value.toUpperCase() },
   mode_of_delivery: { type: String, set: (value) => value.toUpperCase() }
-}, { versionKey: false });
+}, { versionKey: false, timestamps: true });
 

@@ -72,10 +72,10 @@ const FarmerInput = ({ onNext, onBack }) => {
 
   // Find farmer by ID
   const handleFindFarmer = async () => {
-    if (!farmerName || !farmerSurname) {
+    if (!farmerName || !farmerSurname || !farmerLocation) {
       toast({
         title: "Incomplete Farmer Information",
-        description: "Please enter at least a name and surname to search.",
+        description: "Please enter at least a name, surname, and select a barangay to search.",
         status: "warning",
         duration: 5000,
         isClosable: true,
@@ -91,7 +91,8 @@ const FarmerInput = ({ onNext, onBack }) => {
       if (response) {
         // Populate form data with farmer information
         const updatedFormData = {
-          farmerId: response._id, // MongoDB ObjectId
+          _id: response._id, // MongoDB ObjectId
+          farmerId: response.farmerId || '', 
           surname: response.surname || '',
           first_name: response.first_name || '',
           middle_name: response.middle_name || '',

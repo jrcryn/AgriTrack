@@ -181,11 +181,11 @@ export const useAdminDashboard = (searchParams = {}) => {
   const { data: harvestingInputs = { results: [], totalPages: 1, totalCount: 0 }, isLoading: isLoadingHarvesting, error: harvestingError } = useUnvalidatedHarvestingQuery(harvestingPage);
   const { data: validatedInputs = [], isLoading: isLoadingValidated, error: validatedError } = useValidatedInputsQuery();
   //const { mutate: updateFarmerInput, isPending: isUpdating, error: updateError } = useUpdateFarmerInputMutation();
-  const { data: farmerAccounts = [], isLoading: isLoadingAccounts, error: accountsError } = useFarmerAccountsQuery(searchParams);
+  const { data: farmerAccounts = [], isLoading: isLoadingAccounts, error: farmerAccountsError } = useFarmerAccountsQuery(searchParams);
 
-  const { data: availableYears = [], isLoading: isLoadingUFRY } = useUnifiedFarmerResponseYearQuery();
-  const { data: availableMonths = [], isLoading: isLoadingUFRM } = useUnifiedFarmerResponseMonthsQuery(selectedYear);
-  const { data: metricsData, isLoading: isLoadingMetrics } = useMetricsForYearMonthQuery(
+  const { data: availableYears = [], isLoading: isLoadingUFRY, error: ufrYearsError } = useUnifiedFarmerResponseYearQuery();
+  const { data: availableMonths = [], isLoading: isLoadingUFRM, error: ufrMonthsError } = useUnifiedFarmerResponseMonthsQuery(selectedYear);
+  const { data: metricsData, isLoading: isLoadingMetrics, error: metricsError } = useMetricsForYearMonthQuery(
     selectedYear, 
     selectedMonth,
     selectedBarangay || null,  // Pass as null if empty string
@@ -222,23 +222,12 @@ export const useAdminDashboard = (searchParams = {}) => {
   }, [selectedYear]);
 
 
-  useEffect(() => {
-    const firstError = newlyPlantedError || harvestingError || validatedError || accountsError || dateRangesError;
-    if (firstError) {
-      setError(firstError.message || 'An unexpected error occurred.');
-    } else {
-      setError(null);
-    }
-  }, [newlyPlantedError, harvestingError, validatedError, accountsError, dateRangesError]);
-
-
   const createFarmerAccount = async (farmerData) => {
     setIsCreatingFarmerAccount(true);
     try {
       const response =  await axios.post(`${API_URL}/api/hvc/create-farmer-account`, farmerData);
       return response.data;
     } catch (error) {
-      setError(error.message || 'Failed to create farmer account');
       throw error;
     } finally {
       setIsCreatingFarmerAccount(false);
@@ -251,7 +240,6 @@ export const useAdminDashboard = (searchParams = {}) => {
       const response =  await axios.post(`${API_URL}/api/hvc/get-farmer-account-by-name-user`, farmerData);
       return response.data;
     } catch (error) {
-      setError(error.message || 'Failed to create farmer account');
       throw error;
     } finally {
       setIsFindingFarmerAccount(false);
@@ -264,7 +252,6 @@ export const useAdminDashboard = (searchParams = {}) => {
       const response = await axios.post(`${API_URL}/api/hvc/delete-farmer-account`, farmerId );
       return response.data;
     } catch (error) {
-      setError(error.message || 'Failed to delete farmer account');
       throw error;
     } finally {
       setIsDeletingFarmerAccount(false);
@@ -273,12 +260,10 @@ export const useAdminDashboard = (searchParams = {}) => {
 
   const createUnifiedFarmerResponse = async (responseData) => {
     setIsCreatingUnifiedResponse(true);
-    setError(null);
     try {
       const response = await axios.post(`${API_URL}/api/hvc/create-unified-farmer-response`, responseData);
       return response.data; 
     } catch (error) {
-      setError(error.message || 'Failed to create unified farmer response.');
       throw error; 
     } finally {
       setIsCreatingUnifiedResponse(false); 
@@ -286,23 +271,19 @@ export const useAdminDashboard = (searchParams = {}) => {
   };
 
   const flagResponseForReview = async (farmerId) => {
-    setError(null);
     try {
       const response = await axios.post(`${API_URL}/api/hvc/flag-response-for-review/${farmerId}`);
       return response.data; 
     } catch (error) {
-      setError(error.message || 'Failed to flag farmer response for review.');
       throw error; 
     } 
   };
 
   const unflagResponseForReview = async (farmerId) => {
-    setError(null);
     try {
       const response = await axios.post(`${API_URL}/api/hvc/unflag-response-for-review/${farmerId}`);
       return response.data; 
     } catch (error) {
-      setError(error.message || 'Failed to flag farmer response for review.');
       throw error; 
     } 
   };
@@ -312,7 +293,6 @@ export const useAdminDashboard = (searchParams = {}) => {
       const response = await axios.post(`${API_URL}/api/hvc/get-farmer-account`, farmerId);
       return response.data;
     } catch (error) {
-      setError(error.message || 'Failed to fetch farmer account by ID');
       throw error;
     }
   };
@@ -330,7 +310,6 @@ export const useAdminDashboard = (searchParams = {}) => {
       );
       return response.data;
     } catch (error) {
-      setError(error.message || 'Failed to generate Excel report');
       throw error;
     } finally {
       setIsGeneratingReport(false);
@@ -346,7 +325,6 @@ export const useAdminDashboard = (searchParams = {}) => {
       });
       return response.data;
     } catch (error) {
-      setError(error.message || 'Failed to update farmer account');
       throw error;
     }
     finally {
@@ -399,10 +377,16 @@ export const useAdminDashboard = (searchParams = {}) => {
     isGeneratingReport,
     isUpdatingFarmerAccount,
     
-    // Error state
-    error,
-    clearError: () => setError(null),
-
+    // Error states
+    newlyPlantedError, //
+    harvestingError, //
+    validatedError, //not in use
+    farmerAccountsError, //
+    ufrYearsError, //
+    ufrMonthsError, //
+    metricsError, //
+    dateRangesError, //
+    
     // Actions
     //updateFarmerInput,
     createFarmerAccount,

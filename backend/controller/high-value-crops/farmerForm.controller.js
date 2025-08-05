@@ -168,18 +168,32 @@ import mongoose from 'mongoose';
 //   }
 // };
 export const getFarmerAccountByName = async (req, res) => {
-  const {  surname, first_name, middle_name, suffix, farmer_barangay } = req.body;
-  if (!surname || !first_name ) {
-    return res.status(400).json({ message: 'Farmer not found.' });
+  const { surname, first_name, middle_name, suffix, farmer_barangay } = req.body;
+
+  if (!surname || !first_name || !farmer_barangay) {
+    return res.status(400).json({ message: 'Surname, first name, and barangay are required.' });
   }
+
   try {
-    const farmerAccount = await global.highValueCropsModels.FarmerAccount.findOne({
-      surname: {$regex: `^${surname}$`, $options: 'i'},
-      first_name: {$regex: `^${first_name}$`, $options: 'i'},
-      middle_name: middle_name ? {$regex: `^${middle_name}$`, $options: 'i'} : '',
-      suffix: suffix || '',
-      farmer_barangay
-    });
+    const query = {
+      surname: { $regex: `^${surname.trim()}$`, $options: 'i' },
+      first_name: { $regex: `^${first_name.trim()}$`, $options: 'i' },
+      farmer_barangay,
+    };
+
+    if (middle_name && middle_name.trim() !== '') {
+      query.middle_name = { $regex: `^${middle_name.trim()}$`, $options: 'i' };
+    } else {
+      query.$or = [{ middle_name: '' }, { middle_name: { $exists: false } }];
+    }
+
+    if (suffix && suffix.trim() !== '') {
+      query.suffix = suffix;
+    } else {
+      query.$or = [...(query.$or || []), { suffix: '' }, { suffix: { $exists: false } }];
+    }
+
+    const farmerAccount = await global.highValueCropsModels.FarmerAccount.findOne(query);
 
     if (!farmerAccount) {
       return res.status(404).json({ message: 'Farmer not found.' });
@@ -190,7 +204,6 @@ export const getFarmerAccountByName = async (req, res) => {
     console.error('Error fetching farmer account:', error);
     res.status(500).json({ message: 'Error fetching farmer account.', error: error.message });
   }
-
 };
 
 export const submitCompleteFarmerForm = async (req, res) => {
@@ -216,14 +229,23 @@ export const submitCompleteFarmerForm = async (req, res) => {
   try {
     // 1. Create Farmer Input
     const newFarmerInput = await global.highValueCropsModels.A_farmer_inputs.create(
-      [{ farmer_account_id: farmerInput.farmerId, farm_location: farmerInput.farm_location }],
+      [{
+        // farmer_account_id refers to the FarmerAccount's ObjectId
+        farmer_account_id: farmerInput._id,
+        farmerId: farmerInput.farmerId,
+        farm_location: farmerInput.farm_location
+      }],
       { session }
     );
     const farmerInputId = newFarmerInput[0]._id;
 
     // 2. Create Crop Type
     const newCropType = await global.highValueCropsModels.B_crop_types.create(
-      [{ farmer_input_id: farmerInputId, crop_type: cropType }],
+      [{
+        farmer_input_id: farmerInputId,
+        farmerId: farmerInput.farmerId,
+        crop_type: cropType
+      }],
       { session }
     );
     const cropTypeId = newCropType[0]._id;
@@ -233,7 +255,12 @@ export const submitCompleteFarmerForm = async (req, res) => {
     // 3A. Handle Industrial Crops
     if (cropRecordIndus) {
       const newIndusRecord = await global.highValueCropsModels.C_crop_records_indus.create(
-        [{ ...cropRecordIndus, farmer_input_id: farmerInputId, crop_type_id: cropTypeId }],
+        [{
+          ...cropRecordIndus,
+          farmer_input_id: farmerInputId,
+          crop_type_id: cropTypeId,
+          farmerId: farmerInput.farmerId
+        }],
         { session }
       );
       recordId = newIndusRecord[0]._id;
@@ -241,12 +268,20 @@ export const submitCompleteFarmerForm = async (req, res) => {
       // 4A. Handle Industrial Crop Details
       if (cropRecordIndus.crop_stage === 'HARVESTING' && cropIndusHarvest) {
         await global.highValueCropsModels.D1_crop_indus_harvest.create(
-          [{ ...cropIndusHarvest, record_id: recordId }],
+          [{
+            ...cropIndusHarvest,
+            record_id: recordId,
+            farmerId: farmerInput.farmerId
+          }],
           { session }
         );
       } else if (cropRecordIndus.crop_stage === 'NEWLY PLANTED' && cropIndusNew) {
         await global.highValueCropsModels.D1_crop_indus_new.create(
-          [{ ...cropIndusNew, record_id: recordId }],
+          [{
+            ...cropIndusNew,
+            record_id: recordId,
+            farmerId: farmerInput.farmerId
+          }],
           { session }
         );
       }
@@ -254,7 +289,12 @@ export const submitCompleteFarmerForm = async (req, res) => {
     // 3B. Handle Other Crops
     else if (cropRecordOther) {
       const newOthersRecord = await global.highValueCropsModels.C_crop_records_others.create(
-        [{ ...cropRecordOther, farmer_input_id: farmerInputId, crop_type_id: cropTypeId }],
+        [{
+          ...cropRecordOther,
+          farmer_input_id: farmerInputId,
+          crop_type_id: cropTypeId,
+          farmerId: farmerInput.farmerId
+        }],
         { session }
       );
       recordId = newOthersRecord[0]._id;
@@ -262,12 +302,20 @@ export const submitCompleteFarmerForm = async (req, res) => {
       // 4B. Handle Other Crop Details
       if (cropRecordOther.crop_stage === 'HARVESTING' && cropOtherHarvest) {
         await global.highValueCropsModels.D2_bc_other_fct_harvest.create(
-          [{ ...cropOtherHarvest, record_id: recordId }],
+          [{
+            ...cropOtherHarvest,
+            record_id: recordId,
+            farmerId: farmerInput.farmerId
+          }],
           { session }
         );
       } else if (cropRecordOther.crop_stage === 'NEWLY PLANTED' && cropOtherNew) {
         await global.highValueCropsModels.D2_bc_other_fct_new.create(
-          [{ ...cropOtherNew, record_id: recordId }],
+          [{
+            ...cropOtherNew,
+            record_id: recordId,
+            farmerId: farmerInput.farmerId
+          }],
           { session }
         );
       }

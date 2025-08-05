@@ -8,6 +8,7 @@ export const UnifiedFarmerRecordSchema = new mongoose.Schema({
     ref: 'Farmer_Account',
     required: true,
   },
+  farmerId: { type: String, required: true }, 
   farm_location: { type: String, required: true, trim: true },
   isValidated: { type: Boolean, default: true },
   

@@ -11,7 +11,7 @@ app.use(cookieParser());
 
 const allowedOrigins = [
     'https://agritrack.online', //production
-    'https://staging-backend-y6jo.onrender.com', //staging
+    'https://staging-frontend-5tcj.onrender.com', //staging
     'http://localhost:5173',  
     process.env.CLIENT_URL,
 ];
