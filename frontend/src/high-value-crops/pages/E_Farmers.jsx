@@ -154,6 +154,12 @@ const E_Farmers = () => {
           formData.birthdate.getTime() !== originalFormData.birthdate.getTime()));
       
       setHasChanges(hasFormChanged);
+    } else if (!isEditMode) {
+      const isFormValid =
+        formData.first_name.trim() !== '' &&
+        formData.surname.trim() !== '' &&
+        formData.farmer_barangay.trim() !== '';
+      setHasChanges(isFormValid);
     }
   }, [formData, originalFormData, isEditMode]);
 
@@ -310,6 +316,7 @@ const E_Farmers = () => {
       queryClient.invalidateQueries({ queryKey: ['farmerAccounts'] });
       onClose();
       onDeleteClose();
+      resetForm();
     } catch (error) {
       toast({
         title: "Error",
@@ -839,7 +846,7 @@ const E_Farmers = () => {
               colorScheme="blue"
               onClick={handleSubmit}
               isLoading={isSubmitting}
-              isDisabled={isEditMode && !hasChanges}
+              isDisabled={!hasChanges}
               size="md"
               fontWeight="500"
               boxShadow="sm"

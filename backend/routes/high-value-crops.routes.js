@@ -2,19 +2,21 @@ import express from 'express';
 
 import { 
     getUnvalidatedFarmerInputs, 
-    getValidatedFarmerInputs, 
+    //getValidatedFarmerInputs, // not in use
     createFarmerAccount, //manipulate data
     deleteFarmerAccount,
     getFarmerAccounts,
     getFarmerAccountByNameUser, 
-    getFarmerAccountById, // not in use
+    //getFarmerAccountById, // not in use
     updateFarmerAccount, //manipulate data
     createUnifiedFarmerResponse, //manipulate data
     flagResponseForReview,
     unflagResponseForReview,
     getAvailableMetricsYears,
     getAvailableMonthsForYear,
-    getMetricsForYearMonth
+    getMetricsForYearMonth,
+    updateFarmerResponseFields,
+    deleteFarmerResponse 
  } from '../controller/high-value-crops/adminDashboard.controller.js'; 
 
 import { 
@@ -38,7 +40,7 @@ const router = express.Router();
 
 
 router.get('/get-unvalidated-inputs', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), getUnvalidatedFarmerInputs);
-router.get('/get-validated-inputs', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), getValidatedFarmerInputs);
+//router.get('/get-validated-inputs', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), getValidatedFarmerInputs);
 router.post('/flag-response-for-review/:farmerId', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), flagResponseForReview);
 router.post('/unflag-response-for-review/:farmerId', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), unflagResponseForReview);
 
@@ -50,9 +52,11 @@ router.post('/create-farmer-account', verifyAuthToken, verifyRole(['HVCM', 'HVCS
 router.post('/delete-farmer-account', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), deleteFarmerAccount);
 router.get('/get-farmer-accounts', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), getFarmerAccounts);
 router.post('/get-farmer-account-by-name-user', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), getFarmerAccountByNameUser);
-router.post('/get-farmer-account', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), getFarmerAccountById);
+//router.post('/get-farmer-account', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), getFarmerAccountById);
 router.post('/create-unified-farmer-response', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), createUnifiedFarmerResponse);
 router.put('/farmer-accounts/update', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), updateFarmerAccount);
+router.post('/update-farmer-response-fields', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), updateFarmerResponseFields);
+router.post('/delete-farmer-response', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), deleteFarmerResponse);
 
 
 //________________________________ DASHBOARD (METRICS) PAGE ____________________________________

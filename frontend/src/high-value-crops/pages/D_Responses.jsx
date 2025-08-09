@@ -47,14 +47,16 @@ import { FaSearch, FaEye, FaSeedling, FaBoxes, FaUser, FaLeaf, FaWifi, FaUpload,
 import { GoAlertFill } from "react-icons/go";
 import { useAdminDashboard } from '../store/adminDashboard.store.js';
 import { useQueryClient } from '@tanstack/react-query';
+import { set } from 'lodash';
 
 const Responses = () => {
   // States for search and pagination
-  const [searchQuery, setSearchQuery] = useState('');
+  //const [searchQuery, setSearchQuery] = useState('');
   const [selectedResponse, setSelectedResponse] = useState(null);
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { isOpen: isOpenWarning, onOpen: onOpenWarning, onClose: onCloseWarning } = useDisclosure();
   const { isOpen: isOpenWarningBatch, onOpen: onOpenWarningBatch, onClose: onCloseWarningBatch } = useDisclosure();
+  const { isOpen: isOpenWarningDelete, onOpen: onOpenWarningDelete, onClose: onCloseWarningDelete } = useDisclosure();
 
   const [selectedNewlyPlanted, setSelectedNewlyPlanted] = useState([]);
   const [selectedHarvesting, setSelectedHarvesting] = useState([]);
@@ -62,6 +64,7 @@ const Responses = () => {
   const [pushType, setPushType] = useState(null);
 
   const [isUpdatingForReview, setIsUpdatingForReview] = useState(false);
+  const [isDeletingFarmerResponse, setIsDeletingFarmerResponse] = useState(false);
 
   // Unvalidated farmer inputs
   const { 
@@ -75,6 +78,7 @@ const Responses = () => {
     error,
     updateFarmerInput,
     createUnifiedFarmerResponse,
+    updateFarmerResponseFields,
     newlyPlantedPage,
     setNewlyPlantedPage,
     harvestingPage,
@@ -82,11 +86,16 @@ const Responses = () => {
 
     newlyPlantedError,
     harvestingError,
+    setIsModalOpen,
+    deleteFarmerResponse
   } = useAdminDashboard();
 
   const toast = useToast();
   const queryClient = useQueryClient();
 
+  useEffect(() => {
+    setIsModalOpen(isOpen);
+  }, [isOpen, setIsModalOpen]);
 
   // Filter responses based on search query
   // const searchedResponses = unvalidatedInputs.filter((response) => {
@@ -410,6 +419,45 @@ const Responses = () => {
           duration: 5000,
           isClosable: true,
         });
+      }
+    };
+
+    const handleDeleteFarmerResponse = async (responseToDelete) => {
+      if (!responseToDelete?.farmerInput?._id) {
+        toast({
+          title: "Error",
+          description: "Cannot identify the response to delete.",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
+        return;
+      }
+      try {
+        setIsDeletingFarmerResponse(true);
+        const response = await deleteFarmerResponse(responseToDelete.farmerInput._id);
+
+        toast({
+          title: "Success",
+          description: response.message,
+          status: "success",
+          duration: 5000,
+          isClosable: true,
+        });
+        queryClient.invalidateQueries({ queryKey: ['unvalidatedNewlyPlanted'] });
+        queryClient.invalidateQueries({ queryKey: ['unvalidatedHarvesting'] });
+        setIsDeletingFarmerResponse(false);
+        onCloseWarningDelete();
+        onClose();
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: error.response?.data?.message,
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
+        setIsDeletingFarmerResponse(false);
       }
     };
 
@@ -748,15 +796,206 @@ const Responses = () => {
     }
   };
 
-  const ResponseDetailForm = ({ response }) => {
-    
+  // State for editable fields in modal
+  const [editFields, setEditFields] = useState({});
+  const [isUpdatingFields, setIsUpdatingFields] = useState(false);
+
+  // When selectedResponse changes, reset editFields
+  useEffect(() => {
+    if (!selectedResponse) {
+      setEditFields({});
+      return;
+    }
+    const isNewlyPlanted = selectedResponse.cropRecord?.crop_stage === 'NEWLY PLANTED';
+    const isIndustrialCrop = selectedResponse.cropType?.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS';
+    if (isNewlyPlanted) {
+      if (isIndustrialCrop) {
+        setEditFields({
+          total_area_planted: selectedResponse.cropDetails?.total_area_planted ?? ''
+        });
+      } else {
+        setEditFields({
+          total_trees: selectedResponse.cropDetails?.total_trees ?? ''
+        });
+      }
+    } else {
+      if (isIndustrialCrop) {
+        setEditFields({
+          total_weight: selectedResponse.cropDetails?.total_weight ?? '',
+          total_area_harvested: selectedResponse.cropDetails?.total_area_harvested ?? ''
+        });
+      } else {
+        setEditFields({
+          total_weight: selectedResponse.cropDetails?.total_weight ?? '',
+          trees_harvested: selectedResponse.cropDetails?.trees_harvested ?? ''
+        });
+      }
+    }
+  }, [selectedResponse]);
+
+  const editValueRef = useRef(null);
+
+  // Handler for update button
+  const handleUpdateFields = async () => {
+    if (!selectedResponse) return;
+
+    const latest = editValueRef.current || {};
+    setIsUpdatingFields(true);
+    try {
+      const crop_stage = selectedResponse.cropRecord?.crop_stage;
+      await updateFarmerResponseFields({
+        farmerId: selectedResponse.farmerInput._id,
+        crop_stage,
+        updates: latest
+      });
+
+      // Create a deep copy of the selected response with updated values
+      const updatedResponse = {
+        ...selectedResponse,
+        cropDetails: {
+          ...selectedResponse.cropDetails,
+          ...latest
+        }
+      };
+      
+      // Update the state with the new values
+      setSelectedResponse(updatedResponse);
+      
+      toast({
+        title: "Success",
+        description: "Fields updated successfully.",
+        status: "success",
+        duration: 5000,
+        isClosable: true,
+      });
+      
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['unvalidatedNewlyPlanted'] });
+      queryClient.invalidateQueries({ queryKey: ['unvalidatedHarvesting'] });
+      
+      // Add a slight delay before closing the modal to ensure the user sees the updated values
+      setTimeout(() => {
+        onClose();
+      }, 500);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Failed to update fields.",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setIsUpdatingFields(false);
+    }
+  };
+
+  // ResponseDetailForm to allow editing only for flagged responses and only allowed fields
+  const ResponseDetailForm = React.memo(function ResponseDetailForm({ response, editable, onValuesChange }) {
     const isNewlyPlanted = response.cropRecord?.crop_stage === 'NEWLY PLANTED';
     const isHarvesting = response.cropRecord?.crop_stage === 'HARVESTING';
     const isIndustrialCrop = response.cropType?.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS';
-    
-    // For displaying dates nicely
+
+    // Maintain a stable state reference that doesn't reset during re-renders
+    const [localFields, setLocalFields] = React.useState({});
+
+    useEffect(() => {
+      if (!response) {
+        setLocalFields({});
+        onValuesChange?.({});
+        return;
+      }
+
+      // Initialize form fields based on response data
+      let initialFields = {};
+      
+      if (isNewlyPlanted) {
+        if (isIndustrialCrop) {
+          initialFields = {
+            total_area_planted: response.cropDetails?.total_area_planted ?? ''
+          };
+        } else {
+          initialFields = {
+            total_trees: response.cropDetails?.total_trees ?? ''
+          };
+        }
+      } else if (isHarvesting) {
+        if (isIndustrialCrop) {
+          initialFields = {
+            total_weight: response.cropDetails?.total_weight ?? '',
+            total_area_harvested: response.cropDetails?.total_area_harvested ?? ''
+          };
+        } else {
+          initialFields = {
+            total_weight: response.cropDetails?.total_weight ?? '',
+            trees_harvested: response.cropDetails?.trees_harvested ?? ''
+          };
+        }
+      }
+      
+      // Only update local fields if they're different from current state
+      // This prevents field values from resetting during re-renders
+      setLocalFields(prev => {
+        // Keep existing values if they've been modified by user
+        const merged = { ...initialFields };
+        
+        // For each field that exists in both, prefer the current value if it's been changed
+        Object.keys(initialFields).forEach(key => {
+          if (prev[key] !== undefined && prev[key] !== initialFields[key]) {
+            merged[key] = prev[key];
+          }
+        });
+        
+        onValuesChange?.(merged);
+        return merged;
+      });
+    }, [response?.farmerInput?._id, isNewlyPlanted, isHarvesting, isIndustrialCrop]);
+
+    const handleLocalChange = (field, value) => {
+      setLocalFields(prev => {
+        const next = { ...prev, [field]: value };
+        onValuesChange?.(next);
+        return next;
+      });
+    };
+
+    // Non-focusable display to mimic Input appearance
+    const FakeInput = ({ value, addon }) => (
+      <Flex
+        borderWidth="1px"
+        borderColor="gray.200"
+        bg="gray.50"
+        borderRadius="md"
+        h="40px"
+        overflow="hidden" // prevents gap on right
+        align="center"
+        justify="space-between"
+        tabIndex={-1}
+      >
+        <Text noOfLines={1} px={3} flex="1">
+          {value ?? '-'}
+        </Text>
+
+        {addon ? (
+          <Box
+            borderLeftWidth="1px"
+            borderColor="gray.200"
+            bg="blue.100"
+            color="blue.800"
+            h="full"
+            display="flex"
+            alignItems="center"
+            px={3}
+          >
+            {addon}
+          </Box>
+        ) : null}
+      </Flex>
+    );
+
+
     const formatDate = (dateString) => {
-      if (!dateString) return '';
+      if (!dateString) return '-';
       return new Date(dateString).toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'long',
@@ -765,7 +1004,7 @@ const Responses = () => {
     };
 
     const formatTime = (dateString) => {
-      if (!dateString) return '';
+      if (!dateString) return '-';
       return new Date(dateString).toLocaleTimeString('en-US', {
         hour: 'numeric',
         minute: 'numeric',
@@ -773,426 +1012,333 @@ const Responses = () => {
       });
     };
 
-    const handleChange = (section, field, value) => {
-      setFormData(prev => ({
-        ...prev,
-        [section]: {
-          ...prev[section],
-          [field]: value
-        }
-      }));
-    };
-
     return (
-    <VStack spacing={6} align="stretch">
-      {/* Farmer Information Section */}
-      <Box 
-        p={5} 
-        borderRadius="md" 
-        borderWidth="1px" 
-        borderColor="gray.200" 
-        bg="white"
-        boxShadow="sm"
-      >
-        <Heading as="h3" size="md" mb={4} color="blue.600" fontWeight="600">
-          <HStack>
-            <Icon as={FaUser} />
-            <Text>Farmer Information</Text>
-          </HStack>
-        </Heading>
-
-        <SimpleGrid columns={{ base: 1, md: 2 }} spacing={5}>
-          <FormControl>
-            <FormLabel fontWeight="medium">Full Name</FormLabel>
-            <Input 
-              value={`${response.farmerInput?.farmer_account_id?.first_name ?? ''} ${response.farmerInput?.farmer_account_id?.middle_name ? response.farmerInput?.farmer_account_id.middle_name + ' ' : ''}${response.farmerInput?.farmer_account_id?.surname ?? ''} ${response.farmerInput?.farmer_account_id?.suffix ?? ''}`}
-              isReadOnly
-              bg="gray.50"
-              borderColor="gray.200"
-            />
-          </FormControl>
-          <FormControl>
-            <FormLabel fontWeight="medium">Farm Location</FormLabel>
-            <Input 
-              value={response.farmerInput?.farm_location ?? '-'}
-              isReadOnly
-              bg="gray.50"
-              borderColor="gray.200"
-            />
-          </FormControl>
-          <FormControl>
-            <FormLabel fontWeight="medium">Date of Submission</FormLabel>
-            <Input 
-              value={formatDate(response.farmerInput?.createdAt)}
-              isReadOnly
-              bg="gray.50"
-              borderColor="gray.200"
-            />
-          </FormControl>
-          <FormControl>
-            <FormLabel fontWeight="medium">Time of Submission</FormLabel>
-            <Input 
-              value={formatTime(response.farmerInput?.createdAt)}
-              isReadOnly
-              bg="gray.50"
-              borderColor="gray.200"
-            />
-          </FormControl>
-          <FormControl>
-            <FormLabel fontWeight="medium">Farmer ID</FormLabel>
-            <Input 
-              value={response.farmerInput?.farmerId ?? '-'}
-              isReadOnly
-              bg="gray.50"
-              borderColor="gray.200"
-            />
-          </FormControl>
-        </SimpleGrid>
-      </Box>
-
-      {/* Crop Information Section (Conditional)*/}
-      <Box 
-        p={5} 
-        borderRadius="md" 
-        borderWidth="1px" 
-        borderColor="gray.200" 
-        bg="white"
-        boxShadow="sm"
-      >
-        <Heading as="h3" size="md" mb={4} color="green.600" fontWeight="600">
-          <HStack>
-            <Icon as={FaSeedling} />
-            <Text>Crop Information</Text>
-          </HStack>
-        </Heading>
-        
-        <SimpleGrid columns={{ base: 1, md: 2 }} spacing={5}>
-          {isIndustrialCrop ? (
-            <>
-              <FormControl>
-                <FormLabel fontWeight="medium">Crop Type</FormLabel>
-                <Input
-                  value={response.cropType?.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS' ? 'INDUSTRIAL' : '-'}
-                  isReadOnly
-                  bg="gray.50"
-                  borderColor="gray.200"
-                />
-              </FormControl>
-
-              <FormControl>
-                <FormLabel fontWeight="medium">Commodity</FormLabel>
-                <Input
-                  value={response.cropRecord?.crop_type ?? '-'}
-                  isReadOnly
-                  bg="gray.50"
-                  borderColor="gray.200"
-                />
-              </FormControl>
-
-              <FormControl>
-                <FormLabel fontWeight="medium">Variety</FormLabel>
-                <Input
-                  value={response.cropRecord?.crop_variety ?? '-'}
-                  isReadOnly
-                  bg="gray.50"
-                  borderColor="gray.200"
-                />
-              </FormControl>
-            </>
-          ) : (
-            <>
-              <FormControl>
-                <FormLabel fontWeight="medium">Crop Type</FormLabel>
-                <Input
-                  value={response.cropType?.crop_type ?? '-'}
-                  isReadOnly
-                  bg="gray.50"
-                  borderColor="gray.200"
-                />
-              </FormControl>
-
-              <FormControl>
-                <FormLabel fontWeight="medium">Commodity</FormLabel>
-                <Input
-                  value={response.cropRecord?.crop_variety ?? '-'}
-                  isReadOnly
-                  bg="gray.50"
-                  borderColor="gray.200"
-                />
-              </FormControl>
-            </>
-          )}
-        </SimpleGrid>
-      </Box>
-
-      {/* Plantation Information */}
-      {isNewlyPlanted && (
-        <Box 
-          p={5} 
-          borderRadius="md" 
-          borderWidth="1px" 
-          borderColor="gray.200" 
-          bg="white"
-          boxShadow="sm"
-        >
-          <Heading as="h3" size="md" mb={4} color="teal.600" fontWeight="600">
+      <VStack spacing={6} align="stretch">
+        {/* Farmer Information Section */}
+        <Box p={5} borderRadius="md" borderWidth="1px" borderColor="gray.200" bg="white" boxShadow="sm">
+          <Heading as="h3" size="md" mb={4} color="blue.600" fontWeight="600">
             <HStack>
-              <Icon as={FaLeaf} />
-              <Text>Plantation Details</Text>
+              <Icon as={FaUser} />
+              <Text>Farmer Information</Text>
             </HStack>
           </Heading>
-          
-          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={5} mb={4}>
+
+          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={5}>
             <FormControl>
-              <FormLabel fontWeight="medium">Date of Plantation</FormLabel>
-              <Input
-                value={response.cropDetails?.plantation_start_date && response.cropDetails?.plantation_end_date
-                  ? `${formatDate(response.cropDetails.plantation_start_date)} to ${formatDate(response.cropDetails.plantation_end_date)}`
-                  : '-'}
-                isReadOnly
-                bg="gray.50"
-                borderColor="gray.200"
+              <FormLabel fontWeight="medium">Full Name</FormLabel>
+              <FakeInput
+                value={
+                  `${response.farmerInput?.farmer_account_id?.first_name ?? ''} ${response.farmerInput?.farmer_account_id?.middle_name ? response.farmerInput?.farmer_account_id.middle_name + '.' : ''} ${response.farmerInput?.farmer_account_id?.surname ?? ''} ${response.farmerInput?.farmer_account_id?.suffix ?? ''}`.trim()
+                }
               />
             </FormControl>
-            
             <FormControl>
-              <FormLabel fontWeight="medium">Date of Harvesting</FormLabel>
-              <Input
-                value={response.cropDetails?.harvest_month_year
-                  ? new Date(response.cropDetails.harvest_month_year).toLocaleDateString('en-US', harvMonthYearFull)
-                  : '-'}
-                isReadOnly
-                bg="gray.50"
-                borderColor="gray.200"
-              />
+              <FormLabel fontWeight="medium">Farm Location</FormLabel>
+              <FakeInput value={response.farmerInput?.farm_location ?? '-'} />
+            </FormControl>
+            <FormControl>
+              <FormLabel fontWeight="medium">Date of Submission</FormLabel>
+              <FakeInput value={formatDate(response.farmerInput?.createdAt)} />
+            </FormControl>
+            <FormControl>
+              <FormLabel fontWeight="medium">Time of Submission</FormLabel>
+              <FakeInput value={formatTime(response.farmerInput?.createdAt)} />
+            </FormControl>
+            <FormControl>
+              <FormLabel fontWeight="medium">Farmer ID</FormLabel>
+              <FakeInput value={response.farmerInput?.farmerId ?? '-'} />
             </FormControl>
           </SimpleGrid>
-
-          {isIndustrialCrop ? (
-            <Box 
-            p={4} 
-            borderRadius="md" 
-            borderWidth="1px" 
-            borderColor="blue.200" 
-            bg="blue.50"
-            mt={5}
-            >
-              <FormControl mb={1}>
-                <FormLabel fontWeight="medium">Total Area Planted (ha)</FormLabel>
-                <InputGroup>
-                  <Input
-                    value={response.cropDetails?.total_area_planted != null ? response.cropDetails.total_area_planted : '-'}
-                    isReadOnly
-                    bg="gray.50"
-                    borderColor="gray.200"
-                  />
-                  <InputRightAddon children="hectares" bg="blue.100" color="blue.800" />
-                </InputGroup>
-              </FormControl>
-            </Box>
-          ) : (
-            <Box 
-              p={4} 
-              borderRadius="md" 
-              borderWidth="1px" 
-              borderColor="blue.200" 
-              bg="blue.50"
-              mt={5}
-            >
-              <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-                <FormControl>
-                  <FormLabel fontWeight="medium" color="gray.700">Total Number of Trees</FormLabel>
-                  <InputGroup>
-                    <Input
-                      value={response.cropDetails?.total_trees != null ? response.cropDetails.total_trees : '-'}
-                      isReadOnly
-                      bg="white"
-                      borderColor="gray.300"
-                    />
-                    <InputRightAddon children="trees" bg="blue.100" color="blue.800" />
-                  </InputGroup>
-                </FormControl>
-
-                <FormControl>
-                  <FormLabel fontWeight="medium" color="gray.700">Equivalent Area - {response.cropRecord?.crop_variety}</FormLabel>
-                  <InputGroup>
-                    <Input
-                      value={response.cropDetails?.total_trees != null && response.cropRecord?.crop_variety
-                        ? `${numOfTreesToHectares(response.cropRecord.crop_variety, response.cropDetails.total_trees)?.toFixed(4) || 'invalid commodity'}`
-                        : '-'}
-                      isReadOnly
-                      bg="white"
-                      borderColor="gray.300"
-                    />
-                    <InputRightAddon children="hectares" bg="blue.100" color="blue.800" />
-                  </InputGroup>
-                </FormControl>
-              </SimpleGrid>
-            </Box>
-          )}
         </Box>
-      )}
 
-      {/* Harvest Information (Conditional) */}
-      {isHarvesting && (
-        <Box 
-          p={5} 
-          borderRadius="md" 
-          borderWidth="1px" 
-          borderColor="gray.200" 
-          bg="white"
-          boxShadow="sm"
-        >
-          <Heading as="h3" size="md" mb={4} color="orange.600" fontWeight="600">
+        {/* Crop Information Section */}
+        <Box p={5} borderRadius="md" borderWidth="1px" borderColor="gray.200" bg="white" boxShadow="sm">
+          <Heading as="h3" size="md" mb={4} color="green.600" fontWeight="600">
             <HStack>
-              <Icon as={FaBoxes} />
-              <Text>Harvesting Details</Text>
+              <Icon as={FaSeedling} />
+              <Text>Crop Information</Text>
             </HStack>
           </Heading>
-          
-          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={5} mb={4}>
-            <FormControl>
-              <FormLabel fontWeight="medium">Date of Harvest</FormLabel>
-              <Input
-                value={
-                  response.cropDetails?.harvest_start_date && response.cropDetails?.harvest_end_date
-                    ? `${formatDate(response.cropDetails.harvest_start_date)} to ${formatDate(response.cropDetails.harvest_end_date)}`
-                    : '-'
-                }
-                isReadOnly
-                bg="gray.50"
-                borderColor="gray.200"
-              />
-            </FormControl>
 
-            <FormControl>
-              <FormLabel fontWeight="medium">Total Weight</FormLabel>
-              <InputGroup>
-                <Input
-                  value={response.cropDetails?.total_weight != null ? response.cropDetails.total_weight : '-'}
-                  isReadOnly
-                  bg="gray.50"
-                  borderColor="gray.200"
-                />
-                <InputRightAddon children="kg" bg="blue.100" color="blue.800" />
-              </InputGroup>
-            </FormControl>
-
-            <FormControl>
-              <FormLabel fontWeight="medium">Crop Purpose</FormLabel>
-              <Input
-                value={response.cropDetails?.crop_purpose ?? '-'}
-                isReadOnly
-                bg="gray.50"
-                borderColor="gray.200"
-              />
-            </FormControl>
-            </SimpleGrid>
-            
+          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={5}>
             {isIndustrialCrop ? (
-              <Box 
-                p={4} 
-                borderRadius="md" 
-                borderWidth="1px" 
-                borderColor="blue.200" 
-                bg="blue.50"
-                mt={5}
-                >
-                  <FormControl mb={1}>
-                    <FormLabel fontWeight="medium">Total Area Harvested (Ha)</FormLabel>
+              <>
+                <FormControl>
+                  <FormLabel fontWeight="medium">Crop Type</FormLabel>
+                  <FakeInput value="INDUSTRIAL" />
+                </FormControl>
+                <FormControl>
+                  <FormLabel fontWeight="medium">Commodity</FormLabel>
+                  <FakeInput value={response.cropRecord?.crop_type ?? '-'} />
+                </FormControl>
+                <FormControl>
+                  <FormLabel fontWeight="medium">Variety</FormLabel>
+                  <FakeInput value={response.cropRecord?.crop_variety ?? '-'} />
+                </FormControl>
+              </>
+            ) : (
+              <>
+                <FormControl>
+                  <FormLabel fontWeight="medium">Crop Type</FormLabel>
+                  <FakeInput value={response.cropType?.crop_type ?? '-'} />
+                </FormControl>
+                <FormControl>
+                  <FormLabel fontWeight="medium">Commodity</FormLabel>
+                  <FakeInput value={response.cropRecord?.crop_variety ?? '-'} />
+                </FormControl>
+              </>
+            )}
+          </SimpleGrid>
+        </Box>
+
+        {/* Plantation Information */}
+        {isNewlyPlanted && (
+          <Box p={5} borderRadius="md" borderWidth="1px" borderColor="gray.200" bg="white" boxShadow="sm">
+            <Heading as="h3" size="md" mb={4} color="teal.600" fontWeight="600">
+              <HStack>
+                <Icon as={FaLeaf} />
+                <Text>Plantation Details</Text>
+              </HStack>
+            </Heading>
+
+            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={5} mb={4}>
+              <FormControl>
+                <FormLabel fontWeight="medium">Date of Plantation</FormLabel>
+                <FakeInput
+                  value={
+                    response.cropDetails?.plantation_start_date && response.cropDetails?.plantation_end_date
+                      ? `${formatDate(response.cropDetails.plantation_start_date)} to ${formatDate(response.cropDetails.plantation_end_date)}`
+                      : '-'
+                  }
+                />
+              </FormControl>
+
+              <FormControl>
+                <FormLabel fontWeight="medium">Date of Harvesting</FormLabel>
+                <FakeInput
+                  value={
+                    response.cropDetails?.harvest_month_year
+                      ? new Date(response.cropDetails.harvest_month_year).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                        })
+                      : '-'
+                  }
+                />
+              </FormControl>
+            </SimpleGrid>
+
+            {isIndustrialCrop ? (
+              <Box p={4} borderRadius="md" borderWidth="1px" borderColor="blue.200" bg="blue.50" mt={5}>
+                <FormControl mb={1}>
+                  <FormLabel fontWeight="medium">Total Area Planted (ha)</FormLabel>
+                  {editable ? (
                     <InputGroup>
                       <Input
-                        value={response.cropDetails?.total_area_harvested != null ? response.cropDetails.total_area_harvested : '-'}
-                        isReadOnly
-                        bg="gray.50"
+                        value={localFields.total_area_planted}
+                        bg="white"
                         borderColor="gray.200"
+                        type="number"
+                        onChange={(e) => handleLocalChange('total_area_planted', e.target.value)}
                       />
                       <InputRightAddon children="hectares" bg="blue.100" color="blue.800" />
                     </InputGroup>
-                    </FormControl>
-                </Box>
-              ) : (
-                <Box 
-                p={4} 
-                borderRadius="md" 
-                borderWidth="1px" 
-                borderColor="blue.200" 
-                bg="blue.50"
-                mt={5}
-                >
+                  ) : (
+                    <FakeInput
+                      value={
+                        response.cropDetails?.total_area_planted != null ? response.cropDetails.total_area_planted : '-'
+                      }
+                      addon="hectares"
+                    />
+                  )}
+                </FormControl>
+              </Box>
+            ) : (
+              <Box p={4} borderRadius="md" borderWidth="1px" borderColor="blue.200" bg="blue.50" mt={5}>
                 <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
                   <FormControl>
-                    <FormLabel fontWeight="medium" color="gray.700">Total Number of Trees Harvested</FormLabel>
-                    <InputGroup>
-                      <Input
-                        value={response.cropDetails?.trees_harvested != null ? response.cropDetails.trees_harvested : '-'}
-                        isReadOnly
-                        bg="white"
-                        borderColor="gray.300"
+                    <FormLabel fontWeight="medium" color="gray.700">
+                      Total Number of Trees
+                    </FormLabel>
+                    {editable ? (
+                      <InputGroup>
+                        <Input
+                          value={localFields.total_trees}
+                          bg="white"
+                          borderColor="gray.300"
+                          type="number"
+                          onChange={(e) => handleLocalChange('total_trees', e.target.value)}
+                        />
+                        <InputRightAddon children="trees" bg="blue.100" color="blue.800" />
+                      </InputGroup>
+                    ) : (
+                      <FakeInput
+                        value={response.cropDetails?.total_trees != null ? response.cropDetails.total_trees : '-'}
+                        addon="trees"
                       />
-                      <InputRightAddon children="trees" bg="blue.100" color="blue.800" />
-                    </InputGroup>
+                    )}
                   </FormControl>
 
                   <FormControl>
-                    <FormLabel fontWeight="medium" color="gray.700">Equivalent Area - {response.cropRecord?.crop_variety}</FormLabel>
+                    <FormLabel fontWeight="medium" color="gray.700">
+                      Equivalent Area - {response.cropRecord?.crop_variety}
+                    </FormLabel>
+                    <FakeInput
+                      value={
+                        response.cropDetails?.total_trees != null && response.cropRecord?.crop_variety
+                          ? `${numOfTreesToHectares(response.cropRecord.crop_variety, response.cropDetails.total_trees)?.toFixed(4) || 'invalid commodity'}`
+                          : '-'
+                      }
+                      addon="hectares"
+                    />
+                  </FormControl>
+                </SimpleGrid>
+              </Box>
+            )}
+          </Box>
+        )}
+
+        {/* Harvest Information */}
+        {isHarvesting && (
+          <Box p={5} borderRadius="md" borderWidth="1px" borderColor="gray.200" bg="white" boxShadow="sm">
+            <Heading as="h3" size="md" mb={4} color="orange.600" fontWeight="600">
+              <HStack>
+                <Icon as={FaBoxes} />
+                <Text>Harvesting Details</Text>
+              </HStack>
+            </Heading>
+
+            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={5} mb={4}>
+              <FormControl>
+                <FormLabel fontWeight="medium">Date of Harvest</FormLabel>
+                <FakeInput
+                  value={
+                    response.cropDetails?.harvest_start_date && response.cropDetails?.harvest_end_date
+                      ? `${formatDate(response.cropDetails.harvest_start_date)} to ${formatDate(response.cropDetails.harvest_end_date)}`
+                      : '-'
+                  }
+                />
+              </FormControl>
+
+              <FormControl>
+                <FormLabel fontWeight="medium">Total Weight</FormLabel>
+                {editable ? (
+                  <InputGroup>
+                    <Input
+                      value={localFields.total_weight}
+                      bg="white"
+                      borderColor="gray.200"
+                      type="number"
+                      onChange={(e) => handleLocalChange('total_weight', e.target.value)}
+                    />
+                    <InputRightAddon children="kg" bg="blue.100" color="blue.800" />
+                  </InputGroup>
+                ) : (
+                  <FakeInput
+                    value={response.cropDetails?.total_weight != null ? response.cropDetails.total_weight : '-'}
+                    addon="kg"
+                  />
+                )}
+              </FormControl>
+
+              <FormControl>
+                <FormLabel fontWeight="medium">Crop Purpose</FormLabel>
+                <FakeInput value={response.cropDetails?.crop_purpose ?? '-'} />
+              </FormControl>
+            </SimpleGrid>
+
+            {isIndustrialCrop ? (
+              <Box p={4} borderRadius="md" borderWidth="1px" borderColor="blue.200" bg="blue.50" mt={5}>
+                <FormControl mb={1}>
+                  <FormLabel fontWeight="medium">Total Area Harvested (Ha)</FormLabel>
+                  {editable ? (
                     <InputGroup>
                       <Input
-                        value={response.cropDetails?.trees_harvested != null && response.cropRecord?.crop_variety
-                          ? `${numOfTreesToHectares(response.cropRecord.crop_variety, response.cropDetails.trees_harvested)?.toFixed(4) || 'invalid commodity'}`
-                          : '-'}
-                        isReadOnly
+                        value={localFields.total_area_harvested}
                         bg="white"
-                        borderColor="gray.300"
+                        borderColor="gray.200"
+                        type="number"
+                        onChange={(e) => handleLocalChange('total_area_harvested', e.target.value)}
                       />
                       <InputRightAddon children="hectares" bg="blue.100" color="blue.800" />
                     </InputGroup>
+                  ) : (
+                    <FakeInput
+                      value={
+                        response.cropDetails?.total_area_harvested != null ? response.cropDetails.total_area_harvested : '-'
+                      }
+                      addon="hectares"
+                    />
+                  )}
+                </FormControl>
+              </Box>
+            ) : (
+              <Box p={4} borderRadius="md" borderWidth="1px" borderColor="blue.200" bg="blue.50" mt={5}>
+                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+                  <FormControl>
+                    <FormLabel fontWeight="medium" color="gray.700">
+                      Total Number of Trees Harvested
+                    </FormLabel>
+                    {editable ? (
+                      <InputGroup>
+                        <Input
+                          value={localFields.trees_harvested}
+                          bg="white"
+                          borderColor="gray.300"
+                          type="number"
+                          onChange={(e) => handleLocalChange('trees_harvested', e.target.value)}
+                        />
+                        <InputRightAddon children="trees" bg="blue.100" color="blue.800" />
+                      </InputGroup>
+                    ) : (
+                      <FakeInput
+                        value={response.cropDetails?.trees_harvested != null ? response.cropDetails.trees_harvested : '-'}
+                        addon="trees"
+                      />
+                    )}
+                  </FormControl>
+
+                  <FormControl>
+                    <FormLabel fontWeight="medium" color="gray.700">
+                      Equivalent Area - {response.cropRecord?.crop_variety}
+                    </FormLabel>
+                    <FakeInput
+                      value={
+                        response.cropDetails?.trees_harvested != null && response.cropRecord?.crop_variety
+                          ? `${numOfTreesToHectares(response.cropRecord.crop_variety, response.cropDetails.trees_harvested)?.toFixed(4) || 'invalid commodity'}`
+                          : '-'
+                      }
+                      addon="hectares"
+                    />
                   </FormControl>
                 </SimpleGrid>
-             </Box>
+              </Box>
             )}
-          
 
-          {/* Selling Details Nested Section (Conditional) */}
-          {response.cropDetails?.crop_purpose === 'PANG BENTA' && (
-              
+            {/* Selling Details Nested Section (Conditional) */}
+            {response.cropDetails?.crop_purpose === 'PANG BENTA' && (
               <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mt={4}>
                 <FormControl>
                   <FormLabel fontWeight="medium">Destination</FormLabel>
-                  <Input
-                    value={response.cropDetails?.destination ?? '-'}
-                    isReadOnly
-                    bg="gray.50"
-                    borderColor="gray.200"
-                  />
+                  <FakeInput value={response.cropDetails?.destination ?? '-'} />
                 </FormControl>
-                
+
                 <FormControl>
                   <FormLabel fontWeight="medium">Mode of Payment</FormLabel>
-                  <Input
-                    value={response.cropDetails?.mode_of_payment ?? '-'}
-                    isReadOnly
-                    bg="gray.50"
-                    borderColor="gray.200"
-                  />
+                  <FakeInput value={response.cropDetails?.mode_of_payment ?? '-'} />
                 </FormControl>
-                
+
                 <FormControl>
                   <FormLabel fontWeight="medium">Mode of Delivery</FormLabel>
-                  <Input
-                    value={response.cropDetails?.mode_of_delivery ?? '-'}
-                    isReadOnly
-                    bg="gray.50"
-                    borderColor="gray.200"
-                  />
+                  <FakeInput value={response.cropDetails?.mode_of_delivery ?? '-'} />
                 </FormControl>
               </SimpleGrid>
-          )}
-        </Box>
-      )}
-    </VStack>
+            )}
+          </Box>
+        )}
+      </VStack>
     );
-  };
+  });
   
     return (
       <Box 
@@ -1390,13 +1536,17 @@ const Responses = () => {
             
       {/* Details Modal */}
       <Modal 
-        isOpen={isOpen} 
+        isOpen={isOpen}
         onClose={onClose} 
         size="3xl" 
         closeOnOverlayClick={false} 
         scrollBehavior="inside"
         isCentered
         motionPreset="none"
+        initialFocusRef={null}
+        autoFocus={false}
+        trapFocus={false}        
+        returnFocusOnClose={false}
       >
         <ModalOverlay />
         <ModalContent borderRadius="lg" overflow="hidden">
@@ -1430,24 +1580,15 @@ const Responses = () => {
           <ModalBody py={6}>
             {selectedResponse && (
               <ResponseDetailForm 
-                response={selectedResponse} 
-                onUpdate={(updateData) => {
-                  updateFarmerInput({
-                    farmerId: selectedResponse.farmerInput._id,
-                    updateData
-                  });
-                  onClose();
-                }}
-                // Remove the Save Changes button from the form component
-                hideSaveButton={true}
+                response={selectedResponse}
+                editable={selectedResponse?.farmerInput?.isForReview === true}
+                onValuesChange={(vals) => { editValueRef.current = vals; }}
               />
             )}
           </ModalBody>
           
           <ModalFooter bg="gray.50" borderTopWidth="1px" borderColor="gray.200">
-
-            <Flex w='100%'>
-
+            
             {selectedResponse?.farmerInput?.isForReview === true ? (
               <>
                 <Button 
@@ -1477,41 +1618,47 @@ const Responses = () => {
 
             <Spacer />
 
-            </Flex>
+            
             <Button variant="outline" mr={3} onClick={onClose} _hover={{ bg: "gray.100" }}>
               Close
             </Button>
 
             {selectedResponse?.farmerInput?.isForReview === true && (
               <Button 
+                colorScheme="red" 
+                boxShadow="sm"
+                mr={3}
+                _hover={{ boxShadow: "md", bg: "red.600" }}
+                onClick={onOpenWarningDelete}
+              >
+                Delete Response
+              </Button>
+            )}
+
+            {selectedResponse?.farmerInput?.isForReview === true && (
+              <Button 
                 colorScheme="blue" 
-                pl={6}
-                pr={6}
                 boxShadow="sm"
                 _hover={{ boxShadow: "md", bg: "blue.600" }}
+                onClick={handleUpdateFields}
+                isLoading={isUpdatingFields}
               >
-              
                 Update
               </Button>
             )}
-            
+
             {selectedResponse?.farmerInput?.isForReview === false && (
               <Tooltip label="Cannot push responses that are flagged for review." placement="top" hasArrow isDisabled={!selectedResponse?.farmerInput?.isForReview === true}>
                 <Button 
                   colorScheme="green" 
                   onClick={onOpenWarning}
-                  pl={6}
-                  pr={6}
                   boxShadow="sm"
                   _hover={{ boxShadow: "md", bg: "green.600" }}
                 >
-                
                   Push
                 </Button>
               </Tooltip>
             )}
-            
-
           </ModalFooter>
         </ModalContent>
       </Modal>
@@ -1554,6 +1701,49 @@ const Responses = () => {
                 w={"60%"}
             >
               Push To Records
+            </Button>
+            </Flex>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      <Modal isOpen={isOpenWarningDelete} size="xs" onClose={onCloseWarningDelete} closeOnOverlayClick={false} scrollBehavior="inside" isCentered  motionPreset="none">
+        <ModalOverlay/>
+        <ModalContent borderRadius="lg" overflow="hidden">
+          <ModalHeader
+            bg="red.50" 
+            borderBottomWidth="1px"
+            borderColor="gray.200"
+            py={4}
+            display="flex" 
+            alignItems="center"
+          >
+            <Icon as={GoAlertFill} mr={2} color="red.500" />
+            Warning!
+          </ModalHeader>
+
+          <ModalFooter bg="gray.50" borderTopWidth="1px" borderColor="gray.200">
+            <Flex w="100%">
+            <Button 
+              variant="outline" 
+              mr={3} 
+              onClick={onCloseWarningDelete}
+              size="md"
+              _hover={{ bg: "gray.100" }}
+              w={"40%"}
+            >
+              Cancel
+            </Button>
+            <Spacer/>
+            <Button 
+                colorScheme="red"
+                onClick={() => handleDeleteFarmerResponse(selectedResponse)}
+                size="md"
+                _hover={{ boxShadow: "md", bg: "red.600" }}
+                w={"60%"}
+                isLoading={isDeletingFarmerResponse}
+            >
+              Delete Response
             </Button>
             </Flex>
           </ModalFooter>
