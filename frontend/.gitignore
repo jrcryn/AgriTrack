@@ -24,4 +24,4 @@ dist-ssr
 *.sw?
 
 # SPecific files to ignore
-# src/components/sidebarHeader.jsx
+src/components/sidebarHeader.jsx
