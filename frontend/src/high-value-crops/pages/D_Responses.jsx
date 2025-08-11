@@ -106,6 +106,10 @@ const Responses = () => {
   const { checkFormStatus, isFormOpen } = useFormStatusCheck();
   const formButtonColor = isFormOpen ? "green" : "red";
 
+  useEffect(() => {
+    checkFormStatus();
+  }, [checkFormStatus]);
+
   // Filter responses based on search query
   // const searchedResponses = unvalidatedInputs.filter((response) => {
   //   if (!response.farmerInput || !response.cropType || !response.cropRecord) {
