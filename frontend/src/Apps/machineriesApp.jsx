@@ -36,7 +36,7 @@ axios.interceptors.response.use(
     if (
       error.response &&
       error.response.status === 401 &&
-      !currentPath.startsWith('/auth')
+      !currentPath.startsWith('/auth') 
     ) {
       window.location.href = '/auth/login';
     }

@@ -162,3 +162,18 @@ export const usePublicFormStore = create((set) => ({
   
   clearError: () => set({ error: null }),
 }));
+
+export const useFormStatusCheck = create((set, get) => ({
+  isFormOpen: false,
+  isCheckingFormStatus: false,
+  
+  checkFormStatus: async () => {
+    set({ isCheckingFormStatus: true });
+    try {
+      const response = await axios.get(`${API_URL}/api/hvc/check-form-status`);
+      set({ isFormOpen: Boolean(response.data.open), isCheckingFormStatus: false });
+    } catch (error) {
+      set({ isFormOpen: false, isCheckingFormStatus: false });
+    }
+  }
+}));

@@ -16,7 +16,10 @@ import {
     getAvailableMonthsForYear,
     getMetricsForYearMonth,
     updateFarmerResponseFields,
-    deleteFarmerResponse 
+    deleteFarmerResponse,
+    formStatusEnable,
+    formStatusDisable,
+    checkFormStatus
  } from '../controller/high-value-crops/adminDashboard.controller.js'; 
 
 import { 
@@ -31,6 +34,7 @@ import {
 
 import { verifyAuthToken } from '../middleware/verifyToken.js';
 import { verifyRole } from '../middleware/verifyRole.js';
+import { ensureHvcFormOpen } from '../middleware/verifyHVCFormStatus.js';
 
 
 const router = express.Router();
@@ -43,6 +47,8 @@ router.get('/get-unvalidated-inputs', verifyAuthToken, verifyRole(['HVCM', 'HVCS
 //router.get('/get-validated-inputs', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), getValidatedFarmerInputs);
 router.post('/flag-response-for-review/:farmerId', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), flagResponseForReview);
 router.post('/unflag-response-for-review/:farmerId', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), unflagResponseForReview);
+router.post('/form-status-enable', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), formStatusEnable);
+router.post('/form-status-disable', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), formStatusDisable);
 
 
 //________________________________ DASHBOARD (FARMERS) PAGE ____________________________________
@@ -77,9 +83,9 @@ router.post('/generate-excel-report', verifyAuthToken, verifyRole(['HVCM']), gen
 //________________________________ FARMER FORM PAGES ____________________________________
 
 
-router.post('/farmer-form-submission', submitCompleteFarmerForm)
-router.post('/get-farmer-account-by-name', getFarmerAccountByName);
-
+router.post('/farmer-form-submission', ensureHvcFormOpen, submitCompleteFarmerForm);
+router.post('/get-farmer-account-by-name', ensureHvcFormOpen, getFarmerAccountByName);
+router.get('/check-form-status', checkFormStatus);
 
 
 export default router;

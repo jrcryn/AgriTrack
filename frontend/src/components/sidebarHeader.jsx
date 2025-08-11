@@ -28,6 +28,7 @@ import {
   ModalBody,
   ModalFooter,
   Button,
+  Link
 } from '@chakra-ui/react'
 import {
   FiGrid,
@@ -127,6 +128,17 @@ const SidebarContent = ({ onClose, ...rest }) => {
           {link.name}
         </NavItem>
       ))}
+      <Box mt={20}>
+      <Text fontSize="9px" fontWeight="medium" color="white">
+        DB Staging | Local Deployment
+      </Text>
+      <Text fontSize="9px" fontWeight="medium" color="white">
+        Dev Branch
+      </Text>
+      <Text fontSize="9px" fontWeight="medium" color="white">
+        Render Deployment: <Link href="https://staging-frontend-5tcj.onrender.com" isExternal color="blue.400">{`https://staging-frontend-5tcj.onrender.com`}</Link>
+      </Text>
+      </Box>
     </Box>
   )
 }

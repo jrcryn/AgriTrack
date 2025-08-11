@@ -1340,7 +1340,7 @@ const Responses = () => {
     );
   });
   
-    return (
+    return ( 
       <Box 
         overflow="hidden" 
         bg="white" 
@@ -1355,32 +1355,19 @@ const Responses = () => {
         </Text>
       
         {/* Search Section */}
-        {/* <Flex 
+        <Flex 
           direction={{ base: "column", md: "row" }} 
-          mb={6} 
+          mb={4} 
           p={4}
           bg="blue.50"
           borderRadius="md"
           alignItems={{ base: "flex-start", md: "center" }}  // This is the key change
         >
-          <HStack spacing={2} mb={{ base: 2, md: 0 }}>
-            <Icon as={FaSearch} color="blue.500" />
-            <Text fontSize='sm' fontWeight={'medium'}>Search by:</Text>
-          </HStack>
-          
-          <InputGroup width={{ base: "full", md: "sm" }} ml={{ base: 0, md: 4 }}>
-            <Input 
-              placeholder="Name, Crop, Commodity, or Barangay..." 
-              bg="white"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              _focus={{ borderColor: "blue.400" }}
-            />
-            <InputRightElement pointerEvents="none">
-              <FaSearch color="gray.300" />
-            </InputRightElement>
-          </InputGroup>
-        </Flex> */}
+          <Button colorScheme='blue' size="sm" width={{ base: "full", md: "auto" }}>
+            Form Settings
+          </Button>
+
+        </Flex>
     
         <>
           {/* NEWLY PLANTED SECTION */}

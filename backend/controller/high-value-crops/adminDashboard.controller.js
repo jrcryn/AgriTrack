@@ -484,6 +484,46 @@ export const unflagResponseForReview = async (req, res) => {
   }
 };
 
+export const formStatusEnable = async (req, res) => {
+  try {
+    await global.highValueCropsModels.FormStatus.findOneAndUpdate(
+      {},                                   // filter
+      { $set: { formStatus: true } },      // update
+      { upsert: true, new: true }           // options
+    );
+    return res.status(200).json({ message: 'High-Value Crops form enabled successfully.' });
+  } catch (error) {
+    return res.status(500).json({ message: 'Error enabling High-Value Crops form', error: error.message });
+  }
+};
+
+export const formStatusDisable = async (req, res) => {
+  try {
+    await global.highValueCropsModels.FormStatus.findOneAndUpdate(
+      {},                                   // filter
+      { $set: { formStatus: false } },      // update
+      { upsert: true, new: true }           // options
+    );
+    return res.status(200).json({ message: 'High-Value Crops form disabled successfully.' });
+  } catch (error) {
+    return res.status(500).json({ message: 'Error disabling High-Value Crops form', error: error.message });
+  }
+};
+
+export const checkFormStatus = async (req, res) => {
+  try {
+    const statusDoc = await global.highValueCropsModels.FormStatus.findOne({});
+    const isOpen = Boolean(statusDoc?.formStatus);
+
+    if (!isOpen) {
+      return res.status(403).json({ success: false, open: false, message: 'High-Value Crops form is currently disabled.' });
+    }
+
+    return res.status(200).json({ success: true, open: true, message: 'High-Value Crops form is currently enabled.' });
+  } catch (error) {
+    return res.status(500).json({ message: 'Error checking form status', error: error.message });
+  }
+};
 
 //________________________________ FARMERS ACCOUNT MANAGEMENT PAGE ____________________________________
 

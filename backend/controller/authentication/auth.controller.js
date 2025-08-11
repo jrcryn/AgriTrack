@@ -107,25 +107,6 @@ export const checkAuth = async (req, res) => {
     }
 };
 
-// export const checkPreAuth = async (req, res) => {
-//     try {
-
-//         const user = await global.docTrackModels.StaffAccount.findById(req.decodedPreAuthToken.userId) ||
-//                      await global.docTrackModels.ManagerAccount.findById(req.decodedPreAuthToken.userId) ||
-//                      await global.machineriesModels.StaffAccount.findById(req.decodedPreAuthToken.userId) ||
-//                      await global.highValueCropsModels.StaffAccount.findById(req.decodedPreAuthToken.userId) ||
-//                      await global.highValueCropsModels.ManagerAccount.findById(req.decodedPreAuthToken.userId);
-
-//         if (!user) {
-//             return res.status(404).json({ success: false, message: 'User not found.' });
-//         }
-        
-//     } catch (error) {
-//         console.error('Error checking pre-authentication:', error);
-//         return res.status(500).json({ success: false, message: 'Internal server error.' });
-//     }
-// };
-
 export const login = async (req, res) => {
     const { email, password } = req.body;
 

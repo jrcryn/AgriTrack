@@ -217,7 +217,6 @@ export const useAdminDashboard = (searchParams = {}) => {
     setSelectedMonth(null); // Reset to "All Months" when year changes
   }, [selectedYear]);
 
-
   const createFarmerAccount = async (farmerData) => {
     setIsCreatingFarmerAccount(true);
     try {
@@ -350,7 +349,22 @@ export const useAdminDashboard = (searchParams = {}) => {
       throw error;
     }
   };
-  
+
+  const FormStatusEnable = async () => {
+    try {
+      await axios.post(`${API_URL}/api/hvc/form-status-enable`);
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  const FormStatusDisable = async () => {
+    try {
+      await axios.post(`${API_URL}/api/hvc/form-status-disable`);
+    } catch (error) {
+      throw error;
+    }
+  };
 
   // Combine errors from different sources
   // if (unvalidatedError) setError(unvalidatedError.message || 'Failed to fetch unvalidated inputs');
@@ -418,5 +432,7 @@ export const useAdminDashboard = (searchParams = {}) => {
     updateFarmerResponseFields,
     setIsModalOpen,
     deleteFarmerResponse,
+    FormStatusEnable,
+    FormStatusDisable
   };
 };
