@@ -46,8 +46,8 @@ import numOfTreesToHectares from '../../components/conversions.js';
 import { FaSearch, FaEye, FaSeedling, FaBoxes, FaUser, FaLeaf, FaWifi, FaUpload, FaInfo } from 'react-icons/fa';
 import { GoAlertFill } from "react-icons/go";
 import { useAdminDashboard } from '../store/adminDashboard.store.js';
+import { useFormStatusCheck } from '../store/farmerForm.store.js'
 import { useQueryClient } from '@tanstack/react-query';
-import { set } from 'lodash';
 
 const Responses = () => {
   // States for search and pagination
@@ -57,6 +57,7 @@ const Responses = () => {
   const { isOpen: isOpenWarning, onOpen: onOpenWarning, onClose: onCloseWarning } = useDisclosure();
   const { isOpen: isOpenWarningBatch, onOpen: onOpenWarningBatch, onClose: onCloseWarningBatch } = useDisclosure();
   const { isOpen: isOpenWarningDelete, onOpen: onOpenWarningDelete, onClose: onCloseWarningDelete } = useDisclosure();
+  const { isOpen: isOpenFormSettings, onOpen: onOpenFormSettings, onClose: onCloseFormSettings } = useDisclosure();
 
   const [selectedNewlyPlanted, setSelectedNewlyPlanted] = useState([]);
   const [selectedHarvesting, setSelectedHarvesting] = useState([]);
@@ -87,7 +88,11 @@ const Responses = () => {
     newlyPlantedError,
     harvestingError,
     setIsModalOpen,
-    deleteFarmerResponse
+    deleteFarmerResponse,
+
+    FormStatusEnable,
+    FormStatusDisable,
+    isUpdatingFormStatus
   } = useAdminDashboard();
 
   const toast = useToast();
@@ -96,6 +101,10 @@ const Responses = () => {
   useEffect(() => {
     setIsModalOpen(isOpen);
   }, [isOpen, setIsModalOpen]);
+
+  //check kung nakabukas si hvc form or not
+  const { checkFormStatus, isFormOpen } = useFormStatusCheck();
+  const formButtonColor = isFormOpen ? "green" : "red";
 
   // Filter responses based on search query
   // const searchedResponses = unvalidatedInputs.filter((response) => {
@@ -890,6 +899,16 @@ const Responses = () => {
     }
   };
 
+  const handleFormToggle = async () => {
+    if (isFormOpen) {
+      FormStatusDisable();
+      checkFormStatus();
+    } else {
+      FormStatusEnable();
+      checkFormStatus();
+    }
+  };
+
   // ResponseDetailForm to allow editing only for flagged responses and only allowed fields
   const ResponseDetailForm = React.memo(function ResponseDetailForm({ response, editable, onValuesChange }) {
     const isNewlyPlanted = response.cropRecord?.crop_stage === 'NEWLY PLANTED';
@@ -1363,8 +1382,8 @@ const Responses = () => {
           borderRadius="md"
           alignItems={{ base: "flex-start", md: "center" }}  // This is the key change
         >
-          <Button colorScheme='blue' size="sm" width={{ base: "full", md: "auto" }}>
-            Form Settings
+          <Button colorScheme={formButtonColor} size="sm" width={{ base: "full", md: "auto" }} onClick={handleFormToggle} isLoading={isUpdatingFormStatus}>
+            {isFormOpen ? "Accepting Responses..." : "Not Accepting Responses"}
           </Button>
 
         </Flex>
@@ -1785,6 +1804,25 @@ const Responses = () => {
           </ModalFooter>
         </ModalContent>
       </Modal>
+
+      {/* Form Settings Modal - To be used, pag dumami na form settings*/}
+      {/* <Modal isOpen={isOpenFormSettings} onClose={onCloseFormSettings} size="md" isCentered motionPreset='none'>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Form Settings</ModalHeader>
+          <ModalBody>
+            <Text mb={4}>Customize the fields displayed in the response forms.</Text>
+            
+          </ModalBody>
+          <ModalFooter>
+            <Button colorScheme="blue" mr={3} onClick={onCloseFormSettings}>
+              Save Changes
+            </Button>
+            <Button variant="ghost" onClick={onCloseFormSettings}>Cancel</Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal> */}
+      
     </Box>
   );
 };

@@ -79,9 +79,34 @@ axios.interceptors.response.use(
       error.response &&
       error.response.status === 401 &&
       !currentPath.startsWith('/auth') &&
-      !currentPath.startsWith('/hvc/form') // ignore 401 while on public form pages
+      !currentPath.startsWith('/hvc/form') // ignore 403 while on public form pages
     ) {
       window.location.href = '/auth/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
+axios.interceptors.response.use(
+  response => response,
+  error => {
+    const currentPath = window.location.pathname;
+    if (
+      error.response &&
+      error.response.status === 403 &&
+      (currentPath.startsWith('/hvc/form/istcns') ||
+       currentPath.startsWith('/hvc/form/dpa') ||
+       currentPath.startsWith('/hvc/form/a_fi') ||
+       currentPath.startsWith('/hvc/form/b_ct') ||
+       currentPath.startsWith('/hvc/form/c1_cri') ||
+       currentPath.startsWith('/hvc/form/c2_cro') ||
+       currentPath.startsWith('/hvc/form/d1_cih') ||
+       currentPath.startsWith('/hvc/form/d1_cin') ||
+       currentPath.startsWith('/hvc/form/d2_bc_ofh') ||
+       currentPath.startsWith('/hvc/form/d2_bc_ofn') ||
+       currentPath.startsWith('/hvc/form/success'))
+    ) {
+      window.location.href = '/hvc/form/form-closed';
     }
     return Promise.reject(error);
   }

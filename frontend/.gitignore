@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# SPecific files to ignore
+# src/components/sidebarHeader.jsx

@@ -195,6 +195,7 @@ export const useAdminDashboard = (searchParams = {}) => {
   const [isFindingFarmerAccount, setIsFindingFarmerAccount] = useState(false);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [isUpdatingFarmerAccount, setIsUpdatingFarmerAccount] = useState(false);
+  const [isUpdatingFormStatus, setIsUpdatingFormStatus] = useState(false);
 
 
   useEffect(() => {
@@ -351,18 +352,24 @@ export const useAdminDashboard = (searchParams = {}) => {
   };
 
   const FormStatusEnable = async () => {
+    setIsUpdatingFormStatus(true);
     try {
       await axios.post(`${API_URL}/api/hvc/form-status-enable`);
     } catch (error) {
       throw error;
+    } finally {
+      setIsUpdatingFormStatus(false);
     }
   };
 
   const FormStatusDisable = async () => {
+    setIsUpdatingFormStatus(true);
     try {
       await axios.post(`${API_URL}/api/hvc/form-status-disable`);
     } catch (error) {
       throw error;
+    } finally {
+      setIsUpdatingFormStatus(false);
     }
   };
 
@@ -408,7 +415,8 @@ export const useAdminDashboard = (searchParams = {}) => {
     isDeletingFarmerAccount,
     isGeneratingReport,
     isUpdatingFarmerAccount,
-    
+    isUpdatingFormStatus,
+
     // Error states
     newlyPlantedError, 
     harvestingError, 
