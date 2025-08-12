@@ -4,7 +4,7 @@ export const WELCOME_EMAIL_TEMPLATE = `
   <body style="font-family: Arial, sans-serif; background-color: #f7f9f9; padding: 20px; color: #333;">
     <div style="max-width: 600px; margin: auto; background-color: #ffffff; padding: 30px; border: 1px solid #dcdcdc; border-radius: 8px;">
       <h2 style="color: #1e4d2b;">🎉 AgriTrack Account Created</h2>
-      <p>Your AgriTrack account has been successfully created by the City Agricultural Services Department (CASD) of Calamba.</p>
+      <p>Your AgriTrack account has been successfully created. Login here: <a href="https://agritrack.online/auth/login" style="color: #1e4d2b;" target="_blank">https://agritrack.online/auth/login</a></p>
       <p>Here are your login credentials:</p>
       <p><strong>Email: </strong>{email}</p>
       <p><strong>Password: </strong>{password}</p>
@@ -15,7 +15,7 @@ export const WELCOME_EMAIL_TEMPLATE = `
       <p style="font-size: 13px; color: #555;">
         This is a system generated email, please do not reply.<br><br>
         If you encounter any issues or have questions, feel free to contact IT for support.<br>
-        If you did not request this account or believe this message was sent to you by mistake, please contact us immediately at <a href="mailto:casd.support@gmail.com" style="color: #1e4d2b;">casd.support@gmail.com</a>.
+        If you did not request this account or believe this message was sent to you by mistake, please contact us immediately at <a href="" style="color: #1e4d2b;">to be included</a>.
       </p>
     </div>
   </body>
@@ -39,7 +39,7 @@ export const PASSWORD_RESET_REQUEST_TEMPLATE = `
       <p style="font-size: 13px; color: #555;">
         This is a system generated email, please do not reply.<br><br>
         If you encounter any issues or have questions, feel free to contact IT for support.<br>
-        If you did not request this password reset or believe this message was sent to you by mistake, please contact us immediately at <a href="mailto:casd.support@gmail.com" style="color: #1e4d2b;">casd.support@gmail.com</a>.
+        If you did not request this password reset or believe this message was sent to you by mistake, please contact us immediately at <a href="" style="color: #1e4d2b;">to be included</a>.
       </p>
     </div>
   </body>
@@ -67,7 +67,7 @@ export const PASSWORD_RESET_SUCCESS_TEMPLATE = `
       <p style="font-size: 13px; color: #555;">
         This is a system generated email, please do not reply.<br><br>
         If you encounter any issues or have questions, feel free to contact IT for support.<br>
-        If you did not request this action or believe this message was sent to you by mistake, please contact us immediately at <a href="mailto:casd.support@gmail.com" style="color: #1e4d2b;">casd.support@gmail.com</a>.
+        If you did not request this action or believe this message was sent to you by mistake, please contact us immediately at <a href="" style="color: #1e4d2b;">to be included</a>.
       </p>
     </div>
   </body>

@@ -9,10 +9,10 @@ import { generateTokenAndSetCookie } from '../../utils/generateTokenAndSetCookie
 import { generatePreTokenAndSetCookie } from '../../utils/generatePreTokenAndSetCookie.js';
 
 export const register = async (req, res) => {  //system admin level access only (ililipat in the future to a separate route for admin job controllers)
-    const { name, email, phone, role, office_position } = req.body;
+    const { first_name, last_name, middle_name, suffix, email, phone, role, office_position } = req.body;
     try {
 
-        if (!name || !email || !phone || !role || (role === 'DMS' && !office_position)) {
+        if (!first_name || !last_name || !email || !phone || !role || (role === 'DMS' && !office_position)) {
             return res.status(400).json({ success: false, message: 'All fields are required.' });
         }
 
@@ -45,7 +45,10 @@ export const register = async (req, res) => {  //system admin level access only 
 
         await sendWelcomeEmail(email, defaultPassword);
         const newUser = new model({
-            name,
+            first_name,
+            last_name,
+            middle_name,
+            suffix,
             office_position: role === 'DMS' ? office_position : null, // Office position is only required when creating Doc-Track Staff accounts
             email,
             phone,
@@ -58,7 +61,10 @@ export const register = async (req, res) => {  //system admin level access only 
             success: true,
             user: {
                 id: newUser._id,
-                name: newUser.name,
+                first_name,
+                last_name,
+                middle_name,
+                suffix,
                 role: role,
                 office_position: newUser.office_position
             } 
@@ -95,7 +101,10 @@ export const checkAuth = async (req, res) => {
             success: true,
             user: {
                 id: user._id,
-                name: user.name,
+                first_name: user.first_name,
+                last_name: user.last_name,
+                middle_name: user.middle_name,
+                suffix: user.suffix,
                 role: role,
                 office_position: user.office_position
             }
