@@ -160,6 +160,7 @@ const ProfileSettings = () => {
             colorScheme="teal"
             onClick={handleShow2FA}
             isLoading={isFetching2FASecret}
+            isDisabled={!password}
           >
             View 2FA QR Code & Secret
           </Button>

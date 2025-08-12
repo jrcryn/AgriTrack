@@ -1,7 +1,8 @@
 import { Box, Spinner, Text } from '@chakra-ui/react';
 import { useEffect, useState, useRef } from 'react';
-import { Routes, Route, useNavigate, useNavigationType, useLocation, Navigate } from 'react-router-dom';
+import { Routes, Route, useNavigate, useNavigationType, useLocation, Navigate, Outlet } from 'react-router-dom';
 import { useAuthStore } from '../auth/store/authStore.js';
+import { useFormStatusCheck } from '../high-value-crops/store/farmerForm.store.js';
 import axios from 'axios';
 
 // User page imports
@@ -12,6 +13,8 @@ import HVCPR from '../high-value-crops/pages/C_HVCPR.jsx';
 import Responses from '../high-value-crops/pages/D_Responses.jsx';
 import Farmers from '../high-value-crops/pages/E_Farmers.jsx';
 import ProfileSettings from '../components/profileSettings.jsx';
+
+import FormClosedPage from '../components/formClosedPage.jsx';
 
 // Form imports
 import Instructions from '../high-value-crops/formPages/Instructions.jsx';
@@ -26,7 +29,6 @@ import D2_bc_Other_fctHarvest from '../high-value-crops/formPages/D2_bc-other-fc
 import D2_bc_Other_fctNew from '../high-value-crops/formPages/D2_bc-other-fctNew.jsx';
 import SuccessPage from '../high-value-crops/formPages/E_successPage.jsx';
 
-import { useFarmerFormStore } from '../high-value-crops/store/farmerForm.store.js';
 
 //redirect authenticated users
 const ProtectedRoute = ({children}) => {
@@ -48,20 +50,63 @@ const ProtectedRoute = ({children}) => {
     }
 
     return children;
-}
+};
+
+const CheckFormStatus = ({children}) => {
+  const { isFormOpen, isCheckingFormStatus } = useFormStatusCheck();
+
+
+  if (isCheckingFormStatus) {
+    return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+      <Spinner size={'xl'} /><Text ml={4}>Please wait...</Text>
+    </div>;
+  }
+
+  if (isFormOpen) {
+    return <Outlet/>;
+  } else if (!isFormOpen) {
+    return <Navigate to="/hvc/form/form-closed" replace />;
+  }
+
+  return children;
+};
 
 axios.interceptors.response.use(
   response => response,
   error => {
-    // Prevent infinite redirect loop, dati kasi nag re-redirect parin after makapunta na sa login page
     const currentPath = window.location.pathname;
     if (
       error.response &&
       error.response.status === 401 &&
       !currentPath.startsWith('/auth') &&
-      !currentPath.startsWith('/hvc/form')
+      !currentPath.startsWith('/hvc/form') // ignore 403 while on public form pages
     ) {
       window.location.href = '/auth/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
+axios.interceptors.response.use(
+  response => response,
+  error => {
+    const currentPath = window.location.pathname;
+    if (
+      error.response &&
+      error.response.status === 403 &&
+      (currentPath.startsWith('/hvc/form/istcns') ||
+       currentPath.startsWith('/hvc/form/dpa') ||
+       currentPath.startsWith('/hvc/form/a_fi') ||
+       currentPath.startsWith('/hvc/form/b_ct') ||
+       currentPath.startsWith('/hvc/form/c1_cri') ||
+       currentPath.startsWith('/hvc/form/c2_cro') ||
+       currentPath.startsWith('/hvc/form/d1_cih') ||
+       currentPath.startsWith('/hvc/form/d1_cin') ||
+       currentPath.startsWith('/hvc/form/d2_bc_ofh') ||
+       currentPath.startsWith('/hvc/form/d2_bc_ofn') ||
+       currentPath.startsWith('/hvc/form/success'))
+    ) {
+      window.location.href = '/hvc/form/form-closed';
     }
     return Promise.reject(error);
   }
@@ -78,14 +123,12 @@ const highValueCropsApp = () => {
 
   // this ref will flip to true whenever we do an in-app Next/Back
   const hasInteractedRef = useRef(false);
-  const { isContinueAnswering } = useFarmerFormStore();
 
   useEffect(() => {
-    const isFormPath        = location.pathname.startsWith('/hvc/form');
-    const isInitialFormPath = location.pathname === '/hvc/form/istcns';
-
-    // only on a true browser POP (refresh/direct URL) AND
-    // if we've never clicked Next/Back yet, redirect home
+    const isFormPath        = location.pathname.startsWith('/hvc/form/dpa') || location.pathname.startsWith('/hvc/form/a_fi') || location.pathname.startsWith('/hvc/form/b_ct') || location.pathname.startsWith('/hvc/form/c1_cri') || location.pathname.startsWith('/hvc/form/c2_cro') || location.pathname.startsWith('/hvc/form/d1_cih') || location.pathname.startsWith('/hvc/form/d1_cin') || location.pathname.startsWith('/hvc/form/d2_bc_ofh') || location.pathname.startsWith('/hvc/form/d2_bc_ofn') || location.pathname.startsWith('/hvc/form/success');
+    const isInitialFormPath = location.pathname === '/hvc/form/istcns'
+    
+    // only on a true browser POP (refresh/direct URL) AND if we've never clicked Next/Back yet, redirect home
     if (
       navigationType === 'POP' &&
       isFormPath &&
@@ -111,7 +154,12 @@ const highValueCropsApp = () => {
     navigate(-1);
   };
 
-  // CHECK AUTHENTICATION STATUS
+  // CHECK FORM STATUS
+  const { checkFormStatus } = useFormStatusCheck();
+
+  useEffect(() => {
+    checkFormStatus();
+  }, [checkFormStatus]);
 
   return (
     <Box>
@@ -128,10 +176,13 @@ const highValueCropsApp = () => {
           <Route path="profile-settings" element={<ProfileSettings />} />
         </Route>
 
+       
+<Route path='/form/form-closed' element={<FormClosedPage />} />
+<Route path='/form/istcns' element={<Instructions onNext={() => handleNext('/dpa')} />} />
 
         {/* Form Form Routes */}
-        <Route path="form">
-          <Route path='istcns' element={<Instructions onNext={() => handleNext('/dpa')} />} />
+        <Route path="form" element={<CheckFormStatus><Outlet /></CheckFormStatus>}>
+          {/* <Route path='istcns' element={<Instructions onNext={() => handleNext('/dpa')} />} /> */}
           <Route path='dpa' element={<DataPrivacyAct onNext={() => handleNext('/a_fi')} onBack={handleBack} />} />
           <Route path='a_fi' element={<A_farmerInputs onNext={() => handleNext('/b_ct')} onBack={handleBack} />} />
           <Route path='b_ct' element={<B_cropTypes onNext={handleNext} onBack={handleBack} />} />

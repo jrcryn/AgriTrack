@@ -100,250 +100,222 @@ export const getUnvalidatedFarmerInputs = async (req, res) => {
 
 
 // Get all validated farmer inputs with their referenced documents
-export const getValidatedFarmerInputs = async (req, res) => {
-  try {
-    // Only find farmer inputs where isValidated is true
-    const farmerInputs = await global.highValueCropsModels.A_farmer_inputs.find({ isValidated: true }).lean();
+// export const getValidatedFarmerInputs = async (req, res) => {
+//   try {
+//     // Only find farmer inputs where isValidated is true
+//     const farmerInputs = await global.highValueCropsModels.A_farmer_inputs.find({ isValidated: true }).lean();
     
-    const results = await Promise.all(farmerInputs.map(async (farmerInput) => {
-      const cropType = await global.highValueCropsModels.B_crop_types.findOne({ farmer_input_id: farmerInput._id }).lean();
+//     const results = await Promise.all(farmerInputs.map(async (farmerInput) => {
+//       const cropType = await global.highValueCropsModels.B_crop_types.findOne({ farmer_input_id: farmerInput._id }).lean();
       
-      // Handle case where no crop type exists
-      if (!cropType) {
-        return { farmerInput, cropType: null, cropRecord: null, cropDetails: null };
-      }
+//       // Handle case where no crop type exists
+//       if (!cropType) {
+//         return { farmerInput, cropType: null, cropRecord: null, cropDetails: null };
+//       }
       
-      let cropRecord, cropDetails;
+//       let cropRecord, cropDetails;
 
-      if (cropType.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS') {
-        cropRecord = await global.highValueCropsModels.C_crop_records_indus.findOne({ farmer_input_id: farmerInput._id }).lean();
+//       if (cropType.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS') {
+//         cropRecord = await global.highValueCropsModels.C_crop_records_indus.findOne({ farmer_input_id: farmerInput._id }).lean();
         
-        if (!cropRecord) {
-          return { farmerInput, cropType, cropRecord: null, cropDetails: null };
-        }
+//         if (!cropRecord) {
+//           return { farmerInput, cropType, cropRecord: null, cropDetails: null };
+//         }
         
-        if (cropRecord.crop_stage === 'NEWLY PLANTED') {
-          cropDetails = await global.highValueCropsModels.D1_crop_indus_new.findOne({ record_id: cropRecord._id }).lean();
-        } else if (cropRecord.crop_stage === 'HARVESTING') {
-          cropDetails = await global.highValueCropsModels.D1_crop_indus_harvest.findOne({ record_id: cropRecord._id }).lean();
-        }
-      } else {
-        cropRecord = await global.highValueCropsModels.C_crop_records_others.findOne({ farmer_input_id: farmerInput._id }).lean();
+//         if (cropRecord.crop_stage === 'NEWLY PLANTED') {
+//           cropDetails = await global.highValueCropsModels.D1_crop_indus_new.findOne({ record_id: cropRecord._id }).lean();
+//         } else if (cropRecord.crop_stage === 'HARVESTING') {
+//           cropDetails = await global.highValueCropsModels.D1_crop_indus_harvest.findOne({ record_id: cropRecord._id }).lean();
+//         }
+//       } else {
+//         cropRecord = await global.highValueCropsModels.C_crop_records_others.findOne({ farmer_input_id: farmerInput._id }).lean();
         
-        if (!cropRecord) {
-          return { farmerInput, cropType, cropRecord: null, cropDetails: null };
-        }
+//         if (!cropRecord) {
+//           return { farmerInput, cropType, cropRecord: null, cropDetails: null };
+//         }
         
-        if (cropRecord.crop_stage === 'NEWLY PLANTED') {
-          cropDetails = await global.highValueCropsModels.D2_bc_other_fct_new.findOne({ record_id: cropRecord._id }).lean();
-        } else if (cropRecord.crop_stage === 'HARVESTING') {
-          cropDetails = await global.highValueCropsModels.D2_bc_other_fct_harvest.findOne({ record_id: cropRecord._id }).lean();
-        }
+//         if (cropRecord.crop_stage === 'NEWLY PLANTED') {
+//           cropDetails = await global.highValueCropsModels.D2_bc_other_fct_new.findOne({ record_id: cropRecord._id }).lean();
+//         } else if (cropRecord.crop_stage === 'HARVESTING') {
+//           cropDetails = await global.highValueCropsModels.D2_bc_other_fct_harvest.findOne({ record_id: cropRecord._id }).lean();
+//         }
+//       }
+
+//       return {
+//         farmerInput,
+//         cropType,
+//         cropRecord,
+//         cropDetails
+//       };
+//     }));
+
+//     res.json(results);
+//   } catch (error) {
+//     res.status(500).json({ message: 'Error fetching validated farmer inputs', error: error.message });
+//   }
+// };
+
+
+// Update only specific fields for flagged responses
+export const updateFarmerResponseFields = async (req, res) => {
+  try {
+    const { farmerId, crop_stage, updates } = req.body;
+    if (!farmerId || !crop_stage || !updates) {
+      return res.status(400).json({ message: 'farmerId, crop_stage, and updates are required.' });
+    }
+
+    // Check if the response is flagged for review
+    const farmerInput = await global.highValueCropsModels.A_farmer_inputs.findById(farmerId);
+    if (!farmerInput) {
+      return res.status(404).json({ message: 'Farmer response not found.' });
+    }
+    if (farmerInput.isForReview !== true) {
+      return res.status(400).json({ message: 'Only flagged responses can be updated.' });
+    }
+
+    // Find crop type and crop record
+    const cropType = await global.highValueCropsModels.B_crop_types.findOne({ farmer_input_id: farmerId }).lean();
+    if (!cropType) {
+      return res.status(404).json({ message: 'Crop type not found.' });
+    }
+
+    let cropRecord, cropDetails, updateFields = {};
+
+    if (cropType.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS') {
+      cropRecord = await global.highValueCropsModels.C_crop_records_indus.findOne({ farmer_input_id: farmerId });
+      if (!cropRecord) return res.status(404).json({ message: 'Crop record not found.' });
+
+      if (crop_stage === 'NEWLY PLANTED') {
+        cropDetails = await global.highValueCropsModels.D1_crop_indus_new.findOne({ record_id: cropRecord._id });
+        // Only allow total_area_planted
+        if ('total_area_planted' in updates) updateFields.total_area_planted = updates.total_area_planted;
+      } else if (crop_stage === 'HARVESTING') {
+        cropDetails = await global.highValueCropsModels.D1_crop_indus_harvest.findOne({ record_id: cropRecord._id });
+        // Only allow total_weight, total_area_harvested
+        if ('total_weight' in updates) updateFields.total_weight = updates.total_weight;
+        if ('total_area_harvested' in updates) updateFields.total_area_harvested = updates.total_area_harvested;
       }
+    } else {
+      cropRecord = await global.highValueCropsModels.C_crop_records_others.findOne({ farmer_input_id: farmerId });
+      if (!cropRecord) return res.status(404).json({ message: 'Crop record not found.' });
 
-      return {
-        farmerInput,
-        cropType,
-        cropRecord,
-        cropDetails
-      };
-    }));
+      if (crop_stage === 'NEWLY PLANTED') {
+        cropDetails = await global.highValueCropsModels.D2_bc_other_fct_new.findOne({ record_id: cropRecord._id });
+        // Only allow total_trees
+        if ('total_trees' in updates) updateFields.total_trees = updates.total_trees;
+      } else if (crop_stage === 'HARVESTING') {
+        cropDetails = await global.highValueCropsModels.D2_bc_other_fct_harvest.findOne({ record_id: cropRecord._id });
+        // Only allow total_weight, trees_harvested
+        if ('total_weight' in updates) updateFields.total_weight = updates.total_weight;
+        if ('trees_harvested' in updates) updateFields.trees_harvested = updates.trees_harvested;
+      }
+    }
 
-    res.json(results);
+    if (!cropDetails) {
+      return res.status(404).json({ message: 'Crop details not found.' });
+    }
+
+    // Update only allowed fields
+    Object.assign(cropDetails, updateFields);
+    await cropDetails.save();
+
+    // Return updated details
+    res.json({
+      message: 'Fields updated successfully.',
+      updated: updateFields
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching validated farmer inputs', error: error.message });
+    res.status(500).json({ message: 'Error updating fields.', error: error.message });
   }
 };
 
 
-// Update farmer input and all referenced documents
-export const updateFarmerInputAndReferences = async (req, res) => { //not currently in use
+// Function to delete a complete farmer response and all related records
+export const deleteFarmerResponse = async (req, res) => {
+  const { farmerId } = req.body;
+  
+  if (!farmerId) {
+    return res.status(400).json({ message: 'Farmer response ID is required.' });
+  }
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  
   try {
-    const { farmerId, updateData } = req.body;
-
-    if (!farmerId) {
-      return res.status(400).json({ message: 'Farmer ID is required' });
-    }
-
-    // 1. Find the farmer input and check if it's unvalidated
-    const farmerInput = await global.highValueCropsModels.A_farmer_inputs.findById(farmerId);
-    
+    const farmerInput = await global.highValueCropsModels.A_farmer_inputs.findById(farmerId).session(session);
     if (!farmerInput) {
-      return res.status(404).json({ message: 'Farmer input not found' });
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({ message: 'Farmer response not found.' });
     }
     
-    // Only unvalidated farmer inputs can be updated
-    if (farmerInput.isValidated) {
-      return res.status(400).json({ message: 'Cannot update already validated farmer input' });
+    const cropType = await global.highValueCropsModels.B_crop_types.findOne({ farmer_input_id: farmerId }).session(session);
+    if (!cropType) {
+      await global.highValueCropsModels.A_farmer_inputs.deleteOne({ _id: farmerId }).session(session);
+      await session.commitTransaction();
+      session.endSession();
+      return res.status(200).json({ 
+        message: 'Farmer response deleted successfully (only farmer input was found).' 
+      });
     }
-
-    // 2. Update the farmer input data if provided
-    if (updateData.farmerInput) {
-      const { surname, first_name, middle_name, suffix, farm_location } = updateData.farmerInput;
-      
-      if (surname) farmerInput.surname = surname;
-      if (first_name) farmerInput.first_name = first_name;
-      if (middle_name !== undefined) farmerInput.middle_name = middle_name;
-      if (suffix !== undefined) farmerInput.suffix = suffix;
-      if (farm_location) farmerInput.farm_location = farm_location;
-    }
-
-    // 3. Set the validation status to true
-    farmerInput.isValidated = true;
-    await farmerInput.save();
-
-    // 4. Find and update the crop type
-    const cropType = await global.highValueCropsModels.B_crop_types.findOne({ farmer_input_id: farmerId });
     
-    if (cropType && updateData.cropType) {
-      cropType.crop_type = updateData.cropType;
-      await cropType.save();
-    }
-
-    // 5. Find and update the appropriate crop record based on crop type
-    let cropRecord;
-    if (cropType?.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS') {
-      cropRecord = await global.highValueCropsModels.C_crop_records_indus.findOne({ farmer_input_id: farmerId });
-      
-      if (cropRecord && updateData.cropRecord) {
-        const { crop_type, crop_variety, crop_stage } = updateData.cropRecord;
-        if (crop_type) cropRecord.crop_type = crop_type;
-        if (crop_variety !== undefined) cropRecord.crop_variety = crop_variety;
-        if (crop_stage) cropRecord.crop_stage = crop_stage;
-        
-        await cropRecord.save();
-      }
-    } else if (cropType) {
-      cropRecord = await global.highValueCropsModels.C_crop_records_others.findOne({ farmer_input_id: farmerId });
-      
-      if (cropRecord && updateData.cropRecord) {
-        const { crop_variety, crop_stage } = updateData.cropRecord;
-        if (crop_variety) cropRecord.crop_variety = crop_variety;
-        if (crop_stage) cropRecord.crop_stage = crop_stage;
-        
-        await cropRecord.save();
-      }
-    }
-
-    // 6. Find and update crop details based on crop type and stage
-    if (cropRecord) {
-      let cropDetails;
-      
-      if (cropType?.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS') {
+    // Determine which crop record collection to use based on crop type
+    const isIndustrialCrop = cropType.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS';
+    
+    // Delete process for industrial crops
+    if (isIndustrialCrop) {
+      const cropRecord = await global.highValueCropsModels.C_crop_records_indus.findOne({ farmer_input_id: farmerId }).session(session);
+      if (cropRecord) {
+        // Delete appropriate detail record based on crop stage
         if (cropRecord.crop_stage === 'NEWLY PLANTED') {
-          cropDetails = await global.highValueCropsModels.D1_crop_indus_new.findOne({ record_id: cropRecord._id });
-          
-          if (cropDetails && updateData.cropDetails) {
-            const { plantation_start_date, plantation_end_date, harvest_month_year, total_area_planted } = updateData.cropDetails;
-            
-            if (plantation_start_date) cropDetails.plantation_start_date = plantation_start_date;
-            if (plantation_end_date) cropDetails.plantation_end_date = plantation_end_date;
-            if (harvest_month_year) cropDetails.harvest_month_year = harvest_month_year;
-            if (total_area_planted) cropDetails.total_area_planted = total_area_planted;
-            
-            await cropDetails.save();
-          }
+          await global.highValueCropsModels.D1_crop_indus_new.deleteOne({ record_id: cropRecord._id }).session(session);
         } else if (cropRecord.crop_stage === 'HARVESTING') {
-          cropDetails = await global.highValueCropsModels.D1_crop_indus_harvest.findOne({ record_id: cropRecord._id });
-          
-          if (cropDetails && updateData.cropDetails) {
-            const { harvest_start_date, harvest_end_date, total_area_harvested, 
-                   total_weight, destination, mode_of_payment, mode_of_delivery } = updateData.cropDetails;
-            
-            if (harvest_start_date) cropDetails.harvest_start_date = harvest_start_date;
-            if (harvest_end_date) cropDetails.harvest_end_date = harvest_end_date;
-            if (total_area_harvested) cropDetails.total_area_harvested = total_area_harvested;
-            if (total_weight) cropDetails.total_weight = total_weight;
-            if (destination) cropDetails.destination = destination;
-            if (mode_of_payment) cropDetails.mode_of_payment = mode_of_payment;
-            if (mode_of_delivery) cropDetails.mode_of_delivery = mode_of_delivery;
-            
-            await cropDetails.save();
-          }
+          await global.highValueCropsModels.D1_crop_indus_harvest.deleteOne({ record_id: cropRecord._id }).session(session);
         }
-      } else {
+        
+        // Delete the crop record
+        await global.highValueCropsModels.C_crop_records_indus.deleteOne({ _id: cropRecord._id }).session(session);
+      }
+    } 
+    // Delete process for other crops (trees, fruits, etc.)
+    else {
+      const cropRecord = await global.highValueCropsModels.C_crop_records_others.findOne({ farmer_input_id: farmerId }).session(session);
+      if (cropRecord) {
+        // Delete appropriate detail record based on crop stage
         if (cropRecord.crop_stage === 'NEWLY PLANTED') {
-          cropDetails = await global.highValueCropsModels.D2_bc_other_fct_new.findOne({ record_id: cropRecord._id });
-          
-          if (cropDetails && updateData.cropDetails) {
-            const { plantation_start_date, plantation_end_date, harvest_month_year, total_trees } = updateData.cropDetails;
-            
-            if (plantation_start_date) cropDetails.plantation_start_date = plantation_start_date;
-            if (plantation_end_date) cropDetails.plantation_end_date = plantation_end_date;
-            if (harvest_month_year) cropDetails.harvest_month_year = harvest_month_year;
-            if (total_trees) cropDetails.total_trees = total_trees;
-            
-            await cropDetails.save();
-          }
+          await global.highValueCropsModels.D2_bc_other_fct_new.deleteOne({ record_id: cropRecord._id }).session(session);
         } else if (cropRecord.crop_stage === 'HARVESTING') {
-          cropDetails = await global.highValueCropsModels.D2_bc_other_fct_harvest.findOne({ record_id: cropRecord._id });
-          
-          if (cropDetails && updateData.cropDetails) {
-            const { harvest_start_date, harvest_end_date, trees_harvested, 
-                   total_weight, destination, mode_of_payment, mode_of_delivery } = updateData.cropDetails;
-            
-            if (harvest_start_date) cropDetails.harvest_start_date = harvest_start_date;
-            if (harvest_end_date) cropDetails.harvest_end_date = harvest_end_date;
-            if (trees_harvested) cropDetails.trees_harvested = trees_harvested;
-            if (total_weight) cropDetails.total_weight = total_weight;
-            if (destination) cropDetails.destination = destination;
-            if (mode_of_payment) cropDetails.mode_of_payment = mode_of_payment;
-            if (mode_of_delivery) cropDetails.mode_of_delivery = mode_of_delivery;
-            
-            await cropDetails.save();
-          }
+          await global.highValueCropsModels.D2_bc_other_fct_harvest.deleteOne({ record_id: cropRecord._id }).session(session);
         }
+        
+        // Delete the crop record
+        await global.highValueCropsModels.C_crop_records_others.deleteOne({ _id: cropRecord._id }).session(session);
       }
     }
-
-    // 7. Return the updated data
-    const updatedData = await getCompleteRecordById(farmerId);
-    res.json({ 
-      message: 'Farmer input and references updated successfully',
-      data: updatedData
+    
+    // Delete the crop type record
+    await global.highValueCropsModels.B_crop_types.deleteOne({ _id: cropType._id }).session(session);
+    
+    // Finally, delete the farmer input document
+    await global.highValueCropsModels.A_farmer_inputs.deleteOne({ _id: farmerId }).session(session);
+    
+    // Commit the transaction
+    await session.commitTransaction();
+    
+    return res.status(200).json({
+      message: 'Farmer response deleted successfully with all related records.',
+      deletedId: farmerId
     });
     
   } catch (error) {
-    console.error('Error updating farmer input:', error);
-    res.status(500).json({ 
-      message: 'Error updating farmer input and references', 
+    // Rollback in case of error
+    await session.abortTransaction();
+    return res.status(500).json({ 
+      message: 'Error deleting farmer response', 
       error: error.message 
     });
+  } finally {
+    session.endSession();
   }
-};
-
-
-// Helper function to get complete record by farmer input ID
-const getCompleteRecordById = async (farmerId) => { //currently not in use
-  const farmerInput = await global.highValueCropsModels.A_farmer_inputs.findById(farmerId).lean();
-  if (!farmerInput) return null;
-  
-  const cropType = await global.highValueCropsModels.B_crop_types.findOne({ farmer_input_id: farmerId }).lean();
-  if (!cropType) return { farmerInput, cropType: null, cropRecord: null, cropDetails: null };
-  
-  let cropRecord, cropDetails;
-  
-  if (cropType.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS') {
-    cropRecord = await global.highValueCropsModels.C_crop_records_indus.findOne({ farmer_input_id: farmerId }).lean();
-    if (!cropRecord) return { farmerInput, cropType, cropRecord: null, cropDetails: null };
-    
-    if (cropRecord.crop_stage === 'NEWLY PLANTED') {
-      cropDetails = await global.highValueCropsModels.D1_crop_indus_new.findOne({ record_id: cropRecord._id }).lean();
-    } else if (cropRecord.crop_stage === 'HARVESTING') {
-      cropDetails = await global.highValueCropsModels.D1_crop_indus_harvest.findOne({ record_id: cropRecord._id }).lean();
-    }
-  } else {
-    cropRecord = await global.highValueCropsModels.C_crop_records_others.findOne({ farmer_input_id: farmerId }).lean();
-    if (!cropRecord) return { farmerInput, cropType, cropRecord: null, cropDetails: null };
-    
-    if (cropRecord.crop_stage === 'NEWLY PLANTED') {
-      cropDetails = await global.highValueCropsModels.D2_bc_other_fct_new.findOne({ record_id: cropRecord._id }).lean();
-    } else if (cropRecord.crop_stage === 'HARVESTING') {
-      cropDetails = await global.highValueCropsModels.D2_bc_other_fct_harvest.findOne({ record_id: cropRecord._id }).lean();
-    }
-  }
-
-  return { farmerInput, cropType, cropRecord, cropDetails };
 };
 
 
@@ -512,6 +484,46 @@ export const unflagResponseForReview = async (req, res) => {
   }
 };
 
+export const formStatusEnable = async (req, res) => {
+  try {
+    await global.highValueCropsModels.FormStatus.findOneAndUpdate(
+      {},                                   // filter
+      { $set: { formStatus: true } },      // update
+      { upsert: true, new: true }           // options
+    );
+    return res.status(200).json({ message: 'High-Value Crops form enabled successfully.' });
+  } catch (error) {
+    return res.status(500).json({ message: 'Error enabling High-Value Crops form', error: error.message });
+  }
+};
+
+export const formStatusDisable = async (req, res) => {
+  try {
+    await global.highValueCropsModels.FormStatus.findOneAndUpdate(
+      {},                                   // filter
+      { $set: { formStatus: false } },      // update
+      { upsert: true, new: true }           // options
+    );
+    return res.status(200).json({ message: 'High-Value Crops form disabled successfully.' });
+  } catch (error) {
+    return res.status(500).json({ message: 'Error disabling High-Value Crops form', error: error.message });
+  }
+};
+
+export const checkFormStatus = async (req, res) => {
+  try {
+    const statusDoc = await global.highValueCropsModels.FormStatus.findOne({});
+    const isOpen = Boolean(statusDoc?.formStatus);
+
+    if (!isOpen) {
+      return res.status(403).json({ success: false, open: false, message: 'High-Value Crops form is currently disabled.' });
+    }
+
+    return res.status(200).json({ success: true, open: true, message: 'High-Value Crops form is currently enabled.' });
+  } catch (error) {
+    return res.status(500).json({ message: 'Error checking form status', error: error.message });
+  }
+};
 
 //________________________________ FARMERS ACCOUNT MANAGEMENT PAGE ____________________________________
 
@@ -536,20 +548,28 @@ export const createFarmerAccount = async (req, res) => {
 
   try { // updated okay lang may magkatokayo kasi hindi namna maiiwasan, mahalaga they're uniquely identified by farmerId
   
+    const capitalizeWords = (str) => {
+      if (!str) return str;
+      return str.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
+    };
+
+    const formattedFirstName = capitalizeWords(first_name);
+    const formattedMiddleName = middle_name ? capitalizeWords(middle_name) : '';
+    const formattedSurname = capitalizeWords(surname);
 
     // Continue with creating new farmer account
     const newNumber = await getNextSequence('farmer_account');
-    const middleInitial = middle_name ? middle_name.charAt(0) : '';
-    const firstInitials = first_name.split(' ').slice(0, 2).map(word => word.charAt(0)).join('');
-    const initials = `${firstInitials}${middleInitial}${surname.charAt(0)}`;
+    const middleInitial = formattedMiddleName ? formattedMiddleName.split(' ').map(word => word.charAt(0)).join('') : '';
+    const firstInitials = formattedFirstName.split(' ').slice(0, 2).map(word => word.charAt(0)).join('');
+    const initials = `${firstInitials.toUpperCase()}${middleInitial.toUpperCase()}${formattedSurname.charAt(0).toUpperCase()}`;
     const formattedNumber = String(newNumber).padStart(4, '0');
     const farmerId = `F-${initials}-${formattedNumber}`;
 
     const newFarmerAccount = await global.highValueCropsModels.FarmerAccount.create({
       farmerId,
-      surname,
-      first_name,
-      middle_name,
+      surname: formattedSurname,
+      first_name: formattedFirstName,
+      middle_name: formattedMiddleName,
       suffix,
       farmer_barangay,
       mobile_number,
@@ -726,8 +746,6 @@ export const updateFarmerAccount = async (req, res) => {
 
 
 //________________________________ DASHBOARD (METRICS) PAGE ____________________________________
-
-
 
 
 // Get available years from unified farmer record collections
@@ -1015,6 +1033,8 @@ export const getMetricsForYearMonth = async (req, res) => {
     res.status(500).json({ message: 'Error fetching metrics', error: error.message });
   }
 };
+
+
 
 
 
