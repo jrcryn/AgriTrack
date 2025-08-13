@@ -128,17 +128,6 @@ const SidebarContent = ({ onClose, ...rest }) => {
           {link.name}
         </NavItem>
       ))}
-      {/* <Box mt={20}>
-      <Text fontSize="9px" fontWeight="medium" color="white">
-        DB Staging | Local Deployment
-      </Text>
-      <Text fontSize="9px" fontWeight="medium" color="white">
-        Dev Branch
-      </Text>
-      <Text fontSize="9px" fontWeight="medium" color="white">
-        Render Deployment: <Link href="https://staging-frontend-5tcj.onrender.com" isExternal color="blue.400">{`https://staging-frontend-5tcj.onrender.com`}</Link>
-      </Text>
-      </Box> */}
     </Box>
   )
 }
@@ -221,9 +210,15 @@ const MobileNav = ({ onOpen, ...rest }) => {
   }, [])
 
   const { user, logout } = useAuthStore();
-  const [ userName ] = useState(user?.name || ''); 
   const [ roleName, setRoleName ] = useState('');
 
+  const middle_name = user?.middle_name 
+    ? `${user.middle_name.charAt(0).toUpperCase()}.` 
+    : '';
+  
+  const suffix = user?.suffix ? user.suffix : '';
+
+  const userName = <Text fontSize="sm">{user?.first_name} {middle_name} {user?.last_name} {suffix}</Text>
   const { isOpen, onOpen: onOpen1, onClose } = useDisclosure();
 
   const handleLogout = () => {

@@ -43,7 +43,7 @@ import {
   Tooltip,
 } from '@chakra-ui/react';
 import numOfTreesToHectares from '../../components/conversions.js';
-import { FaSearch, FaEye, FaSeedling, FaBoxes, FaUser, FaLeaf, FaWifi, FaUpload, FaInfo } from 'react-icons/fa';
+import { FaSearch, FaEye, FaSeedling, FaBoxes, FaUser, FaLeaf, FaWifi, FaUpload, FaInfo, FaCheck, FaStop } from 'react-icons/fa';
 import { GoAlertFill } from "react-icons/go";
 import { useAdminDashboard } from '../store/adminDashboard.store.js';
 import { useFormStatusCheck } from '../store/farmerForm.store.js'
@@ -106,9 +106,7 @@ const Responses = () => {
   const { checkFormStatus, isFormOpen } = useFormStatusCheck();
   const formButtonColor = isFormOpen ? "green" : "red";
 
-  useEffect(() => {
-    checkFormStatus();
-  }, [checkFormStatus]);
+
 
   // Filter responses based on search query
   // const searchedResponses = unvalidatedInputs.filter((response) => {
@@ -905,11 +903,11 @@ const Responses = () => {
 
   const handleFormToggle = async () => {
     if (isFormOpen) {
-      FormStatusDisable();
-      checkFormStatus();
+      await FormStatusDisable();
+      await checkFormStatus();
     } else {
-      FormStatusEnable();
-      checkFormStatus();
+      await FormStatusEnable();
+      await checkFormStatus();
     }
   };
 
@@ -1387,6 +1385,7 @@ const Responses = () => {
           alignItems={{ base: "flex-start", md: "center" }}  // This is the key change
         >
           <Button colorScheme={formButtonColor} size="sm" width={{ base: "full", md: "auto" }} onClick={handleFormToggle} isLoading={isUpdatingFormStatus}>
+            <Icon as={isFormOpen ? FaCheck : FaStop} mr={2}/>
             {isFormOpen ? "Accepting Responses..." : "Not Accepting Responses"}
           </Button>
 

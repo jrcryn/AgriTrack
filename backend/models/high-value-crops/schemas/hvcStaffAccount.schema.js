@@ -1,7 +1,10 @@
 import mongoose from 'mongoose';
 
 export const HVCStaffSchema = new mongoose.Schema({
-    name: { type: String, required: true },
+    first_name: { type: String, required: true },
+    last_name: { type: String, required: true },
+    middle_name: { type: String },
+    suffix: { type: String },
     email: { type: String, required: true, unique: true },
     phone: { type: String, required: true, unique: true },
 
