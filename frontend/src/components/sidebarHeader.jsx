@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Link as RouterLink, useLocation } from 'react-router-dom';
+import {  Link as RouterLink, useLocation } from 'react-router-dom';
 import {
   IconButton,
   Avatar,
@@ -42,7 +42,7 @@ import {
   FiArchive,
   FiBox
 } from 'react-icons/fi'
-import { FaWpforms, FaUser, FaPowerOff, FaDoorOpen } from "react-icons/fa";
+import { FaWpforms, FaUser, FaPowerOff, FaDoorOpen, FaBug  } from "react-icons/fa";
 import Logo from '../images/Calamba_Seal.png'
 import { useAuthStore } from '../auth/store/authStore.js'
 import ProfileSettings from './profileSettings.jsx';
@@ -128,6 +128,20 @@ const SidebarContent = ({ onClose, ...rest }) => {
           {link.name}
         </NavItem>
       ))}
+
+      <Divider my={4} borderColor="gray.600" />
+
+      <Button 
+        size={"sm"}   
+        px="10"
+        mt={7}
+        display="block"
+        mx="auto"
+        onClick={() => { window.open('https://forms.gle/5o5nGY8DxE9Y3WvB8', '_blank') }}
+      > 
+      <Icon as={FaBug} mr={2}/>
+        Report a Problem
+      </Button>
     </Box>
   )
 }
