@@ -152,7 +152,7 @@ export const getAvailableDateRanges = async (req, res) => {
 };
 
 // Generate Excel report based on date range
-export const generateExcelReport = async (req, res) => {
+export const generateHVCSaMPR = async (req, res) => {
   const { startDate, endDate } = req.body;
   
   if (!startDate || !endDate ) {
