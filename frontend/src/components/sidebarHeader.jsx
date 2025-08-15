@@ -132,7 +132,8 @@ const SidebarContent = ({ onClose, ...rest }) => {
       <Divider my={4} borderColor="gray.600" />
 
       <Button 
-        size={"sm"}   
+        size={"sm"}  
+        colorScheme="red" 
         px="10"
         mt={7}
         display="block"

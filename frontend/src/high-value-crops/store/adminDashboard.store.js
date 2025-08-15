@@ -159,6 +159,20 @@ export const useDateRangesQuery = (year, month) =>
     staleTime: 0, // Data is always fresh
   });
 
+export const useAvailableBarangaysQuery = (year, month) => 
+  useQuery({
+    queryKey: ['barangays', year, month],
+    queryFn: async () => {
+      if (!year || !month) return [];
+
+      const response = await axios.get(`${API_URL}/api/hvc/available-barangays/${year}/${month}`);
+      return response.data;
+    },
+    enabled: !!(year && month), // Only run if both year and month are provided
+    staleTime: 0, // Data is always fresh
+  });
+
+
 
 
 // Composite hook that combines React Query and Zustand
@@ -188,6 +202,7 @@ export const useAdminDashboard = (searchParams = {}) => {
     selectedCommodity || null,  // Pass as null if empty string
   );
   const { data: dateRanges = [], isLoading: isLoadingDateRanges, error: dateRangesError } = useDateRangesQuery(selectedYear, selectedMonth);
+  const { data: barangays = [], isLoading: isLoadingBarangays, error: barangaysError } = useAvailableBarangaysQuery(selectedYear, selectedMonth);
 
   const [isCreatingUnifiedResponse, setIsCreatingUnifiedResponse] = useState(false);
   const [isDeletingFarmerAccount, setIsDeletingFarmerAccount] = useState(false);
@@ -398,17 +413,20 @@ export const useAdminDashboard = (searchParams = {}) => {
     selectedCommodity,
     setSelectedCommodity,
     dateRanges,
+    barangays,
+
     newlyPlantedPage,
     setNewlyPlantedPage,
     harvestingPage,
     setHarvestingPage,
     
     // Loading states
-    isLoading: isLoadingAccounts || isLoadingMetrics || isLoadingDateRanges,
+    isLoading: isLoadingAccounts || isLoadingMetrics || isLoadingDateRanges || isLoadingBarangays,
     isLoadingNewlyPlanted,
     isLoadingHarvesting,
     isLoadingUFRY,
     isLoadingUFRM,
+
     //isUpdating,
     isCreatingUnifiedResponse,
     isCreatingFarmerAccount,
@@ -426,6 +444,7 @@ export const useAdminDashboard = (searchParams = {}) => {
     ufrMonthsError, 
     metricsError, 
     dateRangesError, 
+    barangaysError,
     
     // Actions
     //updateFarmerInput,

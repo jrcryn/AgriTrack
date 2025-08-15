@@ -151,6 +151,69 @@ export const getAvailableDateRanges = async (req, res) => {
   }
 };
 
+
+//gagawa ng controller dedicated for fetching available barangays wihtin the selected year and month, ayun ang ibibigay sa genReports.js controller na parameters pang gawa ng bi-weekly reports
+export const getAvailableBarangays = async (req, res) => {
+  const { year, month } = req.params;
+
+  const yearNum = Number(year);
+  const monthNum = Number(month);
+
+  if (!Number.isInteger(yearNum) || !Number.isInteger(monthNum) || monthNum < 1 || monthNum > 12) {
+    return res.status(400).json({ message: 'Valid year and month parameters are required' });
+  }
+
+  try {
+    // Month boundaries (local time, consistent with the rest of this file)
+    const startOfMonth = new Date(yearNum, monthNum - 1, 1);
+    const endOfMonth = new Date(yearNum, monthNum, 0, 23, 59, 59, 999);
+
+    const UnifiedFarmerRecordModel = global.getUnifiedFarmerRecordModel(yearNum);
+
+    // Match any record whose plantation/harvest dates overlap the month
+    const filter = {
+      $or: [
+        {
+          crop_stage: 'NEWLY PLANTED',
+          $or: [
+            { plantation_start_date: { $gte: startOfMonth, $lte: endOfMonth } },
+            { plantation_end_date: { $gte: startOfMonth, $lte: endOfMonth } },
+            {
+              plantation_start_date: { $lt: startOfMonth },
+              plantation_end_date: { $gt: endOfMonth },
+            },
+          ],
+        },
+        {
+          crop_stage: 'HARVESTING',
+          $or: [
+            { harvest_start_date: { $gte: startOfMonth, $lte: endOfMonth } },
+            { harvest_end_date: { $gte: startOfMonth, $lte: endOfMonth } },
+            {
+              harvest_start_date: { $lt: startOfMonth },
+              harvest_end_date: { $gt: endOfMonth },
+            },
+          ],
+        },
+      ],
+    };
+
+    // If your schema uses a different field for barangay, replace 'farm_location' accordingly.
+    const barangays = await UnifiedFarmerRecordModel.distinct('farm_location', filter);
+
+    const cleaned = barangays
+      .filter(Boolean)
+      .map(v => String(v).trim())
+      .filter(v => v.length > 0)
+      .sort((a, b) => a.localeCompare(b, 'en', { sensitivity: 'base' }));
+
+    return res.json(cleaned);
+  } catch (error) {
+    return res.status(500).json({ message: 'Error fetching available barangays', error: error.message });
+  }
+};
+
+
 // Generate Excel report based on date range
 export const generateHVCSaMPR = async (req, res) => {
   const { startDate, endDate } = req.body;
@@ -316,3 +379,7 @@ export const generateHVCSaMPR = async (req, res) => {
     });
   }
 };
+
+
+//then gagawa ng controller that will handle the acutal report genereation, accepting the selected barangay/s
+
