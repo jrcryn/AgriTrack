@@ -293,11 +293,11 @@ export const useAdminDashboard = (searchParams = {}) => {
     }
   };
 
-  const generateExcelReport = async (startDate, endDate) => {
+  const generateHVCSaMPR = async (startDate, endDate) => {
     setIsGeneratingReport(true);
     try {
       const response = await axios.post(
-        `${API_URL}/api/hvc/generate-excel-report`, 
+        `${API_URL}/api/hvc/generate-hvc-sampr`, 
         { 
           startDate, 
           endDate
@@ -435,7 +435,7 @@ export const useAdminDashboard = (searchParams = {}) => {
     createUnifiedFarmerResponse,
     flagResponseForReview,
     unflagResponseForReview,
-    generateExcelReport,
+    generateHVCSaMPR,
     updateFarmerAccount,
     updateFarmerResponseFields,
     setIsModalOpen,

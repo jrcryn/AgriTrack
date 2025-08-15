@@ -7,7 +7,7 @@ import {
 import { FaFileExcel, FaDownload, FaCalendarAlt, FaChartBar, FaWifi } from 'react-icons/fa';
 import { useAdminDashboard } from '../store/adminDashboard.store';
 
-const C_GenReports = () => {
+const B_HVCSaMPR = () => {
   const [selectedRange, setSelectedRange] = useState('');
   
   const { 
@@ -22,7 +22,7 @@ const C_GenReports = () => {
     isLoadingUFRY,
     isLoadingUFRM,
     isGeneratingReport, 
-    generateExcelReport, 
+    generateHVCSaMPR, 
     ufrYearsError, 
     ufrMonthsError,
     dateRangesError, 
@@ -93,7 +93,7 @@ const C_GenReports = () => {
     
     try {
       // Now use the function from the store
-      const reportData = await generateExcelReport(startDate, endDate);
+      const reportData = await generateHVCSaMPR(startDate, endDate);
       
       // Handle the download in the component (UI concern)
       const url = window.URL.createObjectURL(new Blob([reportData]));
@@ -397,7 +397,7 @@ const C_GenReports = () => {
               
               <Text fontSize="sm" fontStyle="italic">
                 The report uses the official HVC Supply and Market Profile template format.
-                Generated Excel files can be edited after download if additional customization is needed.
+                Generated Excel files can be edited afterwards if additional customization is needed.
               </Text>
             </VStack>
           </Box>
@@ -407,4 +407,4 @@ const C_GenReports = () => {
   );
 };
 
-export default C_GenReports;
+export default B_HVCSaMPR;

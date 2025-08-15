@@ -24,7 +24,7 @@ import {
 
 import { 
     getAvailableDateRanges, 
-    generateExcelReport //manipulate data
+    generateHVCSaMPR //manipulate data
 } from '../controller/high-value-crops/genReports.controller.js';
 
 import {
@@ -77,7 +77,7 @@ router.get('/metrics/data/:year/:month', verifyAuthToken, verifyRole(['HVCM', 'H
 
 
 router.get('/report-date-ranges/:year/:month', verifyAuthToken, verifyRole(['HVCM']), getAvailableDateRanges);
-router.post('/generate-excel-report', verifyAuthToken, verifyRole(['HVCM']), generateExcelReport);
+router.post('/generate-hvc-sampr', verifyAuthToken, verifyRole(['HVCM']), generateHVCSaMPR);
 
 
 //________________________________ FARMER FORM PAGES ____________________________________

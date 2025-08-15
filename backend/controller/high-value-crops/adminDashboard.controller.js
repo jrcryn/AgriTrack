@@ -605,6 +605,7 @@ export const deleteFarmerAccount = async (req, res) => {
   }
 };
 
+
 // Get all farmer accounts
 export const getFarmerAccounts = async (req, res) => {
   try {
@@ -641,8 +642,27 @@ export const getFarmerAccounts = async (req, res) => {
     }
 
     const totalCount = await global.highValueCropsModels.FarmerAccount.countDocuments(filter);
-    const farmerAccounts = await global.highValueCropsModels.FarmerAccount.find(filter).lean().skip(skip).limit(limit);
-    
+    const farmerAccounts = await global.highValueCropsModels.FarmerAccount.aggregate([
+          { $match: filter },
+          { 
+            $addFields: {
+              // Extract the numeric part after the last dash
+              numericPart: { 
+                $toInt: { 
+                  $arrayElemAt: [
+                    { $split: ["$farmerId", "-"] }, 
+                    -1
+                  ] 
+                } 
+              }
+            }
+          },
+          { $sort: { numericPart: 1 } }, // Sort by the extracted numeric value
+          { $skip: skip },
+          { $limit: limit },
+          { $project: { numericPart: 0 } } // Remove the temporary field
+        ]);   
+         
     res.json({ 
       farmerAccounts, 
       totalCount,
@@ -656,24 +676,24 @@ export const getFarmerAccounts = async (req, res) => {
 
 
 // Get a single farmer account by ID
-export const getFarmerAccountById = async (req, res) => {
-  const {farmerId} = req.body;
-  if (!farmerId) {
-    return res.status(400).json({ message: 'Farmer ID is required' });
-  }
+// export const getFarmerAccountById = async (req, res) => {
+//   const {farmerId} = req.body;
+//   if (!farmerId) {
+//     return res.status(400).json({ message: 'Farmer ID is required' });
+//   }
 
-  try {
-    const farmerAccount = await global.highValueCropsModels.FarmerAccount.findOne({ farmerId: farmerId }).lean();
-    if (!farmerAccount) {
-      return res.status(404).json({ message: 'Farmer account not found' });
-    }
-    farmerAccount.farmer_address = '';
+//   try {
+//     const farmerAccount = await global.highValueCropsModels.FarmerAccount.findOne({ farmerId: farmerId }).lean();
+//     if (!farmerAccount) {
+//       return res.status(404).json({ message: 'Farmer account not found' });
+//     }
+//     farmerAccount.farmer_address = '';
 
-    res.json(farmerAccount);
-  } catch (error) {
-    res.status(500).json({ message: 'Error fetching farmer account', error: error.message });
-  }
-};
+//     res.json(farmerAccount);
+//   } catch (error) {
+//     res.status(500).json({ message: 'Error fetching farmer account', error: error.message });
+//   }
+// };
 
 // get farmer accounts by name or farmer Id
 export const getFarmerAccountByNameUser = async (req, res) => {
@@ -745,7 +765,7 @@ export const updateFarmerAccount = async (req, res) => {
 };
 
 
-//________________________________ DASHBOARD (METRICS) PAGE ____________________________________
+//________________________________ DASHBOARD (METRICS / HVC SUPPLY AND MARKET PROFILE REPORT / HVC PRODUCTION REPORT) PAGE ____________________________________
 
 
 // Get available years from unified farmer record collections
@@ -864,7 +884,6 @@ export const getAvailableMonthsForYear = async (req, res) => {
 };
 
 
-// Get metrics data for a specific year and month
 // Get metrics data for a specific year and month
 // ...existing code...
 export const getMetricsForYearMonth = async (req, res) => {
