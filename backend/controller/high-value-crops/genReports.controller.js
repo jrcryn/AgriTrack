@@ -352,13 +352,6 @@ export const generateHVCSaMPR = async (req, res) => {
       currentRowIndex++;
     }
 
-
-
-
-
-
-
-
     
     // Create the workbook buffer
     const buffer = await workbook.xlsx.writeBuffer();
@@ -381,5 +374,14 @@ export const generateHVCSaMPR = async (req, res) => {
 };
 
 
-//then gagawa ng controller that will handle the acutal report genereation, accepting the selected barangay/s
+//then gagawa ng controller that will handle the acutal report genereation, accepting the selected year, month, and barangay
+export const generateHVCPR = async (req, res) => {
+  const {year, month, barangay} = req.body;
 
+  if (!year || !month || !barangay ) {
+    return res.status(400).json({ message: 'Year, month, and barangay are required' });
+  }
+
+  
+
+};

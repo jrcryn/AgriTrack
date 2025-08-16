@@ -421,11 +421,12 @@ export const useAdminDashboard = (searchParams = {}) => {
     setHarvestingPage,
     
     // Loading states
-    isLoading: isLoadingAccounts || isLoadingMetrics || isLoadingDateRanges || isLoadingBarangays,
+    isLoading: isLoadingAccounts || isLoadingMetrics || isLoadingDateRanges,
     isLoadingNewlyPlanted,
     isLoadingHarvesting,
     isLoadingUFRY,
     isLoadingUFRM,
+    isLoadingBarangays,
 
     //isUpdating,
     isCreatingUnifiedResponse,

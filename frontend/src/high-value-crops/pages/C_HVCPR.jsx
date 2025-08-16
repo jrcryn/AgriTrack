@@ -2,14 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { 
   Box, Heading, Text, VStack, Button, FormControl, FormLabel, 
   Select, HStack, useToast, Flex, Icon, SimpleGrid, Divider, 
-  Spinner, Alert, AlertIcon, Badge, AlertTitle, AlertDescription, Tag, TagCloseButton, TagLabel
+  Spinner, Alert, AlertIcon, Badge, AlertTitle, AlertDescription, Tag, TagCloseButton, TagLabel,
+  Menu, MenuButton, MenuList, Checkbox, CheckboxGroup
 } from "@chakra-ui/react";
-import { FaFileExcel, FaDownload, FaCalendarAlt, FaChartBar, FaMapMarkerAlt } from 'react-icons/fa';
+import { FaFileExcel, FaDownload, FaCalendarAlt, FaChartBar, FaMapMarkerAlt, FaChevronDown } from 'react-icons/fa';
 import { useAdminDashboard } from '../store/adminDashboard.store';
 
 const C_HVCPR = () => {
   const [selectedRange, setSelectedRange] = useState('');
-  
+  const [selectedBarangays, setSelectedBarangays] = useState([]); // array of selected brgys
+
   const { 
     availableYears, 
     availableMonths, 
@@ -17,12 +19,10 @@ const C_HVCPR = () => {
     selectedMonth,
     setSelectedYear,
     setSelectedMonth,
-    setSelectedBarangay,
-    selectedBarangay,
     barangays,
-    isLoading,
     isLoadingUFRY,
     isLoadingUFRM,
+    isLoadingBarangays,
     isGeneratingReport, 
     generateHVCSaMPR, 
     ufrYearsError, 
@@ -42,8 +42,8 @@ const C_HVCPR = () => {
 
   // Reset selectedBarangay when year or month changes
   useEffect(() => {
-    setSelectedBarangay('');
-  }, [selectedYear, selectedMonth, setSelectedBarangay]);
+    setSelectedBarangays([]);
+  }, [selectedYear, selectedMonth]);
 
   // Auto-select the first available month when availableMonths changes and there's no month selected
   useEffect(() => {
@@ -64,8 +64,20 @@ const C_HVCPR = () => {
     setSelectedMonth(newMonth);
   };
 
+  const handleBarangaysChange = (eOrValues) => {
+    // Allow both old <Select multiple> event and CheckboxGroup array
+    if (Array.isArray(eOrValues)) {
+      const values = eOrValues.map(String);
+      setSelectedBarangays(values);
+      console.log("Selected Barangays:", values);
+      return;
+    }
+    const values = Array.from(eOrValues.target.selectedOptions, (o) => String(o.value));
+    setSelectedBarangays(values);
+  };
+
   const handleResetFilters = () => {
-    setSelectedBarangay('');
+    setSelectedBarangays([]);
   };
 
   const handleGenerateReport = async () => {
@@ -292,25 +304,49 @@ const C_HVCPR = () => {
                 </FormLabel>
 
                 {selectedYear && selectedMonth ? (
-                  isLoading ? (
+                  isLoadingBarangays ? (
                     <Flex justify="center" py={4}>
                       <Spinner color="orange.500" size="md" thickness="3px" />
                       <Text ml={3}>Loading available barangays...</Text>
                     </Flex>
                   ) : (barangays && barangays.length > 0) ? (
-                    <Select
-                      placeholder="Select Barangay"
-                      value={selectedBarangay}
-                      onChange={(e) => setSelectedBarangay(e.target.value)}
-                      bg="white"
-                      size="md"
-                    >
-                      {barangays.map((b) => (
-                        <option key={b} value={b}>
-                          {b}
-                        </option>
-                      ))}
-                    </Select>
+                    // Replaced <Select multiple> with a checkable dropdown
+                    <Menu closeOnSelect={false} isLazy>
+                      <MenuButton
+                        as={Button}
+                        variant="outline"
+                        rightIcon={<FaChevronDown />}
+                        width="100%"
+                        justifyContent="space-between"
+                        fontWeight={'normal'}
+                        textAlign="left"
+                      >
+                        {selectedBarangays.length > 0
+                          ? `${selectedBarangays.length} selected`
+                          : 'Select Barangay/s'}
+                      </MenuButton>
+                      <MenuList maxH="16rem" overflowY="auto" minW="sm" p={2}>
+                        <HStack justify="space-between" mb={2}>
+                          <Button
+                            size="xs"
+                            variant="outline"
+                            colorScheme='blue'
+                            onClick={() => handleBarangaysChange(barangays.map(String))}
+                          >
+                            Select all
+                          </Button>
+                        </HStack>
+                        <CheckboxGroup value={selectedBarangays} onChange={handleBarangaysChange}>
+                          <VStack align="stretch" spacing={1}>
+                            {barangays.map((b) => (
+                              <Checkbox key={b} value={String(b)}>
+                                {b}
+                              </Checkbox>
+                            ))}
+                          </VStack>
+                        </CheckboxGroup>
+                      </MenuList>
+                    </Menu>
                   ) : (
                     <Alert status="info" borderRadius="md">
                       <AlertIcon />
@@ -332,16 +368,22 @@ const C_HVCPR = () => {
                 )}
               </FormControl>
 
-              {(selectedBarangay) && (
+              {(selectedBarangays.length > 0) && (
                 <Flex direction={{ base: "column", md: "row" }} align="center" mt={2}>
                   {/* Active Filters Group */}
                   <Flex align="center" gap={2} wrap="wrap">
                     <Text fontWeight="medium" fontSize={'sm'}>Active selection/s:</Text>
                     <Flex wrap="wrap" gap={2}>
-                      <Tag size="md" borderRadius="full" variant="subtle" colorScheme="blue">
-                        <TagLabel fontSize={'sm'}>Barangay: {selectedBarangay}</TagLabel>
-                        <TagCloseButton onClick={() => setSelectedBarangay("")} />
-                      </Tag>
+                      {selectedBarangays.map((b) => (
+                        <Tag key={b} size="md" borderRadius="full" variant="subtle" colorScheme="blue">
+                          <TagLabel fontSize={'sm'}>{b}</TagLabel>
+                          <TagCloseButton
+                            onClick={() =>
+                              setSelectedBarangays((prev) => prev.filter((x) => x !== b))
+                            }
+                          />
+                        </Tag>
+                      ))}
                     </Flex>
                   </Flex>
 
@@ -349,7 +391,7 @@ const C_HVCPR = () => {
                   <Button
                     colorScheme="blue"
                     size="sm"
-                    onClick={() => setSelectedBarangay("")}
+                    onClick={handleResetFilters}
                     ml={{ base: 0, md: "auto" }}
                     mt={{ base: 2, md: 0 }}
                   >
@@ -359,7 +401,7 @@ const C_HVCPR = () => {
               )}
             </Flex>
 
-            <Divider my={2} />
+            <Divider />
 
             <Button
               colorScheme="orange"
@@ -369,7 +411,7 @@ const C_HVCPR = () => {
               loadingText="Generating..."
               size="lg"
               width="100%"
-              isDisabled={!selectedMonth || !selectedBarangay || isLoading}
+              isDisabled={!selectedMonth || selectedBarangays.length === 0 || isLoadingBarangays}
             >
               Generate Report
             </Button>
