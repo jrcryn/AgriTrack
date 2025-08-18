@@ -50,6 +50,8 @@ const C_HVCPR = () => {
     if (availableMonths && availableMonths.length > 0 && !selectedMonth) {
       setSelectedMonth(availableMonths[0]);
     }
+    console.log("Available Months:", availableMonths);
+    console.log("Available Years:", availableYears);
   }, [availableMonths, selectedMonth, setSelectedMonth]);
 
   // Handle year change 

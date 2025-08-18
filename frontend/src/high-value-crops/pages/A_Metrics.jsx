@@ -85,7 +85,7 @@ const Metrics = () => {
   };
 
   const volumeProduction = metricsData?.harvesting?.volumeProduction;
-  const convertedVP = volumeProduction / 10000; // Convert to metric tons (mt)
+  const convertedVP = volumeProduction / 1000; // Convert to metric tons (mt)
 
   
   const harvestingData = metricsData ? {
