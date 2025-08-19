@@ -280,11 +280,6 @@ export const generateHVCSaMPR = async (req, res) => {
     const dateRange = `${start.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}-${end.toLocaleDateString('en-US', { day: 'numeric'})}, ${end.toLocaleDateString('en-US', { year: 'numeric' })}`;
     worksheet.getRow(7).getCell(2).value = dateRange;
 
-
-
-
-
-    
     //pang sort alpabetically by farmer name
     records.sort((a, b) => {
       // // Handle cases where farmer_account_id might be null
@@ -298,9 +293,6 @@ export const generateHVCSaMPR = async (req, res) => {
       // Compare alphabetically
       return nameA.localeCompare(nameB);
     });
-
-
-
 
     const templateRow = worksheet.getRow(11);
 
@@ -377,7 +369,7 @@ export const generateHVCSaMPR = async (req, res) => {
 
 //PRODUCTION REPORT
 
-
+ 
 //helper function to exactly copy block designs wihtouh value
 const copyBlockFormatOnly = (sheet, sourceRange, targetStartCell) => {
   // --- Parse source range ---

@@ -24,7 +24,7 @@ const C_HVCPR = () => {
     isLoadingUFRM,
     isLoadingBarangays,
     isGeneratingReport, 
-    generateHVCSaMPR, 
+    generateHVCPR, 
     ufrYearsError, 
     ufrMonthsError, 
     barangaysError,
@@ -50,8 +50,6 @@ const C_HVCPR = () => {
     if (availableMonths && availableMonths.length > 0 && !selectedMonth) {
       setSelectedMonth(availableMonths[0]);
     }
-    console.log("Available Months:", availableMonths);
-    console.log("Available Years:", availableYears);
   }, [availableMonths, selectedMonth, setSelectedMonth]);
 
   // Handle year change 
@@ -71,7 +69,6 @@ const C_HVCPR = () => {
     if (Array.isArray(eOrValues)) {
       const values = eOrValues.map(String);
       setSelectedBarangays(values);
-      console.log("Selected Barangays:", values);
       return;
     }
     const values = Array.from(eOrValues.target.selectedOptions, (o) => String(o.value));
@@ -83,21 +80,10 @@ const C_HVCPR = () => {
   };
 
   const handleGenerateReport = async () => {
-    if (!selectedRange) {
+    if (!selectedYear || !selectedMonth || selectedBarangays.length === 0) {
       toast({
         title: "Missing information",
-        description: "Please select a date range",
-        status: "warning",
-        duration: 3000,
-        isClosable: true,
-      });
-      return;
-    }
-
-    if (barangays.length === 0) {
-      toast({
-        title: "No data available",
-        description: "There are no barangays available for the selected period",
+        description: "Please select a year, month, and barangay/s",
         status: "warning",
         duration: 3000,
         isClosable: true,
@@ -107,20 +93,16 @@ const C_HVCPR = () => {
     
     try {
       // Now use the function from the store
-      const reportData = await generateHVCSaMPR(startDate, endDate);
-      
+      const reportData = await generateHVCPR(selectedYear, selectedMonth, selectedBarangays);
+      const monthLabel = new Date(selectedYear, selectedMonth - 1, 1).toLocaleString('en-US', { month: 'long' });
+      console.log(selectedYear, selectedMonth, selectedBarangays);
+
       // Handle the download in the component (UI concern)
       const url = window.URL.createObjectURL(new Blob([reportData]));
       const link = document.createElement('a');
-      
-      // Format filename with date range
-      const startDateObj = new Date(startDate);
-      const endDateObj = new Date(endDate);
-      const formattedStartDate = startDateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      const formattedEndDate = endDateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-      
+
       link.href = url;
-      link.setAttribute('download', `HVC_Report_${formattedStartDate}_to_${formattedEndDate}.xlsx`);
+      link.setAttribute('download', `HVC_Production_Report_${monthLabel}_${selectedYear}.xlsx`);
       document.body.appendChild(link);
       link.click();
       link.remove();

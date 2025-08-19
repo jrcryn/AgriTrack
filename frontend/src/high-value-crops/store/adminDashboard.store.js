@@ -327,6 +327,20 @@ export const useAdminDashboard = (searchParams = {}) => {
     }
   };
 
+  const generateHVCPR = async (year, month, barangays) => {
+    setIsGeneratingReport(true);
+    try {
+      const response = await axios.post(
+        `${API_URL}/api/hvc/generate-hvc-pr`, { year, month, barangays }, { responseType: 'blob' } // Important for file download
+      );
+      return response.data;
+    } catch (error) {
+      throw error;
+    } finally {
+      setIsGeneratingReport(false);
+    }
+  };
+
   const updateFarmerAccount = async (farmerId, updateData) => {
     setIsUpdatingFarmerAccount(true);
     try {
@@ -456,6 +470,7 @@ export const useAdminDashboard = (searchParams = {}) => {
     flagResponseForReview,
     unflagResponseForReview,
     generateHVCSaMPR,
+    generateHVCPR,
     updateFarmerAccount,
     updateFarmerResponseFields,
     setIsModalOpen,
