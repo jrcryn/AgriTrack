@@ -547,18 +547,18 @@ export const generateHVCPR = async (req, res) => {
 
       const out = {};
       const normalizeCell = (num) => {
-        const rounded = Number((num || 0).toFixed(4));
-        return rounded === 0 ? null : rounded;
+        const value = (num || 0);
+        return value === 0 ? null : Number(value.toFixed(2));
       };
 
       for (const [k, v] of Object.entries(result)) {
         const volTons = (v.volOfProduction || 0) / 1000; // adjust divisor to your unit
-        const volRounded = Number(volTons.toFixed(2));
+        const volTonsVal = Number(volTons.toFixed(2));
 
         out[k] = {
           areaPlanted: normalizeCell(v.areaPlanted),
           areaHarvested: normalizeCell(v.areaHarvested),
-          volOfProduction: volRounded === 0 ? null : volRounded,
+          volOfProduction: volTonsVal === 0 ? null : volTonsVal,
           farmers: v.farmerIds.size === 0 ? null : v.farmerIds.size,
         };
       }

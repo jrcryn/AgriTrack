@@ -3,8 +3,8 @@ import mongoose from 'mongoose';
 export const HVCManagerSchema = new mongoose.Schema({
     first_name: { type: String, required: true },
     last_name: { type: String, required: true },
-    middle_name: { type: String },
-    suffix: { type: String },
+    middle_name: { type: String, required: false },
+    suffix: { type: String, required: false },
     email: { type: String, required: true, unique: true },
     phone: { type: String, required: true, unique: true },
 

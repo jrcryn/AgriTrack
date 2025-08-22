@@ -146,6 +146,7 @@ const SidebarContent = ({ onClose, ...rest }) => {
         colorScheme="red" 
         px="10"
         mt={7}
+        mb={7}
         display="block"
         mx="auto"
         onClick={() => { window.open('https://forms.gle/5o5nGY8DxE9Y3WvB8', '_blank') }}

@@ -1,7 +1,10 @@
 import mongoose from 'mongoose';
 
 export const DocTrackStaffSchema = new mongoose.Schema({
-    name: { type: String, required: true },
+    first_name: { type: String, required: true },
+    last_name: { type: String, required: true },
+    middle_name: { type: String, required: false },
+    suffix: { type: String, required: false },
 
     role: {
         type: String,
