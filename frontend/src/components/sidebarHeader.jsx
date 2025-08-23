@@ -28,7 +28,8 @@ import {
   ModalBody,
   ModalFooter,
   Button,
-  Link
+  Link,
+  useBreakpointValue, // added
 } from '@chakra-ui/react'
 import {
   FiGrid,
@@ -89,13 +90,20 @@ const SidebarContent = ({ onClose, ...rest }) => {
       }
     }, [user?.role]);
 
+  // close drawer on mobile after clicking a link
+  const isMobile = useBreakpointValue({ base: true, md: false });
+  const handleNavClick = () => {
+    if (isMobile && onClose) onClose();
+  };
+
   return (
     <Box
-      transition="3s ease"
       bg="black"
       w={{ base: 'full', md: '260px' }}
-      pos="fixed"
-      h="full"
+      // changed: make position responsive and enable vertical scroll
+      pos={{ base: 'relative', md: 'fixed' }}
+      h="100vh"
+      overflowY="auto"
       {...rest}>
       {/* Logo Header */}
       <Box px="8" pb="5" pt="10" textAlign="center">
@@ -123,7 +131,9 @@ const SidebarContent = ({ onClose, ...rest }) => {
           icon={link.icon} 
           path={link.path} 
           count={link.count}
-          linkName={link.name}>
+          linkName={link.name}
+          onClick={handleNavClick} // added
+        >
             
           {link.name}
         </NavItem>
@@ -132,9 +142,11 @@ const SidebarContent = ({ onClose, ...rest }) => {
       <Divider my={4} borderColor="gray.600" />
 
       <Button 
-        size={"sm"}   
+        size={"sm"}  
+        colorScheme="red" 
         px="10"
         mt={7}
+        mb={7}
         display="block"
         mx="auto"
         onClick={() => { window.open('https://forms.gle/5o5nGY8DxE9Y3WvB8', '_blank') }}
@@ -146,7 +158,7 @@ const SidebarContent = ({ onClose, ...rest }) => {
   )
 }
 
-const NavItem = ({ icon, children, path, linkName, ...rest }) => {
+const NavItem = ({ icon, children, path, linkName, onClick, ...rest }) => {
 
   const location = useLocation();
   const isActive = location.pathname === path;
@@ -172,6 +184,7 @@ const NavItem = ({ icon, children, path, linkName, ...rest }) => {
     <Box 
       as={RouterLink} 
       to={path}
+      onClick={onClick} // added
       style={{ textDecoration: 'none' }} 
       _focus={{ boxShadow: 'none' }}>
       <Flex
@@ -297,7 +310,7 @@ const MobileNav = ({ onOpen, ...rest }) => {
         <Divider orientation="vertical" height="20px" borderColor="gray.400" />
         <Flex alignItems="center">
           <Menu>
-            <MenuButton py={2} transition="all 0.3s" _focus={{ boxShadow: 'none' }}>
+            <MenuButton py={2} transition="none" _focus={{ boxShadow: 'none' }}>
               <HStack>
                 <VStack display={{ base: 'none', md: 'flex' }} alignItems="flex-start" spacing="1px">
                   <Text fontSize="sm">{userName}</Text>
@@ -356,6 +369,12 @@ const MobileNav = ({ onOpen, ...rest }) => {
 
 const SidebarHeader = () => {
   const { isOpen, onOpen, onClose } = useDisclosure()
+  const location = useLocation(); // added
+
+  // auto-close Drawer when route changes (mobile nav)
+  useEffect(() => {
+    if (isOpen) onClose();
+  }, [location.pathname]); // added
 
   return (
     <Box>
@@ -367,6 +386,7 @@ const SidebarHeader = () => {
         returnFocusOnClose={false}
         onOverlayClick={onClose}
         size="full"
+        motionPreset="none" // disable Drawer animation
       >
         <DrawerContent>
           <SidebarContent onClose={onClose} />

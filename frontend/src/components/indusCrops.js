@@ -1,4 +1,3 @@
-// List of industrial crops 
 const indusCrops = [
     "ALUGBATI",
     "AMPALAYA",

@@ -24,7 +24,9 @@ import {
 
 import { 
     getAvailableDateRanges, 
-    generateHVCSaMPR //manipulate data
+    generateHVCSaMPR, //manipulate data
+    getAvailableBarangays,
+    generateHVCPR
 } from '../controller/high-value-crops/genReports.controller.js';
 
 import {
@@ -77,7 +79,9 @@ router.get('/metrics/data/:year/:month', verifyAuthToken, verifyRole(['HVCM', 'H
 
 
 router.get('/report-date-ranges/:year/:month', verifyAuthToken, verifyRole(['HVCM']), getAvailableDateRanges);
+router.get('/available-barangays/:year/:month', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), getAvailableBarangays);
 router.post('/generate-hvc-sampr', verifyAuthToken, verifyRole(['HVCM']), generateHVCSaMPR);
+router.post('/generate-hvc-pr', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), generateHVCPR); // FOR TESTING
 
 
 //________________________________ FARMER FORM PAGES ____________________________________

@@ -159,6 +159,20 @@ export const useDateRangesQuery = (year, month) =>
     staleTime: 0, // Data is always fresh
   });
 
+export const useAvailableBarangaysQuery = (year, month) => 
+  useQuery({
+    queryKey: ['barangays', year, month],
+    queryFn: async () => {
+      if (!year || !month) return [];
+
+      const response = await axios.get(`${API_URL}/api/hvc/available-barangays/${year}/${month}`);
+      return response.data;
+    },
+    enabled: !!(year && month), // Only run if both year and month are provided
+    staleTime: 0, // Data is always fresh
+  });
+
+
 
 
 // Composite hook that combines React Query and Zustand
@@ -188,6 +202,7 @@ export const useAdminDashboard = (searchParams = {}) => {
     selectedCommodity || null,  // Pass as null if empty string
   );
   const { data: dateRanges = [], isLoading: isLoadingDateRanges, error: dateRangesError } = useDateRangesQuery(selectedYear, selectedMonth);
+  const { data: barangays = [], isLoading: isLoadingBarangays, error: barangaysError } = useAvailableBarangaysQuery(selectedYear, selectedMonth);
 
   const [isCreatingUnifiedResponse, setIsCreatingUnifiedResponse] = useState(false);
   const [isDeletingFarmerAccount, setIsDeletingFarmerAccount] = useState(false);
@@ -312,6 +327,20 @@ export const useAdminDashboard = (searchParams = {}) => {
     }
   };
 
+  const generateHVCPR = async (year, month, barangays) => {
+    setIsGeneratingReport(true);
+    try {
+      const response = await axios.post(
+        `${API_URL}/api/hvc/generate-hvc-pr`, { year, month, barangays }, { responseType: 'blob' } // Important for file download
+      );
+      return response.data;
+    } catch (error) {
+      throw error;
+    } finally {
+      setIsGeneratingReport(false);
+    }
+  };
+
   const updateFarmerAccount = async (farmerId, updateData) => {
     setIsUpdatingFarmerAccount(true);
     try {
@@ -398,6 +427,8 @@ export const useAdminDashboard = (searchParams = {}) => {
     selectedCommodity,
     setSelectedCommodity,
     dateRanges,
+    barangays,
+
     newlyPlantedPage,
     setNewlyPlantedPage,
     harvestingPage,
@@ -409,6 +440,8 @@ export const useAdminDashboard = (searchParams = {}) => {
     isLoadingHarvesting,
     isLoadingUFRY,
     isLoadingUFRM,
+    isLoadingBarangays,
+
     //isUpdating,
     isCreatingUnifiedResponse,
     isCreatingFarmerAccount,
@@ -426,6 +459,7 @@ export const useAdminDashboard = (searchParams = {}) => {
     ufrMonthsError, 
     metricsError, 
     dateRangesError, 
+    barangaysError,
     
     // Actions
     //updateFarmerInput,
@@ -436,6 +470,7 @@ export const useAdminDashboard = (searchParams = {}) => {
     flagResponseForReview,
     unflagResponseForReview,
     generateHVCSaMPR,
+    generateHVCPR,
     updateFarmerAccount,
     updateFarmerResponseFields,
     setIsModalOpen,
