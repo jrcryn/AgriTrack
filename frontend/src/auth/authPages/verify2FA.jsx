@@ -72,7 +72,7 @@ const Verify2FA = () => {
       
       const errorMessage = error.response?.data?.message;
 
-      if (errorMessage.includes('Account is now locked due to multiple failed 2FA attempts.')) {
+      if (errorMessage.includes('Account is now locked due to multiple failed 2FA attempts.') || errorMessage.includes('Too many login attempts. Please try again after 15 minutes.')) {
         toast({
           title: 'Error',
           description: errorMessage,
