@@ -167,6 +167,7 @@ import mongoose from 'mongoose';
 //       return res.status(500).json({ message: 'Error creating others new', error });
 //   }
 // };
+
 export const getFarmerAccountByName = async (req, res) => {
   const { surname, first_name, middle_name, suffix, farmer_barangay } = req.body;
 
