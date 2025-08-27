@@ -148,7 +148,7 @@ export const login = async (req, res) => {
                 $set: { 'failedLoginAttempts.lastAttempt': Date.now() } //set
             });
 
-            if (user.failedLoginAttempts.count >= 10) {
+            if (user.failedLoginAttempts.count >= 11) {
                 user.isLocked = true;
                 await user.save();
                 return res.status(403).json({ success: false, message: 'Account is now locked due to multiple failed login attempts. Contact IT support to regain access.' });
@@ -275,7 +275,7 @@ export const verify2FA = async (req, res) => {
                 $set: { 'failedOTPVerifications.lastAttempt': Date.now() } // set last attempt time
             });
 
-            if (user.failedOTPVerifications.count >= 10) {
+            if (user.failedOTPVerifications.count >= 11) {
                 user.isLocked = true;
                 await user.save();
                 return res.status(403).json({ success: false, message: 'Account is now locked due to multiple failed 2FA attempts. Contact IT support to regain access.' });

@@ -9,9 +9,9 @@ const router = express.Router();
 router.post('/register', register); // ililipat in the future to a separate route for admin job controllers
 
 router.get('/check-auth', verifyAuthToken, checkAuth);
-router.post('/login', loginLimiter, login);
-router.post('/2fa/generate-2fa-secret', loginLimiter, verifyPreAuthToken, generate2FASecret);
-router.post('/2fa/verify-2fa', verifyPreAuthToken, verify2FA);
+router.post('/login', loginLimiter, login); 
+router.post('/2fa/generate-2fa-secret', verifyPreAuthToken, generate2FASecret);
+router.post('/2fa/verify-2fa', loginLimiter, verifyPreAuthToken, verify2FA);
 router.post('/logout', logout); 
 router.post('/forgot-password', forgotPasswordLimiter, forgotPassword);
 router.post('/reset-password/:token', resetPassword);
