@@ -154,6 +154,9 @@ export const login = async (req, res) => {
                 return res.status(403).json({ success: false, message: 'Account is now locked due to multiple failed login attempts. Contact IT support to regain access.' });
             }
 
+            const delay = Math.min(user.failedLoginAttempts.count * 1000, 10000); // up to 10s
+            await new Promise(res => setTimeout(res, delay));
+
             return res.status(401).json({ success: false, message: 'Invalid credentials.'})
         }
 
@@ -280,6 +283,10 @@ export const verify2FA = async (req, res) => {
                 await user.save();
                 return res.status(403).json({ success: false, message: 'Account is now locked due to multiple failed 2FA attempts. Contact IT support to regain access.' });
             }
+
+            const delay = Math.min(user.failedOTPVerifications.count * 1000, 10000); // up to 10s
+            await new Promise(res => setTimeout(res, delay));
+            
             return res.status(400).json({ success: false, message: 'Invalid 2FA token.' });
         }
 
