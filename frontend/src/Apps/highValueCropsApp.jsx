@@ -177,8 +177,8 @@ const highValueCropsApp = () => {
         </Route>
 
        
-<Route path='/form/form-closed' element={<FormClosedPage />} />
-<Route path='/form/istcns' element={<Instructions onNext={() => handleNext('/dpa')} />} />
+        <Route path='/form/form-closed' element={<FormClosedPage />} />
+        <Route path='/form/istcns' element={<Instructions onNext={() => handleNext('/dpa')} />} />
 
         {/* Form Form Routes */}
         <Route path="form" element={<CheckFormStatus><Outlet /></CheckFormStatus>}>
