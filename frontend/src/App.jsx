@@ -1,26 +1,12 @@
 import { Routes, Route } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+
 import HighValueCrops from './Apps/highValueCropsApp.jsx';
 import Machineries from './Apps/machineriesApp.jsx'
 import DocTrack from './Apps/docTrackApp.jsx'
 import Auth from './Apps/authApp.jsx'
 
 const queryClient = new QueryClient();
-
-if (process.env.NODE_ENV === 'production') {
-  console.log(
-    '%c🚫 Warning!',
-    'color: red; font-size: 24px; font-weight: bold;'
-  );
-  console.log(
-    '%cAny attempt to tamper with the system may be logged.',
-    'font-size: 14px; font-style: italic; color: red;'
-  );
-  console.log = () => {};
-  console.warn = () => {};
-  console.error = () => {};
-}
-
 
 function App() {
 
