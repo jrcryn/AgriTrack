@@ -53,7 +53,8 @@ function App() {
         <Route path="/hvc/*" element={<HighValueCrops />} />
         <Route path="/machineries/*" element={<Machineries />} />
         <Route path="/doc-track/*" element={<DocTrack/>} />
-        <Route path="/auth/*" element={<Auth/>} />``
+        <Route path="/auth/*" element={<Auth/>} />
+        <Route path="/maintenance" element={<Maintenance />} />
       </Routes>
     </QueryClientProvider>
   )
