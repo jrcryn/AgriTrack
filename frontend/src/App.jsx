@@ -26,17 +26,23 @@ if (import.meta.env.VITE_FRONTEND_ENV === "production") {
 function App() {
 
   useEffect(() => {
-    axios.interceptors.response.use(
+    const interceptorId = axios.interceptors.response.use(
       (response) => response,
       (error) => {
-        if (error?.response?.status === 503) {
-          window.location.href = '/maintenance';
+        const status = error?.response?.status; // numeric when CORS allows reading
+        const isNetworkErr = !error?.response && error?.code === 'ERR_NETWORK';
+
+        if ((status === 503) || (isNetworkErr && navigator.onLine)) {
+          if (window.location.pathname !== '/maintenance') {
+            window.location.replace('/maintenance');
+          }
         }
         return Promise.reject(error);
       }
     );
+
     return () => {
-      axios.interceptors.response.eject(interceptorId); // cleanup for Strict Mode
+      axios.interceptors.response.eject(interceptorId);
     };
   }, []);
 
