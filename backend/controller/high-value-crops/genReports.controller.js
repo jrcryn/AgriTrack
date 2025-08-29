@@ -528,14 +528,12 @@ export const generateHVCPR = async (req, res) => {
         const rawCommodity = (r.commodity || '').toString().trim().toUpperCase();
         if (!result[rawCommodity]) continue;
 
-        if (r.farmer_account_id) {
-          result[rawCommodity].farmerIds.add(String(r.farmer_account_id));
-        }
-
         if (r.crop_stage === 'NEWLY PLANTED') {
           const planted = Number(r.total_area_planted ?? 0);
           const treesPlanted = Number(r.total_area_trees_planted ?? 0);
           result[rawCommodity].areaPlanted += planted > 0 ? planted : treesPlanted;
+          result[rawCommodity].farmerIds.add(String(r.farmer_account_id)); //pang area planted or newly planted lang daw kukunin number of farmers
+
         } else if (r.crop_stage === 'HARVESTING') {
           const harvested = Number(r.total_area_harvested ?? 0);
           const treesHarv = Number(r.total_area_trees_harvested ?? 0);
@@ -559,7 +557,7 @@ export const generateHVCPR = async (req, res) => {
           areaPlanted: normalizeCell(v.areaPlanted),
           areaHarvested: normalizeCell(v.areaHarvested),
           volOfProduction: volTonsVal === 0 ? null : volTonsVal,
-          farmers: v.farmerIds.size === 0 ? null : v.farmerIds.size,
+          farmers: v.farmerIds.size > 0 ? v.farmerIds.size : null,
         };
       }
       return out;

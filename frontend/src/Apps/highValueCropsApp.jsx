@@ -29,6 +29,7 @@ import D2_bc_Other_fctHarvest from '../high-value-crops/formPages/D2_bc-other-fc
 import D2_bc_Other_fctNew from '../high-value-crops/formPages/D2_bc-other-fctNew.jsx';
 import SuccessPage from '../high-value-crops/formPages/E_successPage.jsx';
 
+import Maintenance from '../components/maintenance.jsx';
 
 //redirect authenticated users
 const ProtectedRoute = ({children}) => {
@@ -174,9 +175,10 @@ const highValueCropsApp = () => {
           <Route path="responses" element={<Responses />} />
           <Route path="farmers" element={<Farmers />} />
           <Route path="profile-settings" element={<ProfileSettings />} />
+          
         </Route>
 
-       
+       <Route path="/maintenance" element={<Maintenance />} />
         <Route path='/form/form-closed' element={<FormClosedPage />} />
         <Route path='/form/istcns' element={<Instructions onNext={() => handleNext('/dpa')} />} />
 
