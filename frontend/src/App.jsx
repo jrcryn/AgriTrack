@@ -1,7 +1,6 @@
 import { Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useEffect } from 'react';
-import axios from 'axios';
 
 import HighValueCrops from './Apps/highValueCropsApp.jsx';
 import Machineries from './Apps/machineriesApp.jsx'
@@ -25,27 +24,6 @@ if (import.meta.env.VITE_FRONTEND_ENV === "production") {
 
 function App() {
 
-  useEffect(() => {
-    const interceptorId = axios.interceptors.response.use(
-      (response) => response,
-      (error) => {
-        const status = error?.response?.status; // numeric when CORS allows reading
-        const isNetworkErr = !error?.response && error?.code === 'ERR_NETWORK';
-
-        if ((status === 503) || (isNetworkErr && navigator.onLine)) {
-          if (window.location.pathname !== '/maintenance') {
-            window.location.replace('/maintenance');
-          }
-        }
-        return Promise.reject(error);
-      }
-    );
-
-    return () => {
-      axios.interceptors.response.eject(interceptorId);
-    };
-  }, []);
-
   return (
     <QueryClientProvider client={queryClient}>
       <Routes>
@@ -54,7 +32,6 @@ function App() {
         <Route path="/doc-track/*" element={<DocTrack/>} />
         <Route path="/auth/*" element={<Auth/>} />
         <Route path="/maintenance" element={<Maintenance />} />
-
       </Routes>
     </QueryClientProvider>
   )
