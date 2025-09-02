@@ -1,165 +1,20 @@
-import QRCode from 'qrcode';
+import qrcode from 'qrcode';
 
 
 export const createDocument = async (req, res) => {
+    const { documentName, documentCode, disposalMethod, retentionPeriod } = req.body;
     try {
-        // Check if request is already being processed to prevent duplicates
-        if (req.processingStarted) {
-            console.log('Prevented duplicate processing of request');
-            return;
-        }
-        req.processingStarted = true;
-
-
-        const { title, type, description, priority = 'Medium', remarks, action, id } = req.body;
-        
-        // Validate required fields
-        if (!title || !type) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Title and type are required' 
-            });
-        }
-        
-        // Validate document type
-        if (!['IN', 'OUT'].includes(type)) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Document type must be either IN or OUT' 
-            });
-        }
-        
-        // Validate priority
-        if (priority && !['Low', 'Medium', 'High', 'Urgent'].includes(priority)) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Priority must be one of: Low, Medium, High, Urgent' 
-            });
-        }
-
-
-                // Determine user role from ID by checking both collections
-                let userDetails;
-                let role;
-                
-                // Try finding in Admin collection first
-                userDetails = await global.docTrackModels.ManagerAccount.findById(id);
-                if (userDetails) {
-                    role = 'Admin';
-                } else {
-                    // If not found in Admin, check Staff collection
-                    userDetails = await global.docTrackModels.StaffAccount.findById(id);
-                    if (userDetails) {
-                        role = 'Staff';
-                    } else {
-                        // User not found in either collection
-                        return res.status(404).json({
-                            success: false,
-                            message: 'User not found with provided ID'
-                        });
-                    }
-                }
-                
-
-        // Create new document
         const newDocument = await global.docTrackModels.Document.create({
-            title,
-            type,
-            description,
-            action,
-            priority,
-            currentHandler: {
-                id: id,
-                role: role
-            },
-            isCompleted: false
+            documentName,
+            documentCode,
+            disposalMethod,
+            retentionPeriod //in months
         });
-        
-
-        
-        // Create document detail record
-        const documentDetail = await global.docTrackModels.Document_Detail.create({
-            document_id: newDocument._id,
-            
-            action, 
-    
-
-            handleBy: { 
-               id: userDetails._id,
-               name: userDetails.name,
-               role: userDetails.role,
-               office_position: userDetails.office_position,
-               email: userDetails.email,
-               phone: userDetails.phone,
-            },
-
-            remarks: remarks || `Document created or updated by ${userDetails.name}`,
-        });
-        
-        // Generate unique 8-digit reference number
-        const generateReferenceNumber = () => {
-            // Generate random 8-digit number
-            return Math.floor(10000000 + Math.random() * 90000000).toString();
-        };
-        
-        let referenceNumber;
-        let isUnique = false;
-        
-        // Keep generating until we get a unique reference number
-        while (!isUnique) {
-            referenceNumber = generateReferenceNumber();
-            // Check if reference number already exists
-            const existingQR = await global.docTrackModels.QrCode.findOne({ referenceNumber });
-            if (!existingQR) {
-                isUnique = true;
-            }
-        }
-
-        const readableDate = new Date(newDocument.createdAt).toLocaleString('en-US', {
-            dateStyle: 'medium',
-            timeStyle: 'short'
-          });
-        
-        // Create QR data containing document ID and reference number
-        const qrData = JSON.stringify({
-            documentId: newDocument._id.toString(),
-            referenceNumber: referenceNumber,
-            title: newDocument.title,
-            created: readableDate,
-        });
-        
-        // Create QR code in database
-        const qrCode = await global.docTrackModels.QrCode.create({
-            document_id: newDocument._id,
-            qr_data: qrData,
-            referenceNumber,
-            errorCorrectionLevel: 'M',
-            version: 1,
-            isActive: true
-        });
-        
-        // Generate actual QR code image
-        let qrImageData;
-        try {
-            qrImageData = await QRCode.toDataURL(qrData);
-        } catch (err) {
-            qrImageData = null;
-            console.error('Error generating QR code image:', err);
-        }
-        
         return res.status(201).json({
             success: true,
             message: 'Document created successfully',
-            data: {
-                document: newDocument,
-                documentDetail,
-                qrCode: {
-                    ...qrCode.toObject(),
-                    qrImageUrl: `/documents/${newDocument._id}/qrcode` // URL to download the QR code
-                }
-            }
+            data: newDocument
         });
-        
     } catch (error) {
         console.error('Error creating document:', error);
         return res.status(500).json({
@@ -170,42 +25,344 @@ export const createDocument = async (req, res) => {
     }
 };
 
+const getNextSequence = async (key) => {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    const currentDate = `${yyyy}${mm}${dd}`;
 
-export const downloadQrCode = async (req, res) => {
+    let counter = await global.docTrackModels.Counter.findOne({ _id: key });
+
+    if (!counter || counter.date !== currentDate) {
+    counter = await global.docTrackModels.Counter.findOneAndUpdate(
+      { _id: key },
+      { $set: { seq: 1, date: currentDate } },
+      { new: true, upsert: true }
+    );
+    } else {
+        counter = await global.docTrackModels.Counter.findOneAndUpdate(
+        { _id: key },
+        { $inc: { seq: 1 } },
+        { new: true }
+    );
+    }
+
+    const finSequence = `${currentDate}-${String(counter.seq).padStart(4, '0')}`;
+    return finSequence;
+};
+
+export const registerDocument = async (req, res) => {
+    const { userAccountId, documentId, priority, remarks } = req.body;
     try {
-        const { id } = req.params;
-        
-        // Find QR code data for document
-        const qrCode = await global.docTrackModels.QrCode.findOne({ document_id: id });
-        
-        if (!qrCode) {
-            return res.status(404).json({
-                success: false,
-                message: 'QR code not found'
-            });
+
+        const document = await global.docTrackModels.Document.findById(documentId);
+        if (!document) {
+            return res.status(404).json({ success: false, message: 'Document type not found.'});
         }
-        
-        // Set headers for file download
-        res.setHeader('Content-Disposition', `attachment; filename="document-${qrCode.referenceNumber}.png"`);
-        res.setHeader('Content-Type', 'image/jpeg');
-        
-        // Calculate QR size (1.5 inches at 96 DPI = 144 pixels)
-        const qrSize = 144;
-        
-        // Generate and send QR code
-        return QRCode.toFileStream(res, qrCode.qr_data, {
-            type: 'png',
-            width: qrSize,
-            margin: 4,
-            errorCorrectionLevel: 'M'
+
+        let user = await global.docTrackModels.ManagerAccount.findById(userAccountId) ||
+                   await global.docTrackModels.StaffAccount.findById(userAccountId);
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'Cannot find your account, please contact IT if error persists.'});
+        }
+
+        const userModel = user instanceof global.docTrackModels.ManagerAccount ? 'Manager_Account' : 'Staff_Account';
+
+        const newRefNumber = await getNextSequence('document_ref_number');
+        const readableDate = new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+        const qrData = JSON.stringify({
+        refNumber: newRefNumber,
+        name: document.documentName,
+        code: document.documentCode,
+        registeredBy: `${user.first_name}, ${user.last_name}`,
+        createdAt: readableDate
         });
-        
+        const qr = await qrcode.toDataURL(qrData);
+
+        const newDocRegistration = await global.docTrackModels.DocumentLifeCycle.create({
+            documentId: document._id,
+            documentName: document.documentName,
+            documentCode: document.documentCode,
+
+            priority: priority,
+            refNumber: newRefNumber,
+            docQRData: qr,
+
+            lifeCycle: {
+                action: 'Document Created',
+                performedBy: {
+                    userModel: userModel,
+                    userId: user._id,
+                    first_name: user.first_name,
+                    last_name: user.last_name,
+                    middle_name: user.middle_name,
+                    suffix: user.suffix,
+                    role: user.role,
+                    office_position: user.office_position,
+                    email: user.email,
+                    phone: user.phone
+                },
+                remarks: remarks,
+                timeStamp: Date.now(),
+            },
+
+            currentHandler: {
+                userId: user._id
+            }
+        });
+
+
+        return res.status(201).json({ success: true, message: 'Document registered successfully.', data: newDocRegistration });
+
     } catch (error) {
-        console.error('Error downloading QR code:', error);
-        return res.status(500).json({
-            success: false,
-            message: 'Error downloading QR code',
-            error: error.message
-        });
+
+        console.error('Error registering document:', error);
+        return res.status(500).json({ success: false, message: 'Error registering document.', error: error.message });
     }
 };
+
+export const forwardDocument = async (req, res) => {
+    const { registeredDocId, userAccountId, forwardAccountId, forwardRemarks } = req.body;
+
+    try {
+        const document = await global.docTrackModels.DocumentLifeCycle.findById(registeredDocId);
+        if (!document) {
+            return res.status(404).json({ success: false, message: 'Registered document not found.' });
+        }
+
+        let user = await global.docTrackModels.ManagerAccount.findById(userAccountId) ||
+                   await global.docTrackModels.StaffAccount.findById(userAccountId);
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'Cannot find your account, please contact IT if error persists.' });
+        }
+        const userModel = user instanceof global.docTrackModels.ManagerAccount ? 'Manager_Account' : 'Staff_Account';
+
+        let forwardUser = await global.docTrackModels.ManagerAccount.findById(forwardAccountId) ||
+                          await global.docTrackModels.StaffAccount.findById(forwardAccountId);
+        if (!forwardUser) {
+            return res.status(404).json({ success: false, message: 'Cannot find the user you are trying to forward to.' });
+        }
+        const userForwardModel = forwardUser instanceof global.docTrackModels.ManagerAccount ? 'Manager_Account' : 'Staff_Account';
+
+
+        const forwardDocument = await global.docTrackModels.DocumentLifeCycle.updateOne(
+            {_id: document._id},
+            {
+                $push: {
+                    lifeCycle: {
+                        action: 'Forwarded',
+                        performedBy: {
+                            userModel: userModel,
+                            userId: user._id,
+                            first_name: user.first_name,
+                            last_name: user.last_name,
+                            middle_name: user.middle_name,
+                            suffix: user.suffix,
+                            role: user.role,
+                            office_position: user.office_position,
+                            email: user.email,
+                            phone: user.phone
+                        },
+                        forwardDetails: {
+                            userModel: userForwardModel,
+                            userId: forwardUser._id,
+                            first_name: forwardUser.first_name,
+                            last_name: forwardUser.last_name,
+                            middle_name: forwardUser.middle_name,
+                            suffix: forwardUser.suffix,
+                            role: forwardUser.role,
+                            office_position: forwardUser.office_position,
+                            email: forwardUser.email,
+                            phone: forwardUser.phone,
+                            forwardRemarks: forwardRemarks
+                        },
+                        timeStamp: Date.now()
+                    }
+                    
+                },
+                currentHandler: {
+                        userId: forwardUser._id
+                    }
+            }
+        );
+
+        return res.status(200).json({ success: true, message: 'Document forwarded successfully', data: forwardDocument });
+
+    } catch (error) {
+        console.error('Error forwarding document:', error);
+        return res.status(500).json({ success: false, message: 'Error forwarding document', error: error.message });
+    }
+};
+
+export const receiveDocument = async (req, res) => {
+    const { registeredDocId, userAccountId } = req.body;
+
+    try {
+        const document = await global.docTrackModels.DocumentLifeCycle.findById(registeredDocId);
+        if (!document) {
+            return res.status(404).json({ success: false, message: 'Registered document not found.' });
+        }
+
+        let user = await global.docTrackModels.ManagerAccount.findById(userAccountId) ||
+                   await global.docTrackModels.StaffAccount.findById(userAccountId);
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'Cannot find your account, please contact IT if error persists.' });
+        }
+        const userModel = user instanceof global.docTrackModels.ManagerAccount ? 'Manager_Account' : 'Staff_Account';
+
+        const receiveDocument = await global.docTrackModels.DocumentLifeCycle.updateOne(
+            {_id: document._id},
+            {
+                $push: {
+                    lifeCycle: {
+                        action: 'Received/Work on Progress',
+                        performedBy: {
+                            userModel: userModel,
+                            userId: user._id,
+                            first_name: user.first_name,
+                            last_name: user.last_name,
+                            middle_name: user.middle_name,
+                            suffix: user.suffix,
+                            role: user.role,
+                            office_position: user.office_position,
+                            email: user.email,
+                            phone: user.phone
+                        },
+                        timeStamp: Date.now()
+                    }
+                }
+            }
+        );
+        return res.status(200).json({ success: true, message: 'Document received successfully', data: receiveDocument });
+    } catch (error) {
+        console.error('Error receiving document:', error);
+        return res.status(500).json({ success: false, message: 'Error receiving document', error: error.message });
+    }
+};
+
+export const archiveDocument = async (req, res) => { 
+    const { registeredDocId, userAccountId, medium, location, archiveRemarks } = req.body;
+
+    try {
+        const document = await global.docTrackModels.DocumentLifeCycle.findById(registeredDocId);
+        if (!document) {
+            return res.status(404).json({ success:false, message: 'Registered document not found.' });
+        }
+        const user = await global.docTrackModels.ManagerAccount.findById(userAccountId) ||
+                     await global.docTrackModels.StaffAccount.findById(userAccountId);
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'Cannot find your account, please contact IT if error persists.' });
+        }
+        const userModel = user instanceof global.docTrackModels.ManagerAccount ? 'Manager_Account' : 'Staff_Account';
+
+        const today = new Date();
+        const retentionUntil = new Date(today.setMonth(today.getMonth() + document.retentionPeriod));
+
+        const archiveDocument = await global.docTrackModels.DocumentLifeCycle.findOneAndUpdate(
+            { _id: document._id },
+            {
+                $push: {
+                    lifeCycle: {
+                        action: 'Archived',
+                        performedBy: {
+                            userModel: userModel,
+                            userId: user._id,
+                            first_name: user.first_name,
+                            last_name: user.last_name,
+                            middle_name: user.middle_name,
+                            suffix: user.suffix,
+                            role: user.role,
+                            office_position: user.office_position,
+                            email: user.email,
+                            phone: user.phone
+                        },
+                        archivalDetails: {
+                            disposalMethod: document.disposalMethod,
+                            retentionPeriod: document.retentionPeriod,
+
+                            retentionUntil: retentionUntil,
+                            medium: medium,
+                            location: location,
+                            archiveRemarks: archiveRemarks
+                        },
+                        timeStamp: Date.now()
+                    },
+                    currentHandler: null
+                }
+            },
+            { new: true }
+        );
+
+        const archiveColl = global.docTrackModels.ArchivedDocuments.db.collection('Archived_Documents');
+        await archiveColl.insertOne(
+            {
+                ...archiveDocument.toObject()
+            }
+        )
+        return res.status(200).json({ success: true, message: 'Document archived successfully', data: archiveDocument });
+    } catch (error) {
+        return res.status(500).json({success: false, message: 'Error archiving document', error: error.message});
+     }
+};
+
+export const releaseDocument = async (req, res) => {
+    const { registeredDocId, userAccountId, recipientOffice, recipientPerson, modeOfRelease, releaseRemarks } = req.body;
+
+    try {
+        const document = await global.docTrackModels.DocumentLifeCycle.findById(registeredDocId);
+        if (!document) {
+            return res.status(404).json({ success:false, message: 'Registered document not found.' });
+        }
+        const user = await global.docTrackModels.ManagerAccount.findById(userAccountId) ||
+                     await global.docTrackModels.StaffAccount.findById(userAccountId);
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'Cannot find your account, please contact IT if error persists.' });
+        }
+        const userModel = user instanceof global.docTrackModels.ManagerAccount ? 'Manager_Account' : 'Staff_Account';
+
+        const releaseDocument = await global.docTrackModels.DocumentLifeCycle.findOneAndUpdate(
+            { _id: document._id },
+            {
+                $push: {
+                    lifeCycle: {
+                        action: 'Released',
+                        performedBy: {
+                            userModel: userModel,
+                            userId: user._id,
+                            first_name: user.first_name,
+                            last_name: user.last_name,
+                            middle_name: user.middle_name,
+                            suffix: user.suffix,
+                            role: user.role,
+                            office_position: user.office_position,
+                            email: user.email,
+                            phone: user.phone
+                        },
+                        releaseDetails: {
+                            recipientOffice: recipientOffice,
+                            recipientPerson: recipientPerson,
+                            modeOfRelease: modeOfRelease, 
+                            releaseRemarks: releaseRemarks,
+                        },
+                        timeStamp: Date.now()
+                    },
+                    currentHandler: null
+                }
+            },
+            { new: true }
+        );
+
+        const ReleasedColl = global.docTrackModels.ReleasedDocuments.db.collection('Released_Documents');
+        await ReleasedColl.insertOne(
+            {
+                ...releaseDocument.toObject()
+            }
+        )
+        return res.status(200).json({ success: true, message: 'Document released successfully', data: releaseDocument });
+    } catch (error) {
+        return res.status(500).json({success: false, message: 'Error releasing document', error: error.message});
+     }
+};
+
+
