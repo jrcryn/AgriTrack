@@ -78,7 +78,6 @@ export const registerDocument = async (req, res) => {
         registeredBy: `${user.first_name}, ${user.last_name}`,
         createdAt: readableDate
         });
-        const qr = await qrcode.toDataURL(qrData);
 
         const newDocRegistration = await global.docTrackModels.DocumentLifeCycle.create({
             documentId: document._id,
@@ -87,7 +86,7 @@ export const registerDocument = async (req, res) => {
 
             priority: priority,
             refNumber: newRefNumber,
-            docQRData: qr,
+            docQRData: qrData,
 
             lifeCycle: {
                 action: 'Document Created',
@@ -103,22 +102,64 @@ export const registerDocument = async (req, res) => {
                     email: user.email,
                     phone: user.phone
                 },
-                remarks: remarks,
                 timeStamp: Date.now(),
             },
-
+            remarks: remarks,
             currentHandler: {
                 userId: user._id
             }
         });
 
 
-        return res.status(201).json({ success: true, message: 'Document registered successfully.', data: newDocRegistration });
+        return res.status(201).json({ 
+            success: true, 
+            message: 'Document registered successfully.', 
+            data: newDocRegistration,
+            qrImageUrl: `/api/doc-track/download-qr-code/${newDocRegistration._id}`
+        });
 
     } catch (error) {
 
         console.error('Error registering document:', error);
         return res.status(500).json({ success: false, message: 'Error registering document.', error: error.message });
+    }
+};
+
+export const downloadQrCode = async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        // Find QR code data for document
+        const qrCode = await global.docTrackModels.DocumentLifeCycle.findById(id);
+
+        if (!qrCode) {
+            return res.status(404).json({
+                success: false,
+                message: 'Registered document not found.'
+            });
+        }
+        
+        // Set headers for file download
+        res.setHeader('Content-Disposition', `attachment; filename="document-${qrCode.refNumber}.png"`);
+        res.setHeader('Content-Type', 'image/jpeg');
+        
+        // Generate QR as PNG buffer, 600x600px (2x2 inches at 300dpi)
+        
+        // Generate and send QR code
+        return qrcode.toFileStream(res, qrCode.docQRData, {
+            type: 'png',
+            width: 144,
+            margin: 4,
+            errorCorrectionLevel: 'M'
+        });
+        
+    } catch (error) {
+        console.error('Error downloading QR code:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Error downloading QR code',
+            error: error.message
+        });
     }
 };
 
@@ -249,6 +290,10 @@ export const archiveDocument = async (req, res) => {
         if (!document) {
             return res.status(404).json({ success:false, message: 'Registered document not found.' });
         }
+        const docType = await global.docTrackModels.Document.findById(document.documentId);
+        if (!docType) {
+            return res.status(404).json({ success:false, message: 'Document type not found.' });
+        }
         const user = await global.docTrackModels.ManagerAccount.findById(userAccountId) ||
                      await global.docTrackModels.StaffAccount.findById(userAccountId);
         if (!user) {
@@ -257,7 +302,7 @@ export const archiveDocument = async (req, res) => {
         const userModel = user instanceof global.docTrackModels.ManagerAccount ? 'Manager_Account' : 'Staff_Account';
 
         const today = new Date();
-        const retentionUntil = new Date(today.setMonth(today.getMonth() + document.retentionPeriod));
+        const retentionUntil = new Date(today.setMonth(today.getMonth() + docType.retentionPeriod));
 
         const archiveDocument = await global.docTrackModels.DocumentLifeCycle.findOneAndUpdate(
             { _id: document._id },
@@ -278,8 +323,8 @@ export const archiveDocument = async (req, res) => {
                             phone: user.phone
                         },
                         archivalDetails: {
-                            disposalMethod: document.disposalMethod,
-                            retentionPeriod: document.retentionPeriod,
+                            disposalMethod: docType.disposalMethod,
+                            retentionPeriod: docType.retentionPeriod,
 
                             retentionUntil: retentionUntil,
                             medium: medium,
@@ -288,18 +333,21 @@ export const archiveDocument = async (req, res) => {
                         },
                         timeStamp: Date.now()
                     },
-                    currentHandler: null
-                }
+                },
+                $set: { currentHandler: null }
             },
             { new: true }
         );
 
-        const archiveColl = global.docTrackModels.ArchivedDocuments.db.collection('Archived_Documents');
+        const archiveColl = global.docTrackModels.ArchivedDocuments.db.collection('archived_documents');
         await archiveColl.insertOne(
             {
                 ...archiveDocument.toObject()
             }
         )
+
+        await global.docTrackModels.DocumentLifeCycle.findByIdAndDelete(document._id);
+
         return res.status(200).json({ success: true, message: 'Document archived successfully', data: archiveDocument });
     } catch (error) {
         return res.status(500).json({success: false, message: 'Error archiving document', error: error.message});
@@ -347,18 +395,22 @@ export const releaseDocument = async (req, res) => {
                         },
                         timeStamp: Date.now()
                     },
-                    currentHandler: null
-                }
+                },
+                $set: { currentHandler: null }
+
             },
             { new: true }
         );
 
-        const ReleasedColl = global.docTrackModels.ReleasedDocuments.db.collection('Released_Documents');
+        const ReleasedColl = global.docTrackModels.ReleasedDocuments.db.collection('released_documents');
         await ReleasedColl.insertOne(
             {
                 ...releaseDocument.toObject()
             }
         )
+
+        await global.docTrackModels.DocumentLifeCycle.findByIdAndDelete(document._id);
+
         return res.status(200).json({ success: true, message: 'Document released successfully', data: releaseDocument });
     } catch (error) {
         return res.status(500).json({success: false, message: 'Error releasing document', error: error.message});

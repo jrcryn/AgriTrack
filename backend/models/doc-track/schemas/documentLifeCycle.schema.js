@@ -20,12 +20,6 @@ export const lifeCycleIterationsSchema = new mongoose.Schema({
         phone: String
     },
 
-    remarks: String,
-    timeStamp: {
-        type: Date,
-        default: Date.now,
-    },
-
     forwardDetails: { // same goes here
         userModel: { type: String, enum: ['Staff_Account', 'Manager_Account'] },
         userId: { type: mongoose.Schema.Types.ObjectId, refPath: 'forwardDetails.userModel' },
@@ -56,8 +50,13 @@ export const lifeCycleIterationsSchema = new mongoose.Schema({
         recipientPerson: String,
         modeOfRelease: String, // pick up, email, courier, etc
         releaseRemarks: String,
-    }
-});
+    },
+
+    timeStamp: {
+        type: Date,
+        default: Date.now,
+    },
+}, {_id: false});
 
 export const DocumentLifeCycleSchema = new mongoose.Schema({
     documentId: {type: mongoose.Schema.Types.ObjectId, ref: 'Document'},
@@ -67,6 +66,7 @@ export const DocumentLifeCycleSchema = new mongoose.Schema({
     priority: {type: String, enum: ['Urgent', 'Medium', 'Low'], required: true},
     refNumber: {type: String, required: true},
     docQRData: {type: String, required: true},
+    remarks: String,
 
     lifeCycle: [lifeCycleIterationsSchema],
 

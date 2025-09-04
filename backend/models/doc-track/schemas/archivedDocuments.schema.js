@@ -10,6 +10,7 @@ export const ArchivedDocumentsSchema = new mongoose.Schema({
     priority: {type: String, enum: ['Urgent', 'Medium', 'Low'], required: true},
     refNumber: {type: String, required: true},
     docQRData: {type: String, required: true},
-
+    remarks: String,
+    
     lifeCycle: [lifeCycleIterationsSchema],
 }, {versionKey: false});
