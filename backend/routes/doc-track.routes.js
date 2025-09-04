@@ -8,6 +8,9 @@ import {
     receiveDocument,
     archiveDocument,
     releaseDocument,
+    getIncomingForwardedDocuments,
+    getPendingDocuments,
+    getDocumentTypes
  } from '../controller/doc-track/adminDashboard.controller.js';
 
 const router = express.Router();
@@ -19,6 +22,11 @@ router.post('/forward-document', forwardDocument);
 router.post('/receive-document', receiveDocument);
 router.post('/archive-document', archiveDocument);
 router.post('/release-document', releaseDocument);
+
+router.get('/get-incoming-forwarded-documents/:id', getIncomingForwardedDocuments);
+router.get('/get-pending-documents/:id', getPendingDocuments);
+
+router.get('/get-document-types', getDocumentTypes);
 
 export default router;
 

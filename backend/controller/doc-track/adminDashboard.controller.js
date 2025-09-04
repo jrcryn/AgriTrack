@@ -53,7 +53,7 @@ const getNextSequence = async (key) => {
 };
 
 export const registerDocument = async (req, res) => {
-    const { userAccountId, documentId, priority, remarks } = req.body;
+    const { userAccountId, documentId, priority, details } = req.body;
     try {
 
         const document = await global.docTrackModels.Document.findById(documentId);
@@ -104,10 +104,8 @@ export const registerDocument = async (req, res) => {
                 },
                 timeStamp: Date.now(),
             },
-            remarks: remarks,
-            currentHandler: {
-                userId: user._id
-            }
+            details: details,
+            $set: { currentHandler: { userId: user._id } }
         });
 
 
@@ -141,7 +139,7 @@ export const downloadQrCode = async (req, res) => {
         
         // Set headers for file download
         res.setHeader('Content-Disposition', `attachment; filename="document-${qrCode.refNumber}.png"`);
-        res.setHeader('Content-Type', 'image/jpeg');
+        res.setHeader('Content-Type', 'image/png');
         
         // Generate QR as PNG buffer, 600x600px (2x2 inches at 300dpi)
         
@@ -222,9 +220,8 @@ export const forwardDocument = async (req, res) => {
                     }
                     
                 },
-                currentHandler: {
-                        userId: forwardUser._id
-                    }
+                $set: { currentHandler: { userId: forwardUser._id } }
+
             }
         );
 
@@ -416,5 +413,144 @@ export const releaseDocument = async (req, res) => {
         return res.status(500).json({success: false, message: 'Error releasing document', error: error.message});
      }
 };
+
+export const getIncomingForwardedDocuments = async (req, res) => {
+    const {id} = req.params;
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10; // Default to 5 per page for each section
+        const skip = (page - 1) * limit;
+
+        const user = await global.docTrackModels.ManagerAccount.findById(id) ||
+                     await global.docTrackModels.StaffAccount.findById(id);
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'Cannot find your account, please contact IT if error persists.' });
+        }
+
+        const pipeline = [
+            // Stage 1: Match documents assigned to the current user
+            {
+                $match: { 'currentHandler.userId': user._id }
+            },
+            // Stage 2: Add a field with the last lifecycle action
+            {
+                $addFields: {
+                    lastAction: { $arrayElemAt: ['$lifeCycle', -1] }
+                }
+            },
+            // Stage 3: Match only if the last action was 'Forwarded'
+            {
+                $match: { 'lastAction.action': 'Forwarded' }
+            },
+            // Stage 4: Sort and Paginate using $facet
+            {
+                $facet: {
+                    paginatedResults: [
+                        { $sort: { 'lastAction.timeStamp': -1 } },
+                        { $skip: skip },
+                        { $limit: limit }
+                    ],
+                    totalCount: [
+                        { $count: 'count' }
+                    ]
+                }
+            }
+        ];
+
+        const result = await global.docTrackModels.DocumentLifeCycle.aggregate(pipeline);
+
+        const relevantDocs = result[0].paginatedResults;
+        const totalCount = result[0].totalCount.length > 0 ? result[0].totalCount[0].count : 0;
+
+        return res.status(200).json({
+            success: true, 
+            message: 'Successfully fetched incoming documents.', 
+            data: {
+                relevantDocs, 
+                totalCount, 
+                totalPages: Math.ceil(totalCount / limit),
+                currentPage: page
+            }
+        })
+    } catch (error) {
+        console.log(error)
+        return res.status(500).json({success: false, message: 'Error fetching incoming documents', error: error.message});
+    }
+};
+
+export const getPendingDocuments = async (req, res) => {
+    const {id} = req.params;
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10; // Default to 5 per page for each section
+        const skip = (page - 1) * limit;
+
+        const user = await global.docTrackModels.ManagerAccount.findById(id) ||
+                     await global.docTrackModels.StaffAccount.findById(id);
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'Cannot find your account, please contact IT if error persists.' });
+        }
+
+        const pipeline = [
+            // Stage 1: Match documents assigned to the current user
+            {
+                $match: { 'currentHandler.userId': user._id }
+            },
+            // Stage 2: Add a field with the last lifecycle action
+            {
+                $addFields: {
+                    lastAction: { $arrayElemAt: ['$lifeCycle', -1] }
+                }
+            },
+            // Stage 3: Match only if the last action was 'Forwarded'
+            {
+                $match: { 'lastAction.action': 'Received/Work on Progress' }
+            },
+            // Stage 4: Sort and Paginate using $facet
+            {
+                $facet: {
+                    paginatedResults: [
+                        { $sort: { 'lastAction.timeStamp': -1 } },
+                        { $skip: skip },
+                        { $limit: limit }
+                    ],
+                    totalCount: [
+                        { $count: 'count' }
+                    ]
+                }
+            }
+        ];
+
+        const result = await global.docTrackModels.DocumentLifeCycle.aggregate(pipeline);
+
+        const relevantDocs = result[0].paginatedResults;
+        const totalCount = result[0].totalCount.length > 0 ? result[0].totalCount[0].count : 0;
+
+        return res.status(200).json({
+            success: true, 
+            message: 'Successfully fetched incoming documents.', 
+            data: {
+                relevantDocs, 
+                totalCount, 
+                totalPages: Math.ceil(totalCount / limit),
+                currentPage: page
+            }
+        })
+    } catch (error) {
+        console.log(error)
+        return res.status(500).json({success: false, message: 'Error fetching incoming documents', error: error.message});
+    }
+};
+
+export const getDocumentTypes = async (req, res) => {
+    try {
+        const docTypes = await global.docTrackModels.Document.find();
+        return res.status(200).json({success: true, message: 'Successfully fetched document types.', data: docTypes})
+    } catch (error) {
+        console.log(error)
+        return res.status(500).json({success: false, message: 'Error fetching document types.', error: error.message})
+    }
+};
+
 
 

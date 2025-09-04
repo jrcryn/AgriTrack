@@ -58,7 +58,8 @@ const allLinkItems = [
   { name: 'Farmers', icon: FiUsers, path : '/hvc/farmers', roles: ['HVCM', 'HVCS'] },
   
   //doc-track
-  { name: 'Dashboard', icon: FiGrid, path : '/doc-track/metrics', roles: ['DMS', 'DMM'] },
+  { name: 'Dashboard', icon: FiGrid, path : '/doc-track/metrics', roles: ['DMM'] },
+  { name: 'Register Document', icon: FiGrid, path : '/doc-track/register-document', roles: ['DMS', 'DMM'] },
   { name: 'Incoming', icon: FiInbox, path : '/doc-track/incoming', count: 8, roles: ['DMS', 'DMM'] },
   { name: 'Pending', icon: FiClock, path : '/doc-track/pending', count: 6, roles: ['DMS', 'DMM'] },
   { name: 'Outgoing', icon: FiSend, path : '/doc-track/outgoing', count: 4, roles: ['DMS', 'DMM'] },

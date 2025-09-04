@@ -66,7 +66,7 @@ export const DocumentLifeCycleSchema = new mongoose.Schema({
     priority: {type: String, enum: ['Urgent', 'Medium', 'Low'], required: true},
     refNumber: {type: String, required: true},
     docQRData: {type: String, required: true},
-    remarks: String,
+    details: String,
 
     lifeCycle: [lifeCycleIterationsSchema],
 
