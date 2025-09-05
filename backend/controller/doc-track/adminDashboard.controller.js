@@ -1,6 +1,5 @@
 import qrcode from 'qrcode';
 
-
 export const createDocument = async (req, res) => {
     const { documentName, documentCode, disposalMethod, retentionPeriod } = req.body;
     try {
@@ -552,5 +551,88 @@ export const getDocumentTypes = async (req, res) => {
     }
 };
 
+export const getDocumentHistory = async (req, res) => {
+    const {id} = req.params;
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
 
+        const user = await global.docTrackModels.ManagerAccount.findById(id) ||
+                     await global.docTrackModels.StaffAccount.findById(id);
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'Cannot find your account, please contact IT if error persists.' });
+        }
+
+        // Define the start and end of today
+        const startOfToday = new Date();
+        startOfToday.setHours(0, 0, 0, 0);
+
+        const endOfToday = new Date();
+        endOfToday.setHours(23, 59, 59, 999);
+
+        const pipeline = [
+            {
+                $match: {
+                    'lifeCycle': {
+                        $elemMatch: {
+                            'performedBy.userId': user._id,
+                            'timeStamp': {
+                                $gte: startOfToday,
+                                $lte: endOfToday
+                            }
+                        }
+                    }
+                },
+            },
+            {
+                $facet: {
+                    paginatedResults: [
+                        { $sort: {'lifeCycle.timeStamp': -1} },
+                        { $skip: skip },
+                        { $limit: limit }
+                    ],
+                    totalCount: [
+                        { $count: 'count' }
+                    ]
+                }
+            }
+        ];
+
+        const result = await global.docTrackModels.DocumentLifeCycle.aggregate(pipeline);
+
+        const relevantDocs = result[0].paginatedResults;
+        const totalCount = result[0].totalCount.length > 0 ? result[0].totalCount[0].count : 0;
+
+        return res.status(200).json({
+            success: true,
+            message: 'Successfully fetched document history.',
+            data: {
+                relevantDocs,
+                totalCount,
+                totalPages: Math.ceil(totalCount / limit),
+                currentPage: page
+            }
+        })
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({success: false, message: 'Error fetching document history', error: error.message})
+    }
+};
+
+export const getDocumentStatus = async (req, res) => { //check doc status
+    const { refNum } = req.params;
+    try {
+        const document = await global.docTrackModels.DocumentLifeCycle.findOne({refNumber: refNum})
+
+        if (!document) {
+            return res.status(404).json({success: false, message: "Cannot find document with that reference number."})
+        }
+
+        return res.status(200).json({success: true, message: "Successfully found document.", data: document})
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({success: false, message: "Failed to check document status."})
+    }
+};
 
