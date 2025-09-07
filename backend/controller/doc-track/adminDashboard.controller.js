@@ -1,4 +1,6 @@
 import qrcode from 'qrcode';
+import PDFDocument from 'pdfkit';
+
 
 export const createDocument = async (req, res) => {
     const { documentName, documentCode, disposalMethod, retentionPeriod } = req.body;
@@ -126,32 +128,60 @@ export const downloadQrCode = async (req, res) => {
     try {
         const { id } = req.params;
         
-        // Find QR code data for document
-        const qrCode = await global.docTrackModels.DocumentLifeCycle.findById(id);
+        const qrCodeDoc = await global.docTrackModels.DocumentLifeCycle.findById(id);
 
-        if (!qrCode) {
+        if (!qrCodeDoc) {
             return res.status(404).json({
                 success: false,
                 message: 'Registered document not found.'
             });
         }
         
-        // Set headers for file download
-        res.setHeader('Content-Disposition', `attachment; filename="document-${qrCode.refNumber}.png"`);
-        res.setHeader('Content-Type', 'image/png');
-        
-        // Generate QR as PNG buffer, 600x600px (2x2 inches at 300dpi)
-        
-        // Generate and send QR code
-        return qrcode.toFileStream(res, qrCode.docQRData, {
+        // --- PDF and Image Setup ---
+        const qrSize = 144; // 2x2 inches (144 points)
+        const margin = 36; // 0.5 inch margin
+
+        // 1. Generate the QR code as a PNG buffer
+        const qrCodeBuffer = await qrcode.toBuffer(qrCodeDoc.docQRData, {
             type: 'png',
-            width: 144,
-            margin: 4,
+            width: qrSize,
+            margin: 1,
             errorCorrectionLevel: 'M'
         });
+
+        // 2. Create a new PDF document
+        const doc = new PDFDocument({
+            size: 'A4', // Standard A4 paper size
+            margins: { top: margin, bottom: margin, left: margin, right: margin }
+        });
+
+        // 3. Set headers for PDF download
+        res.setHeader('Content-Disposition', `attachment; filename="qr-code-${qrCodeDoc.refNumber}.pdf"`);
+        res.setHeader('Content-Type', 'application/pdf');
+
+        // 4. Pipe the PDF document to the response
+        doc.pipe(res);
+
+        // 5. Position and draw the QR code and text on the far left
+        const xPos = margin;
+        const yPos = margin;
+
+        // Add the QR code image
+        doc.image(qrCodeBuffer, xPos, yPos, { width: qrSize });
+
+        // Add the reference number text below the QR code
+        doc.fontSize(10)
+           .font('Helvetica')
+           .text(qrCodeDoc.refNumber, xPos, yPos + qrSize + 5, { // 5 points of spacing
+               width: qrSize,
+               align: 'center'
+           });
+
+        // 6. Finalize the PDF and end the stream
+        doc.end();
         
     } catch (error) {
-        console.error('Error downloading QR code:', error);
+        console.error('Error downloading QR code as PDF:', error);
         return res.status(500).json({
             success: false,
             message: 'Error downloading QR code',
@@ -635,4 +665,6 @@ export const getDocumentStatus = async (req, res) => { //check doc status
         return res.status(500).json({success: false, message: "Failed to check document status."})
     }
 };
+
+
 

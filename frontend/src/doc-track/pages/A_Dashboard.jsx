@@ -15,24 +15,27 @@ import {
   FormLabel,
   Select,
   Progress,
-  CircularProgress,
-  CircularProgressLabel,
   Tag,
-  Center,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalFooter,
+  ModalBody,
+  Button,
+  Spacer,
 } from "@chakra-ui/react";
 import {
   FiFileText,
   FiInbox,
   FiClock,
   FiSend,
-  FiActivity,
   FiCalendar,
   FiUsers,
-  FiPieChart,
   FiCheckCircle,
   FiAlertCircle,
-  FiBarChart2
 } from "react-icons/fi";
+import { HiMiniDocumentPlus } from "react-icons/hi2";
 
 const A_Dashboard = () => {
   // Mock data for the dashboard
@@ -72,7 +75,8 @@ const A_Dashboard = () => {
       
       {/* Filter Section */}
       <Flex
-        direction="column"
+        direction={{ base: 'column', md: 'row' }}
+        alignItems="center"
         mb={6}
         gap={4}
         p={4}
@@ -80,24 +84,29 @@ const A_Dashboard = () => {
         borderRadius="md"
         boxShadow="sm"
       >
-        <SimpleGrid columns={{ base: 1, md: 4 }} spacing={4}>
-          <FormControl>
-            <FormLabel fontSize="sm" fontWeight="medium" display="flex" alignItems="center" gap={2}>
-              <Icon as={FiCalendar} color="blue.500" /> Time Period
-            </FormLabel>
-            <Select
-              value={selectedPeriod}
-              onChange={(e) => setSelectedPeriod(e.target.value)}
-              bg="white"
-              size="md"
-            >
-              <option value="daily">Daily</option>
-              <option value="weekly">Weekly</option>
-              <option value="monthly">Monthly</option>
-              <option value="quarterly">Quarterly</option>
-            </Select>
-          </FormControl>
-        </SimpleGrid>
+        <FormControl id="time-period" maxW={{ md: '250px' }}>
+          <FormLabel fontSize="sm" fontWeight="medium" display="flex" alignItems="center" gap={2}>
+            <Icon as={FiCalendar} color="blue.500" /> Time Period
+          </FormLabel>
+          <Select
+            value={selectedPeriod}
+            onChange={(e) => setSelectedPeriod(e.target.value)}
+            bg="white"
+            size="md"
+          >
+            <option value="daily">Daily</option>
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+            <option value="quarterly">Quarterly</option>
+          </Select>
+        </FormControl>
+        <Button 
+          colorScheme="blue" 
+          alignSelf={{ base: 'stretch', md: 'flex-end' }}
+          leftIcon={<HiMiniDocumentPlus/>}
+        >
+          Create Document Type
+        </Button>
       </Flex>
 
       {/* DOCUMENT OVERVIEW SECTION */}
@@ -138,7 +147,7 @@ const A_Dashboard = () => {
               </StatLabel>
               <StatNumber fontSize="4xl" mb={2}>{metrics.totalDocuments}</StatNumber>
               <StatHelpText>
-                Current tracking period
+                Currenty tracked
               </StatHelpText>
             </Stat>
           </Box>
@@ -258,63 +267,9 @@ const A_Dashboard = () => {
         </SimpleGrid>
       </Box>
       
-      {/* EFFICIENCY METRICS */}
-      <Box mb={4}>
-        <Flex 
-          justify="space-between" 
-          align="center" 
-          mb={4}
-          bg="orange.50"
-          p={3}
-          borderRadius="md"
-          borderLeftWidth="4px"
-          borderLeftColor="orange.500"
-        >
-          <Heading as="h2" size="md" display="flex" alignItems="center">
-            <Icon as={FiBarChart2} mr={2} color="orange.600" /> PERFORMACE METRICS
-          </Heading>
-        </Flex>
-        
-        <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-          <Box 
-            p={5} 
-            borderRadius="md" 
-            boxShadow="sm" 
-            bg="white"
-            borderWidth="1px"
-            borderColor="gray.200"
-          >
-            <Stat>
-              <StatLabel fontSize="md" display="flex" alignItems="center">
-                <Icon as={FiClock} mr={2} color="orange.500" /> Average Processing Time
-              </StatLabel>
-              <StatNumber fontSize="4xl">{metrics.avgProcessingTime} <Text as="span" fontSize="lg">days</Text></StatNumber>
-              <StatHelpText>
-                From creation to completion
-              </StatHelpText>
-            </Stat>
-          </Box>
-          
-          <Box 
-            p={5} 
-            borderRadius="md" 
-            boxShadow="sm" 
-            bg="white"
-            borderWidth="1px"
-            borderColor="gray.200"
-          >
-            <Stat>
-              <StatLabel fontSize="md" display="flex" alignItems="center">
-                <Icon as={FiPieChart} mr={2} color="blue.500" /> Response Rate
-              </StatLabel>
-              <StatNumber fontSize="4xl">{metrics.responseRate}%</StatNumber>
-              <StatHelpText>
-                Documents processed 
-              </StatHelpText>
-            </Stat>
-          </Box>
-        </SimpleGrid>
-      </Box>
+      <Modal>
+
+      </Modal>
     </Box>
   );
 };

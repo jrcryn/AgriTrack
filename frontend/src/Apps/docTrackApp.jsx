@@ -6,10 +6,10 @@ import axios from 'axios';
 import Layout from '../components/layout.jsx';
 
 import A_Dashboard from '../doc-track/pages/A_Dashboard.jsx';
-import B_Incoming from '../doc-track/pages/B_Incoming.jsx';
-import C_Pending from '../doc-track/pages/C_Pending.jsx';
-import D_Outgoing from '../doc-track/pages/D_Outgoing.jsx';
-import E_GenReports from '../doc-track/pages/E_GenReports.jsx';
+import B_RegisterDocument from '../doc-track/pages/B_RegisterDocument.jsx';
+import C_Incoming from '../doc-track/pages/C_Incoming.jsx';
+import D_Pending from '../doc-track/pages/D_Pending.jsx';
+import E_Outgoing from '../doc-track/pages/E_Outgoing.jsx';
 import F_History from '../doc-track/pages/F_History.jsx';
 import G_Staffs from '../doc-track/pages/G_Staffs.jsx';
 
@@ -60,10 +60,10 @@ const doctrackApp = () => {
             <Routes>
                 <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
                     <Route path="metrics" element={<A_Dashboard />} />
-                    <Route path="incoming" element={<B_Incoming />} />
-                    <Route path="pending" element={<C_Pending />} />
-                    <Route path="outgoing" element={<D_Outgoing />} />
-                    <Route path="gen-reports" element={<E_GenReports />} />
+                    <Route path="register-document" element={<B_RegisterDocument />} />
+                    <Route path="incoming" element={<C_Incoming />} />
+                    <Route path="pending" element={<D_Pending />} />
+                    <Route path="outgoing" element={<E_Outgoing />} />
                     <Route path="history" element={<F_History />} />
                     <Route path="staffs" element={<G_Staffs />} />
                 </Route>    
