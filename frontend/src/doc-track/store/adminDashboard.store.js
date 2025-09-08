@@ -44,11 +44,13 @@ export const useDocumentHistoryQuery = (page = 1, id) =>
     });
 
 export const useAdminDashboard = () => {
+    const [id, setId] = useState(null);
+
     const { data: documentTypes = [], isLoading: isLoadingDocumentTypes, error: documentTypesError } = useDocumentTypesQuery();
     const { data: forwardedDocuments = [], isLoading: isLoadingForwardedDocuments, error: forwardedDocumentsError } = useIncomingForwardedDocumentsQuery(id);
     const { data: pendingDocuments = [], isLoading: isLoadingPendingDocuments, error: pendingDocumentsError } = usePendingDocumentsQuery(id);
-    const { data: documentHistory = [], isLoading: isLoadingDocumentHistory, error: documentHistoryError } = documentHistory(id);
-
+    const { data: documentHistory = [], isLoading: isLoadingDocumentHistory, error: documentHistoryError } = useDocumentHistoryQuery(id);
+    
     const [isCreatingDocument, setIsCreatingDocument] = useState(false);
     const [isRegisteringDocument, setIsRegisteringDocument] = useState(false);
     const [isForwardingDocument, setIsForwardingDocument] = useState(false);
@@ -148,6 +150,7 @@ export const useAdminDashboard = () => {
         forwardedDocuments,
         pendingDocuments,
         documentHistory,
+        setId,
 
         // action functions
         createDocument,
@@ -171,5 +174,11 @@ export const useAdminDashboard = () => {
         isArchivingDocument,
         isReleasingDocument,
         isDownloadingQRCode,
+
+        //error states
+        documentTypesError,
+        forwardedDocumentsError,
+        pendingDocumentsError,
+        documentHistoryError,
     };
 } 

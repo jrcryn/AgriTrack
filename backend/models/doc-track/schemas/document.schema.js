@@ -5,6 +5,6 @@ import mongoose from 'mongoose';
 export const DocumentSchema = new mongoose.Schema({
     documentName: {type: String, required: true},
     documentCode: {type: String, required: true},
-    disposalMethod: {type: String, required: true},
-    retentionPeriod: {type: Number, required: true}, //saved in months, e.g, 5 years = 60 months
+    disposalMethod: {type: String},
+    retentionPeriod: {type: Number}, //saved in months, e.g, 5 years = 60 months
 }, {versionKey: false});

@@ -24,6 +24,12 @@ import {
   ModalBody,
   Button,
   Spacer,
+  useDisclosure,
+  Input,
+  HStack,
+  VStack,
+  FormErrorMessage,
+  useToast
 } from "@chakra-ui/react";
 import {
   FiFileText,
@@ -35,9 +41,21 @@ import {
   FiCheckCircle,
   FiAlertCircle,
 } from "react-icons/fi";
-import { HiMiniDocumentPlus } from "react-icons/hi2";
+import { HiMiniDocumentPlus, HiInformationCircle } from "react-icons/hi2";
+import { MdEditDocument } from "react-icons/md";
+import { FaArchive } from "react-icons/fa";
+import { useAdminDashboard } from '../store/adminDashboard.store.js';
+
 
 const A_Dashboard = () => {
+  const toast = useToast();
+
+  const {
+    documentTypes,
+    isLoadingDocumentTypes,
+    createDocument,
+    isCreatingDocument
+  } = useAdminDashboard();
   // Mock data for the dashboard
   const [selectedPeriod, setSelectedPeriod] = useState('weekly');
   
@@ -58,6 +76,100 @@ const A_Dashboard = () => {
     { name: 'SGOD OFFICE', processed: 31, pending: 15 },
     { name: 'FINANCE', processed: 24, pending: 6 }
   ];
+
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const [isPermanent, setIsPermanent] = useState(true); //for retention period
+  const [formErrors, setFormErrors] = useState({});
+
+  const [formData, setFormData] = useState({
+    documentName: '',
+    documentCode: '',
+    disposalMethod: '',
+    retentionPeriod: ''
+  })
+
+  const clearFormData = () => {
+    setFormData({
+      documentName: '',
+      documentCode: '',
+      disposalMethod: '',
+      retentionPeriod: ''
+    });
+  }
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+
+    if (name === 'retentionPeriod') {
+      if (value === 'permanent') {
+        setIsPermanent(true);
+        setFormData(prev => ({...prev, retentionPeriod: null})); // Set retentionPeriod to null for permanent
+        setFormData(prev => ({ ...prev, disposalMethod: null })); // Clear disposal method
+      } else {
+        setIsPermanent(false);
+      }
+    }
+
+    if (formErrors[name]) {
+      setFormErrors({ ...formErrors, [name]: null });
+    }
+  }
+
+  const validateForm = () => {
+    const errors = {};
+
+    if (!formData.documentName.trim()) {
+      errors.documentName = "Document name is required";
+    }
+    if (!formData.documentCode.trim()) {
+      errors.documentCode = "Document code is required";
+    }
+    if (!isPermanent && !formData.retentionPeriod.trim()) {
+      errors.retentionPeriod = "Retention period is required";
+    }
+    if (!isPermanent && !formData.disposalMethod.trim()) {
+      errors.disposalMethod = "Disposal method is required";
+    }
+
+    return errors;
+  }
+
+  const handleCreateDocumentType = async () => {
+    const errors = validateForm();
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      return;
+    }
+    
+    try {
+      const response = await createDocument(formData);
+      toast({
+        title: "Success",
+        description: response.message,
+        status: "success",
+        duration: 5000,
+        isClosable: true,
+      });
+      onClose();
+      clearFormData();
+      setFormErrors({});
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error.response?.data?.message,
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  }
+
+  const handleCloseModal = () => {
+    onClose();
+    clearFormData();
+    setFormErrors({});
+  }
 
   return (
     <Box 
@@ -104,8 +216,17 @@ const A_Dashboard = () => {
           colorScheme="blue" 
           alignSelf={{ base: 'stretch', md: 'flex-end' }}
           leftIcon={<HiMiniDocumentPlus/>}
+          onClick={onOpen}
         >
           Create Document Type
+        </Button>
+        <Button 
+          colorScheme="green" 
+          alignSelf={{ base: 'stretch', md: 'flex-end' }}
+          leftIcon={<MdEditDocument/>}
+          //onClick={onOpen}
+        >
+          Edit Document Types
         </Button>
       </Flex>
 
@@ -267,8 +388,161 @@ const A_Dashboard = () => {
         </SimpleGrid>
       </Box>
       
-      <Modal>
+      <Modal isOpen={isOpen} onClose={onClose} scrollBehavior='inside' isCentered motionPreset='none' closeOnOverlayClick={false} size='2xl'>
+          <ModalOverlay />
+          <ModalContent borderRadius="md" overflow="hidden" boxShadow="lg">
+            <ModalHeader bg="blue.50" borderBottomWidth="1px" borderColor="gray.200" display="flex" alignItems="center" py={4}>
+              <Icon as={HiMiniDocumentPlus} color="blue.500" mr={2} />
+              Create New Document Type
+              </ModalHeader>
 
+            <ModalBody py={6}>
+
+              <VStack spacing={6} align="stretch">
+              <Box
+                p={5} 
+                borderRadius="md" 
+                borderWidth="1px" 
+                borderColor="gray.200" 
+                bg="white"
+                boxShadow="sm"
+              >
+                <Heading as="h3" size="md" mb={4} color="blue.600" fontWeight="600">
+                  <HStack>
+                    <Icon as={HiInformationCircle} boxSize="25px"/>
+                    <Text>Document Information</Text>
+                  </HStack>
+                </Heading>
+
+                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+                  <FormControl isRequired isInvalid={formErrors.documentName}>
+                    <FormLabel fontWeight="medium">Document Name</FormLabel>
+                    <Input
+                      name='documentName'
+                      type='text'
+                      placeholder="Enter document name"
+                      value={formData.documentName}
+                      onChange={handleInputChange}
+                      borderColor='gray.300'
+                      _focus={{ borderColor: "blue.400" }}
+
+                    />
+                    {formErrors.documentName && (
+                      <FormErrorMessage>{formErrors.documentName}</FormErrorMessage>
+                    )}
+                  </FormControl>
+
+                  <FormControl isRequired isInvalid={formErrors.documentCode}>
+                    <FormLabel fontWeight="medium">Document Code</FormLabel>
+                    <Input
+                      name='documentCode'
+                      type='text'
+                      placeholder="Enter document code"
+                      value={formData.documentCode}
+                      onChange={(e) => setFormData({ ...formData, documentCode: e.target.value.toUpperCase()})}
+                      borderColor='gray.300'
+                      _focus={{ borderColor: "blue.400" }}
+
+                    />
+                    {formErrors.documentCode && (
+                      <FormErrorMessage>{formErrors.documentCode}</FormErrorMessage>
+                    )}
+                  </FormControl>
+                </SimpleGrid>
+
+              </Box>
+
+              <Box
+                p={5} 
+                borderRadius="md" 
+                borderWidth="1px" 
+                borderColor="gray.200" 
+                bg="white"
+                boxShadow="sm"
+              >
+                <Heading as="h3" size="md" mb={4} color="blue.600" fontWeight="600">
+                  <HStack>
+                    <Icon as={FaArchive}/>
+                    <Text>Archival Details</Text>
+                  </HStack>
+                </Heading>
+
+                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+
+                  <FormControl isRequired isInvalid={formErrors.retentionPeriod}>
+                    <FormLabel fontWeight="medium">Retention Period</FormLabel>
+                    <Select
+                      name='retentionPeriod'
+                      placeholder="Select retention period"
+                      value={formData.retentionPeriod}
+                      onChange={handleInputChange}
+                    >
+                      <option value={1}>1 Month</option>
+                      <option value={12}>1 Year</option>
+                      <option value={24}>2 Years</option>
+                      <option value={36}>3 Years</option>
+                      <option value={48}>4 Years</option>
+                      <option value={60}>5 Years</option>
+                      <option value='permanent'>PERMANENT</option>
+                    </Select>
+                    {formErrors.retentionPeriod && (
+                      <FormErrorMessage>{formErrors.retentionPeriod}</FormErrorMessage>
+                    )}
+                  </FormControl>
+                  
+                  {!isPermanent && (
+                    <FormControl isRequired isInvalid={formErrors.disposalMethod}>
+                      <FormLabel fontWeight="medium">Disposal Method</FormLabel>
+                      <Input
+                        name='disposalMethod'
+                        type='text'
+                        placeholder="Enter disposal method"
+                        value={formData.disposalMethod}
+                        onChange={(e) => setFormData({ ...formData, disposalMethod: e.target.value.toLowerCase()})}
+                        borderColor='gray.300'
+                        _focus={{ borderColor: "blue.400" }}
+
+                      />
+                      {formErrors.disposalMethod && (
+                        <FormErrorMessage>{formErrors.disposalMethod}</FormErrorMessage>
+                      )}
+                    </FormControl>
+                    
+                  )}
+                  
+
+                </SimpleGrid>
+
+              </Box>
+              </VStack>
+
+            </ModalBody>
+
+            <ModalFooter bg="gray.50" borderTopWidth="1px" borderColor="gray.200" py={4}>
+              <Button 
+                variant="outline" 
+                mr={3} 
+                onClick={handleCloseModal}
+                size="md"
+                _hover={{ bg: "gray.100" }}
+              >
+                Cancel
+              </Button>
+
+              <Button 
+                colorScheme='blue'
+                size="md"
+                fontWeight="500"
+                boxShadow="sm"
+                _hover={{ boxShadow: "md", bg: "blue.600" }}
+                onClick={handleCreateDocumentType}
+                isDisabled={!formData.documentName || !formData.documentCode || (!isPermanent && !formData.retentionPeriod) || (!isPermanent && !formData.disposalMethod) }
+                isLoading={isCreatingDocument}
+              >
+                Create Document Type
+              </Button>
+            </ModalFooter>
+          </ModalContent>
       </Modal>
     </Box>
   );

@@ -5,6 +5,15 @@ import PDFDocument from 'pdfkit';
 export const createDocument = async (req, res) => {
     const { documentName, documentCode, disposalMethod, retentionPeriod } = req.body;
     try {
+        if (!documentName || !documentCode) {
+            return res.status(400).json({
+                success: false,
+                message: 'All available fields are required.'
+            });
+        }
+        if (retentionPeriod === 0 ) { //pag ka number ang nilagay ni user as a retention period, should be null meaning permanent
+            retentionPeriod = null;
+        }
         const newDocument = await global.docTrackModels.Document.create({
             documentName,
             documentCode,
@@ -13,14 +22,14 @@ export const createDocument = async (req, res) => {
         });
         return res.status(201).json({
             success: true,
-            message: 'Document created successfully',
+            message: 'Document type created successfully.',
             data: newDocument
         });
     } catch (error) {
         console.error('Error creating document:', error);
         return res.status(500).json({
             success: false,
-            message: 'Error creating document',
+            message: 'Error creating document type.',
             error: error.message
         });
     }
@@ -328,7 +337,10 @@ export const archiveDocument = async (req, res) => {
         const userModel = user instanceof global.docTrackModels.ManagerAccount ? 'Manager_Account' : 'Staff_Account';
 
         const today = new Date();
-        const retentionUntil = new Date(today.setMonth(today.getMonth() + docType.retentionPeriod));
+        let retentionUntil = new Date(today.setMonth(today.getMonth() + docType.retentionPeriod));
+        if (!docType.retentionPeriod === 0) { //if null, meaning permanent
+            retentionUntil = null;
+        }
 
         const archiveDocument = await global.docTrackModels.DocumentLifeCycle.findOneAndUpdate(
             { _id: document._id },
