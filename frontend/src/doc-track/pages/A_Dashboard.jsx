@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Heading,
@@ -49,13 +49,18 @@ import { useAdminDashboard } from '../store/adminDashboard.store.js';
 
 const A_Dashboard = () => {
   const toast = useToast();
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const { isOpen: isOpenEditDocTypes, onOpen: onOpenEditDocTypes, onClose: onCloseEditDocTypes } = useDisclosure();
 
   const {
     documentTypes,
     isLoadingDocumentTypes,
+    documentTypesError,
     createDocument,
-    isCreatingDocument
-  } = useAdminDashboard();
+    isCreatingDocument,
+    updateDocumentType,
+    isUpdatingDocumentType
+  } = useAdminDashboard({isEditModalOpen: isOpenEditDocTypes});
   // Mock data for the dashboard
   const [selectedPeriod, setSelectedPeriod] = useState('weekly');
   
@@ -77,19 +82,38 @@ const A_Dashboard = () => {
     { name: 'FINANCE', processed: 24, pending: 6 }
   ];
 
-  const { isOpen, onOpen, onClose } = useDisclosure();
-  const [isPermanent, setIsPermanent] = useState(true); //for retention period
+  const [isPermanent, setIsPermanent] = useState(false); //for retention period
   const [formErrors, setFormErrors] = useState({});
-
   const [formData, setFormData] = useState({
     documentName: '',
     documentCode: '',
     disposalMethod: '',
-    retentionPeriod: ''
+    retentionPeriod: '1'
   })
+
+  const [selectedDocId, setSelectedDocId] = useState('');
+  const [hasEditFormChanged, setHasEditFormChanged] = useState(false);
+  const [isEditPermanent, setIsEditPermanent] = useState(true); 
+  const [editFormErrors, setEditFormErrors] = useState({});
+  const [editFormData, setEditFormData] = useState({
+    documentName: '',
+    documentCode: '',
+    disposalMethod: '',
+    retentionPeriod: ''
+  });
 
   const clearFormData = () => {
     setFormData({
+      documentName: '',
+      documentCode: '',
+      disposalMethod: '',
+      retentionPeriod: ''
+    });
+  }
+
+  const clearEditFormData = () => {
+    setEditFormData({
+      documentId: '',
       documentName: '',
       documentCode: '',
       disposalMethod: '',
@@ -116,6 +140,68 @@ const A_Dashboard = () => {
     }
   }
 
+  const handleEditInputChange = (e) => {
+    const { name, value } = e.target;
+    setEditFormData({ ...editFormData, [name]: value });
+
+    if (name === 'retentionPeriod') {
+      if (value === 'permanent') {
+        setIsEditPermanent(true);
+        setEditFormData(prev => ({ ...prev, retentionPeriod: null}));
+        setEditFormData(prev => ({...prev, disposalMethod: null}))
+      } else {
+        setIsEditPermanent(false);
+      }
+    }
+
+    if (editFormErrors[name]) {
+      setEditFormErrors({ ...editFormErrors, [name]: null });
+    }
+  }
+
+  const handleSelectDocumentForEdit = (e) => {
+    const docId = e.target.value;
+    setSelectedDocId(docId);
+    console.log(selectedDocId);
+
+    if (!docId) {
+      // Reset form if placeholder is selected
+      setEditFormData({ documentName: '', documentCode: '', disposalMethod: '', retentionPeriod: '' });
+      setIsEditPermanent(true);
+      return;
+    }
+
+    const selectedDoc = documentTypes.find(doc => doc._id === docId);
+    if (selectedDoc) {
+      const isPerm = selectedDoc.retentionPeriod === null;
+      setIsEditPermanent(isPerm);
+      setEditFormData({
+        documentName: selectedDoc.documentName,
+        documentCode: selectedDoc.documentCode,
+        retentionPeriod: isPerm ? 'permanent' : selectedDoc.retentionPeriod,
+        disposalMethod: selectedDoc.disposalMethod || ''
+      });
+      console.log(selectedDocId.documentName)
+    }
+  };
+
+  useEffect (() => {
+      const selectedDoc = documentTypes.find(doc => doc._id === selectedDocId);
+
+      if (editFormData && selectedDocId && selectedDoc) {
+        const hasEditFormChanged = 
+          selectedDoc.documentName !== editFormData.documentName ||
+          selectedDoc.documentCode !== editFormData.documentCode ||
+          selectedDoc.retentionPeriod !== editFormData.retentionPeriod ||
+          selectedDoc.disposalMethod !== editFormData.disposalMethod;
+
+          setHasEditFormChanged(hasEditFormChanged);
+      } else {
+          setHasEditFormChanged(false);
+
+      }
+    });
+
   const validateForm = () => {
     const errors = {};
 
@@ -129,6 +215,25 @@ const A_Dashboard = () => {
       errors.retentionPeriod = "Retention period is required";
     }
     if (!isPermanent && !formData.disposalMethod.trim()) {
+      errors.disposalMethod = "Disposal method is required";
+    }
+
+    return errors;
+  }
+
+  const validateEditForm = () => {
+    const errors = {};
+
+    if (!editFormData.documentName.trim()) {
+      errors.documentName = "Document name is required";
+    }
+    if (!editFormData.documentCode.trim()) {
+      errors.documentCode = "Document code is required";
+    }
+    if (!isEditPermanent && !editFormData.retentionPeriod) {
+      errors.retentionPeriod = "Retention period is required";
+    }
+    if (!isEditPermanent && !editFormData.disposalMethod.trim()) {
       errors.disposalMethod = "Disposal method is required";
     }
 
@@ -165,10 +270,50 @@ const A_Dashboard = () => {
     }
   }
 
+  const handleEditDocumentType = async () => {
+    const errors = validateEditForm();
+    if (Object.keys(errors).length > 0) {
+      setEditFormErrors(errors);
+      return;
+    }
+
+    try {
+      const dataToUpdate = {
+        ...editFormData,
+        documentId: selectedDocId 
+      };
+
+      const response = await updateDocumentType(dataToUpdate);
+      toast({
+        title: "Success",
+        description: response.message,
+        status: "success",
+        duration: 5000,
+        isClosable: true,
+      });
+      onCloseEditDocTypes();
+      clearEditFormData();
+      setSelectedDocId('');
+      setEditFormErrors({});
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error.response?.data?.message,
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  };
+
   const handleCloseModal = () => {
     onClose();
+    onCloseEditDocTypes();
     clearFormData();
+    clearEditFormData();
+    setSelectedDocId('');
     setFormErrors({});
+    setEditFormErrors({});
   }
 
   return (
@@ -224,9 +369,9 @@ const A_Dashboard = () => {
           colorScheme="green" 
           alignSelf={{ base: 'stretch', md: 'flex-end' }}
           leftIcon={<MdEditDocument/>}
-          //onClick={onOpen}
+          onClick={onOpenEditDocTypes}
         >
-          Edit Document Types
+          Update Document Type
         </Button>
       </Flex>
 
@@ -388,6 +533,7 @@ const A_Dashboard = () => {
         </SimpleGrid>
       </Box>
       
+      // modal for creating document types
       <Modal isOpen={isOpen} onClose={onClose} scrollBehavior='inside' isCentered motionPreset='none' closeOnOverlayClick={false} size='2xl'>
           <ModalOverlay />
           <ModalContent borderRadius="md" overflow="hidden" boxShadow="lg">
@@ -473,11 +619,10 @@ const A_Dashboard = () => {
                     <FormLabel fontWeight="medium">Retention Period</FormLabel>
                     <Select
                       name='retentionPeriod'
-                      placeholder="Select retention period"
                       value={formData.retentionPeriod}
                       onChange={handleInputChange}
                     >
-                      <option value={1}>1 Month</option>
+                      <option value={1} >1 Month</option>
                       <option value={12}>1 Year</option>
                       <option value={24}>2 Years</option>
                       <option value={36}>3 Years</option>
@@ -540,6 +685,201 @@ const A_Dashboard = () => {
                 isLoading={isCreatingDocument}
               >
                 Create Document Type
+              </Button>
+            </ModalFooter>
+          </ModalContent>
+      </Modal>
+
+      //modal for updating document types
+      <Modal isOpen={isOpenEditDocTypes} onClose={onCloseEditDocTypes} scrollBehavior='inside' isCentered motionPreset='none' closeOnOverlayClick={false} size='2xl'>
+          <ModalOverlay />
+          <ModalContent borderRadius="md" overflow="hidden" boxShadow="lg">
+            <ModalHeader bg="blue.50" borderBottomWidth="1px" borderColor="gray.200" display="flex" alignItems="center" py={4}>
+              <Icon as={HiMiniDocumentPlus} color="blue.500" mr={2} />
+              Update Document Type
+              </ModalHeader>
+
+            <ModalBody py={6}>
+
+              <VStack spacing={6} align="stretch">
+              <Box
+                p={5} 
+                borderRadius="md" 
+                borderWidth="1px" 
+                borderColor="gray.200" 
+                bg="white"
+                boxShadow="sm"
+              >
+                <FormControl>
+                  <FormLabel fontWeight="medium" >Select Document Type to Edit</FormLabel>
+                  <Select
+                    value={selectedDocId}
+                    onChange={handleSelectDocumentForEdit}
+                    isDisabled={isLoadingDocumentTypes || !documentTypes}
+                  >
+                    <option value="">Select a document type</option>
+                    {isLoadingDocumentTypes ? (
+                      <option value="">Loading available document types...</option>
+                    ) : documentTypes && documentTypes.length > 0 ? (
+                      documentTypes.map((type) => (
+                        <option key={type._id} value={type._id}>
+                          {`(${type.documentCode}) ${type.documentName}`}
+                        </option>
+                      ))
+                    ) : (
+                      <option>No document types available...</option>
+                    )}
+            
+                    {documentTypesError && (
+                      <option>Error loadinng document types...</option>
+                    )}
+                  </Select>
+                </FormControl>
+              </Box>
+              <Box
+                p={5} 
+                borderRadius="md" 
+                borderWidth="1px" 
+                borderColor="gray.200" 
+                bg="white"
+                boxShadow="sm"
+              >
+                <Heading as="h3" size="md" mb={4} color="blue.600" fontWeight="600">
+                  <HStack>
+                    <Icon as={HiInformationCircle} boxSize="25px"/>
+                    <Text>Document Information</Text>
+                  </HStack>
+                </Heading>
+
+                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+                  <FormControl isRequired isInvalid={editFormErrors.documentName}>
+                    <FormLabel fontWeight="medium">Document Name</FormLabel>
+                    <Input
+                      name='documentName'
+                      type='text'
+                      placeholder=' '
+                      value={editFormData.documentName}
+                      onChange={handleEditInputChange}
+                      borderColor='gray.300'
+                      _focus={{ borderColor: "blue.400" }}
+                      isDisabled={!selectedDocId}
+
+                    />
+                    {editFormErrors.documentName && (
+                      <FormErrorMessage>{editFormErrors.documentName}</FormErrorMessage>
+                    )}
+                  </FormControl>
+
+                  <FormControl isRequired isInvalid={editFormErrors.documentCode}>
+                    <FormLabel fontWeight="medium">Document Code</FormLabel>
+                    <Input
+                      name='documentCode'
+                      type='text'
+                      placeholder=' '
+                      value={editFormData.documentCode}
+                      onChange={(e) => setEditFormData({...editFormData, documentCode: e.target.value.toUpperCase()})}
+                      borderColor='gray.300'
+                      _focus={{ borderColor: "blue.400" }}
+                      isDisabled={!selectedDocId}
+
+                    />
+                    {editFormErrors.documentCode && (
+                      <FormErrorMessage>{editFormErrors.documentCode}</FormErrorMessage>
+                    )}
+                  </FormControl>
+                </SimpleGrid>
+
+              </Box>
+
+              <Box
+                p={5} 
+                borderRadius="md" 
+                borderWidth="1px" 
+                borderColor="gray.200" 
+                bg="white"
+                boxShadow="sm"
+              >
+                <Heading as="h3" size="md" mb={4} color="blue.600" fontWeight="600">
+                  <HStack>
+                    <Icon as={FaArchive}/>
+                    <Text>Archival Details</Text>
+                  </HStack>
+                </Heading>
+
+                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+
+                  <FormControl isRequired isInvalid={editFormErrors.retentionPeriod}>
+                    <FormLabel fontWeight="medium">Retention Period</FormLabel>
+                    <Select
+                      name='retentionPeriod'
+                      placeholder=' '
+                      value={editFormData.retentionPeriod}
+                      onChange={handleEditInputChange}
+                      isDisabled={!selectedDocId}
+                    >
+                      <option value={1}>1 Month</option>
+                      <option value={12}>1 Year</option>
+                      <option value={24}>2 Years</option>
+                      <option value={36}>3 Years</option>
+                      <option value={48}>4 Years</option>
+                      <option value={60}>5 Years</option>
+                      <option value='permanent'>PERMANENT</option>
+                    </Select>
+                    {editFormErrors.retentionPeriod && (
+                      <FormErrorMessage>{editFormErrors.retentionPeriod}</FormErrorMessage>
+                    )}
+                  </FormControl>
+                  
+                  {!isEditPermanent && (
+                    <FormControl isRequired isInvalid={editFormErrors.disposalMethod}>
+                      <FormLabel fontWeight="medium">Disposal Method</FormLabel>
+                      <Input
+                        name='disposalMethod'
+                        type='text'
+                        placeholder=' '
+                        value={editFormData.disposalMethod}
+                        onChange={handleEditInputChange}
+                        borderColor='gray.300'
+                        _focus={{ borderColor: "blue.400" }}
+                        isDisabled={!selectedDocId}
+                      />
+                      {editFormErrors.disposalMethod && (
+                        <FormErrorMessage>{editFormErrors.disposalMethod}</FormErrorMessage>
+                      )}
+                    </FormControl>
+                    
+                  )}
+                  
+
+                </SimpleGrid>
+
+              </Box>
+              </VStack>
+
+            </ModalBody>
+
+            <ModalFooter bg="gray.50" borderTopWidth="1px" borderColor="gray.200" py={4}>
+              <Button 
+                variant="outline" 
+                mr={3} 
+                onClick={handleCloseModal}
+                size="md"
+                _hover={{ bg: "gray.100" }}
+              >
+                Cancel
+              </Button>
+
+              <Button 
+                colorScheme='blue'
+                size="md"
+                fontWeight="500"
+                boxShadow="sm"
+                _hover={{ boxShadow: "md", bg: "blue.600" }}
+                onClick={handleEditDocumentType}
+                isDisabled={!selectedDocId || isUpdatingDocumentType || !hasEditFormChanged || (!isEditPermanent && !editFormData.retentionPeriod) || (!isEditPermanent && !editFormData.disposalMethod)}
+                isLoading={isUpdatingDocumentType}
+              >
+                Update Document Type
               </Button>
             </ModalFooter>
           </ModalContent>

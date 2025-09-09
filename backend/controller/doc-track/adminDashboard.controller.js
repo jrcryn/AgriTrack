@@ -1,6 +1,36 @@
 import qrcode from 'qrcode';
 import PDFDocument from 'pdfkit';
 
+const capitalizeWords = (str) => {
+    if (!str) return str;
+
+    const smallWords = new Set(['a', 'an', 'the', 'and', 'but', 'or', 'for', 'nor', 'on', 'at', 'to', 'from', 'by', 'of', 'in', 'with']);
+
+    return str.split(' ').map((word, index) => {
+        return word.split('-').map(part => {
+            const match = part.match(/^(\W*)(\w+)(\W*)$/);
+            if (!match) {
+                return part;
+            }
+
+            const [, prefix, coreWord, suffix] = match;
+
+            // Preserve abbreviations (all-caps words)
+            if (coreWord.length > 1 && coreWord === coreWord.toUpperCase()) {
+                return prefix + coreWord + suffix;
+            }
+
+            const lowerCoreWord = coreWord.toLowerCase();
+
+            // Capitalize if it's the first word or not a small word
+            if (index === 0 || !smallWords.has(lowerCoreWord)) {
+                return prefix + coreWord.charAt(0).toUpperCase() + coreWord.slice(1).toLowerCase() + suffix;
+            } else {
+                return prefix + lowerCoreWord + suffix;
+            }
+        }).join('-');
+    }).join(' ');
+};
 
 export const createDocument = async (req, res) => {
     const { documentName, documentCode, disposalMethod, retentionPeriod } = req.body;
@@ -11,11 +41,11 @@ export const createDocument = async (req, res) => {
                 message: 'All available fields are required.'
             });
         }
-        if (retentionPeriod === 0 ) { //pag ka number ang nilagay ni user as a retention period, should be null meaning permanent
-            retentionPeriod = null;
-        }
+        
+        const formattedDocName = await capitalizeWords(documentName);
+
         const newDocument = await global.docTrackModels.Document.create({
-            documentName,
+            documentName: formattedDocName,
             documentCode,
             disposalMethod,
             retentionPeriod //in months
@@ -34,6 +64,30 @@ export const createDocument = async (req, res) => {
         });
     }
 };
+
+export const updateDocumentType = async (req, res) => {
+    const { documentId, documentName, documentCode, disposalMethod, retentionPeriod } = req.body;
+
+    try {
+        const document = await global.docTrackModels.Document.findById(documentId);
+
+        if (!document) {
+            return res.status(404).json({ success: false, message: 'Document type not found.' });
+        }
+
+        if (documentName !== undefined) document.documentName = capitalizeWords(documentName);
+        if (documentCode !== undefined) document.documentCode = documentCode;
+        if (disposalMethod !== undefined) document.disposalMethod = disposalMethod;
+        if (retentionPeriod !== undefined) document.retentionPeriod = retentionPeriod;
+
+        await document.save();
+
+        return res.status(200).json({ success: true, message: 'Document type updated successfully.', data: document });
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({success: false, message: 'Error updating document type', error: error.message});
+    }
+}
 
 const getNextSequence = async (key) => {
     const today = new Date();
@@ -586,7 +640,7 @@ export const getPendingDocuments = async (req, res) => {
 export const getDocumentTypes = async (req, res) => {
     try {
         const docTypes = await global.docTrackModels.Document.find();
-        return res.status(200).json({success: true, message: 'Successfully fetched document types.', data: docTypes})
+        return res.status(200).json({success: true, message: 'Successfully fetched document types.', data: docTypes });
     } catch (error) {
         console.log(error)
         return res.status(500).json({success: false, message: 'Error fetching document types.', error: error.message})

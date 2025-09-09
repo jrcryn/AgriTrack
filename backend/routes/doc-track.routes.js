@@ -2,6 +2,7 @@ import express from 'express';
 
 import { 
     createDocument,
+    updateDocumentType,
     registerDocument,
     downloadQrCode,
     forwardDocument,
@@ -18,6 +19,7 @@ import {
 const router = express.Router();
 
 router.post('/create-document', createDocument);
+router.post('/update-document-type', updateDocumentType);
 router.post('/register-document', registerDocument);
 router.get('/download-qr-code/:id', downloadQrCode);
 router.post('/forward-document', forwardDocument);
