@@ -60,7 +60,7 @@ const A_Dashboard = () => {
     isCreatingDocument,
     updateDocumentType,
     isUpdatingDocumentType
-  } = useAdminDashboard({isEditModalOpen: isOpenEditDocTypes});
+  } = useAdminDashboard();
   // Mock data for the dashboard
   const [selectedPeriod, setSelectedPeriod] = useState('weekly');
   
@@ -162,7 +162,6 @@ const A_Dashboard = () => {
   const handleSelectDocumentForEdit = (e) => {
     const docId = e.target.value;
     setSelectedDocId(docId);
-    console.log(selectedDocId);
 
     if (!docId) {
       // Reset form if placeholder is selected
@@ -181,7 +180,6 @@ const A_Dashboard = () => {
         retentionPeriod: isPerm ? 'permanent' : selectedDoc.retentionPeriod,
         disposalMethod: selectedDoc.disposalMethod || ''
       });
-      console.log(selectedDocId.documentName)
     }
   };
 
@@ -198,9 +196,8 @@ const A_Dashboard = () => {
           setHasEditFormChanged(hasEditFormChanged);
       } else {
           setHasEditFormChanged(false);
-
       }
-    });
+    }, [editFormData, selectedDocId, documentTypes]);
 
   const validateForm = () => {
     const errors = {};
@@ -533,7 +530,6 @@ const A_Dashboard = () => {
         </SimpleGrid>
       </Box>
       
-      // modal for creating document types
       <Modal isOpen={isOpen} onClose={onClose} scrollBehavior='inside' isCentered motionPreset='none' closeOnOverlayClick={false} size='2xl'>
           <ModalOverlay />
           <ModalContent borderRadius="md" overflow="hidden" boxShadow="lg">
@@ -690,7 +686,6 @@ const A_Dashboard = () => {
           </ModalContent>
       </Modal>
 
-      //modal for updating document types
       <Modal isOpen={isOpenEditDocTypes} onClose={onCloseEditDocTypes} scrollBehavior='inside' isCentered motionPreset='none' closeOnOverlayClick={false} size='2xl'>
           <ModalOverlay />
           <ModalContent borderRadius="md" overflow="hidden" boxShadow="lg">
@@ -810,21 +805,31 @@ const A_Dashboard = () => {
 
                   <FormControl isRequired isInvalid={editFormErrors.retentionPeriod}>
                     <FormLabel fontWeight="medium">Retention Period</FormLabel>
-                    <Select
-                      name='retentionPeriod'
-                      placeholder=' '
-                      value={editFormData.retentionPeriod}
-                      onChange={handleEditInputChange}
-                      isDisabled={!selectedDocId}
-                    >
-                      <option value={1}>1 Month</option>
-                      <option value={12}>1 Year</option>
-                      <option value={24}>2 Years</option>
-                      <option value={36}>3 Years</option>
-                      <option value={48}>4 Years</option>
-                      <option value={60}>5 Years</option>
-                      <option value='permanent'>PERMANENT</option>
-                    </Select>
+                    {!selectedDocId && (
+                      <Select
+                        isDisabled={!selectedDocId}
+                      >
+                      </Select>
+                    )}
+
+                    {selectedDocId && (
+                      <Select
+                        name='retentionPeriod'
+                        placeholder=''
+                        value={editFormData.retentionPeriod}
+                        onChange={handleEditInputChange}
+                        
+                      >
+                        <option value={1}>1 Month</option>
+                        <option value={12}>1 Year</option>
+                        <option value={24}>2 Years</option>
+                        <option value={36}>3 Years</option>
+                        <option value={48}>4 Years</option>
+                        <option value={60}>5 Years</option>
+                        <option value='permanent'>PERMANENT</option>
+                      </Select>
+                    )}
+                    
                     {editFormErrors.retentionPeriod && (
                       <FormErrorMessage>{editFormErrors.retentionPeriod}</FormErrorMessage>
                     )}

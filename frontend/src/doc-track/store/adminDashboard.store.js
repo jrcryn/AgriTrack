@@ -4,15 +4,14 @@ import { useEffect, useState } from 'react';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-export const useDocumentTypesQuery = ({enabled = true}) => 
+export const useDocumentTypesQuery = () => 
     useQuery({
         queryKey: ['documentTypes'],
         queryFn: async () => {
-            //await new Promise(resolve => setTimeout(resolve, 5000));
+            await new Promise(resolve => setTimeout(resolve, 5000));
             const response = await axios.get(`${API_URL}/api/doc-track/get-document-types`)
             return response.data.data;
         },
-        enabled
     });
 
 export const useIncomingForwardedDocumentsQuery = (page = 1, id) =>
@@ -45,10 +44,10 @@ export const useDocumentHistoryQuery = (page = 1, id) =>
         },
     });
 
-export const useAdminDashboard = ( {isEditModalOpen = false} = {}) => {
+export const useAdminDashboard = () => {
     const [id, setId] = useState(null);
 
-    const { data: documentTypes = [], isLoading: isLoadingDocumentTypes, error: documentTypesError } = useDocumentTypesQuery({enabled: isEditModalOpen});
+    const { data: documentTypes = [], isLoading: isLoadingDocumentTypes, error: documentTypesError } = useDocumentTypesQuery();
     const { data: forwardedDocuments = [], isLoading: isLoadingForwardedDocuments, error: forwardedDocumentsError } = useIncomingForwardedDocumentsQuery(id);
     const { data: pendingDocuments = [], isLoading: isLoadingPendingDocuments, error: pendingDocumentsError } = usePendingDocumentsQuery(id);
     const { data: documentHistory = [], isLoading: isLoadingDocumentHistory, error: documentHistoryError } = useDocumentHistoryQuery(id);

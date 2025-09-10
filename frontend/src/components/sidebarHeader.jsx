@@ -44,6 +44,7 @@ import {
   FiBox
 } from 'react-icons/fi'
 import { FaWpforms, FaUser, FaPowerOff, FaDoorOpen, FaBug  } from "react-icons/fa";
+import { IoDocumentAttachOutline } from "react-icons/io5";
 import Logo from '../images/Calamba_Seal.png'
 import { useAuthStore } from '../auth/store/authStore.js'
 import ProfileSettings from './profileSettings.jsx';
@@ -59,7 +60,7 @@ const allLinkItems = [
   
   //doc-track
   { name: 'Dashboard', icon: FiGrid, path : '/doc-track/metrics', roles: ['DMM'] },
-  { name: 'Register Document', icon: FiGrid, path : '/doc-track/register-document', roles: ['DMS', 'DMM'] },
+  { name: 'Produce Document', icon: IoDocumentAttachOutline, path : '/doc-track/register-document', roles: ['DMS', 'DMM'] },
   { name: 'Incoming', icon: FiInbox, path : '/doc-track/incoming', count: 8, roles: ['DMS', 'DMM'] },
   { name: 'Pending', icon: FiClock, path : '/doc-track/pending', count: 6, roles: ['DMS', 'DMM'] },
   { name: 'Outgoing', icon: FiSend, path : '/doc-track/outgoing', count: 4, roles: ['DMS', 'DMM'] },
