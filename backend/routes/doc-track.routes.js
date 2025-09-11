@@ -6,9 +6,11 @@ import {
     registerDocument,
     downloadQrCode,
     forwardDocument,
+    registerAndForwardDocument,
     receiveDocument,
     archiveDocument,
     releaseDocument,
+    getAdminAndStaffAccounts,
     getIncomingForwardedDocuments,
     getPendingDocuments,
     getDocumentTypes,
@@ -23,9 +25,12 @@ router.post('/update-document-type', updateDocumentType);
 router.post('/register-document', registerDocument);
 router.get('/download-qr-code/:id', downloadQrCode);
 router.post('/forward-document', forwardDocument);
+router.post('/register-forward-document', registerAndForwardDocument);
 router.post('/receive-document', receiveDocument);
 router.post('/archive-document', archiveDocument);
 router.post('/release-document', releaseDocument);
+
+router.get('/get-admin-staff-accounts/:id', getAdminAndStaffAccounts);
 
 router.get('/get-incoming-forwarded-documents/:id', getIncomingForwardedDocuments);
 router.get('/get-pending-documents/:id', getPendingDocuments);

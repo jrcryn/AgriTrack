@@ -1,6 +1,7 @@
 import axios from 'axios'
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
+import { useAuthStore } from '../../auth/store/authStore';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -10,6 +11,15 @@ export const useDocumentTypesQuery = () =>
         queryFn: async () => {
             //await new Promise(resolve => setTimeout(resolve, 5000));
             const response = await axios.get(`${API_URL}/api/doc-track/get-document-types`)
+            return response.data.data;
+        },
+    });
+
+export const useStaffAndAdminAccountsQuery = (id) => 
+    useQuery({
+        queryKey: ['adminStaffAccounts'],
+        queryFn: async () => {
+            const response = await axios.get(`${API_URL}/api/doc-track/get-admin-staff-accounts/${id}`)
             return response.data.data;
         },
     });
@@ -45,9 +55,11 @@ export const useDocumentHistoryQuery = (page = 1, id) =>
     });
 
 export const useAdminDashboard = () => {
-    const [id, setId] = useState(null);
+    const { user } = useAuthStore()
+    const id = user.id
 
     const { data: documentTypes = [], isLoading: isLoadingDocumentTypes, error: documentTypesError } = useDocumentTypesQuery();
+    const { data: adminAndStaffAccounts = [], isLoading: isLoadingAdminAndStaffAccounts, error: adminAndStaffAccountsError } = useStaffAndAdminAccountsQuery(id);
     const { data: forwardedDocuments = [], isLoading: isLoadingForwardedDocuments, error: forwardedDocumentsError } = useIncomingForwardedDocumentsQuery(id);
     const { data: pendingDocuments = [], isLoading: isLoadingPendingDocuments, error: pendingDocumentsError } = usePendingDocumentsQuery(id);
     const { data: documentHistory = [], isLoading: isLoadingDocumentHistory, error: documentHistoryError } = useDocumentHistoryQuery(id);
@@ -56,6 +68,7 @@ export const useAdminDashboard = () => {
     const [isUpdatingDocumentType, setIsUpdatingDocumentType] = useState(false);
     const [isRegisteringDocument, setIsRegisteringDocument] = useState(false);
     const [isForwardingDocument, setIsForwardingDocument] = useState(false);
+    const [isRegisteringAndForwardingDocument, setIsRegisteringAndForwardingDocument] = useState(false);
     const [isReceivingDocument, setIsReceivingDocument] = useState(false);
     const [isArchivingDocument, setIsArchivingDocument] = useState(false);
     const [isReleasingDocument, setIsReleasingDocument] = useState(false);
@@ -110,6 +123,18 @@ export const useAdminDashboard = () => {
         }
     };
 
+    const registerAndForwardDocument = async (data) => {
+        setIsRegisteringAndForwardingDocument(true);
+        try {   
+            const response = await axios.post(`${API_URL}/api/doc-track/register-forward-document`, data)
+            return response.data;
+        } catch {
+            throw error;
+        } finally {
+            setIsRegisteringAndForwardingDocument(false);
+        }
+    };
+
     const receiveDocument = async (data) => {
         setIsReceivingDocument(true);
         try {   
@@ -161,16 +186,17 @@ export const useAdminDashboard = () => {
     return {
         // automatic queries
         documentTypes,
+        adminAndStaffAccounts,
         forwardedDocuments,
         pendingDocuments,
         documentHistory,
-        setId,
 
         // action functions
         createDocument,
         updateDocumentType,
         registerDocument,
         forwardDocument,
+        registerAndForwardDocument,
         receiveDocument,
         archiveDocument,
         releaseDocument,
@@ -178,6 +204,7 @@ export const useAdminDashboard = () => {
 
         //loading states
         isLoadingDocumentTypes,
+        isLoadingAdminAndStaffAccounts,
         isLoadingForwardedDocuments,
         isLoadingPendingDocuments,
         isLoadingDocumentHistory,
@@ -186,6 +213,7 @@ export const useAdminDashboard = () => {
         isUpdatingDocumentType,
         isRegisteringDocument,
         isForwardingDocument,
+        isRegisteringAndForwardingDocument,
         isReceivingDocument,
         isArchivingDocument,
         isReleasingDocument,
@@ -193,6 +221,7 @@ export const useAdminDashboard = () => {
 
         //error states
         documentTypesError,
+        adminAndStaffAccountsError,
         forwardedDocumentsError,
         pendingDocumentsError,
         documentHistoryError,

@@ -352,7 +352,7 @@ export const registerAndForwardDocument = async (req, res) => {
         });
 
         const newDocRegistration = await global.docTrackModels.DocumentLifeCycle.create({
-            documentId: document._id,
+            documentId: registerDocument._id,
             documentName: registerDocument.documentName,
             documentCode: registerDocument.documentCode,
 
@@ -399,7 +399,7 @@ export const registerAndForwardDocument = async (req, res) => {
                     lifeCycle: {
                         action: 'Forwarded',
                         performedBy: {
-                            userModel: userModel,
+                            userModel: forwardAccountModel,
                             userId: registerAccount._id,
                             first_name: registerAccount.first_name,
                             last_name: registerAccount.last_name,
@@ -627,6 +627,32 @@ export const releaseDocument = async (req, res) => {
     } catch (error) {
         return res.status(500).json({success: false, message: 'Error releasing document', error: error.message});
      }
+};
+
+export const getAdminAndStaffAccounts = async (req, res) => {
+    const {id} = req.params;
+    try {
+        const projection = {
+            first_name: 1,
+            last_name: 1,
+            middle_name: 1,
+            suffix: 1,
+            role: 1,
+            office_position: 1
+        }
+        const filter = {_id: {$ne: id}};
+        const [managers, staffs] = await Promise.all([
+            global.docTrackModels.ManagerAccount.find(filter, projection).lean(),
+            global.docTrackModels.StaffAccount.find(filter, projection).lean()
+        ]);
+
+        const allAccounts = [...managers, ...staffs];
+
+        return res.status(200).json({success: true, message: 'Successfully fetched all admin and staff accounts.', data: allAccounts})
+    } catch (error) {   
+        console.error('Error fetching admin and staff accounts:', error);
+        return res.status(500).json({success: false, message: 'Error fetching accounts.', error: error.message});
+    }   
 };
 
 export const getIncomingForwardedDocuments = async (req, res) => {

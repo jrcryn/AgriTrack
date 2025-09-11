@@ -12,28 +12,31 @@ import { useAuthStore } from '../../auth/store/authStore.js';
 
 const B_RegisterDocument = () => {
 
+  const { user } = useAuthStore();
   const {
       documentTypes,
       isLoadingDocumentTypes,
       documentTypesError,
+
+      adminAndStaffAccounts,
+      isLoadingAdminAndStaffAccounts,
+      adminAndStaffAccountsError,
+
       registerDocument,
-      forwardDocument,
       isRegisteringDocument,
-      isForwardingDocument
+      registerAndForwardDocument,
+      isRegisteringAndForwardingDocument,
     } = useAdminDashboard();
 
-    const { user } = useAuthStore();
+    
     const toast = useToast();
 
-    const {registeredDocId, setRegisteredDocID} = useState('')
-    const {forwardImmediately, setForwardImmediately} = useState(false);
     const [formData, setFormData] = useState({
-      documentId: '',
       userAccountId: user.id,
+      documentId: '',
       priority: '',
       details: '',
 
-      registeredDocId: registeredDocId,
       forwardAccountId: '',
       forwardRemarks: ''
     }) /* yung ibang details: (Register: userAccountId, documentId) and (Forward: userAccountId, forwardAccountId, registeredDocId) sa mismong function 
@@ -69,8 +72,7 @@ const B_RegisterDocument = () => {
 
     const handleRegisterAndForwardDocument = async () => {
       try {
-        //first register the document
-        const response = await registerDocument(formData);
+        const response = await registerAndForwardDocument(formData);
         toast({
           title: "Success",
           description: response.message,
@@ -78,16 +80,7 @@ const B_RegisterDocument = () => {
           duration: 5000,
           isClosable: true,
         });
-        //2nd forward it
-        setRegisteredDocID(response.newDocRegistration._id); //for forwarding
-        const response2 = await forwardDocument(formData);
-        toast({
-          title: "Success",
-          description: response2.message,
-          status: "success",
-          duration: 5000,
-          isClosable: true,
-        });
+        
       } catch (error) {
         toast({
           title: "Error",
@@ -201,33 +194,85 @@ const B_RegisterDocument = () => {
               </FormControl>
             </HStack>
             
+
+              <FormControl>
+                <FormLabel>Forward To:</FormLabel>
+                <Select
+                  name="forwardAccountId"
+                  value={formData.forwardAccountId}
+                  onChange={handleInputChange}
+                  placeholder='Select a user to forward to'
+                  isDisabled={isLoadingAdminAndStaffAccounts || !adminAndStaffAccounts || !formData.documentId || !formData.priority || !formData.details}
+                >
+                  {isLoadingAdminAndStaffAccounts ? (
+                      <option value="">Loading user accounts...</option>
+                    ) : adminAndStaffAccounts && adminAndStaffAccounts.length > 0 ? (
+                      adminAndStaffAccounts.map((account) => (
+                        <option key={account._id} value={account._id}>
+                          {`${account.first_name} ${account.last_name} (${account.office_position || account.role.charAt(0).toUpperCase() + account.role.slice(1)})`}
+                        </option>
+                      ))
+                    ) : (
+                      <option>No user accounts available...</option>
+                    )}
+                
+                    {adminAndStaffAccountsError && (
+                      <option>Error user accounts...</option>
+                    )}
+                </Select>
+              </FormControl>
+
+              <FormControl>
+                <FormLabel>Forward Remarks</FormLabel>
+                <Input
+                  name='forwardRemarks'
+                  type='text'
+                  placeholder='Instructions or remarks'
+                  value={formData.forwardRemarks}
+                  onChange={handleInputChange}
+                  borderColor='gray.300'
+                  _focus={{ borderColor: "blue.400" }}
+                  isDisabled={!formData.documentId || !formData.priority || !formData.details}
+                />
+              </FormControl>
+
             
             <Divider my={2} />
 
             <HStack>
-            <Button
-              colorScheme="orange"
-              leftIcon={<IoArrowForwardCircle />}
-              onClick={() => setForwardImmediately(true)}
-              size="md"
-              width="100%"
-              isDisabled={!formData.documentId || !formData.priority || !formData.details}
-            >
-              Forward Immediately
-            </Button>
+            
+              
+            
+              
 
-            <Button
-              colorScheme="green"
-              leftIcon={<MdCreateNewFolder />}
-              //onClick={handleGenerateReport}
-              isLoading={isRegisteringDocument}
-              loadingText="Registering..."
-              size="md"
-              width="100%"
-              isDisabled={!formData.documentId || !formData.priority || !formData.details}
-            >
-              Register Document
-            </Button>
+            {!formData.forwardAccountId ? (
+              <Button
+                colorScheme="green"
+                leftIcon={<MdCreateNewFolder />}
+                onClick={handleRegisterDocument}
+                isLoading={isRegisteringDocument}
+                loadingText="Registering..."
+                size="md"
+                width="100%"
+                isDisabled={!formData.documentId || !formData.priority || !formData.details}
+              >
+                Register Document
+              </Button>
+            ) : (
+              <Button
+                colorScheme="orange"
+                leftIcon={<IoArrowForwardCircle />}
+                onClick={handleRegisterAndForwardDocument}
+                isLoading={isRegisteringAndForwardingDocument}
+                loadingText='Registering and Forwarding...'
+                size="md"
+                width="100%"
+                isDisabled={!formData.documentId || !formData.priority || !formData.details || !formData.forwardAccountId || !formData.forwardRemarks}
+                >
+                  Register & Forward Immediately
+              </Button>
+            )}
+              
             </HStack>
             
           </VStack>
