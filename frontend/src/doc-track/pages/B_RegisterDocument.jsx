@@ -8,6 +8,7 @@ import { IoArrowForwardCircle } from "react-icons/io5";
 import { MdCreateNewFolder } from "react-icons/md";
 import { HiMiniViewfinderCircle } from "react-icons/hi2";
 import { useAdminDashboard } from '../store/adminDashboard.store.js';
+import { useAuthStore } from '../../auth/store/authStore.js';
 
 const B_RegisterDocument = () => {
 
@@ -21,13 +22,82 @@ const B_RegisterDocument = () => {
       isForwardingDocument
     } = useAdminDashboard();
 
+    const { user } = useAuthStore();
+    const toast = useToast();
+
+    const {registeredDocId, setRegisteredDocID} = useState('')
+    const {forwardImmediately, setForwardImmediately} = useState(false);
     const [formData, setFormData] = useState({
+      documentId: '',
+      userAccountId: user.id,
       priority: '',
       details: '',
+
+      registeredDocId: registeredDocId,
+      forwardAccountId: '',
       forwardRemarks: ''
     }) /* yung ibang details: (Register: userAccountId, documentId) and (Forward: userAccountId, forwardAccountId, registeredDocId) sa mismong function 
      ng handle submits nalang nakalagay, mag kasama na roon yung function for registering and forwarding document*/
-     
+    
+    const handleInputChange = (e) => {
+      const {name, value} = e.target;
+      setFormData({...formData, [name]: value});
+    };
+
+    console.log(formData);
+
+    const handleRegisterDocument = async () => {
+      try {
+        const response = await registerDocument(formData);
+        toast({
+          title: "Success",
+          description: response.message,
+          status: "success",
+          duration: 5000,
+          isClosable: true,
+        });
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: error.response?.data?.message,
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
+      }
+    };
+
+    const handleRegisterAndForwardDocument = async () => {
+      try {
+        //first register the document
+        const response = await registerDocument(formData);
+        toast({
+          title: "Success",
+          description: response.message,
+          status: "success",
+          duration: 5000,
+          isClosable: true,
+        });
+        //2nd forward it
+        setRegisteredDocID(response.newDocRegistration._id); //for forwarding
+        const response2 = await forwardDocument(formData);
+        toast({
+          title: "Success",
+          description: response2.message,
+          status: "success",
+          duration: 5000,
+          isClosable: true,
+        });
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: error.response?.data?.message,
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
+      }
+    }
   return (
     <Box 
     overflow="hidden" 
@@ -73,8 +143,9 @@ const B_RegisterDocument = () => {
               <FormControl isRequired>
                 <FormLabel>Select Document Type</FormLabel>
                   <Select
-                    //value={selectedDocId}
-                    //onChange={handleSelectDocumentForEdit}
+                    name="documentId"
+                    value={formData.documentId}
+                    onChange={handleInputChange}
                     isDisabled={isLoadingDocumentTypes || !documentTypes}
                   >
                     
@@ -102,7 +173,13 @@ const B_RegisterDocument = () => {
             <HStack>
               <FormControl isRequired>
                 <FormLabel>Priority Level</FormLabel>
-                <Select>
+                <Select
+                  name='priority'
+                  placeholder='Select priority level'
+                  value={formData.priority}
+                  onChange={handleInputChange}
+                  isDisabled={!formData.documentId}
+                >
                   <option value="Low">Low</option>
                   <option value="Medium">Medium</option>
                   <option value="Urgent">Urgent</option>
@@ -114,12 +191,12 @@ const B_RegisterDocument = () => {
                 <Input
                   name='details'
                   type='text'
-                  placeholder=' '
-                  //value={editFormData.documentName}
-                  //onChange={handleEditInputChange}
+                  placeholder='Details or remarks'
+                  value={formData.details}
+                  onChange={handleInputChange}
                   borderColor='gray.300'
                   _focus={{ borderColor: "blue.400" }}
-                  //isDisabled={!selectedDocId}
+                  isDisabled={!formData.documentId}
                 />
               </FormControl>
             </HStack>
@@ -131,11 +208,10 @@ const B_RegisterDocument = () => {
             <Button
               colorScheme="orange"
               leftIcon={<IoArrowForwardCircle />}
-              //onClick={handleGenerateReport}
-              //isLoading={isGeneratingReport}
+              onClick={() => setForwardImmediately(true)}
               size="md"
               width="100%"
-              //isDisabled={!selectedMonth || dateRanges.length === 0 || isLoading}
+              isDisabled={!formData.documentId || !formData.priority || !formData.details}
             >
               Forward Immediately
             </Button>
@@ -144,11 +220,11 @@ const B_RegisterDocument = () => {
               colorScheme="green"
               leftIcon={<MdCreateNewFolder />}
               //onClick={handleGenerateReport}
-              //isLoading={isGeneratingReport}
+              isLoading={isRegisteringDocument}
               loadingText="Registering..."
               size="md"
               width="100%"
-              //isDisabled={!selectedMonth || dateRanges.length === 0 || isLoading}
+              isDisabled={!formData.documentId || !formData.priority || !formData.details}
             >
               Register Document
             </Button>

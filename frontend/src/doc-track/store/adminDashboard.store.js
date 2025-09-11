@@ -8,7 +8,7 @@ export const useDocumentTypesQuery = () =>
     useQuery({
         queryKey: ['documentTypes'],
         queryFn: async () => {
-            await new Promise(resolve => setTimeout(resolve, 5000));
+            //await new Promise(resolve => setTimeout(resolve, 5000));
             const response = await axios.get(`${API_URL}/api/doc-track/get-document-types`)
             return response.data.data;
         },

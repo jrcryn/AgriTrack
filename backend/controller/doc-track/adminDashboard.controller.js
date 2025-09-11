@@ -181,7 +181,6 @@ export const registerDocument = async (req, res) => {
         });
 
     } catch (error) {
-
         console.error('Error registering document:', error);
         return res.status(500).json({ success: false, message: 'Error registering document.', error: error.message });
     }
@@ -269,12 +268,12 @@ export const forwardDocument = async (req, res) => {
         }
         const userModel = user instanceof global.docTrackModels.ManagerAccount ? 'Manager_Account' : 'Staff_Account';
 
-        let forwardUser = await global.docTrackModels.ManagerAccount.findById(forwardAccountId) ||
+        let forwardAccount = await global.docTrackModels.ManagerAccount.findById(forwardAccountId) ||
                           await global.docTrackModels.StaffAccount.findById(forwardAccountId);
-        if (!forwardUser) {
+        if (!forwardAccount) {
             return res.status(404).json({ success: false, message: 'Cannot find the user you are trying to forward to.' });
         }
-        const userForwardModel = forwardUser instanceof global.docTrackModels.ManagerAccount ? 'Manager_Account' : 'Staff_Account';
+        const userForwardModel = forwardAccount instanceof global.docTrackModels.ManagerAccount ? 'Manager_Account' : 'Staff_Account';
 
 
         const forwardDocument = await global.docTrackModels.DocumentLifeCycle.updateOne(
@@ -297,22 +296,22 @@ export const forwardDocument = async (req, res) => {
                         },
                         forwardDetails: {
                             userModel: userForwardModel,
-                            userId: forwardUser._id,
-                            first_name: forwardUser.first_name,
-                            last_name: forwardUser.last_name,
-                            middle_name: forwardUser.middle_name,
-                            suffix: forwardUser.suffix,
-                            role: forwardUser.role,
-                            office_position: forwardUser.office_position,
-                            email: forwardUser.email,
-                            phone: forwardUser.phone,
+                            userId: forwardAccount._id,
+                            first_name: forwardAccount.first_name,
+                            last_name: forwardAccount.last_name,
+                            middle_name: forwardAccount.middle_name,
+                            suffix: forwardAccount.suffix,
+                            role: forwardAccount.role,
+                            office_position: forwardAccount.office_position,
+                            email: forwardAccount.email,
+                            phone: forwardAccount.phone,
                             forwardRemarks: forwardRemarks
                         },
                         timeStamp: Date.now()
                     }
                     
                 },
-                $set: { currentHandler: { userId: forwardUser._id } }
+                $set: { currentHandler: { userId: forwardAccount._id } }
 
             }
         );
@@ -324,6 +323,127 @@ export const forwardDocument = async (req, res) => {
         return res.status(500).json({ success: false, message: 'Error forwarding document', error: error.message });
     }
 };
+
+export const registerAndForwardDocument = async (req, res) => {
+    const { userAccountId, documentId, priority, details, forwardAccountId, forwardRemarks } = req.body;
+
+    try {
+        const registerDocument = await global.docTrackModels.Document.findById(documentId);
+        if (!registerDocument) {
+            return res.status(404).json({ success: false, message: 'Document type not found.'});
+        }
+
+        let registerAccount = await global.docTrackModels.ManagerAccount.findById(userAccountId) ||
+                   await global.docTrackModels.StaffAccount.findById(userAccountId);
+        if (!registerAccount) {
+            return res.status(404).json({ success: false, message: 'Cannot find your account, please contact IT if error persists.'});
+        }
+
+        const registerAccountModel = registerAccount instanceof global.docTrackModels.ManagerAccount ? 'Manager_Account' : 'Staff_Account';
+
+        const newRefNumber = await getNextSequence('document_ref_number');
+        const readableDate = new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+        const qrData = JSON.stringify({
+        refNumber: newRefNumber,
+        name: registerDocument.documentName,
+        code: registerDocument.documentCode,
+        registeredBy: `${registerAccount.first_name}, ${registerAccount.last_name}`,
+        createdAt: readableDate
+        });
+
+        const newDocRegistration = await global.docTrackModels.DocumentLifeCycle.create({
+            documentId: document._id,
+            documentName: registerDocument.documentName,
+            documentCode: registerDocument.documentCode,
+
+            priority: priority,
+            refNumber: newRefNumber,
+            docQRData: qrData,
+
+            lifeCycle: {
+                action: 'Document Created',
+                performedBy: {
+                    userModel: registerAccountModel,
+                    userId: registerAccount._id,
+                    first_name: registerAccount.first_name,
+                    last_name: registerAccount.last_name,
+                    middle_name: registerAccount.middle_name,
+                    suffix: registerAccount.suffix,
+                    role: registerAccount.role,
+                    office_position: registerAccount.office_position,
+                    email: registerAccount.email,
+                    phone: registerAccount.phone
+                },
+                timeStamp: Date.now(),
+            },
+            details: details,
+            $set: { currentHandler: { userId: registerAccount._id } }
+        });
+        
+        let forwardAccount = await global.docTrackModels.ManagerAccount.findById(forwardAccountId) ||
+                   await global.docTrackModels.StaffAccount.findById(forwardAccountId);
+        if (!forwardAccount) {
+            return res.status(404).json({ success: false, message: 'Cannot find the user you are trying to forward to.'});
+        }
+        const forwardAccountModel = forwardAccount instanceof global.docTrackModels.ManagerAccount ? 'Manager_Account' : 'Staff_Account';
+
+        const forwardDocument = await global.docTrackModels.DocumentLifeCycle.findById(newDocRegistration._id);
+        if (!forwardDocument) {
+            return res.status(404).json({ success: false, message: 'Registered document not found.' });
+        }
+        
+        const docForwarded = await global.docTrackModels.DocumentLifeCycle.updateOne(
+            {_id: forwardDocument._id},
+            {
+                $push: {
+                    lifeCycle: {
+                        action: 'Forwarded',
+                        performedBy: {
+                            userModel: userModel,
+                            userId: registerAccount._id,
+                            first_name: registerAccount.first_name,
+                            last_name: registerAccount.last_name,
+                            middle_name: registerAccount.middle_name,
+                            suffix: registerAccount.suffix,
+                            role: registerAccount.role,
+                            office_position: registerAccount.office_position,
+                            email: registerAccount.email,
+                            phone: registerAccount.phone
+                        },
+                        forwardDetails: {
+                            userModel: forwardAccountModel,
+                            userId: forwardAccount._id,
+                            first_name: forwardAccount.first_name,
+                            last_name: forwardAccount.last_name,
+                            middle_name: forwardAccount.middle_name,
+                            suffix: forwardAccount.suffix,
+                            role: forwardAccount.role,
+                            office_position: forwardAccount.office_position,
+                            email: forwardAccount.email,
+                            phone: forwardAccount.phone,
+                            forwardRemarks: forwardRemarks
+                        },
+                        timeStamp: Date.now()
+                    }
+                    
+                },
+                $set: { currentHandler: { userId: forwardAccount._id } }
+
+            }
+        );
+
+        return res.status(201).json({ 
+            success: true, 
+            message: 'Document registered and forwarded successfully.', 
+            data: {newDocRegistration, docForwarded},
+            qrImageUrl: `/api/doc-track/download-qr-code/${newDocRegistration._id}`
+        });
+
+    } catch (error) {
+        console.error('Error registering and forwarding document:', error);
+        return res.status(500).json({ success: false, message: 'Error registering and forwarding document.', error: error.message });
+    }
+}
 
 export const receiveDocument = async (req, res) => {
     const { registeredDocId, userAccountId } = req.body;
