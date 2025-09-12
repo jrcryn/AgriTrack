@@ -6,6 +6,7 @@ import {
   Spinner, Alert, AlertIcon, Badge, AlertTitle, AlertDescription, Input, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter,
   useDisclosure, Table, Thead, Tbody, Tr, Th, Td, Tfoot, TableCaption, TableContainer
 } from "@chakra-ui/react";
+
 import { CheckCircleIcon, ArrowForwardIcon, TimeIcon } from "@chakra-ui/icons";
 import { FaArchive } from "react-icons/fa";
 import { CiInboxOut } from "react-icons/ci";
@@ -15,6 +16,7 @@ import { MdCreateNewFolder } from "react-icons/md";
 import { HiMiniViewfinderCircle } from "react-icons/hi2";
 import { MdCancel } from "react-icons/md";
 import { GrFolderCycle } from "react-icons/gr";
+import { FiSearch } from 'react-icons/fi';
 
 import { useAdminDashboard } from '../store/adminDashboard.store.js';
 import { useAuthStore } from '../../auth/store/authStore.js';
@@ -63,7 +65,9 @@ const B_RegisterDocument = () => {
       details: '',
 
       forwardAccountId: '',
-      forwardRemarks: ''
+      forwardRemarks: '',
+
+      referenceNumber: ''
     }) /* yung ibang details: (Register: userAccountId, documentId) and (Forward: userAccountId, forwardAccountId, registeredDocId) sa mismong function 
      ng handle submits nalang nakalagay, mag kasama na roon yung function for registering and forwarding document*/
     
@@ -128,19 +132,26 @@ const B_RegisterDocument = () => {
       }
     }
 
-    const handleScan = async (data) => {
-      if (!data) {
-        toast({
-          title: "Error",
-          description: "No QR code data found.",
-          status: "error",
-          duration: 5000,
-          isClosable: true,
-        });
-      }
+    const handleFindDocument = async (data) => {
+      const payload = {};
+
       try {
-        const qrData = JSON.parse(data?.[0]?.rawValue);
-        const response = await documentStatus({qrData});
+        if (scanning) {
+          payload.qrData = JSON.parse(data[0].rawValue);
+        } else if (formData.referenceNumber) {
+          payload.refNumber = formData.referenceNumber;
+        } else {
+          toast({
+            title: "Input Error",
+            description: "Please enter a reference number or scan a QR code.",
+            status: "error",
+            duration: 5000,
+            isClosable: true,
+          });
+          return;
+        }
+
+        const response = await documentStatus(payload);
         setScanResults(response.data);
         toast({
             title: "Success",
@@ -382,7 +393,7 @@ const B_RegisterDocument = () => {
             borderLeftColor="blue.500"
           >
             <Heading as="h2" size="md" display="flex" alignItems="center">
-              <Icon as={HiMiniViewfinderCircle} mr={2} color="blue.600" /> FIND DOCUMENT VIA QR CODE
+              <Icon as={HiMiniViewfinderCircle} mr={2} color="blue.600" /> FIND DOCUMENT VIA REFERENECE NUMBER OR QR CODE 
             </Heading>
           </Flex>
           
@@ -394,11 +405,37 @@ const B_RegisterDocument = () => {
             borderColor="gray.200"
           >
             <VStack spacing={5} align="stretch">
+
+
             {!scanning ? (
               <VStack spacing={4} align="center">
+                <FormControl isRequired>
+                  <FormLabel fontSize="md">Reference Number</FormLabel>
+                  <Input
+                    name='referenceNumber'
+                    type='text'
+                    placeholder='Enter reference number'
+                    value={formData.referenceNumber}
+                    onChange={handleInputChange}
+                    borderColor='gray.300'
+                    _focus={{ borderColor: "blue.400" }}
+                  />
+                </FormControl>
+                <Button 
+                  colorScheme="blue"
+                  onClick={handleFindDocument}
+                  size={"md"}
+                  width="100%"
+                  leftIcon={<FiSearch />}
+                  isDisabled={!formData.referenceNumber || isGettingDocumentStatus}
+                  isLoading={isGettingDocumentStatus}
+                >
+                  Find Document
+                </Button>
+
                 <Text>Scan a document QR code to quickly view its details and status. Your browser may ask for permission to use the camera.</Text>
                 <Button
-                  colorScheme="blue"
+                  colorScheme="orange"
                   leftIcon={<HiMiniViewfinderCircle />}
                   onClick={handleStartScanning}
                   size="md"
@@ -441,7 +478,7 @@ const B_RegisterDocument = () => {
                   width="100%"
                 >
                   <Scanner
-                    onScan={handleScan}
+                    onScan={handleFindDocument}
                     style={{ width: '100%' }}
                     constraints={{
                       audio: false,
@@ -675,6 +712,8 @@ const B_RegisterDocument = () => {
                   onClose();
                   setScanResults(null);
                   setScanning(false);
+                  setFormData({...formData, referenceNumber: ''});
+
                 }}
                 size="md"
                 _hover={{ bg: "gray.100" }}

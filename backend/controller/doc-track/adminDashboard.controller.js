@@ -883,9 +883,9 @@ export const getDocumentHistory = async (req, res) => { //para sa history
 };
 
 export const getDocumentStatus = async (req, res) => { //check doc status, tatangapin na is buong qr data, need ng controller basahin lang yung ref number
-    const { qrData } = req.body;
+    const { qrData, refNumber } = req.body;
     try {
-        const number = qrData.refNumber;
+        let number = qrData?.refNumber || refNumber;
         if (!number) {
             return res.status(400).json({success: false, message: "Invalid QR data."})
         }

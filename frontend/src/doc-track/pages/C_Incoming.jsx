@@ -30,6 +30,7 @@ import {
 } from '@chakra-ui/react';
 import { FiSearch, FiInbox } from 'react-icons/fi';
 import { FaQrcode } from 'react-icons/fa';
+import { useAuthStore } from '../../auth/store/authStore';
 
 const C_Incoming = () => {
   // State for search query
@@ -39,13 +40,6 @@ const C_Incoming = () => {
   
   // Mock empty state - would be replaced with real data in actual implementation
   const hasDocuments = false;
-
-  // Mock function for QR scanning
-  const handleScanQR = () => {
-    setIsScanning(true);
-    // Simulate a scanning process
-    setTimeout(() => setIsScanning(false), 2000);
-  };
 
   // Priority badge color mapping
   const getPriorityColor = (priority) => {
@@ -109,9 +103,7 @@ const C_Incoming = () => {
           
         {/* QR Code Scan Button */}
         <Button
-            onClick={handleScanQR}
-            isLoading={isScanning}
-            loadingText="Scanning"
+            //onClick={handleScanQR}
             bg="green.500"
             color={"white"}
             _hover={{ bg: "green.600" }}
@@ -153,7 +145,6 @@ const C_Incoming = () => {
             <Tab>All</Tab>
             <Tab>Low</Tab>
             <Tab>Medium</Tab>
-            <Tab>High</Tab>
             <Tab>Urgent</Tab>
           </TabList>
 
