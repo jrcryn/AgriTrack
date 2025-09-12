@@ -18,8 +18,6 @@ import { GrFolderCycle } from "react-icons/gr";
 
 import { useAdminDashboard } from '../store/adminDashboard.store.js';
 import { useAuthStore } from '../../auth/store/authStore.js';
-import { set } from 'lodash';
-import { color } from 'framer-motion';
 
 const B_RegisterDocument = () => {
 
@@ -55,6 +53,8 @@ const B_RegisterDocument = () => {
 
     const [scanning, setScanning] = useState(false);
     const [scanResults, setScanResults] = useState(null);
+    const [devices, setDevices] = useState([]);
+    const [selectedDeviceId, setSelectedDeviceId ] = useState('');
 
     const [formData, setFormData] = useState({
       userAccountId: user.id,
@@ -155,6 +155,29 @@ const B_RegisterDocument = () => {
         toast({
           title: "Error",
           description: error.response?.data?.message || "Failed to retrieve document status.",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
+        setScanResults(null);
+      }
+    };
+
+    const handleStartScanning = async () => {
+      setScanning(true);
+      try {
+        const availableDevices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = availableDevices.filter(d => d.kind === 'videoinput');
+        setDevices(videoDevices);
+        if (videoDevices.length > 0) {
+          // Prefer the back camera if available, otherwise use the first one
+          const rearCamera = videoDevices.find(device => device.label.toLowerCase().includes('back'));
+          setSelectedDeviceId(rearCamera ? rearCamera.deviceId : videoDevices[0].deviceId);
+        }
+      } catch (err) {
+        toast({
+          title: "Camera Error",
+          description: "Could not access camera devices. Please check permissions.",
           status: "error",
           duration: 5000,
           isClosable: true,
@@ -392,6 +415,24 @@ const B_RegisterDocument = () => {
             ) : scanning && !scanResults ? (
               <VStack spacing={4}>
                 <Text>Point your camera at a QR code to scan. Ensure the code is well-lit and clearly visible.</Text>
+
+                {devices.length > 1 && (
+                  <FormControl>
+                    <FormLabel fontSize="sm">Change Camera</FormLabel>
+                    <Select 
+                      size="sm"
+                      value={selectedDeviceId}
+                      onChange={(e) => setSelectedDeviceId(e.target.value)}
+                    >
+                      {devices.map(device => (
+                        <option key={device.deviceId} value={device.deviceId}>
+                          {device.label || `Camera ${devices.indexOf(device) + 1}`}
+                        </option>
+                      ))}
+                    </Select>
+                  </FormControl>
+                )}
+
                 <Box 
                   borderWidth="1px" 
                   borderColor="gray.300" 
@@ -404,7 +445,8 @@ const B_RegisterDocument = () => {
                     style={{ width: '100%' }}
                     constraints={{
                       audio: false,
-                      video: { facingMode: "environment" }
+                      video: { facingMode: "environment" },
+                      deviceId: selectedDeviceId ? {exact: selectedDeviceId} : undefined
                     }}
                     isDisabled={true}
                   />
