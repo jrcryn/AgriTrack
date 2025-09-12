@@ -73,5 +73,13 @@ export const DocumentLifeCycleSchema = new mongoose.Schema({
     currentHandler: { //for forwarding lang, not indicative of actual current handler kung hindi pa na re-receive
         userModel: { type: String, enum: ['Staff_Account', 'Manager_Account'] },
         userId: { type: mongoose.Schema.Types.ObjectId, refPath: 'currentHandler.userModel' },
+        first_name: String,
+        last_name: String,
+        middle_name: String,
+        suffix: String,
+        role: String,
+        office_position: String,
+        email: String,
+        phone: String,
     }
 }, {versionKey: false});

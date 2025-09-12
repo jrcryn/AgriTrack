@@ -311,7 +311,17 @@ export const forwardDocument = async (req, res) => {
                     }
                     
                 },
-                $set: { currentHandler: { userId: forwardAccount._id } }
+                $set: { currentHandler: { 
+                    userId: forwardAccount._id,
+                    first_name: forwardAccount.first_name,
+                    last_name: forwardAccount.last_name,
+                    middle_name: forwardAccount.middle_name,
+                    suffix: forwardAccount.suffix,
+                    role: forwardAccount.role,
+                    office_position: forwardAccount.office_position,
+                    email: forwardAccount.email,
+                    phone: forwardAccount.phone
+                } }
 
             }
         );
@@ -427,7 +437,17 @@ export const registerAndForwardDocument = async (req, res) => {
                     }
                     
                 },
-                $set: { currentHandler: { userId: forwardAccount._id } }
+                $set: { currentHandler: { 
+                    userId: forwardAccount._id,
+                    first_name: forwardAccount.first_name,
+                    last_name: forwardAccount.last_name,
+                    middle_name: forwardAccount.middle_name,
+                    suffix: forwardAccount.suffix,
+                    role: forwardAccount.role,
+                    office_position: forwardAccount.office_position,
+                    email: forwardAccount.email,
+                    phone: forwardAccount.phone
+                } }
 
             }
         );
@@ -793,7 +813,7 @@ export const getDocumentTypes = async (req, res) => {
     }
 };
 
-export const getDocumentHistory = async (req, res) => {
+export const getDocumentHistory = async (req, res) => { //para sa history
     const {id} = req.params;
     try {
         const page = parseInt(req.query.page) || 1;
@@ -862,10 +882,16 @@ export const getDocumentHistory = async (req, res) => {
     }
 };
 
-export const getDocumentStatus = async (req, res) => { //check doc status
-    const { refNum } = req.params;
+export const getDocumentStatus = async (req, res) => { //check doc status, tatangapin na is buong qr data, need ng controller basahin lang yung ref number
+    const { qrData } = req.body;
     try {
-        const document = await global.docTrackModels.DocumentLifeCycle.findOne({refNumber: refNum})
+        const number = qrData.refNumber;
+        if (!number) {
+            return res.status(400).json({success: false, message: "Invalid QR data."})
+        }
+        const document = await global.docTrackModels.DocumentLifeCycle.findOne({refNumber: number}) ||
+                         await global.docTrackModels.ArchivedDocuments.findOne({refNumber: number}) ||
+                         await global.docTrackModels.ReleasedDocuments.findOne({refNumber: number});
 
         if (!document) {
             return res.status(404).json({success: false, message: "Cannot find document with that reference number."})

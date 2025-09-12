@@ -73,6 +73,7 @@ export const useAdminDashboard = () => {
     const [isArchivingDocument, setIsArchivingDocument] = useState(false);
     const [isReleasingDocument, setIsReleasingDocument] = useState(false);
     const [isDownloadingQRCode, setIsDownloadingQRCode] = useState(false);
+    const [isGettingDocumentStatus, setIsGettingDocumentStatus] = useState(false);
 
 
     const createDocument = async (data) => {
@@ -183,6 +184,19 @@ export const useAdminDashboard = () => {
         }
     };
 
+    const documentStatus = async (data) => {
+        setIsGettingDocumentStatus(true);
+        try {  
+            //await new Promise(resolve => setTimeout(resolve, 5000));
+            const response = await axios.post(`${API_URL}/api/doc-track/get-document-status`, data)
+            return response.data;
+        } catch {
+            throw error;
+        } finally {
+            setIsGettingDocumentStatus(false);
+        }
+    };
+
     return {
         // automatic queries
         documentTypes,
@@ -201,6 +215,7 @@ export const useAdminDashboard = () => {
         archiveDocument,
         releaseDocument,
         downloadQRCode,
+        documentStatus,
 
         //loading states
         isLoadingDocumentTypes,
@@ -218,6 +233,7 @@ export const useAdminDashboard = () => {
         isArchivingDocument,
         isReleasingDocument,
         isDownloadingQRCode,
+        isGettingDocumentStatus,
 
         //error states
         documentTypesError,

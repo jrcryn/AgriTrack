@@ -242,7 +242,7 @@ const B_HVCSaMPR = () => {
         >
           <VStack spacing={6} align="stretch">
             <Text>Generate bi-weekly reports using the HVC template with data from farmer submissions.</Text>
-            
+
             <HStack spacing={4} align="flex-start">
               <FormControl>
                 <FormLabel fontWeight="medium">Year</FormLabel>

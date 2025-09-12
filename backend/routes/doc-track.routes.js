@@ -38,7 +38,7 @@ router.get('/get-pending-documents/:id', getPendingDocuments);
 router.get('/get-document-types', getDocumentTypes);
 router.get('/get-document-history/:id', getDocumentHistory);
 
-router.get('/get-document-status/:refNum', getDocumentStatus)
+router.post('/get-document-status', getDocumentStatus)
 
 export default router;
 
