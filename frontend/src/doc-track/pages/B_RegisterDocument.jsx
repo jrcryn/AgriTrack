@@ -400,7 +400,7 @@ const B_RegisterDocument = () => {
                 <Button
                   colorScheme="blue"
                   leftIcon={<HiMiniViewfinderCircle />}
-                  onClick={() => setScanning(true)}
+                  onClick={handleStartScanning}
                   size="md"
                   width="100%"
                 >
