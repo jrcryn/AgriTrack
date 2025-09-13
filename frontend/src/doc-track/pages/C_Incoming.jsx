@@ -23,42 +23,102 @@ import {
   Badge,
   FormControl,
   FormLabel,
-  HStack,
-  Spinner,
   Center,
-  Select
+  Spinner,
+  TableContainer,
 } from '@chakra-ui/react';
 import { FiSearch, FiInbox } from 'react-icons/fi';
 import { FaQrcode } from 'react-icons/fa';
 import { useAuthStore } from '../../auth/store/authStore';
+import { useAdminDashboard } from '../store/adminDashboard.store';
 
 const C_Incoming = () => {
-  // State for search query
   const [searchQuery, setSearchQuery] = useState('');
-  const [isScanning, setIsScanning] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
-  
-  // Mock empty state - would be replaced with real data in actual implementation
-  const hasDocuments = false;
+  const [page, setPage] = useState(1);
 
-  // Priority badge color mapping
+  const { user } = useAuthStore();
+
+  const {
+    forwardedDocuments,
+    isLoadingForwardedDocuments,
+    forwardedDocumentsError,
+    receiveDocument,
+    isReceivingDocument,
+    forwardedRefetch,
+  } = useAdminDashboard({ incomingPage: page });
+
+  const priorities = ['All', 'Low', 'Medium', 'Urgent'];
+
   const getPriorityColor = (priority) => {
     switch(priority) {
       case 'Low': return 'green';
       case 'Medium': return 'blue';
-      case 'High': return 'orange';
       case 'Urgent': return 'red';
       default: return 'gray';
     }
   };
 
-  return (
-    <Box 
-      overflow="hidden" 
-      bg="white" 
-      p={5} 
-      minH="100vh"
+  const allDocs = forwardedDocuments?.data?.relevantDocs || [];
+  const totalPages = forwardedDocuments?.data?.totalPages || 1;
+  const currentPage = forwardedDocuments?.data?.currentPage || page;
+
+  const filterDocs = (priorityLabel) => {
+    const q = (searchQuery || '').toString().trim();
+    return allDocs.filter(doc => {
+      const matchesPriority = priorityLabel === 'All' ? true : doc.priority === priorityLabel;
+      const matchesQuery = q === '' ? true : String(doc.refNumber || '').includes(q);
+      return matchesPriority && matchesQuery;
+    });
+  };
+
+  const handleReceive = async (docId) => {
+    if (!user?.id) return;
+    try {
+      await receiveDocument({ registeredDocId: docId, userAccountId: user.id });
+      await forwardedRefetch();
+    } catch (_) {
+      // keep minimal UI; errors handled upstream/toast layer if any
+    }
+  };
+
+  const PaginationControls = ({ currentPage, setCurrentPage, totalPages, totalItems, colorScheme }) => (
+    <Flex 
+      justifyContent="space-between" 
+      mt={4} 
+      alignItems="center"
+      direction={{ base: "column", md: "row" }}
+      gap={{ base: 3, md: 0 }}
+      width={"100%"}
     >
+      <Text color="gray.600" fontSize="md">
+        Page {currentPage} of {totalPages || 1} ({totalItems} total)
+      </Text>
+      <Flex spacing={2}>
+        <Button
+          size="sm"
+          onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+          isDisabled={currentPage === 1}
+          colorScheme={colorScheme}
+          variant="outline"
+        >
+          Previous
+        </Button>
+        <Button
+          size="sm"
+          onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+          isDisabled={currentPage >= totalPages}
+          colorScheme={colorScheme}
+          variant="outline"
+        >
+          Next
+        </Button>
+      </Flex>
+    </Flex>
+  );
+
+  return (
+    <Box overflow="hidden" bg="white" p={5} minH="100vh">
       <Heading as="h1" size="xl" mb={2}>
         Incoming Documents
       </Heading>
@@ -67,20 +127,8 @@ const C_Incoming = () => {
       </Text>
 
       {/* Filter Section */}
-      <Flex
-        direction="column"
-        mb={6}
-        gap={4}
-        p={4}
-        bg="blue.50"
-        borderRadius="md"
-        boxShadow="sm"
-      >
-        <Flex 
-          direction={{ base: "column", md: "row" }} 
-          gap={4} 
-          alignItems={{ base: "stretch", md: "flex-end" }}
-        >
+      <Flex direction="column" mb={6} gap={4} p={4} bg="blue.50" borderRadius="md" boxShadow="sm">
+        <Flex direction={{ base: "column", md: "row" }} gap={4} alignItems={{ base: "stretch", md: "flex-end" }}>
           {/* Reference Number Search */}
           <FormControl flex="1">
             <FormLabel fontSize="sm" fontWeight="medium" display="flex" alignItems="center" gap={2}>
@@ -100,10 +148,9 @@ const C_Incoming = () => {
               </InputRightElement>
             </InputGroup>
           </FormControl>
-          
-        {/* QR Code Scan Button */}
-        <Button
-            //onClick={handleScanQR}
+
+          {/* QR Code Scan Button */}
+          <Button
             bg="green.500"
             color={"white"}
             _hover={{ bg: "green.600" }}
@@ -111,87 +158,132 @@ const C_Incoming = () => {
             size="md"
             alignSelf={{ base: "stretch", md: "flex-end" }}
             mt={{ base: 2, md: 0 }}
-            >
+            // onClick={handleScanQR}
+          >
             Scan QR Code
-        </Button>
+          </Button>
         </Flex>
       </Flex>
 
       {/* Documents Section */}
       <Box mb={8}>
-        <Flex 
-          justify="space-between" 
-          align="center" 
-          mb={4}
-          bg="green.50"
-          p={3}
-          borderRadius="md"
-          borderLeftWidth="4px"
-          borderLeftColor="green.500"
-        >
+        <Flex justify="space-between" align="center" mb={4} bg="green.50" p={3} borderRadius="md" borderLeftWidth="4px" borderLeftColor="green.500">
           <Heading as="h2" size="md" display="flex" alignItems="center">
             <Icon as={FiInbox} mr={2} color="green.600" /> INCOMING DOCUMENTS
           </Heading>
         </Flex>
 
         {/* Priority Tabs */}
-        <Tabs 
-          colorScheme="green" 
-          variant="enclosed" 
-          onChange={(index) => setActiveTab(index)}
-          mb={4}
-        >
+        <Tabs colorScheme="green" variant="enclosed" index={activeTab} onChange={(index) => setActiveTab(index)} mb={4}>
           <TabList>
-            <Tab>All</Tab>
-            <Tab>Low</Tab>
-            <Tab>Medium</Tab>
-            <Tab>Urgent</Tab>
+            {priorities.map((p) => <Tab key={p}>{p}</Tab>)}
           </TabList>
 
           <TabPanels>
-            {/* Each tab has the same structure but would filter by different priorities */}
-            {['All', 'Low', 'Medium', 'High', 'Urgent'].map((priority, index) => (
-              <TabPanel key={priority} p={0} pt={4}>
-                {hasDocuments ? (
-                  <Table variant="simple" size="md">
-                    <Thead bg="gray.50">
-                      <Tr>
-                        <Th>Reference #</Th>
-                        <Th>Title</Th>
-                        <Th>Date Received</Th>
-                        <Th>From</Th>
-                        <Th>Priority</Th>
-                        <Th>Status</Th>
-                        <Th width="100px">Actions</Th>
-                      </Tr>
-                    </Thead>
-                    <Tbody>
-                      {/* This would be populated with actual document data */}
-                    </Tbody>
-                  </Table>
-                ) : (
-                  <Center 
-                    p={10} 
-                    borderWidth="1px" 
-                    borderRadius="md" 
-                    borderStyle="dashed" 
-                    borderColor="gray.300"
-                    flexDirection="column"
-                    gap={3}
-                  >
-                    <Icon as={FiInbox} boxSize={10} color="gray.400" />
-                    <Text color="gray.500" fontWeight="medium">
-                      No {priority !== 'All' ? priority + ' priority' : ''} incoming documents found
-                    </Text>
-                    <Text fontSize="sm" color="gray.400">
-                      Documents will appear here once received in the system
-                    </Text>
-                  </Center>
-                )}
-              </TabPanel>
-            ))}
+            {priorities.map((priority) => {
+              const docs = filterDocs(priority);
+              const hasDocuments = docs.length > 0;
+              return (
+                <TabPanel key={priority} p={0} pt={4}>
+                  {isLoadingForwardedDocuments ? (
+                    <Center p={10}>
+                      <Spinner size="lg" color="green.500" />
+                    </Center>
+                  ) : hasDocuments ? (
+                    <Box overflowX="auto">
+                      <TableContainer>
+                        <Table variant="simple" size="md">
+                          <Thead bg="gray.50">
+                            <Tr>
+                              <Th>Reference #</Th>
+                              <Th>Title</Th>
+                              <Th>Date Forwarded</Th>
+                              <Th>From</Th>
+                              <Th>Priority</Th>
+                              <Th
+                                position={{ base: 'static', md: 'sticky' }}
+                                right={0}
+                                bg="gray.50"
+                                zIndex={{ base: 0, md: 1 }}
+                                textAlign="center"
+                                width="140px"
+                              >
+                                <Box display={{ base: 'none', md: 'block' }}>Scroll →</Box>
+                                <Box display={{ base: 'block', md: 'none' }}>Actions</Box>
+                              </Th>
+                            </Tr>
+                          </Thead>
+                          <Tbody>
+                            {docs.map((doc) => {
+                              const lastAction = doc.lastAction || (doc.lifeCycle?.[doc.lifeCycle.length - 1] ?? {});
+                              const from = `${lastAction?.performedBy?.first_name || ''} ${lastAction?.performedBy?.last_name || ''}`.trim() || '—';
+                              const receivedAt = lastAction?.timeStamp ? new Date(lastAction.timeStamp).toLocaleString() : '—';
+                              return (
+                                <Tr key={doc._id} fontSize="sm">
+                                  <Td fontWeight="semibold">{doc.refNumber || '—'}</Td>
+                                  <Td>{doc.documentName || '—'}</Td>
+                                  <Td>{receivedAt}</Td>
+                                  <Td>{from}</Td>
+                                  <Td>
+                                    <Badge colorScheme={getPriorityColor(doc.priority)}>{doc.priority || '—'}</Badge>
+                                  </Td>
+                                  <Td
+                                    isNumeric
+                                    position={{ base: 'static', md: 'sticky' }}
+                                    right={0}
+                                    zIndex={1}
+                                    bg="white"
+                                  >
+                                    <Button
+                                      size="sm"
+                                      colorScheme="green"
+                                      onClick={() => handleReceive(doc._id)}
+                                      isLoading={isReceivingDocument}
+                                    >
+                                      Receive
+                                    </Button>
+                                  </Td>
+                                </Tr>
+                              );
+                            })}
+                          </Tbody>
+                        </Table>
+                      </TableContainer>
+                    </Box>
+                  ) : (
+                    <Center
+                      p={10}
+                      borderWidth="1px"
+                      borderRadius="md"
+                      borderStyle="dashed"
+                      borderColor="gray.300"
+                      flexDirection="column"
+                      gap={3}
+                    >
+                      <Icon as={FiInbox} boxSize={10} color="gray.400" />
+                      <Text color="gray.500" fontWeight="medium">
+                        No {priority !== 'All' ? priority + ' priority' : ''} incoming documents found
+                      </Text>
+                      <Text fontSize="sm" color="gray.400">
+                        Documents will appear here once received in the system
+                      </Text>
+                    </Center>
+                  )}
+                </TabPanel>
+              );
+            })}
           </TabPanels>
         </Tabs>
+
+        <Flex justifyContent="space-between" alignItems="center" mt={4}>
+          <PaginationControls
+            currentPage={currentPage}
+            setCurrentPage={setPage}
+            totalPages={totalPages}
+            totalItems={forwardedDocuments?.data?.totalCount || 0}
+            colorScheme="green"
+          />
+        </Flex>
       </Box>
     </Box>
   );

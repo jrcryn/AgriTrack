@@ -29,7 +29,7 @@ import {
   ModalFooter,
   Button,
   Link,
-  useBreakpointValue, // added
+  useBreakpointValue,
 } from '@chakra-ui/react'
 import {
   FiGrid,
@@ -48,7 +48,7 @@ import { IoDocumentAttachOutline } from "react-icons/io5";
 import Logo from '../images/Calamba_Seal.png'
 import { useAuthStore } from '../auth/store/authStore.js'
 import ProfileSettings from './profileSettings.jsx';
-
+import { useAdminDashboard } from '../doc-track/store/adminDashboard.store.js';
 
 const allLinkItems = [
   // high-value-crops
@@ -65,7 +65,7 @@ const allLinkItems = [
   { name: 'Pending', icon: FiClock, path : '/doc-track/pending', count: 6, roles: ['DMS', 'DMM'] },
   { name: 'Outgoing', icon: FiSend, path : '/doc-track/outgoing', count: 4, roles: ['DMS', 'DMM'] },
   { name: 'History', icon: FiArchive, path : '/doc-track/history', roles: ['DMS', 'DMM'] },
-  { name: 'Staffs', icon: FiUsers, path : '/doc-track/staffs', roles: ['DMM'] },
+  { name: 'Employees', icon: FiUsers, path : '/doc-track/staffs', roles: ['DMM'] },
 
   //machineries
   { name: 'Dashboard', icon: FiGrid, path: '/machineries/metrics', roles: ['MIS'] },
@@ -91,6 +91,18 @@ const SidebarContent = ({ onClose, ...rest }) => {
         setDashboardName(roleMap[user.role] || '');
       }
     }, [user?.role]);
+
+  // Dynamic counts via useAdminDashboard (first page for each)
+  const userId = user?.id;
+  const {
+    forwardedDocuments,
+    pendingDocuments,
+    outgoingDocuments,
+  } = useAdminDashboard({ incomingPage: 1, pendingPage: 1, outgoingPage: 1 }); // changed
+
+  const incomingCount = forwardedDocuments?.data?.totalCount ?? 0;
+  const pendingCount = pendingDocuments?.data?.totalCount ?? 0;
+  const outgoingCount = outgoingDocuments?.data?.totalCount ?? 0;
 
   // close drawer on mobile after clicking a link
   const isMobile = useBreakpointValue({ base: true, md: false });
@@ -132,7 +144,12 @@ const SidebarContent = ({ onClose, ...rest }) => {
           key={link.name} 
           icon={link.icon} 
           path={link.path} 
-          count={link.count}
+          count={
+            link.name === 'Incoming' ? incomingCount :
+            link.name === 'Pending' ? pendingCount :
+            link.name === 'Outgoing' ? outgoingCount :
+            undefined
+          }
           linkName={link.name}
           onClick={handleNavClick} // added
         >

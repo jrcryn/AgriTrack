@@ -904,5 +904,56 @@ export const getDocumentStatus = async (req, res) => { //check doc status, tatan
     }
 };
 
+// New: Outgoing (still forwarded) documents by current user
+export const getOutgoingForwardedDocuments = async (req, res) => {
+    const { id } = req.params;
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+
+        const user = await global.docTrackModels.ManagerAccount.findById(id) ||
+                     await global.docTrackModels.StaffAccount.findById(id);
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'Cannot find your account, please contact IT if error persists.' });
+        }
+
+        const pipeline = [
+            { $addFields: { lastAction: { $arrayElemAt: ['$lifeCycle', -1] } } },
+            { $match: { 'lastAction.action': 'Forwarded', 'lastAction.performedBy.userId': user._id } },
+            {
+                $facet: {
+                    paginatedResults: [
+                        { $sort: { 'lastAction.timeStamp': -1 } },
+                        { $skip: skip },
+                        { $limit: limit }
+                    ],
+                    totalCount: [
+                        { $count: 'count' }
+                    ]
+                }
+            }
+        ];
+
+        const result = await global.docTrackModels.DocumentLifeCycle.aggregate(pipeline);
+        const relevantDocs = result[0].paginatedResults;
+        const totalCount = result[0].totalCount.length > 0 ? result[0].totalCount[0].count : 0;
+
+        return res.status(200).json({
+            success: true,
+            message: 'Successfully fetched outgoing forwarded documents.',
+            data: {
+                relevantDocs,
+                totalCount,
+                totalPages: Math.ceil(totalCount / limit),
+                currentPage: page
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching outgoing forwarded documents:', error);
+        return res.status(500).json({ success: false, message: 'Error fetching outgoing documents', error: error.message });
+    }
+};
+
 
 

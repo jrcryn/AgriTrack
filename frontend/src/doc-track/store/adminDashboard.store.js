@@ -17,52 +17,91 @@ export const useDocumentTypesQuery = () =>
 
 export const useStaffAndAdminAccountsQuery = (id) => 
     useQuery({
-        queryKey: ['adminStaffAccounts'],
+        queryKey: ['adminStaffAccounts', id],
         queryFn: async () => {
             const response = await axios.get(`${API_URL}/api/doc-track/get-admin-staff-accounts/${id}`)
             return response.data.data;
         },
+        enabled: !!id,
     });
 
-export const useIncomingForwardedDocumentsQuery = (page = 1, id) =>
+export const useIncomingForwardedDocumentsQuery = (id, page = 1) =>
     useQuery({
-        queryKey: ['forwardedDocuments', page],
+        queryKey: ['forwardedDocuments', id, page],
         queryFn: async () => {
-            const params = URLSearchParams({page, limit: 10})
-            const response = await axios.get(`${API_URL}/api/doc-track/get-incoming-forwarded-documents/${id}`, params);
-            return response.data
-        },
-    });
-
-export const usePendingDocumentsQuery = (page = 1, id) => 
-    useQuery({
-        queryKey: ['pendingDocuments', page],
-        queryFn: async () => {
-            const params = URLSearchParams({page, limit: 10})
-            const response = await axios.get(`${API_URL}/api/doc-track/get-pending-documents/${id}`, params);
+            const response = await axios.get(
+                `${API_URL}/api/doc-track/get-incoming-forwarded-documents/${id}`,
+                { params: { page, limit: 10 } }
+            );
             return response.data;
         },
+        enabled: !!id,
     });
 
-export const useDocumentHistoryQuery = (page = 1, id) =>
+export const usePendingDocumentsQuery = (id, page = 1) => 
     useQuery({
-        queryKey: ['documentHistory', page],
+        queryKey: ['pendingDocuments', id, page],
         queryFn: async () => {
-            const params = URLSearchParams({page, limit: 10});
-            const response = await axios.get(`${API_URL}/api/doc-track/get-document-history/${id}`, params);
+            const response = await axios.get(
+                `${API_URL}/api/doc-track/get-pending-documents/${id}`,
+                { params: { page, limit: 10 } }
+            );
             return response.data;
         },
+        enabled: !!id,
     });
 
-export const useAdminDashboard = () => {
+export const useDocumentHistoryQuery = (id, page = 1) =>
+    useQuery({
+        queryKey: ['documentHistory', id, page],
+        queryFn: async () => {
+            const response = await axios.get(
+                `${API_URL}/api/doc-track/get-document-history/${id}`,
+                { params: { page, limit: 10 } }
+            );
+            return response.data;
+        },
+        enabled: !!id,
+    });
+
+export const useOutgoingDocumentsQuery = (id, page = 1) =>
+    useQuery({
+        queryKey: ['outgoingDocuments', id, page],
+        queryFn: async () => {
+            const response = await axios.get(
+                `${API_URL}/api/doc-track/get-outgoing-forwarded-documents/${id}`,
+                { params: { page, limit: 10 } }
+            );
+            return response.data;
+        },
+        enabled: !!id,
+    });
+
+export const useAdminDashboard = (pages = {}) => {
     const { user } = useAuthStore()
-    const id = user.id
+    const id = user?.id
+
+    const {
+        incomingPage = 1,
+        pendingPage = 1,
+        historyPage = 1,
+        outgoingPage = 1,
+    } = pages;
 
     const { data: documentTypes = [], isLoading: isLoadingDocumentTypes, error: documentTypesError } = useDocumentTypesQuery();
     const { data: adminAndStaffAccounts = [], isLoading: isLoadingAdminAndStaffAccounts, error: adminAndStaffAccountsError } = useStaffAndAdminAccountsQuery(id);
-    const { data: forwardedDocuments = [], isLoading: isLoadingForwardedDocuments, error: forwardedDocumentsError } = useIncomingForwardedDocumentsQuery(id);
-    const { data: pendingDocuments = [], isLoading: isLoadingPendingDocuments, error: pendingDocumentsError } = usePendingDocumentsQuery(id);
-    const { data: documentHistory = [], isLoading: isLoadingDocumentHistory, error: documentHistoryError } = useDocumentHistoryQuery(id);
+
+    const { data: forwardedDocuments = [], isLoading: isLoadingForwardedDocuments, error: forwardedDocumentsError, refetch: forwardedRefetch } =
+        useIncomingForwardedDocumentsQuery(id, incomingPage);
+
+    const { data: pendingDocuments = [], isLoading: isLoadingPendingDocuments, error: pendingDocumentsError, refetch: pendingRefetch } =
+        usePendingDocumentsQuery(id, pendingPage);
+
+    const { data: documentHistory = [], isLoading: isLoadingDocumentHistory, error: documentHistoryError, refetch: historyRefetch } =
+        useDocumentHistoryQuery(id, historyPage);
+
+    const { data: outgoingDocuments = [], isLoading: isLoadingOutgoingDocuments, error: outgoingDocumentsError, refetch: outgoingRefetch } =
+        useOutgoingDocumentsQuery(id, outgoingPage);
 
     const [isCreatingDocument, setIsCreatingDocument] = useState(false);
     const [isUpdatingDocumentType, setIsUpdatingDocumentType] = useState(false);
@@ -117,7 +156,7 @@ export const useAdminDashboard = () => {
         try {   
             const response = await axios.post(`${API_URL}/api/doc-track/forward-document`, data)
             return response.data;
-        } catch {
+        } catch (error) {
             throw error;
         } finally {
             setIsForwardingDocument(false);
@@ -129,7 +168,7 @@ export const useAdminDashboard = () => {
         try {   
             const response = await axios.post(`${API_URL}/api/doc-track/register-forward-document`, data)
             return response.data;
-        } catch {
+        } catch (error) {
             throw error;
         } finally {
             setIsRegisteringAndForwardingDocument(false);
@@ -141,7 +180,7 @@ export const useAdminDashboard = () => {
         try {   
             const response = await axios.post(`${API_URL}/api/doc-track/receive-document`, data)
             return response.data;
-        } catch {
+        } catch (error) {
             throw error;
         } finally {
             setIsReceivingDocument(false);
@@ -153,7 +192,7 @@ export const useAdminDashboard = () => {
         try {   
             const response = await axios.post(`${API_URL}/api/doc-track/archive-document`, data)
             return response.data;
-        } catch {
+        } catch (error) {
             throw error;
         } finally {
             setIsArchivingDocument(false);
@@ -163,21 +202,23 @@ export const useAdminDashboard = () => {
     const releaseDocument = async (data) => {
         setIsReleasingDocument(true);
         try {   
-            const response = await axios.post(`${API_URL}/api/doc-track/releasing-document`, data)
+            const response = await axios.post(`${API_URL}/api/doc-track/release-document`, data)
             return response.data;
-        } catch {
+        } catch (error) {
             throw error;
         } finally {
             setIsReleasingDocument(false);
         }
     };
 
-    const downloadQRCode = async (data) => {
+    const downloadQRCode = async (id) => {
         setIsDownloadingQRCode(true);
         try {   
-            const response = await axios.post(`${API_URL}/api/doc-track/download-qr-code/${data}`)
+            const response = await axios.get(`${API_URL}/api/doc-track/download-qr-code/${id}`, {
+                responseType: 'blob'
+            });
             return response.data;
-        } catch {
+        } catch (error) {
             throw error;
         } finally {
             setIsDownloadingQRCode(false);
@@ -190,7 +231,7 @@ export const useAdminDashboard = () => {
             //await new Promise(resolve => setTimeout(resolve, 5000));
             const response = await axios.post(`${API_URL}/api/doc-track/get-document-status`, data)
             return response.data;
-        } catch {
+        } catch (error) {
             throw error;
         } finally {
             setIsGettingDocumentStatus(false);
@@ -204,6 +245,13 @@ export const useAdminDashboard = () => {
         forwardedDocuments,
         pendingDocuments,
         documentHistory,
+        outgoingDocuments,
+
+        // refetchers
+        forwardedRefetch,
+        pendingRefetch,
+        historyRefetch,
+        outgoingRefetch,
 
         // action functions
         createDocument,
@@ -223,7 +271,9 @@ export const useAdminDashboard = () => {
         isLoadingForwardedDocuments,
         isLoadingPendingDocuments,
         isLoadingDocumentHistory,
+        isLoadingOutgoingDocuments,
 
+        // action flags
         isCreatingDocument,
         isUpdatingDocumentType,
         isRegisteringDocument,
@@ -241,5 +291,6 @@ export const useAdminDashboard = () => {
         forwardedDocumentsError,
         pendingDocumentsError,
         documentHistoryError,
+        outgoingDocumentsError,
     };
 }

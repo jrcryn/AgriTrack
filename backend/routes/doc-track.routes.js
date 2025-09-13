@@ -15,7 +15,8 @@ import {
     getPendingDocuments,
     getDocumentTypes,
     getDocumentHistory,
-    getDocumentStatus
+    getDocumentStatus,
+    getOutgoingForwardedDocuments // add
  } from '../controller/doc-track/adminDashboard.controller.js';
 
 const router = express.Router();
@@ -37,6 +38,7 @@ router.get('/get-pending-documents/:id', getPendingDocuments);
 
 router.get('/get-document-types', getDocumentTypes);
 router.get('/get-document-history/:id', getDocumentHistory);
+router.get('/get-outgoing-forwarded-documents/:id', getOutgoingForwardedDocuments); // add
 
 router.post('/get-document-status', getDocumentStatus)
 
