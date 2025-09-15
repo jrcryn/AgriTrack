@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Heading,
@@ -37,12 +37,13 @@ import {
   useDisclosure,
 } from '@chakra-ui/react';
 import { FiSearch, FiInbox } from 'react-icons/fi';
+import { CheckCircleIcon, ArrowForwardIcon, TimeIcon } from "@chakra-ui/icons";
+import { CiInboxOut } from "react-icons/ci";
+import { GrFolderCycle } from "react-icons/gr";
+
 import { FaQrcode, FaArchive } from 'react-icons/fa';
 import { useAuthStore } from '../../auth/store/authStore';
-import { useAdminDashboard } from '../store/adminDashboard.store'; // changed
-import { CheckCircleIcon, ArrowForwardIcon, TimeIcon } from '@chakra-ui/icons';
-import { CiInboxOut } from 'react-icons/ci';
-import { GrFolderCycle } from 'react-icons/gr';
+import { useAdminDashboard } from '../store/adminDashboard.store';
 
 const E_Outgoing = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -51,12 +52,14 @@ const E_Outgoing = () => {
 
   const { user } = useAuthStore();
 
-  // changed: get data and states from useAdminDashboard
   const {
     outgoingDocuments,
     isLoadingOutgoingDocuments,
     outgoingDocumentsError,
-  } = useAdminDashboard({ outgoingPage: page });
+  } = useAdminDashboard({ outgoingPage: page }, { searchQuery }); // send search to backend
+
+  // Reset to first page when search changes
+  useEffect(() => { setPage(1); }, [searchQuery]);
 
   // status modal state
   const { isOpen, onOpen, onClose } = useDisclosure();
@@ -86,13 +89,9 @@ const E_Outgoing = () => {
   const currentPage = outgoingDocuments?.data?.currentPage || page;
   const totalItems = outgoingDocuments?.data?.totalCount || 0;
 
+  // Only filter by priority on client; backend handles text search
   const filterDocs = (priorityLabel) => {
-    const q = (searchQuery || '').toString().trim();
-    return allOutgoing.filter(doc => {
-      const matchesPriority = priorityLabel === 'All' ? true : doc.priority === priorityLabel;
-      const matchesQuery = q === '' ? true : String(doc.refNumber || '').includes(q);
-      return matchesPriority && matchesQuery;
-    });
+    return allOutgoing.filter(doc => (priorityLabel === 'All' ? true : doc.priority === priorityLabel));
   };
 
   const PaginationControls = ({ currentPage, setCurrentPage, totalPages, totalItems, colorScheme }) => (
@@ -151,13 +150,13 @@ const E_Outgoing = () => {
           {/* Reference Number Search */}
           <FormControl flex="1">
             <FormLabel fontSize="sm" fontWeight="medium" display="flex" alignItems="center" gap={2}>
-              <Icon as={FiSearch} color="blue.500" /> Reference Number
+              <Icon as={FiSearch} color="blue.500" /> Search
             </FormLabel>
             <InputGroup>
               <Input
-                placeholder="Search by reference number..."
+                placeholder="Search by ref #, name, or code..."
                 value={searchQuery}
-                type="number"
+                type="text" // changed
                 onChange={(e) => setSearchQuery(e.target.value)}
                 bg="white"
                 _focus={{ borderColor: "blue.400" }}
@@ -351,7 +350,7 @@ const E_Outgoing = () => {
                 <Divider my={4} />
 
                 {/* Timeline */}
-                <Heading size="sm" mb={2}>Document Lifecycle</Heading>
+                <Heading size="sm" mb={6}>Document Lifecycle</Heading>
                 <Box position="relative">
                   <Box position="absolute" left="24px" top="0" bottom="0" width="2px" bg="gray.200" zIndex={1} />
                   <Box position="relative" zIndex={2}>

@@ -64,7 +64,7 @@ const allLinkItems = [
   { name: 'Incoming', icon: FiInbox, path : '/doc-track/incoming', count: 8, roles: ['DMS', 'DMM'] },
   { name: 'Pending', icon: FiClock, path : '/doc-track/pending', count: 6, roles: ['DMS', 'DMM'] },
   { name: 'Outgoing', icon: FiSend, path : '/doc-track/outgoing', count: 4, roles: ['DMS', 'DMM'] },
-  { name: 'History', icon: FiArchive, path : '/doc-track/history', roles: ['DMS', 'DMM'] },
+  { name: 'Document Log', icon: FiArchive, path : '/doc-track/history', roles: ['DMS', 'DMM'] },
   { name: 'Employees', icon: FiUsers, path : '/doc-track/staffs', roles: ['DMM'] },
 
   //machineries

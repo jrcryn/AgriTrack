@@ -314,7 +314,7 @@ export const forwardDocument = async (req, res) => {
                 $set: { currentHandler: { 
                     userId: forwardAccount._id,
                     first_name: forwardAccount.first_name,
-                    last_name: forwardAccount.last_name,
+                    last_name: forwardAccount.lastName,
                     middle_name: forwardAccount.middle_name,
                     suffix: forwardAccount.suffix,
                     role: forwardAccount.role,
@@ -424,7 +424,7 @@ export const registerAndForwardDocument = async (req, res) => {
                             userModel: forwardAccountModel,
                             userId: forwardAccount._id,
                             first_name: forwardAccount.first_name,
-                            last_name: forwardAccount.last_name,
+                            last_name: forwardAccount.lastName,
                             middle_name: forwardAccount.middle_name,
                             suffix: forwardAccount.suffix,
                             role: forwardAccount.role,
@@ -440,7 +440,7 @@ export const registerAndForwardDocument = async (req, res) => {
                 $set: { currentHandler: { 
                     userId: forwardAccount._id,
                     first_name: forwardAccount.first_name,
-                    last_name: forwardAccount.last_name,
+                    last_name: forwardAccount.lastName,
                     middle_name: forwardAccount.middle_name,
                     suffix: forwardAccount.suffix,
                     role: forwardAccount.role,
@@ -677,6 +677,73 @@ export const getAdminAndStaffAccounts = async (req, res) => {
 
 export const getIncomingForwardedDocuments = async (req, res) => {
     const {id} = req.params;
+    const { searchQuery } = req.query; // keep this
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+
+        const user = await global.docTrackModels.ManagerAccount.findById(id) ||
+                     await global.docTrackModels.StaffAccount.findById(id);
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'Cannot find your account, please contact IT if error persists.' });
+        }
+
+        // Base pipeline: assigned to you and last action is Forwarded
+        const pipeline = [
+            { $match: { 'currentHandler.userId': user._id } },
+            { $addFields: { lastAction: { $arrayElemAt: ['$lifeCycle', -1] } } },
+            { $match: { 'lastAction.action': 'Forwarded' } },
+        ];
+
+        // Optional search filter across fields if searchQuery provided
+        if (searchQuery && searchQuery.trim() !== '') {
+            const words = searchQuery.trim().split(/\s+/);
+            const searchConditions = words.map((word) => ({
+                $or: [
+                    { documentName: { $regex: word, $options: 'i' } },
+                    { documentCode: { $regex: word, $options: 'i' } },
+                    { refNumber:   { $regex: word, $options: 'i' } },
+                ],
+            }));
+            pipeline.push({ $match: { $and: searchConditions } });
+        }
+
+        // Pagination and count
+        pipeline.push({
+            $facet: {
+                paginatedResults: [
+                    { $sort: { 'lastAction.timeStamp': -1 } },
+                    { $skip: skip },
+                    { $limit: limit }
+                ],
+                totalCount: [{ $count: 'count' }]
+            }
+        });
+
+        const result = await global.docTrackModels.DocumentLifeCycle.aggregate(pipeline);
+        const relevantDocs = result[0].paginatedResults;
+        const totalCount = result[0].totalCount.length > 0 ? result[0].totalCount[0].count : 0;
+
+        return res.status(200).json({
+            success: true,
+            message: 'Successfully fetched incoming documents.',
+            data: {
+                relevantDocs,
+                totalCount,
+                totalPages: Math.ceil(totalCount / limit),
+                currentPage: page
+            }
+        });
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({success: false, message: 'Error fetching incoming documents', error: error.message});
+    }
+};
+
+export const getPendingDocuments = async (req, res) => {
+    const {id} = req.params;
+    const { searchQuery } = req.query; // added
     try {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10; // Default to 5 per page for each section
@@ -689,34 +756,35 @@ export const getIncomingForwardedDocuments = async (req, res) => {
         }
 
         const pipeline = [
-            // Stage 1: Match documents assigned to the current user
-            {
-                $match: { 'currentHandler.userId': user._id }
-            },
-            // Stage 2: Add a field with the last lifecycle action
-            {
-                $addFields: {
-                    lastAction: { $arrayElemAt: ['$lifeCycle', -1] }
-                }
-            },
-            // Stage 3: Match only if the last action was 'Forwarded'
-            {
-                $match: { 'lastAction.action': 'Forwarded' }
-            },
-            // Stage 4: Sort and Paginate using $facet
-            {
-                $facet: {
-                    paginatedResults: [
-                        { $sort: { 'lastAction.timeStamp': -1 } },
-                        { $skip: skip },
-                        { $limit: limit }
-                    ],
-                    totalCount: [
-                        { $count: 'count' }
-                    ]
-                }
-            }
+            { $match: { 'currentHandler.userId': user._id } },
+            { $addFields: { lastAction: { $arrayElemAt: ['$lifeCycle', -1] } } },
+            { $match: { 'lastAction.action': 'Received/Work on Progress' } },
         ];
+
+        // added: optional search filter
+        if (searchQuery && searchQuery.trim() !== '') {
+            const words = searchQuery.trim().split(/\s+/);
+            const searchConditions = words.map((word) => ({
+                $or: [
+                    { documentName: { $regex: word, $options: 'i' } },
+                    { documentCode: { $regex: word, $options: 'i' } },
+                    { refNumber:   { $regex: word, $options: 'i' } },
+                ],
+            }));
+            pipeline.push({ $match: { $and: searchConditions } });
+        }
+
+        // Stage 4: Sort and Paginate using $facet
+        pipeline.push({
+            $facet: {
+                paginatedResults: [
+                    { $sort: { 'lastAction.timeStamp': -1 } },
+                    { $skip: skip },
+                    { $limit: limit }
+                ],
+                totalCount: [{ $count: 'count' }]
+            }
+        });
 
         const result = await global.docTrackModels.DocumentLifeCycle.aggregate(pipeline);
 
@@ -739,11 +807,12 @@ export const getIncomingForwardedDocuments = async (req, res) => {
     }
 };
 
-export const getPendingDocuments = async (req, res) => {
-    const {id} = req.params;
+export const getOutgoingForwardedDocuments = async (req, res) => {
+    const { id } = req.params;
+    const { searchQuery } = req.query; // added
     try {
         const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 10; // Default to 5 per page for each section
+        const limit = parseInt(req.query.limit) || 10;
         const skip = (page - 1) * limit;
 
         const user = await global.docTrackModels.ManagerAccount.findById(id) ||
@@ -753,53 +822,51 @@ export const getPendingDocuments = async (req, res) => {
         }
 
         const pipeline = [
-            // Stage 1: Match documents assigned to the current user
-            {
-                $match: { 'currentHandler.userId': user._id }
-            },
-            // Stage 2: Add a field with the last lifecycle action
-            {
-                $addFields: {
-                    lastAction: { $arrayElemAt: ['$lifeCycle', -1] }
-                }
-            },
-            // Stage 3: Match only if the last action was 'Forwarded'
-            {
-                $match: { 'lastAction.action': 'Received/Work on Progress' }
-            },
-            // Stage 4: Sort and Paginate using $facet
-            {
-                $facet: {
-                    paginatedResults: [
-                        { $sort: { 'lastAction.timeStamp': -1 } },
-                        { $skip: skip },
-                        { $limit: limit }
-                    ],
-                    totalCount: [
-                        { $count: 'count' }
-                    ]
-                }
-            }
+            { $addFields: { lastAction: { $arrayElemAt: ['$lifeCycle', -1] } } },
+            { $match: { 'lastAction.action': 'Forwarded', 'lastAction.performedBy.userId': user._id } },
         ];
 
-        const result = await global.docTrackModels.DocumentLifeCycle.aggregate(pipeline);
+        // added: optional search filter
+        if (searchQuery && searchQuery.trim() !== '') {
+            const words = searchQuery.trim().split(/\s+/);
+            const searchConditions = words.map((word) => ({
+                $or: [
+                    { documentName: { $regex: word, $options: 'i' } },
+                    { documentCode: { $regex: word, $options: 'i' } },
+                    { refNumber:   { $regex: word, $options: 'i' } },
+                ],
+            }));
+            pipeline.push({ $match: { $and: searchConditions } });
+        }
 
+        pipeline.push({
+            $facet: {
+                paginatedResults: [
+                    { $sort: { 'lastAction.timeStamp': -1 } },
+                    { $skip: skip },
+                    { $limit: limit }
+                ],
+                totalCount: [{ $count: 'count' }]
+            }
+        });
+
+        const result = await global.docTrackModels.DocumentLifeCycle.aggregate(pipeline);
         const relevantDocs = result[0].paginatedResults;
         const totalCount = result[0].totalCount.length > 0 ? result[0].totalCount[0].count : 0;
 
         return res.status(200).json({
-            success: true, 
-            message: 'Successfully fetched incoming documents.', 
+            success: true,
+            message: 'Successfully fetched outgoing forwarded documents.',
             data: {
-                relevantDocs, 
-                totalCount, 
+                relevantDocs,
+                totalCount,
                 totalPages: Math.ceil(totalCount / limit),
                 currentPage: page
             }
-        })
+        });
     } catch (error) {
-        console.log(error)
-        return res.status(500).json({success: false, message: 'Error fetching incoming documents', error: error.message});
+        console.error('Error fetching outgoing forwarded documents:', error);
+        return res.status(500).json({ success: false, message: 'Error fetching outgoing documents', error: error.message });
     }
 };
 
@@ -904,56 +971,9 @@ export const getDocumentStatus = async (req, res) => { //check doc status, tatan
     }
 };
 
-// New: Outgoing (still forwarded) documents by current user
-export const getOutgoingForwardedDocuments = async (req, res) => {
-    const { id } = req.params;
-    try {
-        const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 10;
-        const skip = (page - 1) * limit;
 
-        const user = await global.docTrackModels.ManagerAccount.findById(id) ||
-                     await global.docTrackModels.StaffAccount.findById(id);
-        if (!user) {
-            return res.status(404).json({ success: false, message: 'Cannot find your account, please contact IT if error persists.' });
-        }
 
-        const pipeline = [
-            { $addFields: { lastAction: { $arrayElemAt: ['$lifeCycle', -1] } } },
-            { $match: { 'lastAction.action': 'Forwarded', 'lastAction.performedBy.userId': user._id } },
-            {
-                $facet: {
-                    paginatedResults: [
-                        { $sort: { 'lastAction.timeStamp': -1 } },
-                        { $skip: skip },
-                        { $limit: limit }
-                    ],
-                    totalCount: [
-                        { $count: 'count' }
-                    ]
-                }
-            }
-        ];
 
-        const result = await global.docTrackModels.DocumentLifeCycle.aggregate(pipeline);
-        const relevantDocs = result[0].paginatedResults;
-        const totalCount = result[0].totalCount.length > 0 ? result[0].totalCount[0].count : 0;
-
-        return res.status(200).json({
-            success: true,
-            message: 'Successfully fetched outgoing forwarded documents.',
-            data: {
-                relevantDocs,
-                totalCount,
-                totalPages: Math.ceil(totalCount / limit),
-                currentPage: page
-            }
-        });
-    } catch (error) {
-        console.error('Error fetching outgoing forwarded documents:', error);
-        return res.status(500).json({ success: false, message: 'Error fetching outgoing documents', error: error.message });
-    }
-};
 
 
 

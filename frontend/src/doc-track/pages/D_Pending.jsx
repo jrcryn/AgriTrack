@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Heading,
@@ -72,7 +72,10 @@ const D_Pending = () => {
     isReleasingDocument,
 
     pendingRefetch,
-  } = useAdminDashboard({ pendingPage: page });
+  } = useAdminDashboard({ pendingPage: page }, { searchQuery }); // send search to backend
+
+  // Reset to first page when search changes
+  useEffect(() => { setPage(1); }, [searchQuery]);
 
   const { isOpen, onOpen, onClose } = useDisclosure();
   const toast = useToast();
@@ -98,13 +101,9 @@ const D_Pending = () => {
   const currentPage = pendingDocuments?.data?.currentPage || page;
   const totalItems = pendingDocuments?.data?.totalCount || 0;
 
+  // Only filter by priority on client; backend handles text search
   const filterDocs = (priorityLabel) => {
-    const q = (searchQuery || '').toString().trim();
-    return allDocs.filter(doc => {
-      const matchesPriority = priorityLabel === 'All' ? true : doc.priority === priorityLabel;
-      const matchesQuery = q === '' ? true : String(doc.refNumber || '').includes(q);
-      return matchesPriority && matchesQuery;
-    });
+    return allDocs.filter(doc => (priorityLabel === 'All' ? true : doc.priority === priorityLabel));
   };
 
   const PaginationControls = ({ currentPage, setCurrentPage, totalPages, totalItems, colorScheme }) => (
@@ -239,13 +238,13 @@ const D_Pending = () => {
           {/* Reference Number Search */}
           <FormControl flex="1">
             <FormLabel fontSize="sm" fontWeight="medium" display="flex" alignItems="center" gap={2}>
-              <Icon as={FiSearch} color="blue.500" /> Reference Number
+              <Icon as={FiSearch} color="blue.500" /> Search
             </FormLabel>
             <InputGroup>
               <Input
-                placeholder="Search by reference number..."
+                placeholder="Search by ref #, name, or code..."
                 value={searchQuery}
-                type="number"
+                type="text" // changed
                 onChange={(e) => setSearchQuery(e.target.value)}
                 bg="white"
                 _focus={{ borderColor: "blue.400" }}
@@ -347,7 +346,7 @@ const D_Pending = () => {
                                       colorScheme="green"
                                       onClick={() => handleOpenManage(doc)}
                                     >
-                                      Manage
+                                      Manage Document
                                     </Button>
                                   </Td>
                                 </Tr>
@@ -402,7 +401,7 @@ const D_Pending = () => {
             Document Details & Actions
           </ModalHeader>
 
-          <ModalBody py={6}>
+          <ModalBody py={6} >
             {!selectedDoc ? (
               <Center py={6}>
                 <Spinner size="lg" color="yellow.500" />
@@ -440,7 +439,7 @@ const D_Pending = () => {
                 <Divider my={4} />
 
                 {/* Timeline */}
-                <Heading size="sm" mb={2}>Document Lifecycle</Heading>
+                <Heading size="sm" mb={6}>Document Lifecycle</Heading>
                 <Box position="relative">
                   <Box position="absolute" left="24px" top="0" bottom="0" width="2px" bg="gray.200" zIndex={1} />
                   <Box position="relative" zIndex={2}>
@@ -495,7 +494,7 @@ const D_Pending = () => {
                   </TabList>
                   <TabPanels>
                     {/* Forward */}
-                    <TabPanel px={0} pt={4}>
+                    <TabPanel px={0} pt={4} pb={0}>
                       <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
                         <FormControl isRequired>
                           <FormLabel>Forward To</FormLabel>
@@ -534,7 +533,7 @@ const D_Pending = () => {
                     </TabPanel>
 
                     {/* Release */}
-                    <TabPanel px={0} pt={4}>
+                    <TabPanel px={0} pt={4} pb={0}>
                       <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
                         <FormControl isRequired>
                           <FormLabel>Recipient Office</FormLabel>
@@ -582,7 +581,7 @@ const D_Pending = () => {
                     </TabPanel>
 
                     {/* Archive */}
-                    <TabPanel px={0} pt={4}>
+                    <TabPanel px={0} pt={4} pb={0}>
                       <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
                         <FormControl isRequired>
                           <FormLabel>Medium</FormLabel>

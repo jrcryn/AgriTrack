@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Heading,
@@ -46,7 +46,10 @@ const C_Incoming = () => {
     receiveDocument,
     isReceivingDocument,
     forwardedRefetch,
-  } = useAdminDashboard({ incomingPage: page });
+  } = useAdminDashboard({ incomingPage: page }, { searchQuery }); // send search to backend
+
+  // Reset to first page when search changes
+  useEffect(() => { setPage(1); }, [searchQuery]);
 
   const priorities = ['All', 'Low', 'Medium', 'Urgent'];
 
@@ -63,13 +66,9 @@ const C_Incoming = () => {
   const totalPages = forwardedDocuments?.data?.totalPages || 1;
   const currentPage = forwardedDocuments?.data?.currentPage || page;
 
+  // Only filter by priority on client; backend handles text search
   const filterDocs = (priorityLabel) => {
-    const q = (searchQuery || '').toString().trim();
-    return allDocs.filter(doc => {
-      const matchesPriority = priorityLabel === 'All' ? true : doc.priority === priorityLabel;
-      const matchesQuery = q === '' ? true : String(doc.refNumber || '').includes(q);
-      return matchesPriority && matchesQuery;
-    });
+    return allDocs.filter(doc => (priorityLabel === 'All' ? true : doc.priority === priorityLabel));
   };
 
   const handleReceive = async (docId) => {
@@ -101,6 +100,7 @@ const C_Incoming = () => {
           isDisabled={currentPage === 1}
           colorScheme={colorScheme}
           variant="outline"
+          mr={2}
         >
           Previous
         </Button>
@@ -132,13 +132,13 @@ const C_Incoming = () => {
           {/* Reference Number Search */}
           <FormControl flex="1">
             <FormLabel fontSize="sm" fontWeight="medium" display="flex" alignItems="center" gap={2}>
-              <Icon as={FiSearch} color="blue.500" /> Reference Number
+              <Icon as={FiSearch} color="blue.500" /> Search
             </FormLabel>
             <InputGroup>
               <Input
-                placeholder="Search by reference number..."
+                placeholder="Search by ref #, name, or code..."
                 value={searchQuery}
-                type="number"
+                type="text" // changed
                 onChange={(e) => setSearchQuery(e.target.value)}
                 bg="white"
                 _focus={{ borderColor: "blue.400" }}
@@ -240,7 +240,7 @@ const C_Incoming = () => {
                                       onClick={() => handleReceive(doc._id)}
                                       isLoading={isReceivingDocument}
                                     >
-                                      Receive
+                                      Receive Document
                                     </Button>
                                   </Td>
                                 </Tr>

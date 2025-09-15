@@ -25,26 +25,39 @@ export const useStaffAndAdminAccountsQuery = (id) =>
         enabled: !!id,
     });
 
-export const useIncomingForwardedDocumentsQuery = (id, page = 1) =>
+export const useIncomingForwardedDocumentsQuery = (id, page = 1, searchParams = {}) =>
     useQuery({
-        queryKey: ['forwardedDocuments', id, page],
+        queryKey: ['forwardedDocuments', id, page, searchParams],
         queryFn: async () => {
             const response = await axios.get(
                 `${API_URL}/api/doc-track/get-incoming-forwarded-documents/${id}`,
-                { params: { page, limit: 10 } }
+                { params: { page, limit: 10, ...searchParams } }
             );
             return response.data;
         },
         enabled: !!id,
     });
 
-export const usePendingDocumentsQuery = (id, page = 1) => 
+export const usePendingDocumentsQuery = (id, page = 1, searchParams = {}) =>
     useQuery({
-        queryKey: ['pendingDocuments', id, page],
+        queryKey: ['pendingDocuments', id, page, searchParams],
         queryFn: async () => {
             const response = await axios.get(
                 `${API_URL}/api/doc-track/get-pending-documents/${id}`,
-                { params: { page, limit: 10 } }
+                { params: { page, limit: 10, ...searchParams } }
+            );
+            return response.data;
+        },
+        enabled: !!id,
+    });
+
+export const useOutgoingDocumentsQuery = (id, page = 1, searchParams = {}) =>
+    useQuery({
+        queryKey: ['outgoingDocuments', id, page, searchParams],
+        queryFn: async () => {
+            const response = await axios.get(
+                `${API_URL}/api/doc-track/get-outgoing-forwarded-documents/${id}`,
+                { params: { page, limit: 10, ...searchParams } }
             );
             return response.data;
         },
@@ -64,20 +77,7 @@ export const useDocumentHistoryQuery = (id, page = 1) =>
         enabled: !!id,
     });
 
-export const useOutgoingDocumentsQuery = (id, page = 1) =>
-    useQuery({
-        queryKey: ['outgoingDocuments', id, page],
-        queryFn: async () => {
-            const response = await axios.get(
-                `${API_URL}/api/doc-track/get-outgoing-forwarded-documents/${id}`,
-                { params: { page, limit: 10 } }
-            );
-            return response.data;
-        },
-        enabled: !!id,
-    });
-
-export const useAdminDashboard = (pages = {}) => {
+export const useAdminDashboard = (pages = {}, searchParams = {}) => {
     const { user } = useAuthStore()
     const id = user?.id
 
@@ -92,16 +92,16 @@ export const useAdminDashboard = (pages = {}) => {
     const { data: adminAndStaffAccounts = [], isLoading: isLoadingAdminAndStaffAccounts, error: adminAndStaffAccountsError } = useStaffAndAdminAccountsQuery(id);
 
     const { data: forwardedDocuments = [], isLoading: isLoadingForwardedDocuments, error: forwardedDocumentsError, refetch: forwardedRefetch } =
-        useIncomingForwardedDocumentsQuery(id, incomingPage);
+        useIncomingForwardedDocumentsQuery(id, incomingPage, searchParams);
 
     const { data: pendingDocuments = [], isLoading: isLoadingPendingDocuments, error: pendingDocumentsError, refetch: pendingRefetch } =
-        usePendingDocumentsQuery(id, pendingPage);
+        usePendingDocumentsQuery(id, pendingPage, searchParams);
+
+    const { data: outgoingDocuments = [], isLoading: isLoadingOutgoingDocuments, error: outgoingDocumentsError, refetch: outgoingRefetch } =
+        useOutgoingDocumentsQuery(id, outgoingPage, searchParams);
 
     const { data: documentHistory = [], isLoading: isLoadingDocumentHistory, error: documentHistoryError, refetch: historyRefetch } =
         useDocumentHistoryQuery(id, historyPage);
-
-    const { data: outgoingDocuments = [], isLoading: isLoadingOutgoingDocuments, error: outgoingDocumentsError, refetch: outgoingRefetch } =
-        useOutgoingDocumentsQuery(id, outgoingPage);
 
     const [isCreatingDocument, setIsCreatingDocument] = useState(false);
     const [isUpdatingDocumentType, setIsUpdatingDocumentType] = useState(false);
