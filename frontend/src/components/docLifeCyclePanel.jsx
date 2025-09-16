@@ -1,13 +1,17 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter,
-  Box, VStack, Text, Heading, Divider, SimpleGrid, Badge, Flex, Button
+  Box, VStack, Text, Heading, Divider, SimpleGrid, Badge, Flex, Button, Tabs, TabList, TabPanels, Tab, TabPanel,
+  FormControl, FormLabel, Input, Select, useToast
 } from '@chakra-ui/react';
 import { CheckCircleIcon, ArrowForwardIcon, TimeIcon } from "@chakra-ui/icons";
 import { FaArchive } from "react-icons/fa";
 import { CiInboxOut } from "react-icons/ci";
 import { GrFolderCycle } from "react-icons/gr";
-import { set } from 'lodash';
+import { useAdminDashboard } from '../doc-track/store/adminDashboard.store';
+import { useAuthStore } from '../auth/store/authStore.js';
+import { useQueryClient } from '@tanstack/react-query';
+
 
 const actionStyles = {
   "Document Created": { color: "green.400", icon: <CheckCircleIcon /> },
@@ -20,25 +24,125 @@ const actionStyles = {
 const roleLabel = (office_position, role) =>
   office_position || (role ? role.charAt(0).toUpperCase() + role.slice(1) : '');
 
-const DocumentLifecycleModal = ({
+const DocumentLifeCycleModal = ({
   isOpen,
   onClose,
-  selectedDoc,                 // lifecycle doc from backend
-  onScanAgain,          // optional
+  document,
+  onClose,            
 
   isIncomingPage,
   isPendingPage,
   isOutgoingPage,
   isProduceDocumentPage
 }) => {
-  const data = selectedDoc;
+    const data = document;
+    const toast = useToast();
+    const queryClient = useQueryClient();
 
+    const { user } = useAuthStore();
+
+    const {
+        forwardDocument,
+        isForwardingDocument,
+        archiveDocument,
+        isArchivingDocument,
+        releaseDocument,
+        isReleasingDocument,
+        adminAndStaffAccounts,
+        isLoadingAdminAndStaffAccounts,
+    } = useAdminDashboard();
+
+    const handleForward = async () => {
+      if (!data || !forwardData.forwardAccountId || !forwardData.forwardRemarks) {
+        toast({ title: "Missing fields", description: "Select a recipient and provide remarks.", status: "warning", duration: 4000, isClosable: true });
+        return;
+      }
+      try {
+        const res = await forwardDocument({
+          registeredDocId: data._id,
+          userAccountId: user.id,
+          forwardAccountId: forwardData.forwardAccountId,
+          forwardRemarks: forwardData.forwardRemarks,
+        });
+        toast({ title: "Success", description: res.message, status: "success", duration: 5000, isClosable: true });
+        setForwardData({ forwardAccountId: '', forwardRemarks: '' });
+        onClose();
+
+        await Promise.all([
+            queryClient.invalidateQueries({ queryKey: ['pendingDocuments'] }),
+            queryClient.invalidateQueries({ queryKey: ['outgoingDocuments'] }),
+            queryClient.invalidateQueries({ queryKey: ['forwardedDocuments'] })
+        ]);
+
+      } catch (error) {
+        toast({ title: "Error", description: error.response?.data?.message || "Failed to forward document.", status: "error", duration: 5000, isClosable: true });
+        console.log(error);
+      }
+    };
+  
+    const handleArchive = async () => {
+      const { medium, location, archiveRemarks } = archiveData;
+      if (!data || !medium || !location) {
+        toast({ title: "Missing fields", description: "Medium and location are required.", status: "warning", duration: 4000, isClosable: true });
+        return;
+      }
+      try {
+        const res = await archiveDocument({
+          registeredDocId: data._id,
+          userAccountId: user.id,
+          medium,
+          location,
+          archiveRemarks,
+        });
+        toast({ title: "Success", description: res.message, status: "success", duration: 5000, isClosable: true });
+        setArchiveData({ medium: '', location: '', archiveRemarks: '' });
+        onClose();
+
+        await Promise.all([
+            queryClient.invalidateQueries({ queryKey: ['pendingDocuments'] })
+        ])
+
+      } catch (error) {
+        toast({ title: "Error", description: error.response?.data?.message || "Failed to archive document.", status: "error", duration: 5000, isClosable: true });
+      }
+    };
+  
+    const handleRelease = async () => {
+      const { recipientOffice, recipientPerson, modeOfRelease, releaseRemarks } = releaseData;
+      if (!data || !recipientOffice || !recipientPerson || !modeOfRelease) {
+        toast({ title: "Missing fields", description: "Recipient, office and mode of release are required.", status: "warning", duration: 4000, isClosable: true });
+        return;
+      }
+      try {
+        const res = await releaseDocument({
+          registeredDocId: data._id,
+          userAccountId: user.id,
+          recipientOffice,
+          recipientPerson,
+          modeOfRelease,
+          releaseRemarks,
+        });
+        toast({ title: "Success", description: res.message, status: "success", duration: 5000, isClosable: true });
+        setReleaseData({ recipientOffice: '', recipientPerson: '', modeOfRelease: '', releaseRemarks: '' });
+        onClose();
+
+        await Promise.all([
+            queryClient.invalidateQueries({ queryKey: ['pendingDocuments'] })
+        ])
+      } catch (error) {
+        toast({ title: "Error", description: error.response?.data?.message || "Failed to release document.", status: "error", duration: 5000, isClosable: true });
+      }
+    };
+
+    const [forwardData, setForwardData] = useState({ forwardAccountId: '', forwardRemarks: '' });
+    const [archiveData, setArchiveData] = useState({ medium: '', location: '', archiveRemarks: '' });
+    const [releaseData, setReleaseData] = useState({ recipientOffice: '', recipientPerson: '', modeOfRelease: '', releaseRemarks: '' });
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} isCentered size="2xl" closeOnOverlayClick={false} scrollBehavior="inside" motionPreset="none">
       <ModalOverlay />
       <ModalContent borderRadius="md" overflow="hidden" boxShadow="lg">
-        {isPendingPage || isProduceDocumentPage && (
+        {(isPendingPage || isProduceDocumentPage) && (
             <ModalHeader bg="blue.50" borderBottomWidth="1px" borderColor="gray.200" display="flex" alignItems="center" py={4}>
                 <GrFolderCycle style={{ marginRight: 12, color: '#2563eb' }} />
                 Current Lifecycle
@@ -383,23 +487,10 @@ const DocumentLifecycleModal = ({
           >
             Close
           </Button>
-          {isProduceDocumentPage && (
-            <Button
-              colorScheme='blue'
-              ml={3}
-              size="md"
-              fontWeight="500"
-              boxShadow="sm"
-              _hover={{ boxShadow: "md", bg: "blue.600" }}
-              onClick={onScanAgain}
-            >
-              Scan Again
-            </Button>
-          )}
         </ModalFooter>
       </ModalContent>
     </Modal>
   );
 };
 
-export default DocumentLifecycleModal;
+export default DocumentLifeCycleModal;

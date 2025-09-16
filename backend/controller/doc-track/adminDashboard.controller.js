@@ -90,34 +90,33 @@ export const updateDocumentType = async (req, res) => {
 }
 
 const getNextSequence = async (key) => {
-    const today = new Date();
-    const yyyy = today.getFullYear();
-    const mm = String(today.getMonth() + 1).padStart(2, '0');
-    const dd = String(today.getDate()).padStart(2, '0');
-    const currentDate = `${yyyy}${mm}${dd}`;
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth() + 1).padStart(2, '0');
+  const dd = String(today.getDate()).padStart(2, '0');
+  const currentDate = `${yyyy}${mm}${dd}`;
 
-    let counter = await global.docTrackModels.Counter.findOne({ _id: key });
+  const counterId = `${key}:${currentDate}`;
 
-    if (!counter || counter.date !== currentDate) {
-    counter = await global.docTrackModels.Counter.findOneAndUpdate(
-      { _id: key },
-      { $set: { seq: 1, date: currentDate } },
-      { new: true, upsert: true }
-    );
-    } else {
-        counter = await global.docTrackModels.Counter.findOneAndUpdate(
-        { _id: key },
-        { $inc: { seq: 1 } },
-        { new: true }
-    );
-    }
+  // Find and update (or insert) atomically
+  const counter = await global.docTrackModels.Counter.findOneAndUpdate(
+    { _id: counterId },
+    {
+      $inc: { seq: 1 },                        // increment if exists
+      $setOnInsert: { date: currentDate },     // only set date on first insert
+    },
+    { new: true, upsert: true }                // create if not exists
+  );
 
-    const finSequence = `${currentDate}-${String(counter.seq).padStart(4, '0')}`;
-    return finSequence;
+  // If it was just created, seq will be undefined → set it to 1
+  const sequenceNumber = counter.seq || 1;
+
+  return `${currentDate}-${String(sequenceNumber).padStart(4, '0')}`;
 };
 
+
 export const registerDocument = async (req, res) => {
-    const { userAccountId, documentId, priority, details } = req.body;
+    const { userAccountId, documentId, priority, details, isRegisterOnly } = req.body;
     try {
 
         const document = await global.docTrackModels.Document.findById(documentId);
@@ -172,11 +171,61 @@ export const registerDocument = async (req, res) => {
             $set: { currentHandler: { userId: user._id } }
         });
 
+        if (isRegisterOnly === true) {
+            await global.docTrackModels.DocumentLifeCycle.updateOne(
+            {_id: newDocRegistration._id},
+            {
+                $push: {
+                    lifeCycle: {
+                        action: 'Forwarded',
+                        performedBy: {
+                            userModel: userModel,
+                            userId: user._id,
+                            first_name: user.first_name,
+                            last_name: user.last_name,
+                            middle_name: user.middle_name,
+                            suffix: user.suffix,
+                            role: user.role,
+                            office_position: user.office_position,
+                            email: user.email,
+                            phone: user.phone
+                        },
+                        forwardDetails: {
+                            userModel: userModel,
+                            userId: user._id,
+                            first_name: user.first_name,
+                            last_name: user.last_name,
+                            middle_name: user.middle_name,
+                            suffix: user.suffix,
+                            role: user.role,
+                            office_position: user.office_position,
+                            email: user.email,
+                            phone: user.phone,
+                            forwardRemarks: 'Registered and forwarded to self.'
+                        },
+                        timeStamp: Date.now()
+                    }
+                    
+                },
+                $set: { currentHandler: { 
+                    userId: user._id,
+                    first_name: user.first_name,
+                    last_name: user.lastName,
+                    middle_name: user.middle_name,
+                    suffix: user.suffix,
+                    role: user.role,
+                    office_position: user.office_position,
+                    email: user.email,
+                    phone: user.phone
+                } }
+
+            }
+        );
+        };
 
         return res.status(201).json({ 
             success: true, 
             message: 'Document registered successfully.', 
-            data: newDocRegistration,
             qrImageUrl: `/api/doc-track/download-qr-code/${newDocRegistration._id}`
         });
 

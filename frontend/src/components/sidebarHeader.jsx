@@ -92,13 +92,11 @@ const SidebarContent = ({ onClose, ...rest }) => {
       }
     }, [user?.role]);
 
-  // Dynamic counts via useAdminDashboard (first page for each)
-  const userId = user?.id;
   const {
     forwardedDocuments,
     pendingDocuments,
     outgoingDocuments,
-  } = useAdminDashboard({ incomingPage: 1, pendingPage: 1, outgoingPage: 1 }); // changed
+  } = useAdminDashboard();
 
   const incomingCount = forwardedDocuments?.data?.totalCount ?? 0;
   const pendingCount = pendingDocuments?.data?.totalCount ?? 0;

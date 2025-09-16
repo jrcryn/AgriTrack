@@ -41,11 +41,14 @@ import {
 import { FiSearch, FiInbox } from 'react-icons/fi';
 import { FaQrcode } from 'react-icons/fa';
 import { CheckCircleIcon, ArrowForwardIcon, TimeIcon } from "@chakra-ui/icons";
+import { HiDocumentDuplicate } from "react-icons/hi2";
+
 import { FaArchive } from "react-icons/fa";
 import { CiInboxOut } from "react-icons/ci";
 import { GrFolderCycle } from "react-icons/gr";
 import { useAuthStore } from '../../auth/store/authStore';
 import { useAdminDashboard } from '../store/adminDashboard.store';
+import  DocumentLifeCycleModal  from '../../components/docLifeCyclePanel.jsx';
 
 const D_Pending = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -57,21 +60,6 @@ const D_Pending = () => {
   const {
     pendingDocuments,
     isLoadingPendingDocuments,
-    pendingDocumentsError,
-
-    adminAndStaffAccounts,
-    isLoadingAdminAndStaffAccounts,
-
-    forwardDocument,
-    isForwardingDocument,
-
-    archiveDocument,
-    isArchivingDocument,
-
-    releaseDocument,
-    isReleasingDocument,
-
-    pendingRefetch,
   } = useAdminDashboard({ pendingPage: page }, { searchQuery }); // send search to backend
 
   // Reset to first page when search changes
@@ -81,9 +69,7 @@ const D_Pending = () => {
   const toast = useToast();
 
   const [selectedDoc, setSelectedDoc] = useState(null);
-  const [forwardData, setForwardData] = useState({ forwardAccountId: '', forwardRemarks: '' });
-  const [archiveData, setArchiveData] = useState({ medium: '', location: '', archiveRemarks: '' });
-  const [releaseData, setReleaseData] = useState({ recipientOffice: '', recipientPerson: '', modeOfRelease: '', releaseRemarks: '' });
+  
 
   const priorities = ['All', 'Low', 'Medium', 'Urgent'];
 
@@ -142,85 +128,9 @@ const D_Pending = () => {
     </Flex>
   );
 
-  const actionStyles = {
-    "Document Created": { color: "green.400", icon: <CheckCircleIcon /> },
-    "Forwarded": { color: "blue.400", icon: <ArrowForwardIcon /> },
-    "Received/Work on Progress": { color: "gray.400", icon: <TimeIcon /> },
-    "Archived": { color: "orange.400", icon: <FaArchive /> },
-    "Released": { color: "red.400", icon: <CiInboxOut /> }
-  };
-
   const handleOpenManage = (doc) => {
     setSelectedDoc(doc);
     onOpen();
-  };
-
-  const handleForward = async () => {
-    if (!selectedDoc || !forwardData.forwardAccountId || !forwardData.forwardRemarks) {
-      toast({ title: "Missing fields", description: "Select a recipient and provide remarks.", status: "warning", duration: 4000, isClosable: true });
-      return;
-    }
-    try {
-      const res = await forwardDocument({
-        registeredDocId: selectedDoc._id,
-        userAccountId: user.id,
-        forwardAccountId: forwardData.forwardAccountId,
-        forwardRemarks: forwardData.forwardRemarks,
-      });
-      toast({ title: "Success", description: res.message, status: "success", duration: 5000, isClosable: true });
-      setForwardData({ forwardAccountId: '', forwardRemarks: '' });
-      await pendingRefetch();
-      onClose();
-    } catch (error) {
-      toast({ title: "Error", description: error.response?.data?.message || "Failed to forward document.", status: "error", duration: 5000, isClosable: true });
-    }
-  };
-
-  const handleArchive = async () => {
-    const { medium, location, archiveRemarks } = archiveData;
-    if (!selectedDoc || !medium || !location) {
-      toast({ title: "Missing fields", description: "Medium and location are required.", status: "warning", duration: 4000, isClosable: true });
-      return;
-    }
-    try {
-      const res = await archiveDocument({
-        registeredDocId: selectedDoc._id,
-        userAccountId: user.id,
-        medium,
-        location,
-        archiveRemarks,
-      });
-      toast({ title: "Success", description: res.message, status: "success", duration: 5000, isClosable: true });
-      setArchiveData({ medium: '', location: '', archiveRemarks: '' });
-      await pendingRefetch();
-      onClose();
-    } catch (error) {
-      toast({ title: "Error", description: error.response?.data?.message || "Failed to archive document.", status: "error", duration: 5000, isClosable: true });
-    }
-  };
-
-  const handleRelease = async () => {
-    const { recipientOffice, recipientPerson, modeOfRelease, releaseRemarks } = releaseData;
-    if (!selectedDoc || !recipientOffice || !recipientPerson || !modeOfRelease) {
-      toast({ title: "Missing fields", description: "Recipient, office and mode of release are required.", status: "warning", duration: 4000, isClosable: true });
-      return;
-    }
-    try {
-      const res = await releaseDocument({
-        registeredDocId: selectedDoc._id,
-        userAccountId: user.id,
-        recipientOffice,
-        recipientPerson,
-        modeOfRelease,
-        releaseRemarks,
-      });
-      toast({ title: "Success", description: res.message, status: "success", duration: 5000, isClosable: true });
-      setReleaseData({ recipientOffice: '', recipientPerson: '', modeOfRelease: '', releaseRemarks: '' });
-      await pendingRefetch();
-      onClose();
-    } catch (error) {
-      toast({ title: "Error", description: error.response?.data?.message || "Failed to release document.", status: "error", duration: 5000, isClosable: true });
-    }
   };
 
   return (
@@ -345,8 +255,9 @@ const D_Pending = () => {
                                       size="sm"
                                       colorScheme="green"
                                       onClick={() => handleOpenManage(doc)}
+                                      leftIcon={<HiDocumentDuplicate />}
                                     >
-                                      Manage Document
+                                      Manage
                                     </Button>
                                   </Td>
                                 </Tr>
@@ -393,255 +304,15 @@ const D_Pending = () => {
       </Box>
 
       {/* Manage Modal */}
-      <Modal isOpen={isOpen} onClose={onClose} isCentered size="2xl" closeOnOverlayClick={false} scrollBehavior="inside" motionPreset="none">
-        <ModalOverlay />
-        <ModalContent borderRadius="md" overflow="hidden" boxShadow="lg">
-          <ModalHeader bg="yellow.50" borderBottomWidth="1px" borderColor="gray.200" display="flex" alignItems="center" py={4}>
-            <Icon as={GrFolderCycle} mr={3} color="yellow.600" />
-            Document Details & Actions
-          </ModalHeader>
-
-          <ModalBody py={6} >
-            {!selectedDoc ? (
-              <Center py={6}>
-                <Spinner size="lg" color="yellow.500" />
-              </Center>
-            ) : (
-              <>
-                {/* Info */}
-                <Box bg="gray.50" p={4} borderRadius="md">
-                  <SimpleGrid columns={{ base: 1, md: 2 }} spacing={3}>
-                    <Box>
-                      <Text fontWeight="bold" fontSize="sm" color="gray.600">Document Type</Text>
-                      <Text fontSize="md">{selectedDoc.documentName}</Text>
-                    </Box>
-                    <Box>
-                      <Text fontWeight="bold" fontSize="sm" color="gray.600">Document Code</Text>
-                      <Text fontSize="md">{selectedDoc.documentCode}</Text>
-                    </Box>
-                    <Box>
-                      <Text fontWeight="bold" fontSize="sm" color="gray.600">Reference Number</Text>
-                      <Text fontSize="md">{selectedDoc.refNumber}</Text>
-                    </Box>
-                    <Box>
-                      <Text fontWeight="bold" fontSize="sm" color="gray.600">Priority</Text>
-                      <Badge colorScheme={
-                        selectedDoc.priority === "Urgent" ? "red" :
-                        selectedDoc.priority === "Medium" ? "blue" :
-                        "green"
-                      }>
-                        {selectedDoc.priority}
-                      </Badge>
-                    </Box>
-                  </SimpleGrid>
-                </Box>
-
-                <Divider my={4} />
-
-                {/* Timeline */}
-                <Heading size="sm" mb={6}>Document Lifecycle</Heading>
-                <Box position="relative">
-                  <Box position="absolute" left="24px" top="0" bottom="0" width="2px" bg="gray.200" zIndex={1} />
-                  <Box position="relative" zIndex={2}>
-                    {selectedDoc.lifeCycle?.map((event, idx) => {
-                      const isLast = idx === selectedDoc.lifeCycle.length - 1;
-                      const style = actionStyles[event.action] || { color: "gray.300", icon: null };
-                      const formattedDate = event.timeStamp ? new Date(event.timeStamp).toLocaleString('en-US', {
-                        month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true
-                      }) : '-';
-                      return (
-                        <Box key={idx} pb={isLast ? 0 : 4}>
-                          <Flex>
-                            <Box minWidth="50px" height="50px" borderRadius="full" bg={style.color} color="white" display="flex" alignItems="center" justifyContent="center" fontSize="xl" boxShadow="md">
-                              {style.icon}
-                            </Box>
-                            <Box ml={4} flex={1}>
-                              <Flex justify="space-between" align="flex-start">
-                                <Box>
-                                  <Text fontWeight="bold">{event.action}</Text>
-                                  <Text fontSize="sm" color="gray.600">
-                                    {`By: ${event.performedBy?.first_name || ''} ${event.performedBy?.last_name || ''} (${event.performedBy?.office_position || (event.performedBy?.role ? event.performedBy.role[0].toUpperCase()+event.performedBy.role.slice(1) : '-')})`}
-                                  </Text>
-                                </Box>
-                                <Text fontSize="sm" color="gray.500">{formattedDate}</Text>
-                              </Flex>
-                              {event.action === "Forwarded" && event.forwardDetails && (
-                                <Box mt={2} p={3} bg="blue.50" borderRadius="md" borderLeftWidth="3px" borderLeftColor="blue.500">
-                                  <Text fontSize="sm" fontWeight="bold">
-                                    {`Forwarded to: ${event.forwardDetails.first_name || ''} ${event.forwardDetails.last_name || ''} (${event.forwardDetails.office_position || (event.forwardDetails.role ? event.forwardDetails.role[0].toUpperCase()+event.forwardDetails.role.slice(1) : '-')})`}
-                                  </Text>
-                                  {event.forwardDetails.forwardRemarks && (
-                                    <Text fontSize="sm" mt={1}>Remarks: "{event.forwardDetails.forwardRemarks}"</Text>
-                                  )}
-                                </Box>
-                              )}
-                            </Box>
-                          </Flex>
-                        </Box>
-                      );
-                    })}
-                  </Box>
-                </Box>
-
-                <Divider my={4} />
-
-                {/* Action Tabs */}
-                <Tabs colorScheme="yellow" variant="enclosed">
-                  <TabList>
-                    <Tab>Forward</Tab>
-                    <Tab>Release</Tab>
-                    <Tab>Archive</Tab>
-                  </TabList>
-                  <TabPanels>
-                    {/* Forward */}
-                    <TabPanel px={0} pt={4} pb={0}>
-                      <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-                        <FormControl isRequired>
-                          <FormLabel>Forward To</FormLabel>
-                          <Select
-                            placeholder={isLoadingAdminAndStaffAccounts ? 'Loading accounts...' : 'Select a user'}
-                            value={forwardData.forwardAccountId}
-                            onChange={(e) => setForwardData(d => ({ ...d, forwardAccountId: e.target.value }))}
-                            isDisabled={isLoadingAdminAndStaffAccounts}
-                          >
-                            {!isLoadingAdminAndStaffAccounts && adminAndStaffAccounts?.map(acc => (
-                              <option key={acc._id} value={acc._id}>
-                                {`${acc.first_name} ${acc.last_name} (${acc.office_position || (acc.role ? acc.role[0].toUpperCase()+acc.role.slice(1) : '-')})`}
-                              </option>
-                            ))}
-                          </Select>
-                        </FormControl>
-                        <FormControl isRequired>
-                          <FormLabel>Forward Remarks</FormLabel>
-                          <Input
-                            placeholder='Instructions or remarks'
-                            value={forwardData.forwardRemarks}
-                            onChange={(e) => setForwardData(d => ({ ...d, forwardRemarks: e.target.value }))}
-                          />
-                        </FormControl>
-                      </SimpleGrid>
-                      <Flex justify="flex-end" mt={4}>
-                        <Button
-                          colorScheme="yellow"
-                          onClick={handleForward}
-                          isLoading={isForwardingDocument}
-                          isDisabled={!forwardData.forwardAccountId || !forwardData.forwardRemarks}
-                        >
-                          Forward Document
-                        </Button>
-                      </Flex>
-                    </TabPanel>
-
-                    {/* Release */}
-                    <TabPanel px={0} pt={4} pb={0}>
-                      <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-                        <FormControl isRequired>
-                          <FormLabel>Recipient Office</FormLabel>
-                          <Input
-                            placeholder='Office name'
-                            value={releaseData.recipientOffice}
-                            onChange={(e) => setReleaseData(d => ({ ...d, recipientOffice: e.target.value }))}
-                          />
-                        </FormControl>
-                        <FormControl isRequired>
-                          <FormLabel>Recipient Person</FormLabel>
-                          <Input
-                            placeholder='Full name'
-                            value={releaseData.recipientPerson}
-                            onChange={(e) => setReleaseData(d => ({ ...d, recipientPerson: e.target.value }))}
-                          />
-                        </FormControl>
-                        <FormControl isRequired>
-                          <FormLabel>Mode of Release</FormLabel>
-                          <Input
-                            placeholder='e.g. Personal, Courier, Email'
-                            value={releaseData.modeOfRelease}
-                            onChange={(e) => setReleaseData(d => ({ ...d, modeOfRelease: e.target.value }))}
-                          />
-                        </FormControl>
-                        <FormControl>
-                          <FormLabel>Release Remarks</FormLabel>
-                          <Input
-                            placeholder='Optional remarks'
-                            value={releaseData.releaseRemarks}
-                            onChange={(e) => setReleaseData(d => ({ ...d, releaseRemarks: e.target.value }))}
-                          />
-                        </FormControl>
-                      </SimpleGrid>
-                      <Flex justify="flex-end" mt={4}>
-                        <Button
-                          colorScheme="red"
-                          onClick={handleRelease}
-                          isLoading={isReleasingDocument}
-                          isDisabled={!releaseData.recipientOffice || !releaseData.recipientPerson || !releaseData.modeOfRelease}
-                        >
-                          Mark as Released
-                        </Button>
-                      </Flex>
-                    </TabPanel>
-
-                    {/* Archive */}
-                    <TabPanel px={0} pt={4} pb={0}>
-                      <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-                        <FormControl isRequired>
-                          <FormLabel>Medium</FormLabel>
-                          <Input
-                            placeholder='e.g. Paper, Digital'
-                            value={archiveData.medium}
-                            onChange={(e) => setArchiveData(d => ({ ...d, medium: e.target.value }))}
-                          />
-                        </FormControl>
-                        <FormControl isRequired>
-                          <FormLabel>Location</FormLabel>
-                          <Input
-                            placeholder='Storage location'
-                            value={archiveData.location}
-                            onChange={(e) => setArchiveData(d => ({ ...d, location: e.target.value }))}
-                          />
-                        </FormControl>
-                        <FormControl gridColumn={{ md: 'span 2' }}>
-                          <FormLabel>Archive Remarks</FormLabel>
-                          <Input
-                            placeholder='Optional remarks'
-                            value={archiveData.archiveRemarks}
-                            onChange={(e) => setArchiveData(d => ({ ...d, archiveRemarks: e.target.value }))}
-                          />
-                        </FormControl>
-                      </SimpleGrid>
-                      <Flex justify="flex-end" mt={4}>
-                        <Button
-                          colorScheme="orange"
-                          onClick={handleArchive}
-                          isLoading={isArchivingDocument}
-                          isDisabled={!archiveData.medium || !archiveData.location}
-                        >
-                          Archive Document
-                        </Button>
-                      </Flex>
-                    </TabPanel>
-                  </TabPanels>
-                </Tabs>
-              </>
-            )}
-          </ModalBody>
-
-          <ModalFooter bg="gray.50" borderTopWidth="1px" borderColor="gray.200" py={4}>
-            <Button
-              variant="outline"
-              onClick={() => {
-                onClose();
-                setSelectedDoc(null);
-                setForwardData({ forwardAccountId: '', forwardRemarks: '' });
-                setArchiveData({ medium: '', location: '', archiveRemarks: '' });
-                setReleaseData({ recipientOffice: '', recipientPerson: '', modeOfRelease: '', releaseRemarks: '' });
-              }}
-              _hover={{ bg: "gray.100" }}
-            >
-              Close
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
+      <DocumentLifeCycleModal
+        isOpen={isOpen}
+        onClose={onClose}
+        document={selectedDoc}
+        isPendingPage={true}
+        isIncomingPage={false}
+        isOutgoingPage={false}
+        isProduceDocumentPage={false}
+      />
     </Box>
   );
 };

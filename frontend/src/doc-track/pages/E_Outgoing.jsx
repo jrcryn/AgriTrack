@@ -38,12 +38,14 @@ import {
 } from '@chakra-ui/react';
 import { FiSearch, FiInbox } from 'react-icons/fi';
 import { CheckCircleIcon, ArrowForwardIcon, TimeIcon } from "@chakra-ui/icons";
+import { FaEye } from 'react-icons/fa';
 import { CiInboxOut } from "react-icons/ci";
 import { GrFolderCycle } from "react-icons/gr";
 
 import { FaQrcode, FaArchive } from 'react-icons/fa';
 import { useAuthStore } from '../../auth/store/authStore';
 import { useAdminDashboard } from '../store/adminDashboard.store';
+import  DocumentLifeCycleModal  from '../../components/docLifeCyclePanel.jsx';
 
 const E_Outgoing = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -64,14 +66,6 @@ const E_Outgoing = () => {
   // status modal state
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [selectedDoc, setSelectedDoc] = useState(null);
-
-  const actionStyles = {
-    "Document Created": { color: "green.400", icon: <CheckCircleIcon /> },
-    "Forwarded": { color: "blue.400", icon: <ArrowForwardIcon /> },
-    "Received/Work on Progress": { color: "gray.400", icon: <TimeIcon /> },
-    "Archived": { color: "orange.400", icon: <FaArchive /> },
-    "Released": { color: "red.400", icon: <CiInboxOut /> }
-  };
 
   const priorities = ['All', 'Low', 'Medium', 'Urgent'];
   const getPriorityColor = (priority) => {
@@ -256,8 +250,9 @@ const E_Outgoing = () => {
                                     size="sm"
                                     colorScheme="green"
                                     onClick={() => handleOpenStatus(doc)}
+                                    leftIcon={<FaEye />}
                                   >
-                                    See Status
+                                    Status
                                   </Button>
                                 </Td>
                               </Tr>
@@ -304,113 +299,15 @@ const E_Outgoing = () => {
       </Box>
 
       {/* Status Modal (view-only) */}
-      <Modal isOpen={isOpen} onClose={onClose} isCentered size="2xl" closeOnOverlayClick={false} scrollBehavior="inside" motionPreset="none">
-        <ModalOverlay />
-        <ModalContent borderRadius="md" overflow="hidden" boxShadow="lg">
-          <ModalHeader bg="red.50" borderBottomWidth="1px" borderColor="gray.200" display="flex" alignItems="center" py={4}>
-            <Icon as={GrFolderCycle} mr={3} color="red.600" />
-            Document Status
-          </ModalHeader>
-
-          <ModalBody py={6}>
-            {!selectedDoc ? (
-              <Center py={6}>
-                <Spinner size="lg" color="red.500" />
-              </Center>
-            ) : (
-              <>
-                {/* Info */}
-                <Box bg="gray.50" p={4} borderRadius="md">
-                  <SimpleGrid columns={{ base: 1, md: 2 }} spacing={3}>
-                    <Box>
-                      <Text fontWeight="bold" fontSize="sm" color="gray.600">Document Type</Text>
-                      <Text fontSize="md">{selectedDoc.documentName}</Text>
-                    </Box>
-                    <Box>
-                      <Text fontWeight="bold" fontSize="sm" color="gray.600">Document Code</Text>
-                      <Text fontSize="md">{selectedDoc.documentCode}</Text>
-                    </Box>
-                    <Box>
-                      <Text fontWeight="bold" fontSize="sm" color="gray.600">Reference Number</Text>
-                      <Text fontSize="md">{selectedDoc.refNumber}</Text>
-                    </Box>
-                    <Box>
-                      <Text fontWeight="bold" fontSize="sm" color="gray.600">Priority</Text>
-                      <Badge colorScheme={
-                        selectedDoc.priority === "Urgent" ? "red" :
-                        selectedDoc.priority === "Medium" ? "blue" :
-                        "green"
-                      }>
-                        {selectedDoc.priority}
-                      </Badge>
-                    </Box>
-                  </SimpleGrid>
-                </Box>
-
-                <Divider my={4} />
-
-                {/* Timeline */}
-                <Heading size="sm" mb={6}>Document Lifecycle</Heading>
-                <Box position="relative">
-                  <Box position="absolute" left="24px" top="0" bottom="0" width="2px" bg="gray.200" zIndex={1} />
-                  <Box position="relative" zIndex={2}>
-                    {selectedDoc.lifeCycle?.map((event, idx) => {
-                      const isLast = idx === selectedDoc.lifeCycle.length - 1;
-                      const style = actionStyles[event.action] || { color: "gray.300", icon: null };
-                      const formattedDate = event.timeStamp ? new Date(event.timeStamp).toLocaleString('en-US', {
-                        month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true
-                      }) : '-';
-                      return (
-                        <Box key={idx} pb={isLast ? 0 : 4}>
-                          <Flex>
-                            <Box minWidth="50px" height="50px" borderRadius="full" bg={style.color} color="white" display="flex" alignItems="center" justifyContent="center" fontSize="xl" boxShadow="md">
-                              {style.icon}
-                            </Box>
-                            <Box ml={4} flex={1}>
-                              <Flex justify="space-between" align="flex-start">
-                                <Box>
-                                  <Text fontWeight="bold">{event.action}</Text>
-                                  <Text fontSize="sm" color="gray.600">
-                                    {`By: ${event.performedBy?.first_name || ''} ${event.performedBy?.last_name || ''} (${event.performedBy?.office_position || (event.performedBy?.role ? event.performedBy.role[0].toUpperCase()+event.performedBy.role.slice(1) : '-')})`}
-                                  </Text>
-                                </Box>
-                                <Text fontSize="sm" color="gray.500">{formattedDate}</Text>
-                              </Flex>
-                              {event.action === "Forwarded" && event.forwardDetails && (
-                                <Box mt={2} p={3} bg="blue.50" borderRadius="md" borderLeftWidth="3px" borderLeftColor="blue.500">
-                                  <Text fontSize="sm" fontWeight="bold">
-                                    {`Forwarded to: ${event.forwardDetails.first_name || ''} ${event.forwardDetails.last_name || ''} (${event.forwardDetails.office_position || (event.forwardDetails.role ? event.forwardDetails.role[0].toUpperCase()+event.forwardDetails.role.slice(1) : '-')})`}
-                                  </Text>
-                                  {event.forwardDetails.forwardRemarks && (
-                                    <Text fontSize="sm" mt={1}>Remarks: "{event.forwardDetails.forwardRemarks}"</Text>
-                                  )}
-                                </Box>
-                              )}
-                            </Box>
-                          </Flex>
-                        </Box>
-                      );
-                    })}
-                  </Box>
-                </Box>
-              </>
-            )}
-          </ModalBody>
-
-          <ModalFooter bg="gray.50" borderTopWidth="1px" borderColor="gray.200" py={4}>
-            <Button
-              variant="outline"
-              onClick={() => {
-                onClose();
-                setSelectedDoc(null);
-              }}
-              _hover={{ bg: "gray.100" }}
-            >
-              Close
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
+      <DocumentLifeCycleModal 
+        isOpen={isOpen} 
+        onClose={onClose} 
+        document={selectedDoc} 
+        isOutgoingPage={true}
+        isPendingPage={false}
+        isIncomingPage={false}
+        isProduceDocumentPage={false}
+      />
     </Box>
   );
 };

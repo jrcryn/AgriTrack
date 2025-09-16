@@ -36,6 +36,7 @@ export const useIncomingForwardedDocumentsQuery = (id, page = 1, searchParams = 
             return response.data;
         },
         enabled: !!id,
+        staleTime: 0,
     });
 
 export const usePendingDocumentsQuery = (id, page = 1, searchParams = {}) =>
@@ -49,6 +50,7 @@ export const usePendingDocumentsQuery = (id, page = 1, searchParams = {}) =>
             return response.data;
         },
         enabled: !!id,
+        staleTime: 0,
     });
 
 export const useOutgoingDocumentsQuery = (id, page = 1, searchParams = {}) =>
@@ -62,6 +64,7 @@ export const useOutgoingDocumentsQuery = (id, page = 1, searchParams = {}) =>
             return response.data;
         },
         enabled: !!id,
+        staleTime: 0,
     });
 
 export const useDocumentHistoryQuery = (id, page = 1) =>
@@ -91,17 +94,13 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
     const { data: documentTypes = [], isLoading: isLoadingDocumentTypes, error: documentTypesError } = useDocumentTypesQuery();
     const { data: adminAndStaffAccounts = [], isLoading: isLoadingAdminAndStaffAccounts, error: adminAndStaffAccountsError } = useStaffAndAdminAccountsQuery(id);
 
-    const { data: forwardedDocuments = [], isLoading: isLoadingForwardedDocuments, error: forwardedDocumentsError, refetch: forwardedRefetch } =
-        useIncomingForwardedDocumentsQuery(id, incomingPage, searchParams);
+    const { data: forwardedDocuments = [], isLoading: isLoadingForwardedDocuments, error: forwardedDocumentsError } = useIncomingForwardedDocumentsQuery(id, incomingPage, searchParams);
 
-    const { data: pendingDocuments = [], isLoading: isLoadingPendingDocuments, error: pendingDocumentsError, refetch: pendingRefetch } =
-        usePendingDocumentsQuery(id, pendingPage, searchParams);
+    const { data: pendingDocuments = [], isLoading: isLoadingPendingDocuments, error: pendingDocumentsError } = usePendingDocumentsQuery(id, pendingPage, searchParams);
 
-    const { data: outgoingDocuments = [], isLoading: isLoadingOutgoingDocuments, error: outgoingDocumentsError, refetch: outgoingRefetch } =
-        useOutgoingDocumentsQuery(id, outgoingPage, searchParams);
+    const { data: outgoingDocuments = [], isLoading: isLoadingOutgoingDocuments, error: outgoingDocumentsError } = useOutgoingDocumentsQuery(id, outgoingPage, searchParams);
 
-    const { data: documentHistory = [], isLoading: isLoadingDocumentHistory, error: documentHistoryError, refetch: historyRefetch } =
-        useDocumentHistoryQuery(id, historyPage);
+    const { data: documentHistory = [], isLoading: isLoadingDocumentHistory, error: documentHistoryError } = useDocumentHistoryQuery(id, historyPage);
 
     const [isCreatingDocument, setIsCreatingDocument] = useState(false);
     const [isUpdatingDocumentType, setIsUpdatingDocumentType] = useState(false);
@@ -246,12 +245,6 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
         pendingDocuments,
         documentHistory,
         outgoingDocuments,
-
-        // refetchers
-        forwardedRefetch,
-        pendingRefetch,
-        historyRefetch,
-        outgoingRefetch,
 
         // action functions
         createDocument,

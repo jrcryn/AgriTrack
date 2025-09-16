@@ -26,11 +26,16 @@ import {
   Center,
   Spinner,
   TableContainer,
+  useToast
 } from '@chakra-ui/react';
 import { FiSearch, FiInbox } from 'react-icons/fi';
+import { RiFolderReceivedFill } from "react-icons/ri";
+
 import { FaQrcode } from 'react-icons/fa';
 import { useAuthStore } from '../../auth/store/authStore';
 import { useAdminDashboard } from '../store/adminDashboard.store';
+import { useQueryClient } from '@tanstack/react-query';
+
 
 const C_Incoming = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -38,20 +43,21 @@ const C_Incoming = () => {
   const [page, setPage] = useState(1);
 
   const { user } = useAuthStore();
+  const toast = useToast();
+  const queryClient = useQueryClient();
 
   const {
     forwardedDocuments,
     isLoadingForwardedDocuments,
     forwardedDocumentsError,
     receiveDocument,
-    isReceivingDocument,
-    forwardedRefetch,
   } = useAdminDashboard({ incomingPage: page }, { searchQuery }); // send search to backend
 
   // Reset to first page when search changes
   useEffect(() => { setPage(1); }, [searchQuery]);
 
   const priorities = ['All', 'Low', 'Medium', 'Urgent'];
+  const [receivingDocId, setReceivingDocId] = useState(null);
 
   const getPriorityColor = (priority) => {
     switch(priority) {
@@ -74,10 +80,30 @@ const C_Incoming = () => {
   const handleReceive = async (docId) => {
     if (!user?.id) return;
     try {
+      setReceivingDocId(docId);
       await receiveDocument({ registeredDocId: docId, userAccountId: user.id });
-      await forwardedRefetch();
-    } catch (_) {
-      // keep minimal UI; errors handled upstream/toast layer if any
+      toast({
+        title: "Success",
+        description: "Successfully marked as received.",
+        status: "success",
+        duration: 5000,
+        isClosable: true,
+      });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['forwardedDocuments'] }),
+        queryClient.invalidateQueries({ queryKey: ['pendingDocuments'] }),
+        queryClient.invalidateQueries({ queryKey: ['outgoingDocuments'] }),
+      ]);
+    } catch (error) {
+      toast({
+        title: "Error receiving document",
+        description: error.response?.data?.message || "Failed to receive document. Please try again.",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setReceivingDocId(null);
     }
   };
 
@@ -238,9 +264,10 @@ const C_Incoming = () => {
                                       size="sm"
                                       colorScheme="green"
                                       onClick={() => handleReceive(doc._id)}
-                                      isLoading={isReceivingDocument}
+                                      isLoading={receivingDocId === doc._id}
+                                      leftIcon={<RiFolderReceivedFill />}
                                     >
-                                      Receive Document
+                                      Receive 
                                     </Button>
                                   </Td>
                                 </Tr>
