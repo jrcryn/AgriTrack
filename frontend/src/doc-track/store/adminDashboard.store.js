@@ -80,6 +80,32 @@ export const useDocumentHistoryQuery = (id, page = 1) =>
         enabled: !!id,
     });
 
+export const useArchivedDocumentsQuery = (id, page = 1) =>
+    useQuery({
+        queryKey: ['archivedDocuments', id, page],
+        queryFn: async () => {
+            const response = await axios.get(
+                `${API_URL}/api/doc-track/get-archived-documents/${id}`,
+                { params: { page, limit: 10 } }
+            );
+            return response.data;
+        },
+        enabled: !!id,
+    });
+
+export const useReleasedDocumentsQuery = (id, page = 1) =>
+    useQuery({
+        queryKey: ['releasedDocuments', id, page],
+        queryFn: async () => {
+            const response = await axios.get(
+                `${API_URL}/api/doc-track/get-released-documents/${id}`,
+                { params: { page, limit: 10 } }
+            );
+            return response.data;
+        },
+        enabled: !!id,
+    });
+
 export const useAdminDashboard = (pages = {}, searchParams = {}) => {
     const { user } = useAuthStore()
     const id = user?.id
@@ -89,6 +115,8 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
         pendingPage = 1,
         historyPage = 1,
         outgoingPage = 1,
+        archivedPage = 1,
+        releasedPage = 1,
     } = pages;
 
     const { data: documentTypes = [], isLoading: isLoadingDocumentTypes, error: documentTypesError } = useDocumentTypesQuery();
@@ -101,6 +129,10 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
     const { data: outgoingDocuments = [], isLoading: isLoadingOutgoingDocuments, error: outgoingDocumentsError } = useOutgoingDocumentsQuery(id, outgoingPage, searchParams);
 
     const { data: documentHistory = [], isLoading: isLoadingDocumentHistory, error: documentHistoryError } = useDocumentHistoryQuery(id, historyPage);
+
+    const { data: archivedDocuments = [], isLoading: isLoadingArchivedDocuments, error: archivedDocumentsError } = useArchivedDocumentsQuery(archivedPage);
+
+    const { data: releasedDocuments = [], isLoading: isLoadingReleasedDocuments, error: releasedDocumentsError } = useReleasedDocumentsQuery(releasedPage);
 
     const [isCreatingDocument, setIsCreatingDocument] = useState(false);
     const [isUpdatingDocumentType, setIsUpdatingDocumentType] = useState(false);
@@ -245,6 +277,8 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
         pendingDocuments,
         documentHistory,
         outgoingDocuments,
+        archivedDocuments,
+        releasedDocuments,
 
         // action functions
         createDocument,
@@ -265,6 +299,8 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
         isLoadingPendingDocuments,
         isLoadingDocumentHistory,
         isLoadingOutgoingDocuments,
+        isLoadingArchivedDocuments,
+        isLoadingReleasedDocuments,
 
         // action flags
         isCreatingDocument,
@@ -285,5 +321,7 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
         pendingDocumentsError,
         documentHistoryError,
         outgoingDocumentsError,
+        archivedDocumentsError,
+        releasedDocumentsError,
     };
 }

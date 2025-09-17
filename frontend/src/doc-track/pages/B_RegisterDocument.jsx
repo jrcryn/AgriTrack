@@ -131,7 +131,8 @@ const B_RegisterDocument = () => {
 
     const handleFindDocument = async () => {
       try {
-        const response = await documentStatus({refNumber: formData.referenceNumber});
+        const refNumber = formData.referenceNumber.trim();
+        const response = await documentStatus({refNumber});
         setScanResults(response.data);
         toast({
             title: "Success",

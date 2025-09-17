@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 export const lifeCycleIterationsSchema = new mongoose.Schema({
     action: { 
         type: String,
-        enum: ['Document Created', 'Forwarded', 'Received/Work on Progress', 'Archived', 'Finalized'],
+        enum: ['Document Created', 'Forwarded', 'Received/Work on Progress', 'Archived', 'Unarchived', 'Unreleased', 'Rerouted'],
         required: true
     },
 
@@ -23,6 +23,20 @@ export const lifeCycleIterationsSchema = new mongoose.Schema({
     forwardDetails: { // same goes here
         userModel: { type: String, enum: ['Staff_Account', 'Manager_Account'] },
         userId: { type: mongoose.Schema.Types.ObjectId, refPath: 'forwardDetails.userModel' },
+        first_name: String,
+        last_name: String,
+        middle_name: String,
+        suffix: String,
+        role: String,
+        office_position: String,
+        email: String,
+        phone: String,
+        forwardRemarks: String,
+    },
+
+    rerouteDetails: { // same goes here
+        userModel: { type: String, enum: ['Staff_Account', 'Manager_Account'] },
+        userId: { type: mongoose.Schema.Types.ObjectId, refPath: 'rerouteDetails.userModel' },
         first_name: String,
         last_name: String,
         middle_name: String,
@@ -71,8 +85,6 @@ export const DocumentLifeCycleSchema = new mongoose.Schema({
     lifeCycle: [lifeCycleIterationsSchema],
 
     currentHandler: { //for forwarding lang, not indicative of actual current handler kung hindi pa na re-receive
-        userModel: { type: String, enum: ['Staff_Account', 'Manager_Account'] },
-        userId: { type: mongoose.Schema.Types.ObjectId, refPath: 'currentHandler.userModel' },
         first_name: String,
         last_name: String,
         middle_name: String,

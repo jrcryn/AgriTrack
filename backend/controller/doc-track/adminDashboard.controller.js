@@ -114,7 +114,6 @@ const getNextSequence = async (key) => {
   return `${currentDate}-${String(sequenceNumber).padStart(4, '0')}`;
 };
 
-
 export const registerDocument = async (req, res) => {
     const { userAccountId, documentId, priority, details, isRegisterOnly } = req.body;
     try {
@@ -168,7 +167,6 @@ export const registerDocument = async (req, res) => {
                 timeStamp: Date.now(),
             },
             details: details,
-            $set: { currentHandler: { userId: user._id } }
         });
 
         if (isRegisterOnly === true) {
@@ -208,9 +206,8 @@ export const registerDocument = async (req, res) => {
                     
                 },
                 $set: { currentHandler: { 
-                    userId: user._id,
                     first_name: user.first_name,
-                    last_name: user.lastName,
+                    last_name: user.last_name,
                     middle_name: user.middle_name,
                     suffix: user.suffix,
                     role: user.role,
@@ -361,9 +358,8 @@ export const forwardDocument = async (req, res) => {
                     
                 },
                 $set: { currentHandler: { 
-                    userId: forwardAccount._id,
                     first_name: forwardAccount.first_name,
-                    last_name: forwardAccount.lastName,
+                    last_name: forwardAccount.last_name,
                     middle_name: forwardAccount.middle_name,
                     suffix: forwardAccount.suffix,
                     role: forwardAccount.role,
@@ -436,7 +432,6 @@ export const registerAndForwardDocument = async (req, res) => {
                 timeStamp: Date.now(),
             },
             details: details,
-            $set: { currentHandler: { userId: registerAccount._id } }
         });
         
         let forwardAccount = await global.docTrackModels.ManagerAccount.findById(forwardAccountId) ||
@@ -487,9 +482,8 @@ export const registerAndForwardDocument = async (req, res) => {
                     
                 },
                 $set: { currentHandler: { 
-                    userId: forwardAccount._id,
                     first_name: forwardAccount.first_name,
-                    last_name: forwardAccount.lastName,
+                    last_name: forwardAccount.last_name,
                     middle_name: forwardAccount.middle_name,
                     suffix: forwardAccount.suffix,
                     role: forwardAccount.role,
@@ -740,7 +734,6 @@ export const getIncomingForwardedDocuments = async (req, res) => {
 
         // Base pipeline: assigned to you and last action is Forwarded
         const pipeline = [
-            { $match: { 'currentHandler.userId': user._id } },
             { $addFields: { lastAction: { $arrayElemAt: ['$lifeCycle', -1] } } },
             { $match: { 'lastAction.action': 'Forwarded' } },
         ];
@@ -805,7 +798,6 @@ export const getPendingDocuments = async (req, res) => {
         }
 
         const pipeline = [
-            { $match: { 'currentHandler.userId': user._id } },
             { $addFields: { lastAction: { $arrayElemAt: ['$lifeCycle', -1] } } },
             { $match: { 'lastAction.action': 'Received/Work on Progress' } },
         ];
@@ -1020,6 +1012,267 @@ export const getDocumentStatus = async (req, res) => { //check doc status, tatan
     }
 };
 
+export const getArchivedDocuments = async (req, res) => {
+    const { searchQuery } = req.query;
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+
+        const pipeline = [
+            // Use the last lifecycle entry; archived docs should end with "Archived"
+            { $addFields: { lastAction: { $arrayElemAt: ['$lifeCycle', -1] } } },
+            { $match: { 'lastAction.action': 'Archived' } },
+        ];
+
+        if (searchQuery && searchQuery.trim() !== '') {
+            const words = searchQuery.trim().split(/\s+/);
+            const searchConditions = words.map((word) => ({
+                $or: [
+                    { refNumber: { $regex: word, $options: 'i' } },
+                    { documentName: { $regex: word, $options: 'i' } },
+                    { 'lastAction.performedBy.first_name': { $regex: word, $options: 'i' } },
+                    { 'lastAction.performedBy.last_name': { $regex: word, $options: 'i' } },
+                    // Match "First Last" combined
+                    {
+                        $expr: {
+                            $regexMatch: {
+                                input: { $concat: ['$lastAction.performedBy.first_name', ' ', '$lastAction.performedBy.last_name'] },
+                                regex: word,
+                                options: 'i'
+                            }
+                        }
+                    }
+                ]
+            }));
+            pipeline.push({ $match: { $and: searchConditions } });
+        }
+
+        pipeline.push({
+            $facet: {
+                paginatedResults: [
+                    { $sort: { 'lastAction.timeStamp': -1, _id: -1 } },
+                    { $skip: skip },
+                    { $limit: limit }
+                ],
+                totalCount: [{ $count: 'count' }]
+            }
+        });
+
+        const result = await global.docTrackModels.ArchivedDocuments.aggregate(pipeline);
+        const relevantDocs = result[0]?.paginatedResults || [];
+        const totalCount = result[0]?.totalCount?.[0]?.count || 0;
+
+        return res.status(200).json({
+            success: true,
+            message: 'Successfully fetched archived documents.',
+            data: {
+                relevantDocs,
+                totalCount,
+                totalPages: Math.ceil(totalCount / limit),
+                currentPage: page
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching archived documents:', error);
+        return res.status(500).json({ success: false, message: 'Error fetching archived documents', error: error.message });
+    }
+};
+
+export const getReleasedDocuments = async (req, res) => {
+    const { searchQuery } = req.query;
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+
+        const pipeline = [
+            // Use the last lifecycle entry; archived docs should end with "Archived"
+            { $addFields: { lastAction: { $arrayElemAt: ['$lifeCycle', -1] } } },
+            { $match: { 'lastAction.action': 'Archived' } },
+        ];
+
+        if (searchQuery && searchQuery.trim() !== '') {
+            const words = searchQuery.trim().split(/\s+/);
+            const searchConditions = words.map((word) => ({
+                $or: [
+                    { refNumber: { $regex: word, $options: 'i' } },
+                    { documentName: { $regex: word, $options: 'i' } },
+                    { 'lastAction.performedBy.first_name': { $regex: word, $options: 'i' } },
+                    { 'lastAction.performedBy.last_name': { $regex: word, $options: 'i' } },
+                    // Match "First Last" combined
+                    {
+                        $expr: {
+                            $regexMatch: {
+                                input: { $concat: ['$lastAction.performedBy.first_name', ' ', '$lastAction.performedBy.last_name'] },
+                                regex: word,
+                                options: 'i'
+                            }
+                        }
+                    }
+                ]
+            }));
+            pipeline.push({ $match: { $and: searchConditions } });
+        }
+
+        pipeline.push({
+            $facet: {
+                paginatedResults: [
+                    { $sort: { 'lastAction.timeStamp': -1, _id: -1 } },
+                    { $skip: skip },
+                    { $limit: limit }
+                ],
+                totalCount: [{ $count: 'count' }]
+            }
+        });
+
+        const result = await global.docTrackModels.ReleasedDocuments.aggregate(pipeline);
+        const relevantDocs = result[0]?.paginatedResults || [];
+        const totalCount = result[0]?.totalCount?.[0]?.count || 0;
+
+        return res.status(200).json({
+            success: true,
+            message: 'Successfully fetched released documents.',
+            data: {
+                relevantDocs,
+                totalCount,
+                totalPages: Math.ceil(totalCount / limit),
+                currentPage: page
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching archived documents:', error);
+        return res.status(500).json({ success: false, message: 'Error fetching archived documents', error: error.message });
+    }
+};
+
+export const rerouteDocument = async (req, res) => {
+    const { registeredDocId, userAccountId, rerouteAccountId, rerouteRemarks, rerouteToSelf } = req.body;
+
+    try {
+        const document = await global.docTrackModels.DocumentLifeCycle.findById(registeredDocId);
+        if (!document) {
+            return res.status(404).json({ success: false, message: 'Registered document not found.' });
+        }
+
+        const user = await global.docTrackModels.ManagerAccount.findById(userAccountId) ||
+                   await global.docTrackModels.StaffAccount.findById(userAccountId);
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'Cannot find your account, please contact IT if error persists.' });
+        }
+
+        const userModel = user instanceof global.docTrackModels.ManagerAccount ? 'Manager_Account' : 'Staff_Account';
+
+        const rerouteAccount = await global.docTrackModels.ManagerAccount.findById(rerouteAccountId) ||
+                               await global.docTrackModels.StaffAccount.findById(rerouteAccountId);
+        if (!rerouteAccount) {
+            return res.status(404).json({ success: false, message: 'Cannot find the user you are trying to reroute to.' });
+        }
+
+        const rerouteAccountModel = rerouteAccount instanceof global.docTrackModels.ManagerAccount ? 'Manager_Account' : 'Staff_Account';
+
+        if (rerouteToSelf === true ) {
+            await global.docTrackModels.DocumentLifeCycle.updateOne(
+                {_id: document._id},
+                {
+                    $push: {
+                        lifeCycle: {
+                            action: 'Rerouted',
+                            performedBy: {
+                                userModel: userModel,
+                                userId: user._id,
+                                first_name: user.first_name,
+                                last_name: user.last_name,
+                                middle_name: user.middle_name,
+                                suffix: user.suffix,
+                                role: user.role,
+                                office_position: user.office_position,
+                                email: user.email,
+                                phone: user.phone
+                            },
+                            rerouteDetails: {
+                                userModel: userModel,
+                                userId: user._id,
+                                first_name: user.first_name,
+                                last_name: user.last_name,
+                                middle_name: user.middle_name,
+                                suffix: user.suffix,
+                                role: user.role,
+                                office_position: user.office_position,
+                                email: user.email,
+                                phone: user.phone,
+                                rerouteRemarks: 'Rerouted to self: ' + rerouteRemarks
+                            },
+                            timeStamp: Date.now(),
+                        }
+                    },
+                    $set: { currentHandler: { 
+                        first_name: user.first_name,
+                        last_name: user.last_name,
+                        middle_name: user.middle_name,
+                        suffix: user.suffix,
+                        role: user.role,
+                        office_position: user.office_position,
+                        email: user.email,
+                        phone: user.phone
+                    } }
+                }
+            );
+        } else {
+            await global.docTrackModels.DocumentLifeCycle.updateOne(
+                {_id: document._id},
+                {
+                    $push: {
+                        lifeCycle: {
+                            action: 'Rerouted',
+                            performedBy: {
+                                userModel: userModel,
+                                userId: user._id,
+                                first_name: user.first_name,
+                                last_name: user.last_name,
+                                middle_name: user.middle_name,
+                                suffix: user.suffix,
+                                role: user.role,
+                                office_position: user.office_position,
+                                email: user.email,
+                                phone: user.phone
+                            },
+                            rerouteDetails: {
+                                userModel: rerouteAccountModel,
+                                userId: rerouteAccount._id,
+                                first_name: rerouteAccount.first_name,
+                                last_name: rerouteAccount.last_name,
+                                middle_name: rerouteAccount.middle_name,
+                                suffix: rerouteAccount.suffix,
+                                role: rerouteAccount.role,
+                                office_position: rerouteAccount.office_position,
+                                email: rerouteAccount.email,
+                                phone: rerouteAccount.phone,
+                                rerouteRemarks: rerouteRemarks
+                            },
+                            timeStamp: Date.now(),
+                        },
+                        $set: { currentHandler: { 
+                            first_name: rerouteAccount.first_name,
+                            last_name: rerouteAccount.last_name,
+                            middle_name: rerouteAccount.middle_name,
+                            suffix: rerouteAccount.suffix,
+                            role: rerouteAccount.role,
+                            office_position: rerouteAccount.office_position,
+                            email: rerouteAccount.email,
+                            phone: rerouteAccount.phone
+                        } }
+                    }
+                }
+            );
+        }
+
+        return res.status(200).json({ success: true, message: 'Document rerouted successfully' });
+    } catch (error) {
+        console.error('Error rerouting document:', error);
+        return res.status(500).json({ success: false, message: 'Error rerouting document', error: error.message });
+    }
+};
 
 
 

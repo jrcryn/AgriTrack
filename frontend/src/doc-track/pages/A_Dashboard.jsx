@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from "react-router-dom";
 import {
   Box,
   Heading,
@@ -42,6 +43,7 @@ import {
   FiAlertCircle,
 } from "react-icons/fi";
 import { HiMiniDocumentPlus, HiInformationCircle } from "react-icons/hi2";
+import { LuLogs } from "react-icons/lu";
 import { MdEditDocument } from "react-icons/md";
 import { FaArchive } from "react-icons/fa";
 import { useAdminDashboard } from '../store/adminDashboard.store.js';
@@ -49,6 +51,7 @@ import { useAdminDashboard } from '../store/adminDashboard.store.js';
 
 const A_Dashboard = () => {
   const toast = useToast();
+  const navigate = useNavigate();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { isOpen: isOpenEditDocTypes, onOpen: onOpenEditDocTypes, onClose: onCloseEditDocTypes } = useDisclosure();
 
@@ -432,7 +435,8 @@ const A_Dashboard = () => {
               <StatNumber fontSize="4xl" mb={2}>
                 {metrics.incomingDocuments}
               </StatNumber>
-              <Tag colorScheme="green" size="sm">New documents</Tag>
+              <Tag colorScheme="green" size="sm">Created</Tag>
+              <Tag colorScheme="red" size="sm" ml={2}>Forwarded</Tag>
             </Stat>
           </Box>
           
@@ -451,12 +455,14 @@ const A_Dashboard = () => {
                 <Icon as={FiClock} mr={2} color="yellow.500" /> Pending
               </StatLabel>
               <StatNumber fontSize="4xl" mb={2}>{metrics.pendingDocuments}</StatNumber>
-              <Tag colorScheme="yellow" size="sm">In process</Tag>
+              <Tag colorScheme="yellow" size="sm">Received/Work on Progress</Tag>
             </Stat>
           </Box>
           
-          {/* Outgoing Documents */}
+          {/* Document Logds */}
           <Box 
+            as="button"
+            type="button"
             p={5} 
             flex={1} 
             borderRadius="md" 
@@ -464,13 +470,28 @@ const A_Dashboard = () => {
             bg="white"
             borderWidth="1px"
             borderColor="gray.200"
+            // onKeyDown={(e) => {
+            //   if (e.key === 'Enter' || e.key === ' ') {
+            //     e.preventDefault();
+            //     onOpen();
+            //   }
+            // }}
+            //aria-label="Open document logs"
+            cursor="pointer"
+            transition="all 0.2s ease"
+            _hover={{ boxShadow: "md", borderColor: "blue.400", bg: "blue.50", transform: "translateY(-2px)" }}
+            _active={{ boxShadow: "sm", bg: "blue.100", transform: "translateY(0)" }}
+            _focusVisible={{ outline: "none", boxShadow: "0 0 0 3px rgba(66, 153, 225, 0.6)" }}
+            textAlign="left"
+            onClick={() => navigate('/doc-track/document-logs')}
           >
             <Stat>
               <StatLabel fontSize="md" display="flex" alignItems="center">
-                <Icon as={FiSend} mr={2} color="red.500" /> Outgoing
+                <Icon as={LuLogs} mr={2} color="red.500" /> Document Logs
               </StatLabel>
               <StatNumber fontSize="4xl" mb={2}>{metrics.outgoingDocuments}</StatNumber>
-              <Tag colorScheme="red" size="sm">Completed</Tag>
+              <Tag colorScheme="orange" size="sm">Archived</Tag>
+              <Tag colorScheme="red" size="sm" ml={2}>Released</Tag>
             </Stat>
           </Box>
         </Stack>

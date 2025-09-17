@@ -27,8 +27,7 @@ const roleLabel = (office_position, role) =>
 const DocumentLifeCycleModal = ({
   isOpen,
   onClose,
-  document,
-  onClose,            
+  document,            
 
   isIncomingPage,
   isPendingPage,
@@ -312,19 +311,13 @@ const DocumentLifeCycleModal = ({
               {/* Current Handler */}
               {isProduceDocumentPage && (
                 <Box mt={4} p={4} bg="blue.50" borderRadius="md">
-                    <Heading size="sm" mb={2}>Current Document Handler</Heading>
+                    <Heading size="sm" mb={2}>Current Document Handler:</Heading>
                     <Text>
                     {(() => {
-                        const events = Array.isArray(data.lifeCycle) ? data.lifeCycle : [];
-                        const last = events[events.length - 1];
-                        if (!last) return <i>No lifecycle events</i>;
-                        if (last.action === 'Forwarded' && last.forwardDetails) {
-                        return `By: ${last.forwardDetails.first_name || ''} ${last.forwardDetails.last_name || ''} (${roleLabel(last.forwardDetails.office_position, last.forwardDetails.role)})`;
+                        if (data.currentHandler && data.currentHandler?.first_name && data.currentHandler?.last_name) {
+                            return `${data.currentHandler.first_name} ${data.currentHandler.last_name} (${roleLabel(data.currentHandler.office_position, data.currentHandler.role)})`;
                         }
-                        if (last.performedBy) {
-                        return `By: ${last.performedBy.first_name || ''} ${last.performedBy.last_name || ''} (${roleLabel(last.performedBy.office_position, last.performedBy.role)})`;
-                        }
-                        return <i>Unknown</i>;
+                        return <i>No current handler, document may have been released or archived.</i>;
                     })()}
                     </Text>
                 </Box>

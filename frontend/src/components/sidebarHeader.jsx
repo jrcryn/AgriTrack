@@ -63,9 +63,8 @@ const allLinkItems = [
   { name: 'Produce Document', icon: IoDocumentAttachOutline, path : '/doc-track/register-document', roles: ['DMS', 'DMM'] },
   { name: 'Incoming', icon: FiInbox, path : '/doc-track/incoming', count: 8, roles: ['DMS', 'DMM'] },
   { name: 'Pending', icon: FiClock, path : '/doc-track/pending', count: 6, roles: ['DMS', 'DMM'] },
-  { name: 'Outgoing', icon: FiSend, path : '/doc-track/outgoing', count: 4, roles: ['DMS', 'DMM'] },
-  { name: 'Document Log', icon: FiArchive, path : '/doc-track/history', roles: ['DMS', 'DMM'] },
-  { name: 'Employees', icon: FiUsers, path : '/doc-track/staffs', roles: ['DMM'] },
+  { name: 'Forwarded', icon: FiSend, path : '/doc-track/outgoing', count: 4, roles: ['DMS', 'DMM'] },
+  { name: 'Employees', icon: FiUsers, path : '/doc-track/employees', roles: ['DMM'] },
 
   //machineries
   { name: 'Dashboard', icon: FiGrid, path: '/machineries/metrics', roles: ['MIS'] },
@@ -145,7 +144,7 @@ const SidebarContent = ({ onClose, ...rest }) => {
           count={
             link.name === 'Incoming' ? incomingCount :
             link.name === 'Pending' ? pendingCount :
-            link.name === 'Outgoing' ? outgoingCount :
+            link.name === 'Forwarded' ? outgoingCount :
             undefined
           }
           linkName={link.name}
@@ -188,7 +187,7 @@ const NavItem = ({ icon, children, path, linkName, onClick, ...rest }) => {
         return { bg: "green.500", color: "white" };
       case 'Pending':
         return { bg: "yellow.500", color: "white" };
-      case 'Outgoing':
+      case 'Forwarded':
         return { bg: "red.500", color: "white" };
       default:
         return { bg: "gray.500", color: "white" };

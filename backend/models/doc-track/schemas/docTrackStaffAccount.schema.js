@@ -12,7 +12,7 @@ export const DocTrackStaffSchema = new mongoose.Schema({
         default: 'staff',
         required: true
     },
-    office_position: { type: String, required: true },
+    office_position: { type: String, required: true, enum: ['CFS', 'LPMS', 'ANMS', 'RTSS'] },
     email: { type: String, required: true, unique: true },
     phone: { type: String, required: true, unique: true },
 
