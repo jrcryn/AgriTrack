@@ -736,6 +736,7 @@ export const getIncomingForwardedDocuments = async (req, res) => {
         const pipeline = [
             { $addFields: { lastAction: { $arrayElemAt: ['$lifeCycle', -1] } } },
             { $match: { 'lastAction.action': 'Forwarded' } },
+            { $match: { 'lastAction.action': 'Rerouted' } },
         ];
 
         // Optional search filter across fields if searchQuery provided
@@ -1201,7 +1202,7 @@ export const rerouteDocument = async (req, res) => {
                                 office_position: user.office_position,
                                 email: user.email,
                                 phone: user.phone,
-                                rerouteRemarks: 'Rerouted to self: ' + rerouteRemarks
+                                rerouteRemarks: rerouteRemarks
                             },
                             timeStamp: Date.now(),
                         }
@@ -1271,6 +1272,288 @@ export const rerouteDocument = async (req, res) => {
     } catch (error) {
         console.error('Error rerouting document:', error);
         return res.status(500).json({ success: false, message: 'Error rerouting document', error: error.message });
+    }
+};
+
+export const unarchiveDocument = async (req, res) => {
+    const { archivedDocId, userAccountId, forwardAccountId, unarchiveRemarks, forwardToSelf } = req.body;
+
+    try {
+        const archivedDocument = await global.docTrackModels.ReleasedDocuments.findById(archivedDocId);
+        if (!archivedDocument) {
+            return res.status(404).json({ success: false, message: 'Archived document not found.' });
+        }
+
+        const docLifeCycleColl = global.docTrackModels.DocumentLifeCycle.db.collection('document_life_cycles');
+
+        const existingRestored = await global.docTrackModels.DocumentLifeCycle.findOne({ _id: archivedDocument._id });
+
+        if (!existingRestored){
+            await docLifeCycleColl.insertOne({...archivedDocument.toObject()});
+        } else {
+            return res.status(400).json({ success: false, message: 'Document with this ID already exists in active documents.' });
+        };
+
+
+
+
+        let user = await global.docTrackModels.ManagerAccount.findById(userAccountId) ||
+                   await global.docTrackModels.StaffAccount.findById(userAccountId);
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'Cannot find your account, please contact IT if error persists.' });
+        }
+        const userModel = user instanceof global.docTrackModels.ManagerAccount ? 'Manager_Account' : 'Staff_Account';
+
+        let forwardAccount = await global.docTrackModels.ManagerAccount.findById(forwardAccountId) ||
+                             await global.docTrackModels.StaffAccount.findById(forwardAccountId);
+        if (!forwardAccount) {
+            return res.status(404).json({ success: false, message: 'Cannot find the user you are trying to forward to.' });
+        }
+        const userForwardModel = forwardAccount instanceof global.docTrackModels.ManagerAccount ? 'Manager_Account' : 'Staff_Account';
+
+
+        if (forwardToSelf === true) {
+            await global.docTrackModels.DocumentLifeCycle.updateOne(
+                {_id: archivedDocument._id},
+                {
+                    $push: {
+                        lifeCycle: {
+                            action: 'Unreleased',
+                        performedBy: {
+                            userModel: userModel,
+                            userId: user._id,
+                            first_name: user.first_name,
+                            last_name: user.last_name,
+                            middle_name: user.middle_name,
+                            suffix: user.suffix,
+                            role: user.role,
+                            office_position: user.office_position,
+                            email: user.email,
+                            phone: user.phone
+                        },
+                        forwardDetails: {
+                            userModel: userModel,
+                            userId: user._id,
+                            first_name: user.first_name,
+                            last_name: user.lastName,
+                            middle_name: user.middle_name,
+                            suffix: user.suffix,
+                            role: user.role,
+                            office_position: user.office_position,
+                            email: user.email,
+                            phone: user.phone,
+                            forwardRemarks: unarchiveRemarks
+                        },
+                        timeStamp: Date.now()
+                        },
+                        $set: { currentHandler: { 
+                            first_name: user.first_name,
+                            last_name: user.last_name,
+                            middle_name: user.middle_name,
+                            suffix: user.suffix,
+                            role: user.role,
+                            office_position: user.office_position,
+                            email: user.email,
+                            phone: user.phone
+                        } },
+                    }
+                }
+            );
+        } else {
+            await global.docTrackModels.DocumentLifeCycle.updateOne(
+                {_id: archivedDocument._id},
+                {
+                    $push: {
+                        lifeCycle: {
+                            action: 'Unreleased',
+                        performedBy: {
+                            userModel: userModel,
+                            userId: user._id,
+                            first_name: user.first_name,
+                            last_name: user.last_name,
+                            middle_name: user.middle_name,
+                            suffix: user.suffix,
+                            role: user.role,
+                            office_position: user.office_position,
+                            email: user.email,
+                            phone: user.phone
+                        },
+                        forwardDetails: {
+                            userModel: userForwardModel,
+                            userId: forwardAccount._id,
+                            first_name: forwardAccount.first_name,
+                            last_name: forwardAccount.lastName,
+                            middle_name: forwardAccount.middle_name,
+                            suffix: forwardAccount.suffix,
+                            role: forwardAccount.role,
+                            office_position: forwardAccount.office_position,
+                            email: forwardAccount.email,
+                            phone: forwardAccount.phone,
+                            forwardRemarks: unarchiveRemarks
+                        },
+                        timeStamp: Date.now()
+                        },
+                        $set: { currentHandler: { 
+                            first_name: forwardAccount.first_name,
+                            last_name: forwardAccount.last_name,
+                            middle_name: forwardAccount.middle_name,
+                            suffix: forwardAccount.suffix,
+                            role: forwardAccount.role,
+                            office_position: forwardAccount.office_position,
+                            email: forwardAccount.email,
+                            phone: forwardAccount.phone
+                        } },
+                    }
+                }
+            )
+        };
+        await global.docTrackModels.ArchivedDocuments.findByIdAndDelete(archivedDocId);
+
+
+        return res.status(200).json({ success: true, message: 'Document unarchived and forwarded successfully' });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: 'Error unarchiving document', error: error.message });
+    }
+};
+
+export const unreleaseDocument = async (req, res) => {
+    const { releasedDocId, userAccountId, forwardAccountId, unreleaseRemarks, forwardToSelf } = req.body;
+
+    try {
+        const releasedDocument = await global.docTrackModels.ReleasedDocuments.findById(releasedDocId);
+        if (!releasedDocument) {
+            return res.status(404).json({ success: false, message: 'Released document not found.' });
+        }
+
+        const docLifeCycleColl = global.docTrackModels.DocumentLifeCycle.db.collection('document_life_cycles');
+
+        const existingRestored = await global.docTrackModels.DocumentLifeCycle.findOne({ _id: releasedDocument._id });
+
+        if (!existingRestored){
+            await docLifeCycleColl.insertOne({...releasedDocument.toObject()});
+        } else {
+            return res.status(400).json({ success: false, message: 'Document with this ID already exists in active documents.' });
+        };
+
+
+
+
+        let user = await global.docTrackModels.ManagerAccount.findById(userAccountId) ||
+                   await global.docTrackModels.StaffAccount.findById(userAccountId);
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'Cannot find your account, please contact IT if error persists.' });
+        }
+        const userModel = user instanceof global.docTrackModels.ManagerAccount ? 'Manager_Account' : 'Staff_Account';
+
+        let forwardAccount = await global.docTrackModels.ManagerAccount.findById(forwardAccountId) ||
+                             await global.docTrackModels.StaffAccount.findById(forwardAccountId);
+        if (!forwardAccount) {
+            return res.status(404).json({ success: false, message: 'Cannot find the user you are trying to forward to.' });
+        }
+        const userForwardModel = forwardAccount instanceof global.docTrackModels.ManagerAccount ? 'Manager_Account' : 'Staff_Account';
+
+
+        if (forwardToSelf === true) {
+            await global.docTrackModels.DocumentLifeCycle.updateOne(
+                {_id: releasedDocument._id},
+                {
+                    $push: {
+                        lifeCycle: {
+                            action: 'Unreleased',
+                        performedBy: {
+                            userModel: userModel,
+                            userId: user._id,
+                            first_name: user.first_name,
+                            last_name: user.last_name,
+                            middle_name: user.middle_name,
+                            suffix: user.suffix,
+                            role: user.role,
+                            office_position: user.office_position,
+                            email: user.email,
+                            phone: user.phone
+                        },
+                        forwardDetails: {
+                            userModel: userModel,
+                            userId: user._id,
+                            first_name: user.first_name,
+                            last_name: user.lastName,
+                            middle_name: user.middle_name,
+                            suffix: user.suffix,
+                            role: user.role,
+                            office_position: user.office_position,
+                            email: user.email,
+                            phone: user.phone,
+                            forwardRemarks: unreleaseRemarks
+                        },
+                        timeStamp: Date.now()
+                        },
+                        $set: { currentHandler: { 
+                            first_name: user.first_name,
+                            last_name: user.last_name,
+                            middle_name: user.middle_name,
+                            suffix: user.suffix,
+                            role: user.role,
+                            office_position: user.office_position,
+                            email: user.email,
+                            phone: user.phone
+                        } },
+                    }
+                }
+            );
+        } else {
+            await global.docTrackModels.DocumentLifeCycle.updateOne(
+                {_id: releasedDocument._id},
+                {
+                    $push: {
+                        lifeCycle: {
+                            action: 'Unreleased',
+                        performedBy: {
+                            userModel: userModel,
+                            userId: user._id,
+                            first_name: user.first_name,
+                            last_name: user.last_name,
+                            middle_name: user.middle_name,
+                            suffix: user.suffix,
+                            role: user.role,
+                            office_position: user.office_position,
+                            email: user.email,
+                            phone: user.phone
+                        },
+                        forwardDetails: {
+                            userModel: userForwardModel,
+                            userId: forwardAccount._id,
+                            first_name: forwardAccount.first_name,
+                            last_name: forwardAccount.lastName,
+                            middle_name: forwardAccount.middle_name,
+                            suffix: forwardAccount.suffix,
+                            role: forwardAccount.role,
+                            office_position: forwardAccount.office_position,
+                            email: forwardAccount.email,
+                            phone: forwardAccount.phone,
+                            forwardRemarks: unreleaseRemarks
+                        },
+                        timeStamp: Date.now()
+                        },
+                        $set: { currentHandler: { 
+                            first_name: forwardAccount.first_name,
+                            last_name: forwardAccount.last_name,
+                            middle_name: forwardAccount.middle_name,
+                            suffix: forwardAccount.suffix,
+                            role: forwardAccount.role,
+                            office_position: forwardAccount.office_position,
+                            email: forwardAccount.email,
+                            phone: forwardAccount.phone
+                        } },
+                    }
+                }
+            )
+        };
+        await global.docTrackModels.ReleasedDocuments.findByIdAndDelete(releasedDocId);
+
+
+        return res.status(200).json({ success: true, message: 'Document unreleased and forwarded successfully' });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: 'Error unrelease document', error: error.message });
     }
 };
 

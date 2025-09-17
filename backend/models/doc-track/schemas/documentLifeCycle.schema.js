@@ -45,7 +45,7 @@ export const lifeCycleIterationsSchema = new mongoose.Schema({
         office_position: String,
         email: String,
         phone: String,
-        forwardRemarks: String,
+        rerouteRemarks: String,
     },
 
     //finalized actions

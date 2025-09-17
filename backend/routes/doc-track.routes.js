@@ -18,7 +18,10 @@ import {
     getDocumentStatus,
     getOutgoingForwardedDocuments,
     getArchivedDocuments,
-    getReleasedDocuments
+    getReleasedDocuments,
+    rerouteDocument,
+    unarchiveDocument,
+    unreleaseDocument
  } from '../controller/doc-track/adminDashboard.controller.js';
 
 const router = express.Router();
@@ -44,7 +47,11 @@ router.get('/get-outgoing-forwarded-documents/:id', getOutgoingForwardedDocument
 router.get('/get-archived-documents', getArchivedDocuments);
 router.get('/get-released-documents', getReleasedDocuments);
 
-router.post('/get-document-status', getDocumentStatus)
+router.post('/get-document-status', getDocumentStatus);
+
+router.post('/reroute-document', rerouteDocument);
+router.post('/unarchive-document', unarchiveDocument);
+router.post('/unrelease-document', unreleaseDocument);
 
 export default router;
 
