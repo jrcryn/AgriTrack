@@ -21,7 +21,8 @@ import {
     getReleasedDocuments,
     rerouteDocument,
     unarchiveDocument,
-    unreleaseDocument
+    unreleaseDocument,
+    getUsersDocumentWorkload
  } from '../controller/doc-track/adminDashboard.controller.js';
 
 const router = express.Router();
@@ -52,6 +53,8 @@ router.post('/get-document-status', getDocumentStatus);
 router.post('/reroute-document', rerouteDocument);
 router.post('/unarchive-document', unarchiveDocument);
 router.post('/unrelease-document', unreleaseDocument);
+
+router.get('/doc-track/users-workload', getUsersDocumentWorkload);
 
 export default router;
 

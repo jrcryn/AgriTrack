@@ -80,30 +80,28 @@ export const useDocumentHistoryQuery = (id, page = 1) =>
         enabled: !!id,
     });
 
-export const useArchivedDocumentsQuery = (id, page = 1) =>
+export const useArchivedDocumentsQuery = (page = 1, searchParams = {}) =>
     useQuery({
-        queryKey: ['archivedDocuments', id, page],
+        queryKey: ['archivedDocuments', page, searchParams],
         queryFn: async () => {
             const response = await axios.get(
-                `${API_URL}/api/doc-track/get-archived-documents/${id}`,
-                { params: { page, limit: 10 } }
+                `${API_URL}/api/doc-track/get-archived-documents`,
+                { params: { page, limit: 10, ...searchParams } }
             );
             return response.data;
         },
-        enabled: !!id,
     });
 
-export const useReleasedDocumentsQuery = (id, page = 1) =>
+export const useReleasedDocumentsQuery = (page = 1, searchParams = {}) =>
     useQuery({
-        queryKey: ['releasedDocuments', id, page],
+        queryKey: ['releasedDocuments', page, searchParams],
         queryFn: async () => {
             const response = await axios.get(
-                `${API_URL}/api/doc-track/get-released-documents/${id}`,
-                { params: { page, limit: 10 } }
+                `${API_URL}/api/doc-track/get-released-documents`,
+                { params: { page, limit: 10, ...searchParams } }
             );
             return response.data;
         },
-        enabled: !!id,
     });
 
 export const useAdminDashboard = (pages = {}, searchParams = {}) => {
@@ -130,9 +128,9 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
 
     const { data: documentHistory = [], isLoading: isLoadingDocumentHistory, error: documentHistoryError } = useDocumentHistoryQuery(id, historyPage);
 
-    const { data: archivedDocuments = [], isLoading: isLoadingArchivedDocuments, error: archivedDocumentsError } = useArchivedDocumentsQuery(archivedPage);
+    const { data: archivedDocuments = [], isLoading: isLoadingArchivedDocuments, error: archivedDocumentsError } = useArchivedDocumentsQuery(archivedPage, searchParams);
 
-    const { data: releasedDocuments = [], isLoading: isLoadingReleasedDocuments, error: releasedDocumentsError } = useReleasedDocumentsQuery(releasedPage);
+    const { data: releasedDocuments = [], isLoading: isLoadingReleasedDocuments, error: releasedDocumentsError } = useReleasedDocumentsQuery(releasedPage, searchParams);
 
     const [isCreatingDocument, setIsCreatingDocument] = useState(false);
     const [isUpdatingDocumentType, setIsUpdatingDocumentType] = useState(false);
@@ -144,6 +142,8 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
     const [isReleasingDocument, setIsReleasingDocument] = useState(false);
     const [isDownloadingQRCode, setIsDownloadingQRCode] = useState(false);
     const [isGettingDocumentStatus, setIsGettingDocumentStatus] = useState(false);
+    const [isUnarchivingDocument, setIsUnarchivingDocument] = useState(false);
+    const [isUnreleasingDocument, setIsUnreleasingDocument] = useState(false);
 
 
     const createDocument = async (data) => {
@@ -268,6 +268,31 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
             setIsGettingDocumentStatus(false);
         }
     };
+    const unarchiveDocument = async (data) => {
+        setIsUnarchivingDocument(true);
+        try {  
+            //await new Promise(resolve => setTimeout(resolve, 5000));
+            const response = await axios.post(`${API_URL}/api/doc-track/unarchive-document`, data)
+            return response.data;
+        } catch (error) {
+            throw error;
+        } finally {
+            setIsUnarchivingDocument(false);
+        }
+    };
+
+    const unreleaseDocument = async (data) => {
+        setIsUnreleasingDocument(true);
+        try {  
+            //await new Promise(resolve => setTimeout(resolve, 5000));
+            const response = await axios.post(`${API_URL}/api/doc-track/unrelease-document`, data)
+            return response.data;
+        } catch (error) {
+            throw error;
+        } finally {
+            setIsUnreleasingDocument(false);
+        }
+    };
 
     return {
         // automatic queries
@@ -279,6 +304,8 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
         outgoingDocuments,
         archivedDocuments,
         releasedDocuments,
+        unarchiveDocument,
+        unreleaseDocument,
 
         // action functions
         createDocument,
@@ -301,6 +328,8 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
         isLoadingOutgoingDocuments,
         isLoadingArchivedDocuments,
         isLoadingReleasedDocuments,
+        isUnarchivingDocument,
+        isUnreleasingDocument,
 
         // action flags
         isCreatingDocument,

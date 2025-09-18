@@ -40,12 +40,8 @@ import {
 } from '@chakra-ui/react';
 import { FiSearch, FiInbox } from 'react-icons/fi';
 import { FaQrcode } from 'react-icons/fa';
-import { CheckCircleIcon, ArrowForwardIcon, TimeIcon } from "@chakra-ui/icons";
 import { HiDocumentDuplicate } from "react-icons/hi2";
 
-import { FaArchive } from "react-icons/fa";
-import { CiInboxOut } from "react-icons/ci";
-import { GrFolderCycle } from "react-icons/gr";
 import { useAuthStore } from '../../auth/store/authStore';
 import { useAdminDashboard } from '../store/adminDashboard.store';
 import  DocumentLifeCycleModal  from '../../components/docLifeCyclePanel.jsx';

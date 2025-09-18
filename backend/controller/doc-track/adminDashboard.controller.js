@@ -735,8 +735,14 @@ export const getIncomingForwardedDocuments = async (req, res) => {
         // Base pipeline: assigned to you and last action is Forwarded
         const pipeline = [
             { $addFields: { lastAction: { $arrayElemAt: ['$lifeCycle', -1] } } },
-            { $match: { 'lastAction.action': 'Forwarded' } },
-            { $match: { 'lastAction.action': 'Rerouted' } },
+            {
+                $match: {
+                    $or: [
+                         { 'lastAction.action': 'Forwarded', 'lastAction.forwardDetails.userId': user._id },
+                         { 'lastAction.action': 'Rerouted', 'lastAction.rerouteDetails.userId': user._id },
+                    ]
+                }
+            }
         ];
 
         // Optional search filter across fields if searchQuery provided
@@ -800,7 +806,9 @@ export const getPendingDocuments = async (req, res) => {
 
         const pipeline = [
             { $addFields: { lastAction: { $arrayElemAt: ['$lifeCycle', -1] } } },
-            { $match: { 'lastAction.action': 'Received/Work on Progress' } },
+            { $match: { 'lastAction.action': 'Received/Work on Progress', 
+                        'lastAction.performedBy.userId': user._id }
+            },
         ];
 
         // added: optional search filter
@@ -1090,7 +1098,7 @@ export const getReleasedDocuments = async (req, res) => {
         const pipeline = [
             // Use the last lifecycle entry; archived docs should end with "Archived"
             { $addFields: { lastAction: { $arrayElemAt: ['$lifeCycle', -1] } } },
-            { $match: { 'lastAction.action': 'Archived' } },
+            { $match: { 'lastAction.action': 'Released' } },
         ];
 
         if (searchQuery && searchQuery.trim() !== '') {
@@ -1161,18 +1169,10 @@ export const rerouteDocument = async (req, res) => {
         if (!user) {
             return res.status(404).json({ success: false, message: 'Cannot find your account, please contact IT if error persists.' });
         }
-
         const userModel = user instanceof global.docTrackModels.ManagerAccount ? 'Manager_Account' : 'Staff_Account';
 
-        const rerouteAccount = await global.docTrackModels.ManagerAccount.findById(rerouteAccountId) ||
-                               await global.docTrackModels.StaffAccount.findById(rerouteAccountId);
-        if (!rerouteAccount) {
-            return res.status(404).json({ success: false, message: 'Cannot find the user you are trying to reroute to.' });
-        }
-
-        const rerouteAccountModel = rerouteAccount instanceof global.docTrackModels.ManagerAccount ? 'Manager_Account' : 'Staff_Account';
-
-        if (rerouteToSelf === true ) {
+        
+        if (rerouteToSelf === true) {
             await global.docTrackModels.DocumentLifeCycle.updateOne(
                 {_id: document._id},
                 {
@@ -1220,6 +1220,12 @@ export const rerouteDocument = async (req, res) => {
                 }
             );
         } else {
+            const rerouteAccount = await global.docTrackModels.ManagerAccount.findById(rerouteAccountId) ||
+                                   await global.docTrackModels.StaffAccount.findById(rerouteAccountId);
+            if (!rerouteAccount) {
+                return res.status(404).json({ success: false, message: 'Cannot find the user you are trying to reroute to.' });
+            }
+            const rerouteAccountModel = rerouteAccount instanceof global.docTrackModels.ManagerAccount ? 'Manager_Account' : 'Staff_Account';
             await global.docTrackModels.DocumentLifeCycle.updateOne(
                 {_id: document._id},
                 {
@@ -1252,8 +1258,9 @@ export const rerouteDocument = async (req, res) => {
                                 rerouteRemarks: rerouteRemarks
                             },
                             timeStamp: Date.now(),
-                        },
-                        $set: { currentHandler: { 
+                        }
+                    },
+                    $set: { currentHandler: { 
                             first_name: rerouteAccount.first_name,
                             last_name: rerouteAccount.last_name,
                             middle_name: rerouteAccount.middle_name,
@@ -1263,7 +1270,6 @@ export const rerouteDocument = async (req, res) => {
                             email: rerouteAccount.email,
                             phone: rerouteAccount.phone
                         } }
-                    }
                 }
             );
         }
@@ -1345,8 +1351,9 @@ export const unarchiveDocument = async (req, res) => {
                             forwardRemarks: unarchiveRemarks
                         },
                         timeStamp: Date.now()
-                        },
-                        $set: { currentHandler: { 
+                        }
+                    },
+                    $set: { currentHandler: { 
                             first_name: user.first_name,
                             last_name: user.last_name,
                             middle_name: user.middle_name,
@@ -1356,7 +1363,6 @@ export const unarchiveDocument = async (req, res) => {
                             email: user.email,
                             phone: user.phone
                         } },
-                    }
                 }
             );
         } else {
@@ -1392,8 +1398,9 @@ export const unarchiveDocument = async (req, res) => {
                             forwardRemarks: unarchiveRemarks
                         },
                         timeStamp: Date.now()
-                        },
-                        $set: { currentHandler: { 
+                        }
+                    },
+                    $set: { currentHandler: { 
                             first_name: forwardAccount.first_name,
                             last_name: forwardAccount.last_name,
                             middle_name: forwardAccount.middle_name,
@@ -1403,7 +1410,6 @@ export const unarchiveDocument = async (req, res) => {
                             email: forwardAccount.email,
                             phone: forwardAccount.phone
                         } },
-                    }
                 }
             )
         };
@@ -1486,8 +1492,9 @@ export const unreleaseDocument = async (req, res) => {
                             forwardRemarks: unreleaseRemarks
                         },
                         timeStamp: Date.now()
-                        },
-                        $set: { currentHandler: { 
+                        }
+                    },
+                    $set: { currentHandler: { 
                             first_name: user.first_name,
                             last_name: user.last_name,
                             middle_name: user.middle_name,
@@ -1497,7 +1504,6 @@ export const unreleaseDocument = async (req, res) => {
                             email: user.email,
                             phone: user.phone
                         } },
-                    }
                 }
             );
         } else {
@@ -1533,8 +1539,9 @@ export const unreleaseDocument = async (req, res) => {
                             forwardRemarks: unreleaseRemarks
                         },
                         timeStamp: Date.now()
-                        },
-                        $set: { currentHandler: { 
+                        }
+                    },
+                    $set: { currentHandler: { 
                             first_name: forwardAccount.first_name,
                             last_name: forwardAccount.last_name,
                             middle_name: forwardAccount.middle_name,
@@ -1544,7 +1551,6 @@ export const unreleaseDocument = async (req, res) => {
                             email: forwardAccount.email,
                             phone: forwardAccount.phone
                         } },
-                    }
                 }
             )
         };
@@ -1556,7 +1562,157 @@ export const unreleaseDocument = async (req, res) => {
         return res.status(500).json({ success: false, message: 'Error unrelease document', error: error.message });
     }
 };
+;
+export const getUsersDocumentWorkload = async (req, res) => {
+    try {
+        const docLimit = parseInt(req.query.docLimit) || 5;
+        const includeDocs = req.query.includeDocs; //false to return only document counts. Meaning not including the documents itself. True to include documents (limited by docLimit)
+        const onlyWithDocs = req.query.onlyWithDocs; //false to return all accounts, true to return only accounts with documents
 
+        // 1. Fetch all active accounts
+        const projection = {
+            first_name: 1,
+            last_name: 1,
+            middle_name: 1,
+            suffix: 1,
+            role: 1,
+            office_position: 1
+        };
+        const [managers, staffs] = await Promise.all([
+            global.docTrackModels.ManagerAccount.find({}, projection).lean(),
+            global.docTrackModels.StaffAccount.find({}, projection).lean()
+        ]);
+
+        const allAccounts = [
+            ...managers.map(a => ({ ...a, accountModel: 'Manager_Account' })),
+            ...staffs.map(a => ({ ...a, accountModel: 'Staff_Account' }))
+        ];
+
+        if (allAccounts.length === 0) {
+            return res.status(200).json({ success: true, data: [] });
+        }
+
+        // 2. Aggregation for incoming (Forwarded/Rerouted to user)
+        const incomingPipeline = [
+            { $addFields: { lastAction: { $arrayElemAt: ['$lifeCycle', -1] } } },
+            { $match: { 'lastAction.action': { $in: ['Forwarded', 'Rerouted'] } } },
+            {
+                $addFields: {
+                    targetUserId: {
+                        $cond: [
+                            { $eq: ['$lastAction.action', 'Forwarded'] },
+                            '$lastAction.forwardDetails.userId',
+                            '$lastAction.rerouteDetails.userId'
+                        ]
+                    }
+                }
+            },
+            { $sort: { 'lastAction.timeStamp': -1 } },
+            {
+                $group: {
+                    _id: '$targetUserId',
+                    count: { $sum: 1 },
+                    documents: {
+                        $push: {
+                            _id: '$_id',
+                            refNumber: '$refNumber',
+                            documentName: '$documentName',
+                            documentCode: '$documentCode',
+                            priority: '$priority',
+                            lastAction: '$lastAction',
+                            currentHandler: '$currentHandler'
+                        }
+                    }
+                }
+            },
+            {
+                $project: {
+                    count: 1,
+                    documents: includeDocs ? { $slice: ['$documents', docLimit] } : []
+                }
+            }
+        ];
+
+        // 3. Aggregation for pending (Received/Work on Progress performed by user)
+        const pendingPipeline = [
+            { $addFields: { lastAction: { $arrayElemAt: ['$lifeCycle', -1] } } },
+            { $match: { 'lastAction.action': 'Received/Work on Progress' } },
+            { $sort: { 'lastAction.timeStamp': -1 } },
+            {
+                $group: {
+                    _id: '$lastAction.performedBy.userId',
+                    count: { $sum: 1 },
+                    documents: {
+                        $push: {
+                            _id: '$_id',
+                            refNumber: '$refNumber',
+                            documentName: '$documentName',
+                            documentCode: '$documentCode',
+                            priority: '$priority',
+                            lastAction: '$lastAction',
+                            currentHandler: '$currentHandler'
+                        }
+                    }
+                }
+            },
+            {
+                $project: {
+                    count: 1,
+                    documents: includeDocs ? { $slice: ['$documents', docLimit] } : []
+                }
+            }
+        ];
+
+        const [incomingAgg, pendingAgg] = await Promise.all([
+            global.docTrackModels.DocumentLifeCycle.aggregate(incomingPipeline),
+            global.docTrackModels.DocumentLifeCycle.aggregate(pendingPipeline)
+        ]);
+
+        const incomingMap = new Map(incomingAgg.map(r => [String(r._id), r]));
+        const pendingMap = new Map(pendingAgg.map(r => [String(r._id), r]));
+
+        // 4. Merge into account list
+        const result = allAccounts
+            .map(acc => {
+                const key = String(acc._id);
+                const incoming = incomingMap.get(key) || { count: 0, documents: [] };
+                const pending = pendingMap.get(key) || { count: 0, documents: [] };
+                return {
+                    userId: acc._id,
+                    accountModel: acc.accountModel,
+                    first_name: acc.first_name,
+                    last_name: acc.last_name,
+                    middle_name: acc.middle_name,
+                    suffix: acc.suffix,
+                    role: acc.role,
+                    office_position: acc.office_position,
+                    incoming,
+                    pending,
+                    totalActive: incoming.count + pending.count
+                };
+            })
+            .filter(r => (onlyWithDocs ? r.totalActive > 0 : true))
+            .sort((a, b) => b.totalActive - a.totalActive || a.last_name.localeCompare(b.last_name));
+
+        return res.status(200).json({
+            success: true,
+            message: 'Successfully compiled users document workload.',
+            data: result,
+            meta: {
+                accounts: result.length,
+                docLimitApplied: includeDocs ? docLimit : 0,
+                includeDocs
+            }
+        });
+    } catch (error) {
+        console.error('Error computing users document workload:', error);
+        return res.status(500).json({ success: false, message: 'Error computing workload', error: error.message });
+    }
+};
+
+// // (Optional) rename or repurpose the placeholder
+// export const getEmployeeDocuments = getUsersDocumentWorkload;
+// // ...existing code...
 
 
 

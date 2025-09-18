@@ -8,6 +8,8 @@ import { CheckCircleIcon, ArrowForwardIcon, TimeIcon } from "@chakra-ui/icons";
 import { FaArchive } from "react-icons/fa";
 import { CiInboxOut } from "react-icons/ci";
 import { GrFolderCycle } from "react-icons/gr";
+import { TbRouteAltRight } from "react-icons/tb";
+
 import { useAdminDashboard } from '../doc-track/store/adminDashboard.store';
 import { useAuthStore } from '../auth/store/authStore.js';
 import { useQueryClient } from '@tanstack/react-query';
@@ -18,7 +20,8 @@ const actionStyles = {
   "Forwarded": { color: "blue.400", icon: <ArrowForwardIcon /> },
   "Received/Work on Progress": { color: "gray.400", icon: <TimeIcon /> },
   "Archived": { color: "orange.400", icon: <FaArchive /> },
-  "Released": { color: "red.400", icon: <CiInboxOut /> }
+  "Released": { color: "red.400", icon: <CiInboxOut /> },
+  "Rerouted": { color: "purple.400", icon: <TbRouteAltRight /> },
 };
 
 const roleLabel = (office_position, role) =>
@@ -227,6 +230,8 @@ const DocumentLifeCycleModal = ({
                           </Box>
 
                           <Box ml={4} flex={1}>
+
+                            {/* Yung mismong name ng action, for example Created, Forwarded, Rerouted, Archived etc. */}
                             <Flex justify="space-between" align="flex-start">
                               <Box>
                                 <Text fontWeight="bold">{event?.action || 'Event'}</Text>
@@ -247,6 +252,19 @@ const DocumentLifeCycleModal = ({
                                 {event.forwardDetails.forwardRemarks && (
                                   <Text fontSize="sm" mt={1}>
                                     Remarks: "{event.forwardDetails.forwardRemarks}"
+                                  </Text>
+                                )}
+                              </Box>
+                            )}
+
+                            {event?.action === "Rerouted" && event?.rerouteDetails && (
+                              <Box mt={2} p={3} bg="blue.50" borderRadius="md" borderLeftWidth="3px" borderLeftColor="blue.500">
+                                <Text fontSize="sm" fontWeight="bold">
+                                  {`Rerouted to: ${event.rerouteDetails.first_name || ''} ${event.rerouteDetails.last_name || ''} (${roleLabel(event.rerouteDetails.office_position, event.rerouteDetails.role)})`}
+                                </Text>
+                                {event.rerouteDetails.rerouteRemarks && (
+                                  <Text fontSize="sm" mt={1}>
+                                    Remarks: "{event.rerouteDetails.rerouteRemarks}"
                                   </Text>
                                 )}
                               </Box>
