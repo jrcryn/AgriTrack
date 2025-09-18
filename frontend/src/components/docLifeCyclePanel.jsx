@@ -213,7 +213,7 @@ const DocumentLifeCycleModal = ({
         toast({ title: "Error", description: error.response?.data?.message || "Failed to unrelease document.", status: "error", duration: 5000, isClosable: true });
       }
     };
-
+  
     return (
     <Modal isOpen={isOpen} onClose={onClose} isCentered size="2xl" closeOnOverlayClick={false} scrollBehavior="inside" motionPreset="none">
       <ModalOverlay />
@@ -284,6 +284,8 @@ const DocumentLifeCycleModal = ({
                     const formattedDate = date
                       ? date.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })
                       : '';
+                    
+                    const retentionUntil = new Date(event.archivalDetails?.retentionUntil).toLocaleString('en-US', {month: 'short', day: 'numeric', year: 'numeric'});
 
                     return (
                       <Box key={index} pb={isLast ? 0 : 4}>
@@ -369,6 +371,12 @@ const DocumentLifeCycleModal = ({
                             {event?.action === "Archived" && event?.archivalDetails && (
                               <Box mt={2} p={3} bg="yellow.50" borderRadius="md" borderLeftWidth="3px" borderLeftColor="yellow.500">
                                 <SimpleGrid columns={2} spacing={2} fontSize="sm">
+                                  <Text fontWeight="bold">Disposal Method:</Text>
+                                  <Text>{event.archivalDetails.disposalMethod}</Text>
+
+                                  <Text fontWeight="bold">Retention Period:</Text>
+                                  <Text>{event.archivalDetails.retentionPeriod} Months (Until {retentionUntil})</Text>
+
                                   <Text fontWeight="bold">Document Medium:</Text>
                                   <Text>{event.archivalDetails.medium}</Text>
 
@@ -385,6 +393,7 @@ const DocumentLifeCycleModal = ({
                               </Box>
                             )}
 
+                            {/* Release Details */}
                             {event?.action === "Released" && event?.releaseDetails && (
                               <Box mt={2} p={3} bg="yellow.50" borderRadius="md" borderLeftWidth="3px" borderLeftColor="yellow.500">
                                 <SimpleGrid columns={2} spacing={2} fontSize="sm">
