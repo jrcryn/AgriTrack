@@ -740,6 +740,8 @@ export const getIncomingForwardedDocuments = async (req, res) => {
                     $or: [
                          { 'lastAction.action': 'Forwarded', 'lastAction.forwardDetails.userId': user._id },
                          { 'lastAction.action': 'Rerouted', 'lastAction.rerouteDetails.userId': user._id },
+                         { 'lastAction.action': 'Unarchived', 'lastAction.forwardDetails.userId': user._id },
+                         { 'lastAction.action': 'Unreleased', 'lastAction.forwardDetails.userId': user._id },
                     ]
                 }
             }
@@ -1285,7 +1287,7 @@ export const unarchiveDocument = async (req, res) => {
     const { archivedDocId, userAccountId, forwardAccountId, unarchiveRemarks, forwardToSelf } = req.body;
 
     try {
-        const archivedDocument = await global.docTrackModels.ReleasedDocuments.findById(archivedDocId);
+        const archivedDocument = await global.docTrackModels.ArchivedDocuments.findById(archivedDocId);
         if (!archivedDocument) {
             return res.status(404).json({ success: false, message: 'Archived document not found.' });
         }
@@ -1310,12 +1312,6 @@ export const unarchiveDocument = async (req, res) => {
         }
         const userModel = user instanceof global.docTrackModels.ManagerAccount ? 'Manager_Account' : 'Staff_Account';
 
-        let forwardAccount = await global.docTrackModels.ManagerAccount.findById(forwardAccountId) ||
-                             await global.docTrackModels.StaffAccount.findById(forwardAccountId);
-        if (!forwardAccount) {
-            return res.status(404).json({ success: false, message: 'Cannot find the user you are trying to forward to.' });
-        }
-        const userForwardModel = forwardAccount instanceof global.docTrackModels.ManagerAccount ? 'Manager_Account' : 'Staff_Account';
 
 
         if (forwardToSelf === true) {
@@ -1324,7 +1320,7 @@ export const unarchiveDocument = async (req, res) => {
                 {
                     $push: {
                         lifeCycle: {
-                            action: 'Unreleased',
+                            action: 'Unarchived',
                         performedBy: {
                             userModel: userModel,
                             userId: user._id,
@@ -1366,12 +1362,19 @@ export const unarchiveDocument = async (req, res) => {
                 }
             );
         } else {
+            let forwardAccount = await global.docTrackModels.ManagerAccount.findById(forwardAccountId) ||
+                             await global.docTrackModels.StaffAccount.findById(forwardAccountId);
+            if (!forwardAccount) {
+                return res.status(404).json({ success: false, message: 'Cannot find the user you are trying to forward to.' });
+            }
+            const userForwardModel = forwardAccount instanceof global.docTrackModels.ManagerAccount ? 'Manager_Account' : 'Staff_Account';
+
             await global.docTrackModels.DocumentLifeCycle.updateOne(
                 {_id: archivedDocument._id},
                 {
                     $push: {
                         lifeCycle: {
-                            action: 'Unreleased',
+                            action: 'Unarchived',
                         performedBy: {
                             userModel: userModel,
                             userId: user._id,
@@ -1433,7 +1436,7 @@ export const unreleaseDocument = async (req, res) => {
 
         const docLifeCycleColl = global.docTrackModels.DocumentLifeCycle.db.collection('document_life_cycles');
 
-        const existingRestored = await global.docTrackModels.DocumentLifeCycle.findOne({ _id: releasedDocument._id });
+        const existingRestored = await global.docTrackModels.DocumentLifeCycle.findById(releasedDocument._id);
 
         if (!existingRestored){
             await docLifeCycleColl.insertOne({...releasedDocument.toObject()});
@@ -1450,13 +1453,6 @@ export const unreleaseDocument = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Cannot find your account, please contact IT if error persists.' });
         }
         const userModel = user instanceof global.docTrackModels.ManagerAccount ? 'Manager_Account' : 'Staff_Account';
-
-        let forwardAccount = await global.docTrackModels.ManagerAccount.findById(forwardAccountId) ||
-                             await global.docTrackModels.StaffAccount.findById(forwardAccountId);
-        if (!forwardAccount) {
-            return res.status(404).json({ success: false, message: 'Cannot find the user you are trying to forward to.' });
-        }
-        const userForwardModel = forwardAccount instanceof global.docTrackModels.ManagerAccount ? 'Manager_Account' : 'Staff_Account';
 
 
         if (forwardToSelf === true) {
@@ -1507,6 +1503,13 @@ export const unreleaseDocument = async (req, res) => {
                 }
             );
         } else {
+            let forwardAccount = await global.docTrackModels.ManagerAccount.findById(forwardAccountId) ||
+                                 await global.docTrackModels.StaffAccount.findById(forwardAccountId);
+            if (!forwardAccount) {
+                return res.status(404).json({ success: false, message: 'Cannot find the user you are trying to forward to.' });
+            }
+            const userForwardModel = forwardAccount instanceof global.docTrackModels.ManagerAccount ? 'Manager_Account' : 'Staff_Account';
+
             await global.docTrackModels.DocumentLifeCycle.updateOne(
                 {_id: releasedDocument._id},
                 {

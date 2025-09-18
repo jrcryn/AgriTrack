@@ -2,13 +2,17 @@ import React, { useState, useEffect } from 'react';
 import {
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter,
   Box, VStack, Text, Heading, Divider, SimpleGrid, Badge, Flex, Button, Tabs, TabList, TabPanels, Tab, TabPanel,
-  FormControl, FormLabel, Input, Select, useToast
+  FormControl, FormLabel, Input, Select, useToast,
+  Switch, // added
 } from '@chakra-ui/react';
 import { CheckCircleIcon, ArrowForwardIcon, TimeIcon } from "@chakra-ui/icons";
 import { FaArchive } from "react-icons/fa";
 import { CiInboxOut } from "react-icons/ci";
 import { GrFolderCycle } from "react-icons/gr";
 import { TbRouteAltRight } from "react-icons/tb";
+import { MdOutgoingMail } from "react-icons/md";
+import { FaBoxOpen } from "react-icons/fa";
+import { RiMailDownloadFill } from "react-icons/ri";
 
 import { useAdminDashboard } from '../doc-track/store/adminDashboard.store';
 import { useAuthStore } from '../auth/store/authStore.js';
@@ -20,8 +24,10 @@ const actionStyles = {
   "Forwarded": { color: "blue.400", icon: <ArrowForwardIcon /> },
   "Received/Work on Progress": { color: "gray.400", icon: <TimeIcon /> },
   "Archived": { color: "orange.400", icon: <FaArchive /> },
-  "Released": { color: "red.400", icon: <CiInboxOut /> },
+  "Released": { color: "red.400", icon: <MdOutgoingMail /> },
   "Rerouted": { color: "purple.400", icon: <TbRouteAltRight /> },
+  "Unarchived": { color: "yellow.400", icon: <FaBoxOpen /> },
+  "Unreleased": { color: "pink.400", icon: <RiMailDownloadFill /> },
 };
 
 const roleLabel = (office_position, role) =>
@@ -32,10 +38,12 @@ const DocumentLifeCycleModal = ({
   onClose,
   document,            
 
-  isIncomingPage,
   isPendingPage,
   isOutgoingPage,
-  isProduceDocumentPage
+  isProduceDocumentPage,
+  isReleased,
+  isArchived,
+  isDocumentLogsPage
 }) => {
     const data = document;
     const toast = useToast();
@@ -52,7 +60,16 @@ const DocumentLifeCycleModal = ({
         isReleasingDocument,
         adminAndStaffAccounts,
         isLoadingAdminAndStaffAccounts,
+
+        unarchiveDocument,           
+        isUnarchivingDocument,       
+        unreleaseDocument,           
+        isUnreleasingDocument,      
     } = useAdminDashboard();
+
+    const [forwardData, setForwardData] = useState({ forwardAccountId: '', forwardRemarks: '' });
+    const [archiveData, setArchiveData] = useState({ medium: '', location: '', archiveRemarks: '' });
+    const [releaseData, setReleaseData] = useState({ recipientOffice: '', recipientPerson: '', modeOfRelease: '', releaseRemarks: '' });
 
     const handleForward = async () => {
       if (!data || !forwardData.forwardAccountId || !forwardData.forwardRemarks) {
@@ -136,11 +153,68 @@ const DocumentLifeCycleModal = ({
       }
     };
 
-    const [forwardData, setForwardData] = useState({ forwardAccountId: '', forwardRemarks: '' });
-    const [archiveData, setArchiveData] = useState({ medium: '', location: '', archiveRemarks: '' });
-    const [releaseData, setReleaseData] = useState({ recipientOffice: '', recipientPerson: '', modeOfRelease: '', releaseRemarks: '' });
+    const [unarchiveData, setUnarchiveData] = useState({ forwardToSelf: '', forwardAccountId: '', unarchiveRemarks: '' });
+    const [unreleaseData, setUnreleaseData] = useState({ forwardToSelf: '', forwardAccountId: '', unreleaseRemarks: '' });
 
-  return (
+    const handleUnarchive = async () => {
+      if (!data || !user?.id) return;
+      if (!unarchiveData.forwardToSelf && !unarchiveData.forwardAccountId) {
+        toast({ title: "Missing fields", description: "Select a recipient or forward to yourself.", status: "warning", duration: 4000, isClosable: true });
+        return;
+      }
+      try {
+        const res = await unarchiveDocument({
+          archivedDocId: data._id,
+          userAccountId: user.id,
+          forwardAccountId: unarchiveData.forwardToSelf ? undefined : unarchiveData.forwardAccountId,
+          unarchiveRemarks: unarchiveData.unarchiveRemarks || '',
+          forwardToSelf: unarchiveData.forwardToSelf
+        });
+        toast({ title: "Success", description: res.message || "Document unarchived.", status: "success", duration: 5000, isClosable: true });
+        setUnarchiveData({ forwardToSelf: '', forwardAccountId: '', unarchiveRemarks: '' });
+        onClose();
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['archivedDocuments'] }),
+          queryClient.invalidateQueries({ queryKey: ['releasedDocuments'] }),
+          queryClient.invalidateQueries({ queryKey: ['forwardedDocuments'] }),
+          queryClient.invalidateQueries({ queryKey: ['pendingDocuments'] }),
+          queryClient.invalidateQueries({ queryKey: ['outgoingDocuments'] }),
+        ]);
+      } catch (error) {
+        toast({ title: "Error", description: error.response?.data?.message || "Failed to unarchive document.", status: "error", duration: 5000, isClosable: true });
+      }
+    };
+
+    const handleUnrelease = async () => {
+      if (!data || !user?.id) return;
+      if (!unreleaseData.forwardToSelf && !unreleaseData.forwardAccountId) {
+        toast({ title: "Missing fields", description: "Select a recipient or forward to yourself.", status: "warning", duration: 4000, isClosable: true });
+        return;
+      }
+      try {
+        const res = await unreleaseDocument({
+          releasedDocId: data._id,
+          userAccountId: user.id,
+          forwardAccountId: unreleaseData.forwardToSelf ? undefined : unreleaseData.forwardAccountId,
+          unreleaseRemarks: unreleaseData.unreleaseRemarks || '',
+          forwardToSelf: !!unreleaseData.forwardToSelf
+        });
+        toast({ title: "Success", description: res.message || "Document unreleased.", status: "success", duration: 5000, isClosable: true });
+        setUnreleaseData({ forwardToSelf: '', forwardAccountId: '', unreleaseRemarks: '' });
+        onClose();
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['archivedDocuments'] }),
+          queryClient.invalidateQueries({ queryKey: ['releasedDocuments'] }),
+          queryClient.invalidateQueries({ queryKey: ['forwardedDocuments'] }),
+          queryClient.invalidateQueries({ queryKey: ['pendingDocuments'] }),
+          queryClient.invalidateQueries({ queryKey: ['outgoingDocuments'] }),
+        ]);
+      } catch (error) {
+        toast({ title: "Error", description: error.response?.data?.message || "Failed to unrelease document.", status: "error", duration: 5000, isClosable: true });
+      }
+    };
+
+    return (
     <Modal isOpen={isOpen} onClose={onClose} isCentered size="2xl" closeOnOverlayClick={false} scrollBehavior="inside" motionPreset="none">
       <ModalOverlay />
       <ModalContent borderRadius="md" overflow="hidden" boxShadow="lg">
@@ -256,6 +330,19 @@ const DocumentLifeCycleModal = ({
                                 )}
                               </Box>
                             )}
+                            
+                            {event?.action === "Unarchived" && event?.forwardDetails && (
+                              <Box mt={2} p={3} bg="yellow.50" borderRadius="md" borderLeftWidth="3px" borderLeftColor="yellow.500">
+                                <Text fontSize="sm" fontWeight="bold">
+                                  {`Forwarded to: ${event.forwardDetails.first_name || ''} ${event.forwardDetails.last_name || ''} (${roleLabel(event.forwardDetails.office_position, event.forwardDetails.role)})`}
+                                </Text>
+                                {event.forwardDetails.forwardRemarks && (
+                                  <Text fontSize="sm" mt={1}>
+                                    Unarchive Remarks: "{event.forwardDetails.forwardRemarks}"
+                                  </Text>
+                                )}
+                              </Box>
+                            )}
 
                             {event?.action === "Rerouted" && event?.rerouteDetails && (
                               <Box mt={2} p={3} bg="blue.50" borderRadius="md" borderLeftWidth="3px" borderLeftColor="blue.500">
@@ -277,20 +364,21 @@ const DocumentLifeCycleModal = ({
                                 )}
                               </Box>
                             )}
-
-                            {event?.action === "Archived" && event?.archiveDetails && (
-                              <Box mt={2} p={3} bg="purple.50" borderRadius="md" borderLeftWidth="3px" borderLeftColor="purple.500">
+                            
+                            {/* Archival Details */}
+                            {event?.action === "Archived" && event?.archivalDetails && (
+                              <Box mt={2} p={3} bg="yellow.50" borderRadius="md" borderLeftWidth="3px" borderLeftColor="yellow.500">
                                 <SimpleGrid columns={2} spacing={2} fontSize="sm">
-                                  <Text fontWeight="bold">Medium:</Text>
-                                  <Text>{event.archiveDetails.medium}</Text>
+                                  <Text fontWeight="bold">Document Medium:</Text>
+                                  <Text>{event.archivalDetails.medium}</Text>
 
-                                  <Text fontWeight="bold">Location:</Text>
-                                  <Text>{event.archiveDetails.location}</Text>
+                                  <Text fontWeight="bold">Document Location:</Text>
+                                  <Text>{event.archivalDetails.location}</Text>
 
-                                  {event.archiveDetails.archiveRemarks && (
+                                  {event.archivalDetails.archiveRemarks && (
                                     <>
                                       <Text fontWeight="bold">Remarks:</Text>
-                                      <Text>"{event.archiveDetails.archiveRemarks}"</Text>
+                                      <Text>"{event.archivalDetails.archiveRemarks}"</Text>
                                     </>
                                   )}
                                 </SimpleGrid>
@@ -316,6 +404,20 @@ const DocumentLifeCycleModal = ({
                                     </>
                                   )}
                                 </SimpleGrid>
+                              </Box>
+                            )}
+
+                            {/* NEW: show details for Unreleased action (remarks live in forwardDetails.forwardRemarks) */}
+                            {event?.action === "Unreleased" && event?.forwardDetails && (
+                              <Box mt={2} p={3} bg="yellow.50" borderRadius="md" borderLeftWidth="3px" borderLeftColor="yellow.500">
+                                <Text fontSize="sm" fontWeight="bold">
+                                  {`Forwarded to: ${event.forwardDetails.first_name || ''} ${event.forwardDetails.last_name || ''} (${roleLabel(event.forwardDetails.office_position, event.forwardDetails.role)})`}
+                                </Text>
+                                {event.forwardDetails.forwardRemarks && (
+                                  <Text fontSize="sm" mt={1}>
+                                    Unrelease Remarks: "{event.forwardDetails.forwardRemarks}"
+                                  </Text>
+                                )}
                               </Box>
                             )}
                           </Box>
@@ -481,6 +583,124 @@ const DocumentLifeCycleModal = ({
                     </TabPanel>
                   </TabPanels>
                 </Tabs>
+                </>
+              )}
+
+              {isDocumentLogsPage && (isReleased || isArchived) && (
+                <>
+                <Divider my={2} />
+
+                {isArchived && (
+                  <Tabs colorScheme='orange' variant='enclosed'>
+                    <TabList>
+                      <Tab>Unarchive Document</Tab>
+                    </TabList>
+                    <TabPanels>
+                      <TabPanel px={0} pt={4} pb={0}>
+                        <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+                          <FormControl>
+                            <FormLabel>Forward to myself</FormLabel>
+                            <Switch
+                              isChecked={unarchiveData.forwardToSelf}
+                              onChange={(e) =>
+                                setUnarchiveData(d => ({ ...d, forwardToSelf: e.target.checked, forwardAccountId: '' }))
+                              }
+                            />
+                          </FormControl>
+                          <FormControl isDisabled={unarchiveData.forwardToSelf} isRequired={!unarchiveData.forwardToSelf}>
+                            <FormLabel>Forward To</FormLabel>
+                            <Select
+                              placeholder={isLoadingAdminAndStaffAccounts ? 'Loading accounts...' : 'Select a user'}
+                              value={unarchiveData.forwardAccountId}
+                              onChange={(e) => setUnarchiveData(d => ({ ...d, forwardAccountId: e.target.value }))}
+                              isDisabled={isLoadingAdminAndStaffAccounts || unarchiveData.forwardToSelf}
+                            >
+                              {!isLoadingAdminAndStaffAccounts && adminAndStaffAccounts?.map(acc => (
+                                <option key={acc._id} value={acc._id}>
+                                  {`${acc.first_name} ${acc.last_name} (${acc.office_position || (acc.role ? acc.role[0].toUpperCase()+acc.role.slice(1) : '-')})`}
+                                </option>
+                              ))}
+                            </Select>
+                          </FormControl>
+                          <FormControl gridColumn={{ md: 'span 2' }}>
+                            <FormLabel>Remarks</FormLabel>
+                            <Input
+                              placeholder='Reason or context for unarchiving'
+                              value={unarchiveData.unarchiveRemarks}
+                              onChange={(e) => setUnarchiveData(d => ({ ...d, unarchiveRemarks: e.target.value }))}
+                            />
+                          </FormControl>
+                        </SimpleGrid>
+                        <Flex justify="flex-end" mt={4}>
+                          <Button
+                            colorScheme="orange"
+                            onClick={handleUnarchive}
+                            isLoading={isUnarchivingDocument}
+                            isDisabled={!unarchiveData.forwardToSelf && !unarchiveData.forwardAccountId}
+                          >
+                            Unarchive and Forward
+                          </Button>
+                        </Flex>
+                      </TabPanel>
+                    </TabPanels>
+                  </Tabs>
+                )}
+                {isReleased && (
+                  <Tabs colorScheme='red' variant='enclosed'>
+                    <TabList>
+                      <Tab>Unrelease Document</Tab>
+                    </TabList>
+                    <TabPanels>
+                      <TabPanel px={0} pt={4} pb={0}>
+                        <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+                          <FormControl>
+                            <FormLabel>Forward to myself</FormLabel>
+                            <Switch
+                              isChecked={unreleaseData.forwardToSelf}
+                              onChange={(e) =>
+                                setUnreleaseData(d => ({ ...d, forwardToSelf: e.target.checked, forwardAccountId: '' }))
+                              }
+                            />
+                          </FormControl>
+                          <FormControl isDisabled={unreleaseData.forwardToSelf} isRequired={!unreleaseData.forwardToSelf}>
+                            <FormLabel>Forward To</FormLabel>
+                            <Select
+                              placeholder={isLoadingAdminAndStaffAccounts ? 'Loading accounts...' : 'Select a user'}
+                              value={unreleaseData.forwardAccountId}
+                              onChange={(e) => setUnreleaseData(d => ({ ...d, forwardAccountId: e.target.value }))}
+                              isDisabled={isLoadingAdminAndStaffAccounts || unreleaseData.forwardToSelf}
+                            >
+                              {!isLoadingAdminAndStaffAccounts && adminAndStaffAccounts?.map(acc => (
+                                <option key={acc._id} value={acc._id}>
+                                  {`${acc.first_name} ${acc.last_name} (${acc.office_position || (acc.role ? acc.role[0].toUpperCase()+acc.role.slice(1) : '-')})`}
+                                </option>
+                              ))}
+                            </Select>
+                          </FormControl>
+                          <FormControl gridColumn={{ md: 'span 2' }}>
+                            <FormLabel>Remarks</FormLabel>
+                            <Input
+                              placeholder='Reason or context for unreleasing'
+                              value={unreleaseData.unreleaseRemarks}
+                              onChange={(e) => setUnreleaseData(d => ({ ...d, unreleaseRemarks: e.target.value }))}
+                            />
+                          </FormControl>
+                        </SimpleGrid>
+                        <Flex justify="flex-end" mt={4}>
+                          <Button
+                            colorScheme="red"
+                            onClick={handleUnrelease}
+                            isLoading={isUnreleasingDocument}
+                            isDisabled={!unreleaseData.forwardToSelf && !unreleaseData.forwardAccountId}
+                          >
+                            Unrelease and Forward
+                          </Button>
+                        </Flex>
+                      </TabPanel>
+                    </TabPanels>
+                  </Tabs>
+                )}
+                
                 </>
               )}
              

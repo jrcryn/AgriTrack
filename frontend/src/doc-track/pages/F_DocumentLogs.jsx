@@ -25,6 +25,8 @@ import {
 } from '@chakra-ui/react';
 import { FiSearch, FiInbox } from 'react-icons/fi';
 import { LuLogs } from "react-icons/lu";
+import { FaEye } from 'react-icons/fa';
+
 import { useAdminDashboard } from '../store/adminDashboard.store';
 import DocumentLifeCycleModal from '../../components/docLifeCyclePanel.jsx';
 
@@ -33,6 +35,9 @@ const F_DocumentLogs = () => {
   const [logType, setLogType] = useState('archived'); // archived | released
   const [archivedPage, setArchivedPage] = useState(1);
   const [releasedPage, setReleasedPage] = useState(1);
+  const [isReleased, setIsReleased] = useState(false);
+  const [isArchived, setIsArchived] = useState(false);
+  const [isDocumentLogsPage, setIsDocumentLogsPage] = useState(true);
 
   const {
     archivedDocuments,
@@ -208,6 +213,18 @@ const F_DocumentLogs = () => {
                             size="sm"
                             colorScheme={color.scheme}
                             onClick={() => handleOpenDetails(doc)}
+                            leftIcon={<FaEye />}
+                            onClickCapture={() => {
+                              if (logType === 'archived') {
+                                setIsArchived(true);
+                                setIsReleased(false);
+                                setIsDocumentLogsPage(true);
+                              } else {
+                                setIsReleased(true);
+                                setIsArchived(false);
+                                setIsDocumentLogsPage(true);
+                              }
+                            }}
                           >
                             Details
                           </Button>
@@ -257,8 +274,11 @@ const F_DocumentLogs = () => {
         document={selectedDoc}
         isIncomingPage={false}
         isPendingPage={false}
-        isOutgoingPage={true}
+        isOutgoingPage={false}
         isProduceDocumentPage={false}
+        isReleased={isReleased}
+        isArchived={isArchived}
+        isDocumentLogsPage={isDocumentLogsPage}
       />
     </Box>
   );
