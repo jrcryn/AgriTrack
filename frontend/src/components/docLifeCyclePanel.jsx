@@ -621,12 +621,20 @@ const DocumentLifeCycleModal = ({
                 <SimpleGrid columns={{ base: 1, md: 2 }} spacing={3}>
                   <Box>
                     <Text fontWeight="bold" fontSize="sm" color="gray.600">Document Type</Text>
-                    <Text fontSize="md">{data.documentName}</Text>
+                    <Text fontSize="md">{data.documentName || data.documentNameText}</Text>
                   </Box>
+                  {data.documentCode ? (
                   <Box>
                     <Text fontWeight="bold" fontSize="sm" color="gray.600">Document Code</Text>
                     <Text fontSize="md">{data.documentCode}</Text>
                   </Box>
+                  ) : (
+                    <Box>
+                    <Text fontWeight="bold" fontSize="sm" color="gray.600">Originating Office</Text>
+                    <Text fontSize="md">{data.originatingOffice}</Text>
+                  </Box>
+                  )}
+                  
                   <Box>
                     <Text fontWeight="bold" fontSize="sm" color="gray.600">Reference Number</Text>
                     <Text fontSize="md">{data.refNumber}</Text>

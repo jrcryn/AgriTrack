@@ -118,7 +118,6 @@ export const registerDocument = async (req, res) => {
     const { userAccountId, documentId, priority, details, isRegisterOnly, documentNameText, originatingOffice, isManuallyTyped } = req.body;
     try {
 
-
         const document = isManuallyTyped ? null : await global.docTrackModels.Document.findById(documentId);
         if (!document) {
             return res.status(404).json({ success: false, message: 'Document type not found.'});
@@ -145,7 +144,7 @@ export const registerDocument = async (req, res) => {
         });
 
         const newDocRegistration = await global.docTrackModels.DocumentLifeCycle.create({
-            documentId: isManuallyTyped ? null : documentId,
+            documentId: isManuallyTyped ? null : document._id,
             documentName: isManuallyTyped ? documentNameText : document.documentName,
             documentCode: isManuallyTyped ? 'N/A' : document.documentCode,
 
@@ -386,10 +385,10 @@ export const forwardDocument = async (req, res) => {
 };
 
 export const registerAndForwardDocument = async (req, res) => {
-    const { userAccountId, documentId, priority, details, forwardAccountId, forwardRemarks } = req.body;
+    const { userAccountId, documentId, priority, details, forwardAccountId, forwardRemarks, documentNameText, originatingOffice, isManuallyTyped } = req.body;
 
     try {
-        const registerDocument = await global.docTrackModels.Document.findById(documentId);
+        const registerDocument = isManuallyTyped ? null : await global.docTrackModels.Document.findById(documentId);
         if (!registerDocument) {
             return res.status(404).json({ success: false, message: 'Document type not found.'});
         }
@@ -406,16 +405,20 @@ export const registerAndForwardDocument = async (req, res) => {
         const readableDate = new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
         const qrData = JSON.stringify({
         refNumber: newRefNumber,
-        name: registerDocument.documentName,
-        code: registerDocument.documentCode,
-        registeredBy: `${registerAccount.first_name}, ${registerAccount.last_name}`,
+        name: isManuallyTyped ? documentNameText : document.documentName,
+        code: isManuallyTyped ? 'N/A' : document.documentCode,
+        originatingOffice: isManuallyTyped ? originatingOffice : 'N/A',
+        registeredBy: `${user.first_name}, ${user.last_name}`,
         createdAt: readableDate
         });
 
         const newDocRegistration = await global.docTrackModels.DocumentLifeCycle.create({
-            documentId: registerDocument._id,
-            documentName: registerDocument.documentName,
-            documentCode: registerDocument.documentCode,
+            documentId: isManuallyTyped ? null : registerDocument._id,
+            documentName: isManuallyTyped ? documentNameText : registerDocument.documentName,
+            documentCode: isManuallyTyped ? 'N/A' : registerDocument.documentCode,
+
+            documentNameText: isManuallyTyped ? documentNameText : 'N/A',
+            originatingOffice: isManuallyTyped ? originatingOffice : 'N/A',
 
             priority: priority,
             refNumber: newRefNumber,
@@ -761,6 +764,7 @@ export const getIncomingForwardedDocuments = async (req, res) => {
                     { documentName: { $regex: word, $options: 'i' } },
                     { documentCode: { $regex: word, $options: 'i' } },
                     { refNumber:   { $regex: word, $options: 'i' } },
+                    { documentNameText: { $regex: word, $options: 'i' } },
                 ],
             }));
             pipeline.push({ $match: { $and: searchConditions } });
@@ -827,6 +831,7 @@ export const getPendingDocuments = async (req, res) => {
                     { documentName: { $regex: word, $options: 'i' } },
                     { documentCode: { $regex: word, $options: 'i' } },
                     { refNumber:   { $regex: word, $options: 'i' } },
+                    { documentNameText: { $regex: word, $options: 'i' } },
                 ],
             }));
             pipeline.push({ $match: { $and: searchConditions } });
@@ -892,6 +897,7 @@ export const getOutgoingForwardedDocuments = async (req, res) => {
                     { documentName: { $regex: word, $options: 'i' } },
                     { documentCode: { $regex: word, $options: 'i' } },
                     { refNumber:   { $regex: word, $options: 'i' } },
+                    { documentNameText: { $regex: word, $options: 'i' } },
                 ],
             }));
             pipeline.push({ $match: { $and: searchConditions } });

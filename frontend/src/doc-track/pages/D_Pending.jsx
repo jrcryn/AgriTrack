@@ -234,7 +234,7 @@ const D_Pending = () => {
                               return (
                                 <Tr key={doc._id} fontSize="sm">
                                   <Td fontWeight="semibold">{doc.refNumber || '—'}</Td>
-                                  <Td>{doc.documentName || '—'}</Td>
+                                  <Td>{doc.documentName || doc.documentNameText || '—'}</Td>
                                   <Td>{receivedAt}</Td>
                                   <Td>{from}</Td>
                                   <Td>
