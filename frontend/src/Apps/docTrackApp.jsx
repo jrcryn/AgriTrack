@@ -1,6 +1,6 @@
 import { Box, Spinner, Text } from '@chakra-ui/react';
 import { useEffect, useState, useRef } from 'react';
-import { Routes, Route, useNavigate, Navigate } from 'react-router-dom'
+import { Routes, Route, useNavigate, Navigate, useLocation } from 'react-router-dom'
 import axios from 'axios';
 
 import Layout from '../components/layout.jsx';
@@ -16,24 +16,33 @@ import G_Staffs from '../doc-track/pages/G_Staffs.jsx';
 import { useAuthStore } from '../auth/store/authStore.js';
 
 const ProtectedRoute = ({children}) => {
-    const {isAuthenticated, isCheckingAuth, user, checkAuth} = useAuthStore();
+  const {isAuthenticated, isCheckingAuth, user, checkAuth} = useAuthStore();
+  const location = useLocation();
 
-    useEffect(() => {
-      checkAuth();
-    }, [checkAuth]);
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
 
-    if (isCheckingAuth) {
-      return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <Spinner size={'xl'} /><Text ml={4}>Please wait...</Text>
-      </div>;
+  if (isCheckingAuth) {
+    return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+      <Spinner size={'xl'} /><Text ml={4}>Please wait...</Text>
+    </div>;
+  }
+
+  if (!isAuthenticated || !user) {
+    return <Navigate to='/auth/login' replace />;
+  }
+
+  // Normalize role and make sure DMS staff does not land on /doc-track/metrics
+  const role = String(user?.role || '').trim().toUpperCase();
+  const path = location.pathname;
+  if (role === 'DMS') {
+    if (path === '/doc-track' || path === '/doc-track/' || path.startsWith('/doc-track/metrics')) {
+      return <Navigate to='/doc-track/register-document' replace />;
     }
+  }
 
-    // If not authenticated or user is missing or 2FA not enabled, redirect
-    if (!isAuthenticated || !user) {
-      return <Navigate to='/auth/login' replace />;
-    }
-
-    return children;
+  return children;
 }
 
 axios.interceptors.response.use(
@@ -53,24 +62,21 @@ axios.interceptors.response.use(
 );
 
 const doctrackApp = () => {
-    
-    return (
-        <Box>
-           
-            <Routes>
-                <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-                    <Route path="metrics" element={<A_Dashboard />} />
-                    <Route path="register-document" element={<B_RegisterDocument />} />
-                    <Route path="incoming" element={<C_Incoming />} />
-                    <Route path="pending" element={<D_Pending />} />
-                    <Route path="outgoing" element={<E_Outgoing />} />
-                    <Route path="document-logs" element={<F_DocumentLogs />} />
-                    <Route path="employees" element={<G_Staffs />} />
-                </Route>    
-            </Routes>
-            
-        </Box>
-    );
+  return (
+    <Box>
+      <Routes>
+        <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+          <Route path="metrics" element={<A_Dashboard />} />
+          <Route path="register-document" element={<B_RegisterDocument />} />
+          <Route path="incoming" element={<C_Incoming />} />
+          <Route path="pending" element={<D_Pending />} />
+          <Route path="outgoing" element={<E_Outgoing />} />
+          <Route path="document-logs" element={<F_DocumentLogs />} />
+          <Route path="employees" element={<G_Staffs />} />
+        </Route>    
+      </Routes>
+    </Box>
+  );
 };
 
 export default doctrackApp

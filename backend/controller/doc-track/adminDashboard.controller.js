@@ -115,13 +115,15 @@ const getNextSequence = async (key) => {
 };
 
 export const registerDocument = async (req, res) => {
-    const { userAccountId, documentId, priority, details, isRegisterOnly } = req.body;
+    const { userAccountId, documentId, priority, details, isRegisterOnly, documentNameText, originatingOffice, isManuallyTyped } = req.body;
     try {
 
-        const document = await global.docTrackModels.Document.findById(documentId);
+
+        const document = isManuallyTyped ? null : await global.docTrackModels.Document.findById(documentId);
         if (!document) {
             return res.status(404).json({ success: false, message: 'Document type not found.'});
         }
+        
 
         let user = await global.docTrackModels.ManagerAccount.findById(userAccountId) ||
                    await global.docTrackModels.StaffAccount.findById(userAccountId);
@@ -135,16 +137,20 @@ export const registerDocument = async (req, res) => {
         const readableDate = new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
         const qrData = JSON.stringify({
         refNumber: newRefNumber,
-        name: document.documentName,
-        code: document.documentCode,
+        name: isManuallyTyped ? documentNameText : document.documentName,
+        code: isManuallyTyped ? 'N/A' : document.documentCode,
+        originatingOffice: isManuallyTyped ? originatingOffice : 'N/A',
         registeredBy: `${user.first_name}, ${user.last_name}`,
         createdAt: readableDate
         });
 
         const newDocRegistration = await global.docTrackModels.DocumentLifeCycle.create({
-            documentId: document._id,
-            documentName: document.documentName,
-            documentCode: document.documentCode,
+            documentId: isManuallyTyped ? null : documentId,
+            documentName: isManuallyTyped ? documentNameText : document.documentName,
+            documentCode: isManuallyTyped ? 'N/A' : document.documentCode,
+
+            documentNameText: isManuallyTyped ? documentNameText : 'N/A',
+            originatingOffice: isManuallyTyped ? originatingOffice : 'N/A',
 
             priority: priority,
             refNumber: newRefNumber,

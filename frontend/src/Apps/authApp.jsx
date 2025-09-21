@@ -12,16 +12,27 @@ import ResetPassword from '../auth/authPages/resetPassword.jsx'
 const RedirectAuthenticatedUser = ({ children }) => {
   const { isAuthenticated, user, isCheckingAuth } = useAuthStore();
 
-    if (isCheckingAuth) {
+  if (isCheckingAuth) {
       return null;
-    }
+  }
 
   if (isAuthenticated) {
-     if (user.role === 'HVCM' || user.role === 'HVCS') {
+
+    if (!user.role) {
+      return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <Spinner size={'xl'} /><Text ml={4}>Please wait...</Text>
+      </div>;
+    }
+
+    const role = String(user?.role || '').trim().toUpperCase();
+
+    if (role === 'HVCM' || role === 'HVCS') {
       return <Navigate to='/hvc/metrics' replace />;
-    } else if (user.role === 'MIS') {
+    } else if (role === 'MIS') {
       return <Navigate to='/machineries/metrics' replace />;
-    } else if (user.role === 'DMM' || user.role === 'DMS') {
+    } else if (role === 'DMS') {
+      return <Navigate to='/doc-track/register-document' replace />;
+    } else if (role === 'DMM') {
       return <Navigate to='/doc-track/metrics' replace />;
     } else {
       return <Navigate to='/404' replace />;

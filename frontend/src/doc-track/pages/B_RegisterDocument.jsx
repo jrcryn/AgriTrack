@@ -52,6 +52,10 @@ const B_RegisterDocument = () => {
       details: '',
       isRegisterOnly: true, // to differentiate if the action is just register or register and forward
 
+      documentNameText: '',
+      originatingOffice: '',
+      isManuallyTyped: false, // to differentiate if the document is selected from dropdown or manually typed
+
       forwardAccountId: '',
       forwardRemarks: '',
 
@@ -78,6 +82,9 @@ const B_RegisterDocument = () => {
     };
 
     const handleRegisterDocument = async () => {
+      if (formData.documentNameText && formData.originatingOffice) {
+        formData.isManuallyTyped = true;
+      }
       try {
         const response = await registerDocument(formData);
         toast({
@@ -104,6 +111,9 @@ const B_RegisterDocument = () => {
     };
 
     const handleRegisterAndForwardDocument = async () => {
+      if (formData.documentNameText && formData.originatingOffice) {
+        formData.isManuallyTyped = true;
+      }
       try {
         const response = await registerAndForwardDocument(formData);
         toast({
@@ -154,6 +164,12 @@ const B_RegisterDocument = () => {
       }
     };
 
+  // A document is identified if either a documentId is selected
+  // OR both a manual document name and originating office are provided.
+  const isDocIdentified =
+    Boolean(formData.documentId) ||
+    (formData.documentNameText && formData.originatingOffice);
+
   return (
     <Box 
     overflow="hidden" 
@@ -195,8 +211,8 @@ const B_RegisterDocument = () => {
         >
           <VStack spacing={5} align="stretch">
 
-            <HStack spacing={4} align="flex-start">
-              <FormControl isRequired>
+              {!formData.documentNameText ? (
+                <FormControl isRequired>
                 <FormLabel>Select Document Type</FormLabel>
                   <Select
                     name="documentId"
@@ -224,8 +240,46 @@ const B_RegisterDocument = () => {
                       <option>Error loadinng document types...</option>
                     )}
                   </Select>
-              </FormControl>
-            </HStack>
+                </FormControl>
+              ) : (
+                null
+              )}
+
+              
+              {!formData.documentId && (
+                <FormControl isRequired>
+                  <FormLabel>Document Name</FormLabel>
+                  <Input
+                    name='documentNameText'
+                    type='text'
+                    placeholder='Enter document name'
+                    value={formData.documentNameText}
+                    onChange={handleInputChange}
+                    borderColor='gray.300'
+                    _focus={{ borderColor: "blue.400" }}
+                  />
+                </FormControl>
+              )}
+              
+              
+              {formData.documentNameText && (
+                <FormControl isRequired>
+                  <FormLabel>Originating Office</FormLabel>
+                  <Input
+                    name='originatingOffice'
+                    type='text'
+                    placeholder='Enter originating office'
+                    value={formData.originatingOffice}
+                    onChange={handleInputChange}
+                    borderColor='gray.300'
+                    _focus={{ borderColor: "blue.400" }}
+                    isDisabled={!formData.documentNameText}
+                  />
+                </FormControl>
+              )}
+              
+
+
             <HStack>
               <FormControl isRequired>
                 <FormLabel>Priority Level</FormLabel>
@@ -234,7 +288,7 @@ const B_RegisterDocument = () => {
                   placeholder='Select priority level'
                   value={formData.priority}
                   onChange={handleInputChange}
-                  isDisabled={!formData.documentId}
+                  isDisabled={!isDocIdentified}
                 >
                   <option value="Low">Low</option>
                   <option value="Medium">Medium</option>
@@ -252,7 +306,7 @@ const B_RegisterDocument = () => {
                   onChange={handleInputChange}
                   borderColor='gray.300'
                   _focus={{ borderColor: "blue.400" }}
-                  isDisabled={!formData.documentId}
+                  isDisabled={!isDocIdentified}
                 />
               </FormControl>
             </HStack>
@@ -265,7 +319,7 @@ const B_RegisterDocument = () => {
                   value={formData.forwardAccountId}
                   onChange={handleInputChange}
                   placeholder='Select a user to forward to'
-                  isDisabled={isLoadingAdminAndStaffAccounts || !adminAndStaffAccounts || !formData.documentId || !formData.priority || !formData.details}
+                  isDisabled={isLoadingAdminAndStaffAccounts || !adminAndStaffAccounts || !formData.priority || !formData.details || !isDocIdentified}
                 >
                   {isLoadingAdminAndStaffAccounts ? (
                       <option value="">Loading user accounts...</option>
@@ -295,7 +349,7 @@ const B_RegisterDocument = () => {
                   onChange={handleInputChange}
                   borderColor='gray.300'
                   _focus={{ borderColor: "blue.400" }}
-                  isDisabled={!formData.documentId || !formData.priority || !formData.details}
+                  isDisabled={!isDocIdentified || !formData.priority || !formData.details}
                 />
               </FormControl>
 
@@ -313,7 +367,7 @@ const B_RegisterDocument = () => {
                 loadingText="Registering..."
                 size="md"
                 width="100%"
-                isDisabled={!formData.documentId || !formData.priority || !formData.details}
+                isDisabled={!isDocIdentified || !formData.priority || !formData.details}
               >
                 Register Document
               </Button>
@@ -326,7 +380,7 @@ const B_RegisterDocument = () => {
                 loadingText='Registering and Forwarding...'
                 size="md"
                 width="100%"
-                isDisabled={!formData.documentId || !formData.priority || !formData.details || !formData.forwardAccountId || !formData.forwardRemarks}
+                isDisabled={!isDocIdentified || !formData.priority || !formData.details || !formData.forwardAccountId || !formData.forwardRemarks}
                 >
                   Register & Forward Immediately
               </Button>

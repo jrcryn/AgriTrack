@@ -43,9 +43,11 @@ import {
   FiAlertCircle,
 } from "react-icons/fi";
 import { HiMiniDocumentPlus, HiInformationCircle } from "react-icons/hi2";
-import { LuLogs } from "react-icons/lu";
 import { MdEditDocument } from "react-icons/md";
 import { FaArchive } from "react-icons/fa";
+import { GoArchive } from "react-icons/go";
+import { FileOutput, FileInput } from "lucide-react";
+
 import { useAdminDashboard } from '../store/adminDashboard.store.js';
 
 
@@ -64,8 +66,6 @@ const A_Dashboard = () => {
     updateDocumentType,
     isUpdatingDocumentType
   } = useAdminDashboard();
-  // Mock data for the dashboard
-  const [selectedPeriod, setSelectedPeriod] = useState('weekly');
   
   // Mock metrics data
   const metrics = {
@@ -330,7 +330,7 @@ const A_Dashboard = () => {
         Overview of document processing metrics and performance across all departments.
       </Text>
       
-      {/* Filter Section */}
+      {/* BUtton Section */}
       <Flex
         direction={{ base: 'column', md: 'row' }}
         alignItems="center"
@@ -341,22 +341,6 @@ const A_Dashboard = () => {
         borderRadius="md"
         boxShadow="sm"
       >
-        <FormControl id="time-period" maxW={{ md: '250px' }}>
-          <FormLabel fontSize="sm" fontWeight="medium" display="flex" alignItems="center" gap={2}>
-            <Icon as={FiCalendar} color="blue.500" /> Time Period
-          </FormLabel>
-          <Select
-            value={selectedPeriod}
-            onChange={(e) => setSelectedPeriod(e.target.value)}
-            bg="white"
-            size="md"
-          >
-            <option value="daily">Daily</option>
-            <option value="weekly">Weekly</option>
-            <option value="monthly">Monthly</option>
-            <option value="quarterly">Quarterly</option>
-          </Select>
-        </FormControl>
         <Button 
           colorScheme="blue" 
           alignSelf={{ base: 'stretch', md: 'flex-end' }}
@@ -397,8 +381,10 @@ const A_Dashboard = () => {
           spacing={4} 
           w="full"
         >
-          {/* Total Documents */}
+          {/* Incoming Documents */}
           <Box 
+            as="button"
+            type="button"
             p={5} 
             flex={1} 
             borderRadius="md" 
@@ -406,20 +392,26 @@ const A_Dashboard = () => {
             bg="white"
             borderWidth="1px"
             borderColor="gray.200"
+            cursor="pointer"
+            transition="all 0.2s ease"
+            _hover={{ boxShadow: "md", borderColor: "blue.400", bg: "blue.50", transform: "translateY(-2px)" }}
+            _active={{ boxShadow: "sm", bg: "blue.100", transform: "translateY(0)" }}
+            _focusVisible={{ outline: "none", boxShadow: "0 0 0 3px rgba(66, 153, 225, 0.6)" }}
+            textAlign="left"
           >
             <Stat>
               <StatLabel fontSize="md" display="flex" alignItems="center">
-                <Icon as={FiFileText} mr={2} color="blue.500" /> Total Documents
+                <Icon as={FileInput} mr={2} color="green.500" /> Incoming Documents
               </StatLabel>
               <StatNumber fontSize="4xl" mb={2}>{metrics.totalDocuments}</StatNumber>
-              <StatHelpText>
-                Currenty tracked
-              </StatHelpText>
+              <Tag colorScheme="green" size="sm">Registered Documents</Tag>
             </Stat>
           </Box>
           
-          {/* Incoming Documents */}
+          {/* Outgoing Documents */}
           <Box 
+            as="button"
+            type="button"
             p={5} 
             flex={1} 
             borderRadius="md" 
@@ -427,16 +419,21 @@ const A_Dashboard = () => {
             bg="white"
             borderWidth="1px"
             borderColor="gray.200"
+            cursor="pointer"
+            transition="all 0.2s ease"
+            _hover={{ boxShadow: "md", borderColor: "blue.400", bg: "blue.50", transform: "translateY(-2px)" }}
+            _active={{ boxShadow: "sm", bg: "blue.100", transform: "translateY(0)" }}
+            _focusVisible={{ outline: "none", boxShadow: "0 0 0 3px rgba(66, 153, 225, 0.6)" }}
+            textAlign="left"
           >
             <Stat>
               <StatLabel fontSize="md" display="flex" alignItems="center">
-                <Icon as={FiInbox} mr={2} color="green.500" /> Incoming
+                <Icon as={FileOutput} mr={2} color="red.500" /> Outgoing Documents
               </StatLabel>
               <StatNumber fontSize="4xl" mb={2}>
                 {metrics.incomingDocuments}
               </StatNumber>
-              <Tag colorScheme="green" size="sm">Created</Tag>
-              <Tag colorScheme="red" size="sm" ml={2}>Forwarded</Tag>
+              <Tag colorScheme="red" size="sm">Released Documents</Tag>
             </Stat>
           </Box>
           
@@ -452,14 +449,14 @@ const A_Dashboard = () => {
           >
             <Stat>
               <StatLabel fontSize="md" display="flex" alignItems="center">
-                <Icon as={FiClock} mr={2} color="yellow.500" /> Pending
+                <Icon as={FiClock} mr={2} color="yellow.500" /> Pending Documents
               </StatLabel>
               <StatNumber fontSize="4xl" mb={2}>{metrics.pendingDocuments}</StatNumber>
               <Tag colorScheme="yellow" size="sm">Received/Work on Progress</Tag>
             </Stat>
           </Box>
           
-          {/* Document Logds */}
+          {/* Archived Documents */}
           <Box 
             as="button"
             type="button"
@@ -470,13 +467,6 @@ const A_Dashboard = () => {
             bg="white"
             borderWidth="1px"
             borderColor="gray.200"
-            // onKeyDown={(e) => {
-            //   if (e.key === 'Enter' || e.key === ' ') {
-            //     e.preventDefault();
-            //     onOpen();
-            //   }
-            // }}
-            //aria-label="Open document logs"
             cursor="pointer"
             transition="all 0.2s ease"
             _hover={{ boxShadow: "md", borderColor: "blue.400", bg: "blue.50", transform: "translateY(-2px)" }}
@@ -487,11 +477,10 @@ const A_Dashboard = () => {
           >
             <Stat>
               <StatLabel fontSize="md" display="flex" alignItems="center">
-                <Icon as={LuLogs} mr={2} color="red.500" /> Document Logs
+                <Icon as={GoArchive} mr={2} color="red.500" /> Archived Documents
               </StatLabel>
               <StatNumber fontSize="4xl" mb={2}>{metrics.outgoingDocuments}</StatNumber>
-              <Tag colorScheme="orange" size="sm">Archived</Tag>
-              <Tag colorScheme="red" size="sm" ml={2}>Released</Tag>
+              <Tag colorScheme="orange" size="sm">Archived Documents</Tag>
             </Stat>
           </Box>
         </Stack>

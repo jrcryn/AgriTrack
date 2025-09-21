@@ -74,8 +74,11 @@ export const lifeCycleIterationsSchema = new mongoose.Schema({
 
 export const DocumentLifeCycleSchema = new mongoose.Schema({
     documentId: {type: mongoose.Schema.Types.ObjectId, ref: 'Document'},
-    documentName: {type: String, required: true},
-    documentCode: {type: String, required: true},
+    documentName: {type: String},
+    documentCode: {type: String},
+
+    documentNameText: {type: String, trim: true},
+    originatingOffice: {type: String, trim: true},
 
     priority: {type: String, enum: ['Urgent', 'Medium', 'Low'], required: true},
     refNumber: {type: String, required: true},
