@@ -26,6 +26,7 @@ import {
 import { FiSearch, FiInbox } from 'react-icons/fi';
 import { LuLogs } from "react-icons/lu";
 import { FaEye } from 'react-icons/fa';
+import { TbFileShredder } from "react-icons/tb";
 
 import { useAdminDashboard } from '../store/adminDashboard.store';
 import DocumentLifeCycleModal from '../../components/docLifeCyclePanel.jsx';
@@ -115,7 +116,7 @@ const F_DocumentLogs = () => {
         Document Logs
       </Heading>
       <Text color="gray.600" mb={5}>
-        View archived and released documents.
+        View and managae archived, released and expired documents.
       </Text>
 
       {/* Filter Section */}
@@ -266,6 +267,19 @@ const F_DocumentLogs = () => {
           />
         </Flex>
       </Box>
+
+      {logType === 'archived' && (
+        <Box>
+          <Flex justify="space-between" align="center" mb={4} bg={color.bg} p={3} borderRadius="md" borderLeftWidth="4px" borderLeftColor={color.accent}>
+            <Heading as="h2" size="md" display="flex" alignItems="center">
+              <Icon as={TbFileShredder} mr={2} color={color.accent} /> EXPIRED DOCUMENTS
+            </Heading>
+          </Flex>
+
+
+        </Box>
+      )}
+      
 
       {/* Details Modal (view-only) */}
       <DocumentLifeCycleModal

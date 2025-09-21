@@ -54,7 +54,7 @@ router.post('/reroute-document', rerouteDocument);
 router.post('/unarchive-document', unarchiveDocument);
 router.post('/unrelease-document', unreleaseDocument);
 
-router.get('/doc-track/users-workload', getUsersDocumentWorkload);
+router.get('/users-workload', getUsersDocumentWorkload);
 
 export default router;
 

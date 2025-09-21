@@ -389,7 +389,7 @@ export const registerAndForwardDocument = async (req, res) => {
         }
 
         let registerAccount = await global.docTrackModels.ManagerAccount.findById(userAccountId) ||
-                   await global.docTrackModels.StaffAccount.findById(userAccountId);
+                              await global.docTrackModels.StaffAccount.findById(userAccountId);
         if (!registerAccount) {
             return res.status(404).json({ success: false, message: 'Cannot find your account, please contact IT if error persists.'});
         }
@@ -1157,132 +1157,6 @@ export const getReleasedDocuments = async (req, res) => {
     }
 };
 
-export const rerouteDocument = async (req, res) => {
-    const { registeredDocId, userAccountId, rerouteAccountId, rerouteRemarks, rerouteToSelf } = req.body;
-
-    try {
-        const document = await global.docTrackModels.DocumentLifeCycle.findById(registeredDocId);
-        if (!document) {
-            return res.status(404).json({ success: false, message: 'Registered document not found.' });
-        }
-
-        const user = await global.docTrackModels.ManagerAccount.findById(userAccountId) ||
-                   await global.docTrackModels.StaffAccount.findById(userAccountId);
-        if (!user) {
-            return res.status(404).json({ success: false, message: 'Cannot find your account, please contact IT if error persists.' });
-        }
-        const userModel = user instanceof global.docTrackModels.ManagerAccount ? 'Manager_Account' : 'Staff_Account';
-
-        
-        if (rerouteToSelf === true) {
-            await global.docTrackModels.DocumentLifeCycle.updateOne(
-                {_id: document._id},
-                {
-                    $push: {
-                        lifeCycle: {
-                            action: 'Rerouted',
-                            performedBy: {
-                                userModel: userModel,
-                                userId: user._id,
-                                first_name: user.first_name,
-                                last_name: user.last_name,
-                                middle_name: user.middle_name,
-                                suffix: user.suffix,
-                                role: user.role,
-                                office_position: user.office_position,
-                                email: user.email,
-                                phone: user.phone
-                            },
-                            rerouteDetails: {
-                                userModel: userModel,
-                                userId: user._id,
-                                first_name: user.first_name,
-                                last_name: user.last_name,
-                                middle_name: user.middle_name,
-                                suffix: user.suffix,
-                                role: user.role,
-                                office_position: user.office_position,
-                                email: user.email,
-                                phone: user.phone,
-                                rerouteRemarks: rerouteRemarks
-                            },
-                            timeStamp: Date.now(),
-                        }
-                    },
-                    $set: { currentHandler: { 
-                        first_name: user.first_name,
-                        last_name: user.last_name,
-                        middle_name: user.middle_name,
-                        suffix: user.suffix,
-                        role: user.role,
-                        office_position: user.office_position,
-                        email: user.email,
-                        phone: user.phone
-                    } }
-                }
-            );
-        } else {
-            const rerouteAccount = await global.docTrackModels.ManagerAccount.findById(rerouteAccountId) ||
-                                   await global.docTrackModels.StaffAccount.findById(rerouteAccountId);
-            if (!rerouteAccount) {
-                return res.status(404).json({ success: false, message: 'Cannot find the user you are trying to reroute to.' });
-            }
-            const rerouteAccountModel = rerouteAccount instanceof global.docTrackModels.ManagerAccount ? 'Manager_Account' : 'Staff_Account';
-            await global.docTrackModels.DocumentLifeCycle.updateOne(
-                {_id: document._id},
-                {
-                    $push: {
-                        lifeCycle: {
-                            action: 'Rerouted',
-                            performedBy: {
-                                userModel: userModel,
-                                userId: user._id,
-                                first_name: user.first_name,
-                                last_name: user.last_name,
-                                middle_name: user.middle_name,
-                                suffix: user.suffix,
-                                role: user.role,
-                                office_position: user.office_position,
-                                email: user.email,
-                                phone: user.phone
-                            },
-                            rerouteDetails: {
-                                userModel: rerouteAccountModel,
-                                userId: rerouteAccount._id,
-                                first_name: rerouteAccount.first_name,
-                                last_name: rerouteAccount.last_name,
-                                middle_name: rerouteAccount.middle_name,
-                                suffix: rerouteAccount.suffix,
-                                role: rerouteAccount.role,
-                                office_position: rerouteAccount.office_position,
-                                email: rerouteAccount.email,
-                                phone: rerouteAccount.phone,
-                                rerouteRemarks: rerouteRemarks
-                            },
-                            timeStamp: Date.now(),
-                        }
-                    },
-                    $set: { currentHandler: { 
-                            first_name: rerouteAccount.first_name,
-                            last_name: rerouteAccount.last_name,
-                            middle_name: rerouteAccount.middle_name,
-                            suffix: rerouteAccount.suffix,
-                            role: rerouteAccount.role,
-                            office_position: rerouteAccount.office_position,
-                            email: rerouteAccount.email,
-                            phone: rerouteAccount.phone
-                        } }
-                }
-            );
-        }
-
-        return res.status(200).json({ success: true, message: 'Document rerouted successfully' });
-    } catch (error) {
-        console.error('Error rerouting document:', error);
-        return res.status(500).json({ success: false, message: 'Error rerouting document', error: error.message });
-    }
-};
-
 export const unarchiveDocument = async (req, res) => {
     const { archivedDocId, userAccountId, forwardAccountId, unarchiveRemarks, forwardToSelf } = req.body;
 
@@ -1568,9 +1442,7 @@ export const unreleaseDocument = async (req, res) => {
 ;
 export const getUsersDocumentWorkload = async (req, res) => {
     try {
-        const docLimit = parseInt(req.query.docLimit) || 5;
-        const includeDocs = req.query.includeDocs; //false to return only document counts. Meaning not including the documents itself. True to include documents (limited by docLimit)
-        const onlyWithDocs = req.query.onlyWithDocs; //false to return all accounts, true to return only accounts with documents
+        
 
         // 1. Fetch all active accounts
         const projection = {
@@ -1598,14 +1470,14 @@ export const getUsersDocumentWorkload = async (req, res) => {
         // 2. Aggregation for incoming (Forwarded/Rerouted to user)
         const incomingPipeline = [
             { $addFields: { lastAction: { $arrayElemAt: ['$lifeCycle', -1] } } },
-            { $match: { 'lastAction.action': { $in: ['Forwarded', 'Rerouted'] } } },
+            { $match: { 'lastAction.action': { $in: ['Forwarded', 'Rerouted', 'Unarchived', 'Unreleased'] } } },
             {
                 $addFields: {
                     targetUserId: {
                         $cond: [
-                            { $eq: ['$lastAction.action', 'Forwarded'] },
-                            '$lastAction.forwardDetails.userId',
-                            '$lastAction.rerouteDetails.userId'
+                            { $eq: ['$lastAction.action', 'Rerouted'] },
+                                '$lastAction.rerouteDetails.userId',
+                                '$lastAction.forwardDetails.userId',
                         ]
                     }
                 }
@@ -1626,12 +1498,6 @@ export const getUsersDocumentWorkload = async (req, res) => {
                             currentHandler: '$currentHandler'
                         }
                     }
-                }
-            },
-            {
-                $project: {
-                    count: 1,
-                    documents: includeDocs ? { $slice: ['$documents', docLimit] } : []
                 }
             }
         ];
@@ -1658,12 +1524,6 @@ export const getUsersDocumentWorkload = async (req, res) => {
                     }
                 }
             },
-            {
-                $project: {
-                    count: 1,
-                    documents: includeDocs ? { $slice: ['$documents', docLimit] } : []
-                }
-            }
         ];
 
         const [incomingAgg, pendingAgg] = await Promise.all([
@@ -1694,18 +1554,12 @@ export const getUsersDocumentWorkload = async (req, res) => {
                     totalActive: incoming.count + pending.count
                 };
             })
-            .filter(r => (onlyWithDocs ? r.totalActive > 0 : true))
             .sort((a, b) => b.totalActive - a.totalActive || a.last_name.localeCompare(b.last_name));
 
         return res.status(200).json({
             success: true,
             message: 'Successfully compiled users document workload.',
-            data: result,
-            meta: {
-                accounts: result.length,
-                docLimitApplied: includeDocs ? docLimit : 0,
-                includeDocs
-            }
+            data: result
         });
     } catch (error) {
         console.error('Error computing users document workload:', error);
@@ -1713,9 +1567,140 @@ export const getUsersDocumentWorkload = async (req, res) => {
     }
 };
 
-// // (Optional) rename or repurpose the placeholder
-// export const getEmployeeDocuments = getUsersDocumentWorkload;
-// // ...existing code...
+export const rerouteDocument = async (req, res) => {
+    const { registeredDocId, userAccountId, rerouteAccountId, rerouteRemarks, rerouteToSelf } = req.body;
+
+    try {
+        const document = await global.docTrackModels.DocumentLifeCycle.findById(registeredDocId);
+        if (!document) {
+            return res.status(404).json({ success: false, message: 'Registered document not found.' });
+        }
+
+        const user = await global.docTrackModels.ManagerAccount.findById(userAccountId) ||
+                   await global.docTrackModels.StaffAccount.findById(userAccountId);
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'Cannot find your account, please contact IT if error persists.' });
+        }
+        const userModel = user instanceof global.docTrackModels.ManagerAccount ? 'Manager_Account' : 'Staff_Account';
+
+        
+        if (rerouteToSelf === true) {
+            await global.docTrackModels.DocumentLifeCycle.updateOne(
+                {_id: document._id},
+                {
+                    $push: {
+                        lifeCycle: {
+                            action: 'Rerouted',
+                            performedBy: {
+                                userModel: userModel,
+                                userId: user._id,
+                                first_name: user.first_name,
+                                last_name: user.last_name,
+                                middle_name: user.middle_name,
+                                suffix: user.suffix,
+                                role: user.role,
+                                office_position: user.office_position,
+                                email: user.email,
+                                phone: user.phone
+                            },
+                            rerouteDetails: {
+                                userModel: userModel,
+                                userId: user._id,
+                                first_name: user.first_name,
+                                last_name: user.last_name,
+                                middle_name: user.middle_name,
+                                suffix: user.suffix,
+                                role: user.role,
+                                office_position: user.office_position,
+                                email: user.email,
+                                phone: user.phone,
+                                rerouteRemarks: rerouteRemarks
+                            },
+                            timeStamp: Date.now(),
+                        }
+                    },
+                    $set: { currentHandler: { 
+                        first_name: user.first_name,
+                        last_name: user.last_name,
+                        middle_name: user.middle_name,
+                        suffix: user.suffix,
+                        role: user.role,
+                        office_position: user.office_position,
+                        email: user.email,
+                        phone: user.phone
+                    } }
+                }
+            );
+        } else {
+            const rerouteAccount = await global.docTrackModels.ManagerAccount.findById(rerouteAccountId) ||
+                                   await global.docTrackModels.StaffAccount.findById(rerouteAccountId);
+            if (!rerouteAccount) {
+                return res.status(404).json({ success: false, message: 'Cannot find the user you are trying to reroute to.' });
+            }
+            const rerouteAccountModel = rerouteAccount instanceof global.docTrackModels.ManagerAccount ? 'Manager_Account' : 'Staff_Account';
+            await global.docTrackModels.DocumentLifeCycle.updateOne(
+                {_id: document._id},
+                {
+                    $push: {
+                        lifeCycle: {
+                            action: 'Rerouted',
+                            performedBy: {
+                                userModel: userModel,
+                                userId: user._id,
+                                first_name: user.first_name,
+                                last_name: user.last_name,
+                                middle_name: user.middle_name,
+                                suffix: user.suffix,
+                                role: user.role,
+                                office_position: user.office_position,
+                                email: user.email,
+                                phone: user.phone
+                            },
+                            rerouteDetails: {
+                                userModel: rerouteAccountModel,
+                                userId: rerouteAccount._id,
+                                first_name: rerouteAccount.first_name,
+                                last_name: rerouteAccount.last_name,
+                                middle_name: rerouteAccount.middle_name,
+                                suffix: rerouteAccount.suffix,
+                                role: rerouteAccount.role,
+                                office_position: rerouteAccount.office_position,
+                                email: rerouteAccount.email,
+                                phone: rerouteAccount.phone,
+                                rerouteRemarks: rerouteRemarks
+                            },
+                            timeStamp: Date.now(),
+                        }
+                    },
+                    $set: { currentHandler: { 
+                            first_name: rerouteAccount.first_name,
+                            last_name: rerouteAccount.last_name,
+                            middle_name: rerouteAccount.middle_name,
+                            suffix: rerouteAccount.suffix,
+                            role: rerouteAccount.role,
+                            office_position: rerouteAccount.office_position,
+                            email: rerouteAccount.email,
+                            phone: rerouteAccount.phone
+                        } }
+                }
+            );
+        }
+
+        return res.status(200).json({ success: true, message: 'Document rerouted successfully' });
+    } catch (error) {
+        console.error('Error rerouting document:', error);
+        return res.status(500).json({ success: false, message: 'Error rerouting document', error: error.message });
+    }
+};
+
+export const getExpiredDocuments = async (req, res) => {
+
+};
+
+export const disposeDocuments = async (req, res) => {
+
+};
+
 
 
 

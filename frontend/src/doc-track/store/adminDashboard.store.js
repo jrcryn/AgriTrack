@@ -104,6 +104,15 @@ export const useReleasedDocumentsQuery = (page = 1, searchParams = {}) =>
         },
     });
 
+export const useUsersDocumentWorkloadQuery = () =>
+    useQuery({
+        queryKey: ['documentWorkload'],
+        queryFn: async () => {
+            const response = await axios.get(`${API_URL}/api/doc-track/users-workload`);
+            return response.data;
+        },
+    });
+
 export const useAdminDashboard = (pages = {}, searchParams = {}) => {
     const { user } = useAuthStore()
     const id = user?.id
@@ -118,6 +127,7 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
     } = pages;
 
     const { data: documentTypes = [], isLoading: isLoadingDocumentTypes, error: documentTypesError } = useDocumentTypesQuery();
+
     const { data: adminAndStaffAccounts = [], isLoading: isLoadingAdminAndStaffAccounts, error: adminAndStaffAccountsError } = useStaffAndAdminAccountsQuery(id);
 
     const { data: forwardedDocuments = [], isLoading: isLoadingForwardedDocuments, error: forwardedDocumentsError } = useIncomingForwardedDocumentsQuery(id, incomingPage, searchParams);
@@ -132,6 +142,8 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
 
     const { data: releasedDocuments = [], isLoading: isLoadingReleasedDocuments, error: releasedDocumentsError } = useReleasedDocumentsQuery(releasedPage, searchParams);
 
+    const { data: usersDocumentWorkload = [], isLoading: isLoadingUsersDocumentWorkload, error: usersDocumentWorkloadError } = useUsersDocumentWorkloadQuery();
+
     const [isCreatingDocument, setIsCreatingDocument] = useState(false);
     const [isUpdatingDocumentType, setIsUpdatingDocumentType] = useState(false);
     const [isRegisteringDocument, setIsRegisteringDocument] = useState(false);
@@ -144,6 +156,7 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
     const [isGettingDocumentStatus, setIsGettingDocumentStatus] = useState(false);
     const [isUnarchivingDocument, setIsUnarchivingDocument] = useState(false);
     const [isUnreleasingDocument, setIsUnreleasingDocument] = useState(false);
+    const [isReroutingDocument, setIsReroutingDocument] = useState(false);
 
 
     const createDocument = async (data) => {
@@ -294,6 +307,19 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
         }
     };
 
+    const rerouteDocument = async (data) => {
+        setIsReroutingDocument(true);
+        try {  
+            //await new Promise(resolve => setTimeout(resolve, 5000));
+            const response = await axios.post(`${API_URL}/api/doc-track/reroute-document`, data)
+            return response.data;
+        } catch (error) {
+            throw error;
+        } finally {
+            setIsReroutingDocument(false);
+        }
+    };
+
     return {
         // automatic queries
         documentTypes,
@@ -306,6 +332,7 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
         releasedDocuments,
         unarchiveDocument,
         unreleaseDocument,
+        usersDocumentWorkload,
 
         // action functions
         createDocument,
@@ -318,6 +345,7 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
         releaseDocument,
         downloadQRCode,
         documentStatus,
+        rerouteDocument,
 
         //loading states
         isLoadingDocumentTypes,
@@ -328,8 +356,7 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
         isLoadingOutgoingDocuments,
         isLoadingArchivedDocuments,
         isLoadingReleasedDocuments,
-        isUnarchivingDocument,
-        isUnreleasingDocument,
+        isLoadingUsersDocumentWorkload,
 
         // action flags
         isCreatingDocument,
@@ -342,6 +369,9 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
         isReleasingDocument,
         isDownloadingQRCode,
         isGettingDocumentStatus,
+        isUnarchivingDocument,
+        isUnreleasingDocument,
+        isReroutingDocument,
 
         //error states
         documentTypesError,
@@ -352,5 +382,6 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
         outgoingDocumentsError,
         archivedDocumentsError,
         releasedDocumentsError,
+        usersDocumentWorkloadError
     };
 }

@@ -3,7 +3,7 @@ import {
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter,
   Box, VStack, Text, Heading, Divider, SimpleGrid, Badge, Flex, Button, Tabs, TabList, TabPanels, Tab, TabPanel,
   FormControl, FormLabel, Input, Select, useToast,
-  Switch, // added
+  Switch,
 } from '@chakra-ui/react';
 import { CheckCircleIcon, ArrowForwardIcon, TimeIcon } from "@chakra-ui/icons";
 import { FaArchive } from "react-icons/fa";
@@ -43,7 +43,8 @@ const DocumentLifeCycleModal = ({
   isProduceDocumentPage,
   isReleased,
   isArchived,
-  isDocumentLogsPage
+  isDocumentLogsPage,
+  isStaffsPage // added
 }) => {
     const data = document;
     const toast = useToast();
@@ -65,6 +66,8 @@ const DocumentLifeCycleModal = ({
         isUnarchivingDocument,       
         unreleaseDocument,           
         isUnreleasingDocument,      
+        rerouteDocument,            // added
+        isReroutingDocument,        // added
     } = useAdminDashboard();
 
     const [forwardData, setForwardData] = useState({ forwardAccountId: '', forwardRemarks: '' });
@@ -156,6 +159,9 @@ const DocumentLifeCycleModal = ({
     const [unarchiveData, setUnarchiveData] = useState({ forwardToSelf: '', forwardAccountId: '', unarchiveRemarks: '' });
     const [unreleaseData, setUnreleaseData] = useState({ forwardToSelf: '', forwardAccountId: '', unreleaseRemarks: '' });
 
+    // added reroute state
+    const [rerouteData, setRerouteData] = useState({ rerouteToSelf: true, rerouteAccountId: '', rerouteRemarks: '' });
+
     const handleUnarchive = async () => {
       if (!data || !user?.id) return;
       if (!unarchiveData.forwardToSelf && !unarchiveData.forwardAccountId) {
@@ -213,7 +219,36 @@ const DocumentLifeCycleModal = ({
         toast({ title: "Error", description: error.response?.data?.message || "Failed to unrelease document.", status: "error", duration: 5000, isClosable: true });
       }
     };
-  
+
+    // added: reroute handler
+    const handleReroute = async () => {
+      if (!document || !user?.id) return;
+      if (!rerouteData.rerouteToSelf && !rerouteData.rerouteAccountId) {
+        toast({ title: 'Missing fields', description: 'Select a recipient or reroute to yourself.', status: 'warning', duration: 4000, isClosable: true });
+        return;
+      }
+      try {
+        const res = await rerouteDocument({
+          registeredDocId: document._id,
+          userAccountId: user.id,
+          rerouteAccountId: rerouteData.rerouteToSelf ? undefined : rerouteData.rerouteAccountId,
+          rerouteRemarks: rerouteData.rerouteRemarks || '',
+          rerouteToSelf: !!rerouteData.rerouteToSelf
+        });
+        toast({ title: 'Success', description: res.message || 'Document rerouted.', status: 'success', duration: 5000, isClosable: true });
+        setRerouteData({ rerouteToSelf: true, rerouteAccountId: '', rerouteRemarks: '' });
+        onClose();
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['forwardedDocuments'] }),
+          queryClient.invalidateQueries({ queryKey: ['pendingDocuments'] }),
+          queryClient.invalidateQueries({ queryKey: ['outgoingDocuments'] }),
+          queryClient.invalidateQueries({ queryKey: ['documentWorkload'] }),
+        ]);
+      } catch (error) {
+        toast({ title: 'Error', description: error.response?.data?.message || 'Failed to reroute document.', status: 'error', duration: 5000, isClosable: true });
+      }
+    };
+
     return (
     <Modal isOpen={isOpen} onClose={onClose} isCentered size="2xl" closeOnOverlayClick={false} scrollBehavior="inside" motionPreset="none">
       <ModalOverlay />
@@ -232,6 +267,27 @@ const DocumentLifeCycleModal = ({
             </ModalHeader>
         )}
 
+        {(isDocumentLogsPage && isReleased) && (
+            <ModalHeader bg="red.50" borderBottomWidth="1px" borderColor="gray.200" display="flex" alignItems="center" py={4}>
+                <GrFolderCycle style={{ marginRight: 12, color: '#2563eb' }} />
+                Document Status
+            </ModalHeader>
+        )}
+
+        {isDocumentLogsPage && isArchived && (
+            <ModalHeader bg="yellow.50" borderBottomWidth="1px" borderColor="gray.200" display="flex" alignItems="center" py={4}>
+                <GrFolderCycle style={{ marginRight: 12, color: '#2563eb' }} />
+                Document Status
+            </ModalHeader>
+        )}
+
+        {isStaffsPage && (
+            <ModalHeader bg="purple.50" borderBottomWidth="1px" borderColor="gray.200" display="flex" alignItems="center" py={4}>
+                <GrFolderCycle style={{ marginRight: 12, color: '#2563eb' }} />
+                Document Status
+            </ModalHeader>
+        )}
+
 
 
         <ModalBody py={6}>
@@ -241,6 +297,325 @@ const DocumentLifeCycleModal = ({
             </VStack>
           ) : (
             <VStack spacing={4} align="stretch">
+              {isPendingPage && (
+                <>
+                {/* Action Tabs */}
+                <Tabs colorScheme="yellow" variant="enclosed">
+                  <TabList>
+                    <Tab>Forward</Tab>
+                    <Tab>Release</Tab>
+                    <Tab>Archive</Tab>
+                  </TabList>
+                  <TabPanels>
+                    {/* Forward */}
+                    <TabPanel px={0} pt={4} pb={0}>
+                      <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+                        <FormControl isRequired>
+                          <FormLabel>Forward To</FormLabel>
+                          <Select
+                            placeholder={isLoadingAdminAndStaffAccounts ? 'Loading accounts...' : 'Select a user'}
+                            value={forwardData.forwardAccountId}
+                            onChange={(e) => setForwardData(d => ({ ...d, forwardAccountId: e.target.value }))}
+                            isDisabled={isLoadingAdminAndStaffAccounts}
+                          >
+                            {!isLoadingAdminAndStaffAccounts && adminAndStaffAccounts?.map(acc => (
+                              <option key={acc._id} value={acc._id}>
+                                {`${acc.first_name} ${acc.last_name} (${acc.office_position || (acc.role ? acc.role[0].toUpperCase()+acc.role.slice(1) : '-')})`}
+                              </option>
+                            ))}
+                          </Select>
+                        </FormControl>
+                        <FormControl isRequired>
+                          <FormLabel>Forward Remarks</FormLabel>
+                          <Input
+                            placeholder='Instructions or remarks'
+                            value={forwardData.forwardRemarks}
+                            onChange={(e) => setForwardData(d => ({ ...d, forwardRemarks: e.target.value }))}
+                          />
+                        </FormControl>
+                      </SimpleGrid>
+                      <Flex justify="flex-end" mt={4}>
+                        <Button
+                          colorScheme="yellow"
+                          onClick={handleForward}
+                          isLoading={isForwardingDocument}
+                          isDisabled={!forwardData.forwardAccountId || !forwardData.forwardRemarks}
+                        >
+                          Forward Document
+                        </Button>
+                      </Flex>
+                    </TabPanel>
+
+                    {/* Release */}
+                    <TabPanel px={0} pt={4} pb={0}>
+                      <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+                        <FormControl isRequired>
+                          <FormLabel>Recipient Office</FormLabel>
+                          <Input
+                            placeholder='Office name'
+                            value={releaseData.recipientOffice}
+                            onChange={(e) => setReleaseData(d => ({ ...d, recipientOffice: e.target.value }))}
+                          />
+                        </FormControl>
+                        <FormControl isRequired>
+                          <FormLabel>Recipient Person</FormLabel>
+                          <Input
+                            placeholder='Full name'
+                            value={releaseData.recipientPerson}
+                            onChange={(e) => setReleaseData(d => ({ ...d, recipientPerson: e.target.value }))}
+                          />
+                        </FormControl>
+                        <FormControl isRequired>
+                          <FormLabel>Mode of Release</FormLabel>
+                          <Input
+                            placeholder='e.g. Personal, Courier, Email'
+                            value={releaseData.modeOfRelease}
+                            onChange={(e) => setReleaseData(d => ({ ...d, modeOfRelease: e.target.value }))}
+                          />
+                        </FormControl>
+                        <FormControl>
+                          <FormLabel>Release Remarks</FormLabel>
+                          <Input
+                            placeholder='Optional remarks'
+                            value={releaseData.releaseRemarks}
+                            onChange={(e) => setReleaseData(d => ({ ...d, releaseRemarks: e.target.value }))}
+                          />
+                        </FormControl>
+                      </SimpleGrid>
+                      <Flex justify="flex-end" mt={4}>
+                        <Button
+                          colorScheme="red"
+                          onClick={handleRelease}
+                          isLoading={isReleasingDocument}
+                          isDisabled={!releaseData.recipientOffice || !releaseData.recipientPerson || !releaseData.modeOfRelease}
+                        >
+                          Mark as Released
+                        </Button>
+                      </Flex>
+                    </TabPanel>
+
+                    {/* Archive */}
+                    <TabPanel px={0} pt={4} pb={0}>
+                      <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+                        <FormControl isRequired>
+                          <FormLabel>Medium</FormLabel>
+                          <Input
+                            placeholder='e.g. Paper, Digital'
+                            value={archiveData.medium}
+                            onChange={(e) => setArchiveData(d => ({ ...d, medium: e.target.value }))}
+                          />
+                        </FormControl>
+                        <FormControl isRequired>
+                          <FormLabel>Location</FormLabel>
+                          <Input
+                            placeholder='Storage location'
+                            value={archiveData.location}
+                            onChange={(e) => setArchiveData(d => ({ ...d, location: e.target.value }))}
+                          />
+                        </FormControl>
+                        <FormControl gridColumn={{ md: 'span 2' }}>
+                          <FormLabel>Archive Remarks</FormLabel>
+                          <Input
+                            placeholder='Optional remarks'
+                            value={archiveData.archiveRemarks}
+                            onChange={(e) => setArchiveData(d => ({ ...d, archiveRemarks: e.target.value }))}
+                          />
+                        </FormControl>
+                      </SimpleGrid>
+                      <Flex justify="flex-end" mt={4}>
+                        <Button
+                          colorScheme="orange"
+                          onClick={handleArchive}
+                          isLoading={isArchivingDocument}
+                          isDisabled={!archiveData.medium || !archiveData.location}
+                        >
+                          Archive Document
+                        </Button>
+                      </Flex>
+                    </TabPanel>
+                  </TabPanels>
+                </Tabs>
+
+                <Divider my={2} />
+                </>
+              )}
+
+              {isDocumentLogsPage && (isReleased || isArchived) && (
+                <>
+                {isArchived && (
+                  <Tabs colorScheme='orange' variant='enclosed'>
+                    <TabList>
+                      <Tab>Unarchive Document</Tab>
+                    </TabList>
+                    <TabPanels>
+                      <TabPanel px={0} pt={4} pb={0}>
+                        <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+                          <FormControl>
+                            <FormLabel>Forward to myself</FormLabel>
+                            <Switch
+                              isChecked={unarchiveData.forwardToSelf}
+                              onChange={(e) =>
+                                setUnarchiveData(d => ({ ...d, forwardToSelf: e.target.checked, forwardAccountId: '' }))
+                              }
+                            />
+                          </FormControl>
+                          <FormControl isDisabled={unarchiveData.forwardToSelf} isRequired={!unarchiveData.forwardToSelf}>
+                            <FormLabel>Forward To</FormLabel>
+                            <Select
+                              placeholder={isLoadingAdminAndStaffAccounts ? 'Loading accounts...' : 'Select a user'}
+                              value={unarchiveData.forwardAccountId}
+                              onChange={(e) => setUnarchiveData(d => ({ ...d, forwardAccountId: e.target.value }))}
+                              isDisabled={isLoadingAdminAndStaffAccounts || unarchiveData.forwardToSelf}
+                            >
+                              {!isLoadingAdminAndStaffAccounts && adminAndStaffAccounts?.map(acc => (
+                                <option key={acc._id} value={acc._id}>
+                                  {`${acc.first_name} ${acc.last_name} (${acc.office_position || (acc.role ? acc.role[0].toUpperCase()+acc.role.slice(1) : '-')})`}
+                                </option>
+                              ))}
+                            </Select>
+                          </FormControl>
+                          <FormControl gridColumn={{ md: 'span 2' }}>
+                            <FormLabel>Remarks</FormLabel>
+                            <Input
+                              placeholder='Reason or context for unarchiving'
+                              value={unarchiveData.unarchiveRemarks}
+                              onChange={(e) => setUnarchiveData(d => ({ ...d, unarchiveRemarks: e.target.value }))}
+                            />
+                          </FormControl>
+                        </SimpleGrid>
+                        <Flex justify="flex-end" mt={4}>
+                          <Button
+                            colorScheme="orange"
+                            onClick={handleUnarchive}
+                            isLoading={isUnarchivingDocument}
+                            isDisabled={!unarchiveData.forwardToSelf && !unarchiveData.forwardAccountId}
+                          >
+                            Unarchive and Forward
+                          </Button>
+                        </Flex>
+                      </TabPanel>
+                    </TabPanels>
+                  </Tabs>
+                )}
+                {isReleased && (
+                  <Tabs colorScheme='red' variant='enclosed'>
+                    <TabList>
+                      <Tab>Unrelease Document</Tab>
+                    </TabList>
+                    <TabPanels>
+                      <TabPanel px={0} pt={4} pb={0}>
+                        <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+                          <FormControl>
+                            <FormLabel>Forward to myself</FormLabel>
+                            <Switch
+                              isChecked={unreleaseData.forwardToSelf}
+                              onChange={(e) =>
+                                setUnreleaseData(d => ({ ...d, forwardToSelf: e.target.checked, forwardAccountId: '' }))
+                              }
+                            />
+                          </FormControl>
+                          <FormControl isDisabled={unreleaseData.forwardToSelf} isRequired={!unreleaseData.forwardToSelf}>
+                            <FormLabel>Forward To</FormLabel>
+                            <Select
+                              placeholder={isLoadingAdminAndStaffAccounts ? 'Loading accounts...' : 'Select a user'}
+                              value={unreleaseData.forwardAccountId}
+                              onChange={(e) => setUnreleaseData(d => ({ ...d, forwardAccountId: e.target.value }))}
+                              isDisabled={isLoadingAdminAndStaffAccounts || unreleaseData.forwardToSelf}
+                            >
+                              {!isLoadingAdminAndStaffAccounts && adminAndStaffAccounts?.map(acc => (
+                                <option key={acc._id} value={acc._id}>
+                                  {`${acc.first_name} ${acc.last_name} (${acc.office_position || (acc.role ? acc.role[0].toUpperCase()+acc.role.slice(1) : '-')})`}
+                                </option>
+                              ))}
+                            </Select>
+                          </FormControl>
+                          <FormControl gridColumn={{ md: 'span 2' }}>
+                            <FormLabel>Remarks</FormLabel>
+                            <Input
+                              placeholder='Reason or context for unreleasing'
+                              value={unreleaseData.unreleaseRemarks}
+                              onChange={(e) => setUnreleaseData(d => ({ ...d, unreleaseRemarks: e.target.value }))}
+                            />
+                          </FormControl>
+                        </SimpleGrid>
+                        <Flex justify="flex-end" mt={4}>
+                          <Button
+                            colorScheme="red"
+                            onClick={handleUnrelease}
+                            isLoading={isUnreleasingDocument}
+                            isDisabled={!unreleaseData.forwardToSelf && !unreleaseData.forwardAccountId}
+                          >
+                            Unrelease and Forward
+                          </Button>
+                        </Flex>
+                      </TabPanel>
+                    </TabPanels>
+                  </Tabs>
+                )}
+                <Divider my={2} />
+                </>
+              )}
+
+              {/* Staffs Page: Reroute Tab */}
+              {isStaffsPage && (
+                <>
+                <Tabs colorScheme="purple" variant="enclosed">
+                  <TabList>
+                    <Tab>Reroute</Tab>
+                  </TabList>
+                  <TabPanels>
+                    <TabPanel px={0} pt={4} pb={0}>
+                      <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+                        <FormControl>
+                          <FormLabel>Reroute to myself</FormLabel>
+                          <Switch
+                            isChecked={rerouteData.rerouteToSelf}
+                            onChange={(e) =>
+                              setRerouteData(d => ({ ...d, rerouteToSelf: e.target.checked, rerouteAccountId: '' }))
+                            }
+                          />
+                        </FormControl>
+                        <FormControl isDisabled={rerouteData.rerouteToSelf} isRequired={!rerouteData.rerouteToSelf}>
+                          <FormLabel>Reroute To</FormLabel>
+                          <Select
+                            placeholder={isLoadingAdminAndStaffAccounts ? 'Loading accounts...' : 'Select a user'}
+                            value={rerouteData.rerouteAccountId}
+                            onChange={(e) => setRerouteData(d => ({ ...d, rerouteAccountId: e.target.value }))}
+                            isDisabled={isLoadingAdminAndStaffAccounts || rerouteData.rerouteToSelf}
+                          >
+                            {!isLoadingAdminAndStaffAccounts && adminAndStaffAccounts?.map(acc => (
+                              <option key={acc._id} value={acc._id}>
+                                {`${acc.first_name} ${acc.last_name} (${acc.office_position || (acc.role ? acc.role[0].toUpperCase()+acc.role.slice(1) : '-')})`}
+                              </option>
+                            ))}
+                          </Select>
+                        </FormControl>
+                        <FormControl gridColumn={{ md: 'span 2' }}>
+                          <FormLabel>Reroute Remarks</FormLabel>
+                          <Input
+                            placeholder="Reason or context for rerouting"
+                            value={rerouteData.rerouteRemarks}
+                            onChange={(e) => setRerouteData(d => ({ ...d, rerouteRemarks: e.target.value }))}
+                          />
+                        </FormControl>
+                      </SimpleGrid>
+                      <Flex justify="flex-end" mt={4}>
+                        <Button
+                          colorScheme="purple"
+                          onClick={handleReroute}
+                          isLoading={isReroutingDocument}
+                          isDisabled={!rerouteData.rerouteToSelf && !rerouteData.rerouteAccountId}
+                        >
+                          Reroute Document
+                        </Button>
+                      </Flex>
+                    </TabPanel>
+                  </TabPanels>
+                </Tabs>
+                <Divider my={2} />
+                </>
+              )}
+
               {/* Document Info */}
               <Box bg="gray.50" p={4} borderRadius="md">
                 <SimpleGrid columns={{ base: 1, md: 2 }} spacing={3}>
@@ -273,7 +648,6 @@ const DocumentLifeCycleModal = ({
 
               {/* Timeline */}
               <Heading size="sm" mb={2}>Document Lifecycle</Heading>
-
               <Box position="relative">
                 <Box position="absolute" left="24px" top="0" bottom="0" width="2px" bg="gray.200" zIndex={1} />
                 <VStack spacing={0} align="stretch" position="relative" zIndex={2}>
@@ -293,7 +667,7 @@ const DocumentLifeCycleModal = ({
                           <Box
                             minWidth="50px"
                             height="50px"
-                            borderRadius="full"
+                            borderRadius='full'
                             bg={style.color}
                             color="white"
                             display="flex"
@@ -452,267 +826,6 @@ const DocumentLifeCycleModal = ({
                 </Box>
               )}
 
-              {isPendingPage && (
-                <>
-                <Divider my={2} />
-
-                {/* Action Tabs */}
-                <Tabs colorScheme="yellow" variant="enclosed">
-                  <TabList>
-                    <Tab>Forward</Tab>
-                    <Tab>Release</Tab>
-                    <Tab>Archive</Tab>
-                  </TabList>
-                  <TabPanels>
-                    {/* Forward */}
-                    <TabPanel px={0} pt={4} pb={0}>
-                      <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-                        <FormControl isRequired>
-                          <FormLabel>Forward To</FormLabel>
-                          <Select
-                            placeholder={isLoadingAdminAndStaffAccounts ? 'Loading accounts...' : 'Select a user'}
-                            value={forwardData.forwardAccountId}
-                            onChange={(e) => setForwardData(d => ({ ...d, forwardAccountId: e.target.value }))}
-                            isDisabled={isLoadingAdminAndStaffAccounts}
-                          >
-                            {!isLoadingAdminAndStaffAccounts && adminAndStaffAccounts?.map(acc => (
-                              <option key={acc._id} value={acc._id}>
-                                {`${acc.first_name} ${acc.last_name} (${acc.office_position || (acc.role ? acc.role[0].toUpperCase()+acc.role.slice(1) : '-')})`}
-                              </option>
-                            ))}
-                          </Select>
-                        </FormControl>
-                        <FormControl isRequired>
-                          <FormLabel>Forward Remarks</FormLabel>
-                          <Input
-                            placeholder='Instructions or remarks'
-                            value={forwardData.forwardRemarks}
-                            onChange={(e) => setForwardData(d => ({ ...d, forwardRemarks: e.target.value }))}
-                          />
-                        </FormControl>
-                      </SimpleGrid>
-                      <Flex justify="flex-end" mt={4}>
-                        <Button
-                          colorScheme="yellow"
-                          onClick={handleForward}
-                          isLoading={isForwardingDocument}
-                          isDisabled={!forwardData.forwardAccountId || !forwardData.forwardRemarks}
-                        >
-                          Forward Document
-                        </Button>
-                      </Flex>
-                    </TabPanel>
-
-                    {/* Release */}
-                    <TabPanel px={0} pt={4} pb={0}>
-                      <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-                        <FormControl isRequired>
-                          <FormLabel>Recipient Office</FormLabel>
-                          <Input
-                            placeholder='Office name'
-                            value={releaseData.recipientOffice}
-                            onChange={(e) => setReleaseData(d => ({ ...d, recipientOffice: e.target.value }))}
-                          />
-                        </FormControl>
-                        <FormControl isRequired>
-                          <FormLabel>Recipient Person</FormLabel>
-                          <Input
-                            placeholder='Full name'
-                            value={releaseData.recipientPerson}
-                            onChange={(e) => setReleaseData(d => ({ ...d, recipientPerson: e.target.value }))}
-                          />
-                        </FormControl>
-                        <FormControl isRequired>
-                          <FormLabel>Mode of Release</FormLabel>
-                          <Input
-                            placeholder='e.g. Personal, Courier, Email'
-                            value={releaseData.modeOfRelease}
-                            onChange={(e) => setReleaseData(d => ({ ...d, modeOfRelease: e.target.value }))}
-                          />
-                        </FormControl>
-                        <FormControl>
-                          <FormLabel>Release Remarks</FormLabel>
-                          <Input
-                            placeholder='Optional remarks'
-                            value={releaseData.releaseRemarks}
-                            onChange={(e) => setReleaseData(d => ({ ...d, releaseRemarks: e.target.value }))}
-                          />
-                        </FormControl>
-                      </SimpleGrid>
-                      <Flex justify="flex-end" mt={4}>
-                        <Button
-                          colorScheme="red"
-                          onClick={handleRelease}
-                          isLoading={isReleasingDocument}
-                          isDisabled={!releaseData.recipientOffice || !releaseData.recipientPerson || !releaseData.modeOfRelease}
-                        >
-                          Mark as Released
-                        </Button>
-                      </Flex>
-                    </TabPanel>
-
-                    {/* Archive */}
-                    <TabPanel px={0} pt={4} pb={0}>
-                      <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-                        <FormControl isRequired>
-                          <FormLabel>Medium</FormLabel>
-                          <Input
-                            placeholder='e.g. Paper, Digital'
-                            value={archiveData.medium}
-                            onChange={(e) => setArchiveData(d => ({ ...d, medium: e.target.value }))}
-                          />
-                        </FormControl>
-                        <FormControl isRequired>
-                          <FormLabel>Location</FormLabel>
-                          <Input
-                            placeholder='Storage location'
-                            value={archiveData.location}
-                            onChange={(e) => setArchiveData(d => ({ ...d, location: e.target.value }))}
-                          />
-                        </FormControl>
-                        <FormControl gridColumn={{ md: 'span 2' }}>
-                          <FormLabel>Archive Remarks</FormLabel>
-                          <Input
-                            placeholder='Optional remarks'
-                            value={archiveData.archiveRemarks}
-                            onChange={(e) => setArchiveData(d => ({ ...d, archiveRemarks: e.target.value }))}
-                          />
-                        </FormControl>
-                      </SimpleGrid>
-                      <Flex justify="flex-end" mt={4}>
-                        <Button
-                          colorScheme="orange"
-                          onClick={handleArchive}
-                          isLoading={isArchivingDocument}
-                          isDisabled={!archiveData.medium || !archiveData.location}
-                        >
-                          Archive Document
-                        </Button>
-                      </Flex>
-                    </TabPanel>
-                  </TabPanels>
-                </Tabs>
-                </>
-              )}
-
-              {isDocumentLogsPage && (isReleased || isArchived) && (
-                <>
-                <Divider my={2} />
-
-                {isArchived && (
-                  <Tabs colorScheme='orange' variant='enclosed'>
-                    <TabList>
-                      <Tab>Unarchive Document</Tab>
-                    </TabList>
-                    <TabPanels>
-                      <TabPanel px={0} pt={4} pb={0}>
-                        <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-                          <FormControl>
-                            <FormLabel>Forward to myself</FormLabel>
-                            <Switch
-                              isChecked={unarchiveData.forwardToSelf}
-                              onChange={(e) =>
-                                setUnarchiveData(d => ({ ...d, forwardToSelf: e.target.checked, forwardAccountId: '' }))
-                              }
-                            />
-                          </FormControl>
-                          <FormControl isDisabled={unarchiveData.forwardToSelf} isRequired={!unarchiveData.forwardToSelf}>
-                            <FormLabel>Forward To</FormLabel>
-                            <Select
-                              placeholder={isLoadingAdminAndStaffAccounts ? 'Loading accounts...' : 'Select a user'}
-                              value={unarchiveData.forwardAccountId}
-                              onChange={(e) => setUnarchiveData(d => ({ ...d, forwardAccountId: e.target.value }))}
-                              isDisabled={isLoadingAdminAndStaffAccounts || unarchiveData.forwardToSelf}
-                            >
-                              {!isLoadingAdminAndStaffAccounts && adminAndStaffAccounts?.map(acc => (
-                                <option key={acc._id} value={acc._id}>
-                                  {`${acc.first_name} ${acc.last_name} (${acc.office_position || (acc.role ? acc.role[0].toUpperCase()+acc.role.slice(1) : '-')})`}
-                                </option>
-                              ))}
-                            </Select>
-                          </FormControl>
-                          <FormControl gridColumn={{ md: 'span 2' }}>
-                            <FormLabel>Remarks</FormLabel>
-                            <Input
-                              placeholder='Reason or context for unarchiving'
-                              value={unarchiveData.unarchiveRemarks}
-                              onChange={(e) => setUnarchiveData(d => ({ ...d, unarchiveRemarks: e.target.value }))}
-                            />
-                          </FormControl>
-                        </SimpleGrid>
-                        <Flex justify="flex-end" mt={4}>
-                          <Button
-                            colorScheme="orange"
-                            onClick={handleUnarchive}
-                            isLoading={isUnarchivingDocument}
-                            isDisabled={!unarchiveData.forwardToSelf && !unarchiveData.forwardAccountId}
-                          >
-                            Unarchive and Forward
-                          </Button>
-                        </Flex>
-                      </TabPanel>
-                    </TabPanels>
-                  </Tabs>
-                )}
-                {isReleased && (
-                  <Tabs colorScheme='red' variant='enclosed'>
-                    <TabList>
-                      <Tab>Unrelease Document</Tab>
-                    </TabList>
-                    <TabPanels>
-                      <TabPanel px={0} pt={4} pb={0}>
-                        <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-                          <FormControl>
-                            <FormLabel>Forward to myself</FormLabel>
-                            <Switch
-                              isChecked={unreleaseData.forwardToSelf}
-                              onChange={(e) =>
-                                setUnreleaseData(d => ({ ...d, forwardToSelf: e.target.checked, forwardAccountId: '' }))
-                              }
-                            />
-                          </FormControl>
-                          <FormControl isDisabled={unreleaseData.forwardToSelf} isRequired={!unreleaseData.forwardToSelf}>
-                            <FormLabel>Forward To</FormLabel>
-                            <Select
-                              placeholder={isLoadingAdminAndStaffAccounts ? 'Loading accounts...' : 'Select a user'}
-                              value={unreleaseData.forwardAccountId}
-                              onChange={(e) => setUnreleaseData(d => ({ ...d, forwardAccountId: e.target.value }))}
-                              isDisabled={isLoadingAdminAndStaffAccounts || unreleaseData.forwardToSelf}
-                            >
-                              {!isLoadingAdminAndStaffAccounts && adminAndStaffAccounts?.map(acc => (
-                                <option key={acc._id} value={acc._id}>
-                                  {`${acc.first_name} ${acc.last_name} (${acc.office_position || (acc.role ? acc.role[0].toUpperCase()+acc.role.slice(1) : '-')})`}
-                                </option>
-                              ))}
-                            </Select>
-                          </FormControl>
-                          <FormControl gridColumn={{ md: 'span 2' }}>
-                            <FormLabel>Remarks</FormLabel>
-                            <Input
-                              placeholder='Reason or context for unreleasing'
-                              value={unreleaseData.unreleaseRemarks}
-                              onChange={(e) => setUnreleaseData(d => ({ ...d, unreleaseRemarks: e.target.value }))}
-                            />
-                          </FormControl>
-                        </SimpleGrid>
-                        <Flex justify="flex-end" mt={4}>
-                          <Button
-                            colorScheme="red"
-                            onClick={handleUnrelease}
-                            isLoading={isUnreleasingDocument}
-                            isDisabled={!unreleaseData.forwardToSelf && !unreleaseData.forwardAccountId}
-                          >
-                            Unrelease and Forward
-                          </Button>
-                        </Flex>
-                      </TabPanel>
-                    </TabPanels>
-                  </Tabs>
-                )}
-                
-                </>
-              )}
-             
 
             </VStack>
           )}
@@ -721,7 +834,15 @@ const DocumentLifeCycleModal = ({
         <ModalFooter bg="gray.50" borderTopWidth="1px" borderColor="gray.200" py={4}>
           <Button
             variant="outline"
-            onClick={onClose}
+            onClick={() => {
+              onClose();
+              setForwardData({ forwardAccountId: '', forwardRemarks: '' });
+              setReleaseData({ recipientOffice: '', recipientPerson: '', modeOfRelease: '', releaseRemarks: '' });
+              setArchiveData({ medium: '', location: '', archiveRemarks: '' });
+              setUnarchiveData({ forwardToSelf: true, forwardAccountId: '', unarchiveRemarks: '' });
+              setUnreleaseData({ forwardToSelf: true, forwardAccountId: '', unreleaseRemarks: '' });
+              setRerouteData({ rerouteToSelf: true, rerouteAccountId: '', rerouteRemarks: '' });
+            }}
             size="md"
             _hover={{ bg: "gray.100" }}
           >
