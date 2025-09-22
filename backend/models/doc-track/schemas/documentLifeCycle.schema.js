@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 export const lifeCycleIterationsSchema = new mongoose.Schema({
     action: { 
         type: String,
-        enum: ['Document Created', 'Forwarded', 'Received/Work on Progress', 'Archived', 'Unarchived', 'Unreleased', 'Rerouted'],
+        enum: ['Document Created', 'Forwarded', 'Received/Work on Progress', 'Archived', 'Unarchived', 'Unreleased', 'Rerouted', 'Disposed'],
         required: true
     },
 
@@ -59,6 +59,12 @@ export const lifeCycleIterationsSchema = new mongoose.Schema({
         location: String,
         archiveRemarks: String
     },
+
+    disposalDetails: {
+        disposedDate: Date,
+        disposalRemarks: String
+    },
+
     releaseDetails: {
         recipientOffice: String,
         recipientPerson: String,

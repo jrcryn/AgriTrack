@@ -349,7 +349,7 @@ export const forwardDocument = async (req, res) => {
                             userModel: userForwardModel,
                             userId: forwardAccount._id,
                             first_name: forwardAccount.first_name,
-                            last_name: forwardAccount.last_name,
+                            last_name: forwardAccount.lastName,
                             middle_name: forwardAccount.middle_name,
                             suffix: forwardAccount.suffix,
                             role: forwardAccount.role,
@@ -364,7 +364,7 @@ export const forwardDocument = async (req, res) => {
                 },
                 $set: { currentHandler: { 
                     first_name: forwardAccount.first_name,
-                    last_name: forwardAccount.last_name,
+                    last_name: forwardAccount.lastName,
                     middle_name: forwardAccount.middle_name,
                     suffix: forwardAccount.suffix,
                     role: forwardAccount.role,
@@ -405,10 +405,10 @@ export const registerAndForwardDocument = async (req, res) => {
         const readableDate = new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
         const qrData = JSON.stringify({
         refNumber: newRefNumber,
-        name: isManuallyTyped ? documentNameText : document.documentName,
-        code: isManuallyTyped ? 'N/A' : document.documentCode,
+        name: isManuallyTyped ? documentNameText : registerDocument.documentName,
+        code: isManuallyTyped ? 'N/A' : registerDocument.documentCode,
         originatingOffice: isManuallyTyped ? originatingOffice : 'N/A',
-        registeredBy: `${user.first_name}, ${user.last_name}`,
+        registeredBy: `${registerAccount.first_name}, ${registerAccount.last_name}`,
         createdAt: readableDate
         });
 
@@ -492,7 +492,7 @@ export const registerAndForwardDocument = async (req, res) => {
                 },
                 $set: { currentHandler: { 
                     first_name: forwardAccount.first_name,
-                    last_name: forwardAccount.last_name,
+                    last_name: forwardAccount.lastName,
                     middle_name: forwardAccount.middle_name,
                     suffix: forwardAccount.suffix,
                     role: forwardAccount.role,
@@ -1102,7 +1102,7 @@ export const getArchivedDocuments = async (req, res) => {
     }
 };
 
-export const getReleasedDocuments = async (req, res) => {
+export const getReleasedDocuments = async (req, res) => { //get outgoing documents
     const { searchQuery } = req.query;
     try {
         const page = parseInt(req.query.page) || 1;
@@ -1291,7 +1291,7 @@ export const unarchiveDocument = async (req, res) => {
                     },
                     $set: { currentHandler: { 
                             first_name: forwardAccount.first_name,
-                            last_name: forwardAccount.last_name,
+                            last_name: forwardAccount.lastName,
                             middle_name: forwardAccount.middle_name,
                             suffix: forwardAccount.suffix,
                             role: forwardAccount.role,
@@ -1432,7 +1432,7 @@ export const unreleaseDocument = async (req, res) => {
                     },
                     $set: { currentHandler: { 
                             first_name: forwardAccount.first_name,
-                            last_name: forwardAccount.last_name,
+                            last_name: forwardAccount.lastName,
                             middle_name: forwardAccount.middle_name,
                             suffix: forwardAccount.suffix,
                             role: forwardAccount.role,
@@ -1672,7 +1672,7 @@ export const rerouteDocument = async (req, res) => {
                                 userModel: rerouteAccountModel,
                                 userId: rerouteAccount._id,
                                 first_name: rerouteAccount.first_name,
-                                last_name: rerouteAccount.last_name,
+                                last_name: rerouteAccount.lastName,
                                 middle_name: rerouteAccount.middle_name,
                                 suffix: rerouteAccount.suffix,
                                 role: rerouteAccount.role,
@@ -1686,7 +1686,7 @@ export const rerouteDocument = async (req, res) => {
                     },
                     $set: { currentHandler: { 
                             first_name: rerouteAccount.first_name,
-                            last_name: rerouteAccount.last_name,
+                            last_name: rerouteAccount.lastName,
                             middle_name: rerouteAccount.middle_name,
                             suffix: rerouteAccount.suffix,
                             role: rerouteAccount.role,
@@ -1705,16 +1705,218 @@ export const rerouteDocument = async (req, res) => {
     }
 };
 
-export const getExpiredDocuments = async (req, res) => {
+export const getTotalIncomingDocuments = async (req, res) => { //para sa totallity ng incoming documents (registered documents) sa dashboard (includes lahat ng docs sa docLifeCycle collection)
+    const {searchQuery} = req.query;
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 20;
+        const skip = (page - 1) * limit;
 
+        const pipeline = [
+            { $addFields: { lastAction: { $arrayElemAt: ['$lifeCycle', 0] } } },
+            {
+                $match: { 'lastAction.action': 'Document Created' }
+            }
+        ];
+
+        if (searchQuery && searchQuery.trim() !== '') {
+            const words = searchQuery.trim().split(/\s+/);
+            const searchConditions = words.map((word) => ({
+                $or: [
+                    { documentName: { $regex: word, $options: 'i' } },
+                    { documentCode: { $regex: word, $options: 'i' } },
+                    { refNumber:   { $regex: word, $options: 'i' } },
+                    { documentNameText: { $regex: word, $options: 'i' } },
+                ],
+            }));
+            pipeline.push({ $match: { $and: searchConditions } });
+        }
+
+        pipeline.push({
+            $facet: {
+                paginatedResults: [
+                    { $sort: { 'lastAction.timeStamp': -1 } },
+                    { $skip: skip },
+                    { $limit: limit }
+                ],
+                totalCount: [{ $count: 'count' }]
+            }
+        })
+
+        const result = await global.docTrackModels.DocumentLifeCycle.aggregate(pipeline);
+        const relevantDocs = result[0]?.paginatedResults;
+        const totalCount = result[0].totalCount.length > 0 ? result[0].totalCount[0].count : 0;
+
+        return res.status(200).json({
+            success: true,
+            message: 'Total incoming documents fetched successfully',
+            data: {
+                relevantDocs,
+                totalCount,
+                totalPages: Math.ceil(totalCount / limit),
+                currentPage: page
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching total incoming documents:', error);
+        return res.status(500).json({success: false, message: 'Error fetching all registered documents', error: error.message});
+    }
+};
+
+export const getExpiredDocuments = async (req, res) => {
+    const { searchQuery } = req.query;
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+
+        // End of today to include "equivalent to today"
+        const endOfToday = new Date();
+        endOfToday.setHours(23, 59, 59, 999);
+
+        const pipeline = [
+            // Use the last lifecycle entry (should be Archived)
+            { $addFields: { lastAction: { $arrayElemAt: ['$lifeCycle', -1] } } },
+            {
+                $match: {
+                    'lastAction.action': 'Archived',
+                    'lastAction.archivalDetails.retentionUntil': { $ne: null, $lte: endOfToday }
+                }
+            }
+        ];
+
+        // Optional search filter across common fields
+        if (searchQuery && searchQuery.trim() !== '') {
+            const words = searchQuery.trim().split(/\s+/);
+            const searchConditions = words.map((word) => ({
+                $or: [
+                    { refNumber: { $regex: word, $options: 'i' } },
+                    { documentName: { $regex: word, $options: 'i' } },
+                    { 'lastAction.performedBy.first_name': { $regex: word, $options: 'i' } },
+                    { 'lastAction.performedBy.last_name': { $regex: word, $options: 'i' } },
+                    {
+                        $expr: {
+                            $regexMatch: {
+                                input: { $concat: ['$lastAction.performedBy.first_name', ' ', '$lastAction.performedBy.last_name'] },
+                                regex: word,
+                                options: 'i'
+                            }
+                        }
+                    }
+                ]
+            }));
+            pipeline.push({ $match: { $and: searchConditions } });
+        }
+
+        pipeline.push({
+            $facet: {
+                paginatedResults: [
+                    { $sort: { 'lastAction.archivalDetails.retentionUntil': 1, _id: -1 } },
+                    { $skip: skip },
+                    { $limit: limit }
+                ],
+                totalCount: [{ $count: 'count' }]
+            }
+        });
+
+        const result = await global.docTrackModels.ArchivedDocuments.aggregate(pipeline);
+        const relevantDocs = result[0]?.paginatedResults || [];
+        const totalCount = result[0]?.totalCount?.[0]?.count || 0;
+
+        return res.status(200).json({
+            success: true,
+            message: 'Successfully fetched expired archived documents.',
+            data: {
+                relevantDocs,
+                totalCount,
+                totalPages: Math.ceil(totalCount / limit),
+                currentPage: page
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching expired archived documents:', error);
+        return res.status(500).json({ success: false, message: 'Error fetching expired archived documents', error: error.message });
+    }
 };
 
 export const disposeDocuments = async (req, res) => {
+    const { archivedDocId, userAccountId, disposalRemarks } = req.body;
 
+    try {
+        // 1) Validate archived document exists
+        const archivedDocument = await global.docTrackModels.ArchivedDocuments.findById(archivedDocId);
+        if (!archivedDocument) {
+            return res.status(404).json({ success: false, message: 'Archived document not found.' });
+        }
+
+        // 2) Validate user exists
+        const user = await global.docTrackModels.ManagerAccount.findById(userAccountId) ||
+                     await global.docTrackModels.StaffAccount.findById(userAccountId);
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'Cannot find your account, please contact IT if error persists.' });
+        }
+        const userModel = user instanceof global.docTrackModels.ManagerAccount ? 'Manager_Account' : 'Staff_Account';
+
+        // 3) Append "Disposed" lifecycle entry on the archived document
+        const updatedArchived = await global.docTrackModels.ArchivedDocuments.findOneAndUpdate(
+            { _id: archivedDocument._id },
+            {
+                $push: {
+                    lifeCycle: {
+                        action: 'Disposed',
+                        performedBy: {
+                            userModel: userModel,
+                            userId: user._id,
+                            first_name: user.first_name,
+                            last_name: user.last_name,
+                            middle_name: user.middle_name,
+                            suffix: user.suffix,
+                            role: user.role,
+                            office_position: user.office_position,
+                            email: user.email,
+                            phone: user.phone
+                        },
+                        disposalDetails: {
+                            disposedDate: new Date(),
+                            disposalRemarks: disposalRemarks
+                        },
+                        timeStamp: Date.now()
+                    }
+                }
+            }
+        );
+
+        // 4) Insert into disposed collection
+        const disposedColl = global.docTrackModels.DisposedDocuments.db.collection('disposed_documents');
+        await disposedColl.insertOne({ ...updatedArchived.toObject() });
+
+        // 5) Remove from archived collection
+        await global.docTrackModels.ArchivedDocuments.findByIdAndDelete(archivedDocId);
+
+        return res.status(200).json({ success: true, message: 'Document disposed successfully.' });
+    } catch (error) {
+        console.error('Error disposing document:', error);
+        return res.status(500).json({ success: false, message: 'Error disposing document', error: error.message });
+    }
 };
 
+export const deleteRegisteredDocument = async (req, res) => {
+    const { registeredDocId } = req.body;
 
+    try {
+        const registeredDocument = await global.docTrackModels.RegisteredDocuments.findById(registeredDocId);
+        if (!registeredDocument) {
+            return res.status(404).json({ success: false, message: 'Registered document not found.' });
+        }
 
+        await global.docTrackModels.RegisteredDocuments.findByIdAndDelete(registeredDocId);
+
+        return res.status(200).json({ success: true, message: 'Document deleted successfully.' });
+    } catch (error) {
+        console.error('Error deleting document:', error);
+        return res.status(500).json({ success: false, message: 'Error deleting document', error: error.message });
+    }
+};
 
 
 
