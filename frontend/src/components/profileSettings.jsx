@@ -321,7 +321,7 @@ const ProfileSettings = () => {
 
       </VStack>
 
-        <Divider orientation={stackDirection === 'row' ? 'vertical' : 'horizontal'} h="auto" />
+        <Divider orientation={stackDirection === 'row' ? 'vertical' : 'horizontal'} h="auto" mb={-3}/>
         
         <VStack align="stretch" flex={1} spacing={4} w="100%">
           <Heading size="md">Switch Subsystem</Heading>
