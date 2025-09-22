@@ -33,7 +33,6 @@ import DocumentLifeCycleModal from '../../components/docLifeCyclePanel.jsx';
 
 const F_DocumentLogs = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [logType, setLogType] = useState('archived'); // archived | released
   const [archivedPage, setArchivedPage] = useState(1);
   const [releasedPage, setReleasedPage] = useState(1);
   const [isReleased, setIsReleased] = useState(false);
@@ -46,25 +45,21 @@ const F_DocumentLogs = () => {
     isLoadingArchivedDocuments,
     isLoadingReleasedDocuments,
   } = useAdminDashboard(
-    { archivedPage, releasedPage },
+    { archivedPage },
     { searchQuery }
   );
 
   useEffect(() => {
     setArchivedPage(1);
-    setReleasedPage(1);
-  }, [searchQuery, logType]);
+  }, [searchQuery]);
 
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [selectedDoc, setSelectedDoc] = useState(null);
 
-  const currentData = logType === 'archived' ? archivedDocuments?.data : releasedDocuments?.data;
-  const isLoading = logType === 'archived' ? isLoadingArchivedDocuments : isLoadingReleasedDocuments;
-
-  const documents = currentData?.relevantDocs || [];
-  const totalPages = currentData?.totalPages || 1;
-  const currentPage = currentData?.currentPage || 1;
-  const totalItems = currentData?.totalCount || 0;
+  const documents = archivedDocuments?.data?.relevantDocs || [];
+  const totalPages = archivedDocuments?.data?.totalPages || 1;
+  const currentPage = archivedDocuments?.data?.currentPage || 1;
+  const totalItems = archivedDocuments?.data?.totalCount || 0;
 
   const handleOpenDetails = (doc) => {
     setSelectedDoc(doc);
@@ -107,16 +102,13 @@ const F_DocumentLogs = () => {
     </Flex>
   );
 
-  const color = logType === 'archived' ? { scheme: 'orange', bg: 'orange.50', accent: 'orange.500', title: 'ARCHIVED' }
-                                       : { scheme: 'red', bg: 'red.50', accent: 'red.500', title: 'RELEASED' };
-
   return (
     <Box overflow="hidden" bg="white" p={5} minH="100vh">
       <Heading as="h1" size="xl" mb={2}>
         Document Logs
       </Heading>
       <Text color="gray.600" mb={5}>
-        View and managae archived, released and expired documents.
+        View and manage archived and expired documents.
       </Text>
 
       {/* Filter Section */}
@@ -143,7 +135,7 @@ const F_DocumentLogs = () => {
           </FormControl>
 
           {/* Type Select */}
-          <FormControl maxW={{ md: '260px' }}>
+          {/* <FormControl maxW={{ md: '260px' }}>
             <FormLabel fontSize="sm" fontWeight="medium">Document Type</FormLabel>
             <Select
               bg="white"
@@ -153,21 +145,21 @@ const F_DocumentLogs = () => {
               <option value="archived">Archived Documents</option>
               <option value="released">Released Documents</option>
             </Select>
-          </FormControl>
+          </FormControl> */}
         </Flex>
       </Flex>
 
       {/* Documents Section */}
       <Box mb={8}>
-        <Flex justify="space-between" align="center" mb={4} bg={color.bg} p={3} borderRadius="md" borderLeftWidth="4px" borderLeftColor={color.accent}>
+        <Flex justify="space-between" align="center" mb={4} bg={'orange.50'} p={3} borderRadius="md" borderLeftWidth="4px" borderLeftColor={'orange.500'}>
           <Heading as="h2" size="md" display="flex" alignItems="center">
-            <Icon as={LuLogs} mr={2} color={color.accent} /> {color.title} DOCUMENTS
+            <Icon as={LuLogs} mr={2} color={'orange.500'} /> ARCHIVED DOCUMENTS
           </Heading>
         </Flex>
 
-        {isLoading ? (
+        {isLoadingArchivedDocuments ? (
           <Center p={10}>
-            <Spinner size="lg" color={color.accent} />
+            <Spinner size="lg" color={'orange.500'} />
           </Center>
         ) : documents.length > 0 ? (
           <Box overflowX="auto">
@@ -177,8 +169,8 @@ const F_DocumentLogs = () => {
                   <Tr>
                     <Th>Reference #</Th>
                     <Th>Title</Th>
-                    <Th>{logType === 'archived' ? 'Date Archived' : 'Date Released'}</Th>
-                    <Th>{logType === 'archived' ? 'Archived By' : 'Released By'}</Th>
+                    <Th>Date Archived</Th>
+                    <Th>Archived By</Th>
                     <Th
                       position={{ base: 'static', md: 'sticky' }}
                       right={0}
@@ -212,19 +204,11 @@ const F_DocumentLogs = () => {
                         >
                           <Button
                             size="sm"
-                            colorScheme={color.scheme}
+                            colorScheme='orange'
                             onClick={() => handleOpenDetails(doc)}
                             leftIcon={<FaEye />}
                             onClickCapture={() => {
-                              if (logType === 'archived') {
                                 setIsArchived(true);
-                                setIsReleased(false);
-                                setIsDocumentLogsPage(true);
-                              } else {
-                                setIsReleased(true);
-                                setIsArchived(false);
-                                setIsDocumentLogsPage(true);
-                              }
                             }}
                           >
                             Details
@@ -249,7 +233,7 @@ const F_DocumentLogs = () => {
           >
             <Icon as={FiInbox} boxSize={10} color="gray.400" />
             <Text color="gray.500" fontWeight="medium">
-              No {logType} documents found
+              No archived documents found
             </Text>
             <Text fontSize="sm" color="gray.400">
               Try adjusting your search.
@@ -260,25 +244,24 @@ const F_DocumentLogs = () => {
         <Flex justifyContent="space-between" alignItems="center" mt={4}>
           <PaginationControls
             currentPage={currentPage}
-            setCurrentPage={logType === 'archived' ? setArchivedPage : setReleasedPage}
+            setCurrentPage={setArchivedPage}
             totalPages={totalPages}
             totalItems={totalItems}
-            colorScheme={color.scheme}
+            colorScheme='orange'
           />
         </Flex>
       </Box>
 
-      {logType === 'archived' && (
+
+        {/* Expired Document Section */}
         <Box>
-          <Flex justify="space-between" align="center" mb={4} bg={color.bg} p={3} borderRadius="md" borderLeftWidth="4px" borderLeftColor={color.accent}>
+          <Flex justify="space-between" align="center" mb={4} bg={'orange.50'} p={3} borderRadius="md" borderLeftWidth="4px" borderLeftColor={'orange.500'}>
             <Heading as="h2" size="md" display="flex" alignItems="center">
-              <Icon as={TbFileShredder} mr={2} color={color.accent} /> EXPIRED DOCUMENTS
+              <Icon as={TbFileShredder} mr={2} color={'orange.500'} /> EXPIRED DOCUMENTS
             </Heading>
           </Flex>
-
-
         </Box>
-      )}
+
       
 
       {/* Details Modal (view-only) */}
@@ -286,12 +269,12 @@ const F_DocumentLogs = () => {
         isOpen={isOpen}
         onClose={onClose}
         document={selectedDoc}
-        isIncomingPage={false}
         isPendingPage={false}
         isOutgoingPage={false}
         isProduceDocumentPage={false}
-        isReleased={isReleased}
+        isReleased={false}
         isArchived={isArchived}
+        isStaffsPage={false}
         isDocumentLogsPage={isDocumentLogsPage}
       />
     </Box>

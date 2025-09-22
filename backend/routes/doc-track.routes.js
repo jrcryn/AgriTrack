@@ -22,7 +22,11 @@ import {
     rerouteDocument,
     unarchiveDocument,
     unreleaseDocument,
-    getUsersDocumentWorkload
+    getUsersDocumentWorkload,
+    getTotalIncomingDocuments,
+    getExpiredDocuments,
+    disposeDocuments,
+    deleteRegisteredDocument,
  } from '../controller/doc-track/adminDashboard.controller.js';
 
 const router = express.Router();
@@ -55,6 +59,13 @@ router.post('/unarchive-document', unarchiveDocument);
 router.post('/unrelease-document', unreleaseDocument);
 
 router.get('/users-workload', getUsersDocumentWorkload);
+
+router.get('/get-total-incoming-documents', getTotalIncomingDocuments);
+router.get('/get-expired-documents', getExpiredDocuments);
+
+router.post('/dispose-documents', disposeDocuments);
+router.delete('/delete-registered-document/:id', deleteRegisteredDocument);
+
 
 export default router;
 

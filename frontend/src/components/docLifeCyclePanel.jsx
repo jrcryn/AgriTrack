@@ -43,7 +43,6 @@ const DocumentLifeCycleModal = ({
   isProduceDocumentPage,
   isReleased,
   isArchived,
-  isDocumentLogsPage,
   isStaffsPage // added
 }) => {
     const data = document;
@@ -260,21 +259,14 @@ const DocumentLifeCycleModal = ({
             </ModalHeader>
         )}
 
-        {isOutgoingPage && (
+        {isOutgoingPage && isReleased && (
             <ModalHeader bg="red.50" borderBottomWidth="1px" borderColor="gray.200" display="flex" alignItems="center" py={4}>
                 <GrFolderCycle style={{ marginRight: 12, color: '#2563eb' }} />
                 Document Status
             </ModalHeader>
         )}
 
-        {(isDocumentLogsPage && isReleased) && (
-            <ModalHeader bg="red.50" borderBottomWidth="1px" borderColor="gray.200" display="flex" alignItems="center" py={4}>
-                <GrFolderCycle style={{ marginRight: 12, color: '#2563eb' }} />
-                Document Status
-            </ModalHeader>
-        )}
-
-        {isDocumentLogsPage && isArchived && (
+        {isArchived && (
             <ModalHeader bg="yellow.50" borderBottomWidth="1px" borderColor="gray.200" display="flex" alignItems="center" py={4}>
                 <GrFolderCycle style={{ marginRight: 12, color: '#2563eb' }} />
                 Document Status
@@ -440,8 +432,7 @@ const DocumentLifeCycleModal = ({
                 </>
               )}
 
-              {isDocumentLogsPage && (isReleased || isArchived) && (
-                <>
+              
                 {isArchived && (
                   <Tabs colorScheme='orange' variant='enclosed'>
                     <TabList>
@@ -497,6 +488,7 @@ const DocumentLifeCycleModal = ({
                     </TabPanels>
                   </Tabs>
                 )}
+
                 {isReleased && (
                   <Tabs colorScheme='red' variant='enclosed'>
                     <TabList>
@@ -553,8 +545,6 @@ const DocumentLifeCycleModal = ({
                   </Tabs>
                 )}
                 <Divider my={2} />
-                </>
-              )}
 
               {/* Staffs Page: Reroute Tab */}
               {isStaffsPage && (
