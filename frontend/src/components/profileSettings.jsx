@@ -21,6 +21,8 @@ import {
 } from '@chakra-ui/react';
 import { FiEye, FiEyeOff } from 'react-icons/fi';
 import { useUserSettingsStore } from './userSettings.store';
+import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../auth/store/authStore.js';
 
 const ProfileSettings = () => {
   const [currentPassword, setCurrentPassword] = useState('');
@@ -44,6 +46,46 @@ const ProfileSettings = () => {
     isFetching2FASecret,
     error,
   } = useUserSettingsStore();
+
+  const { user, availableRoles, switchRole, isLoading } = useAuthStore();
+  const navigate = useNavigate();
+  const roleToHome = {
+    HVCM: '/hvc/metrics',
+    HVCS: '/hvc/metrics',
+    MIS: '/machineries/metrics',
+    DMS: '/doc-track/register-document',
+    DMM: '/doc-track/metrics',
+  };
+  const roleLabel = (r) =>
+    r === 'HVCM' || r === 'HVCS'
+      ? 'High-Value Crops'
+      : r === 'DMS' || r === 'DMM'
+      ? 'Doc-Track'
+      : r === 'MIS'
+      ? 'Machineries'
+      : r;
+  const handleSwitchSubsystem = async (role) => {
+    try {
+      await switchRole(role);
+      toast({
+        title: 'Switched subsystem',
+        description: roleLabel(role),
+        status: 'success',
+        duration: 2500,
+        isClosable: true,
+      });
+      navigate(roleToHome[role] || '/');
+    } catch (err) {
+      toast({
+        title: 'Error',
+        description:
+          err.response?.data?.message || 'Failed to switch subsystem.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
 
   const isStrongPassword = (password) => {
     const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
@@ -131,7 +173,7 @@ const ProfileSettings = () => {
   return (
     <Box p={4} maxW="6xl" mx="auto">
       <Text fontSize="sm" color="gray.500" mb={6}>
-        Manage your password, two-factor authentication and switch subsystems if allowed.
+        Manage your password, two-factor authentication and switch subsystems.
       </Text>
       <Stack direction={stackDirection} spacing={10} align="start">
 
@@ -199,6 +241,9 @@ const ProfileSettings = () => {
 
         <VStack as="form" align="stretch" mt={5} spacing={5} onSubmit={handlePasswordChange} flex={1} w="100%">
           <Heading size="md">Change Password</Heading>
+          <Text fontSize="sm" color="gray.500">
+            Change your account password regularly to enhance security.
+          </Text>
           <FormControl isRequired>
             <FormLabel>Current Password</FormLabel>
             <InputGroup>
@@ -275,10 +320,34 @@ const ProfileSettings = () => {
         </VStack>
 
       </VStack>
+
         <Divider orientation={stackDirection === 'row' ? 'vertical' : 'horizontal'} h="auto" />
         
-        <VStack>
-
+        <VStack align="stretch" flex={1} spacing={4} w="100%">
+          <Heading size="md">Switch Subsystem</Heading>
+          <Text fontSize="sm" color="gray.500">
+            Switch to another subsystem you have access to.
+          </Text>
+          <VStack align="stretch">
+            {(availableRoles || [])
+              .filter(r => r.role !== user?.role)
+              .map(r => (
+                <Button
+                  key={r.role}
+                  onClick={() => handleSwitchSubsystem(r.role)}
+                  isLoading={isLoading}
+                  variant="outline"
+                  colorScheme="blue"
+                  justifyContent="flex-start"
+                >
+                  {roleLabel(r.role)}
+                </Button>
+              ))
+            }
+            {(!availableRoles || availableRoles.filter(r => r.role !== user?.role).length === 0) && (
+              <Text fontSize="sm" color="gray.500">No other subsystems available.</Text>
+            )}
+          </VStack>
         </VStack>
         
       </Stack>

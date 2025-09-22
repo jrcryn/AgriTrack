@@ -45,6 +45,8 @@ import {
   FiBox
 } from 'react-icons/fi'
 import { FaWpforms, FaUser, FaPowerOff, FaDoorOpen, FaBug  } from "react-icons/fa";
+import { IoSettingsSharp } from "react-icons/io5";
+
 import { IoDocumentAttachOutline } from "react-icons/io5";
 import Logo from '../images/Calamba_Seal.png'
 import { useAuthStore } from '../auth/store/authStore.js'
@@ -372,7 +374,7 @@ const MobileNav = ({ onOpen, ...rest }) => {
 
             <MenuList bg="white" borderColor="gray.200" boxShadow={'md'}>
               <MenuItem as="button" onClick={onOpen1} _focus={{ bg: 'blue.50' }}>
-                <Icon as={FaUser} mr={1.5} ml={2}/>
+                <Icon as={IoSettingsSharp} mr={1.5} ml={2}/>
                 Settings
               </MenuItem>
 
@@ -399,7 +401,7 @@ const MobileNav = ({ onOpen, ...rest }) => {
             display="flex" 
             alignItems="center"
           >
-          <Icon as={FaUser} mr={2} color={"blue.500"}/>
+          <Icon as={IoSettingsSharp} mr={2} color={"blue.500"}/>
             System Settings
           </ModalHeader>
 

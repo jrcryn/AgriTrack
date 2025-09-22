@@ -163,7 +163,7 @@ export const switchRole = async (req, res) => {
             return res.status(404).json({success:false, message: 'Invalid role.'})
         };
 
-        const targetAccount = await Model.findOne({email});
+        const targetAccount = await model.findOne({ email }); 
         if (!targetAccount) {
             return res.status(404).json({success: false, message: 'No account for the requested role.'})
         };
