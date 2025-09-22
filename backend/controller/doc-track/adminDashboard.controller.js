@@ -1843,13 +1843,11 @@ export const disposeDocuments = async (req, res) => {
     const { archivedDocId, userAccountId, disposalRemarks } = req.body;
 
     try {
-        // 1) Validate archived document exists
         const archivedDocument = await global.docTrackModels.ArchivedDocuments.findById(archivedDocId);
         if (!archivedDocument) {
             return res.status(404).json({ success: false, message: 'Archived document not found.' });
         }
 
-        // 2) Validate user exists
         const user = await global.docTrackModels.ManagerAccount.findById(userAccountId) ||
                      await global.docTrackModels.StaffAccount.findById(userAccountId);
         if (!user) {
@@ -1857,7 +1855,6 @@ export const disposeDocuments = async (req, res) => {
         }
         const userModel = user instanceof global.docTrackModels.ManagerAccount ? 'Manager_Account' : 'Staff_Account';
 
-        // 3) Append "Disposed" lifecycle entry on the archived document
         const updatedArchived = await global.docTrackModels.ArchivedDocuments.findOneAndUpdate(
             { _id: archivedDocument._id },
             {
@@ -1886,11 +1883,9 @@ export const disposeDocuments = async (req, res) => {
             }
         );
 
-        // 4) Insert into disposed collection
         const disposedColl = global.docTrackModels.DisposedDocuments.db.collection('disposed_documents');
         await disposedColl.insertOne({ ...updatedArchived.toObject() });
 
-        // 5) Remove from archived collection
         await global.docTrackModels.ArchivedDocuments.findByIdAndDelete(archivedDocId);
 
         return res.status(200).json({ success: true, message: 'Document disposed successfully.' });
