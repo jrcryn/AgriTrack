@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import {  Link as RouterLink, useLocation } from 'react-router-dom';
+import {  Link as RouterLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   IconButton,
   Avatar,
@@ -18,6 +18,7 @@ import {
   MenuDivider,
   MenuItem,
   MenuList,
+  MenuGroup, // added
   Divider,
   Image,
   Badge,
@@ -74,9 +75,23 @@ const allLinkItems = [
 
 const SidebarContent = ({ onClose, ...rest }) => {
 
-  const { user } = useAuthStore();
+  const { user, switchRole, availableRoles } = useAuthStore();
   const [ dashboardName, setDashboardName ] = useState('');
+  const navigate = useNavigate();
   const LinkItems = allLinkItems.filter(link => link.roles.includes(user?.role));
+
+  const roleToHome = {
+    HVCM: '/hvc/metrics',
+    HVCS: '/hvc/metrics',
+    MIS: '/machineries/metrics',
+    DMS: '/doc-track/register-document',
+    DMM: '/doc-track/metrics',
+  };
+
+  const handleSwitch = async (role) => {
+    await switchRole(role);
+    navigate(roleToHome[role] || '/');
+  };
 
   useEffect(() => {
       const roleMap = {
@@ -252,7 +267,8 @@ const MobileNav = ({ onOpen, ...rest }) => {
     return () => clearInterval(interval)
   }, [])
 
-  const { user, logout } = useAuthStore();
+  const { user, logout, switchRole, availableRoles } = useAuthStore();
+  const navigate = useNavigate();
   const [ roleName, setRoleName ] = useState('');
 
   const middle_name = user?.middle_name 
@@ -266,6 +282,19 @@ const MobileNav = ({ onOpen, ...rest }) => {
 
   const handleLogout = () => {
     logout();
+  };
+
+  const roleToHome = {
+    HVCM: '/hvc/metrics',
+    HVCS: '/hvc/metrics',
+    MIS: '/machineries/metrics',
+    DMS: '/doc-track/register-document',
+    DMM: '/doc-track/metrics',
+  };
+
+  const handleSwitch = async (role) => {
+    await switchRole(role);
+    navigate(roleToHome[role] || '/');
   };
 
   useEffect(() => {
@@ -326,6 +355,7 @@ const MobileNav = ({ onOpen, ...rest }) => {
         <Divider orientation="vertical" height="20px" borderColor="gray.400" />
         <Flex alignItems="center">
           <Menu>
+
             <MenuButton py={2} transition="none" _focus={{ boxShadow: 'none' }}>
               <HStack>
                 <VStack display={{ base: 'none', md: 'flex' }} alignItems="flex-start" spacing="1px">
@@ -339,14 +369,17 @@ const MobileNav = ({ onOpen, ...rest }) => {
                 </Box>
               </HStack>
             </MenuButton>
+
             <MenuList bg="white" borderColor="gray.200" boxShadow={'md'}>
               <MenuItem as="button" onClick={onOpen1} _focus={{ bg: 'blue.50' }}>
-              <Icon as={FaUser} mr={1.5} ml={2}/>
-                Profile Settings
+                <Icon as={FaUser} mr={1.5} ml={2}/>
+                Settings
               </MenuItem>
+
               <MenuDivider mt={'1'} mb={'1'}/>
+
               <MenuItem as="button" onClick={handleLogout} color={"red.500"} _focus={{ bg: 'blue.50' }}>
-              <Icon as={FaDoorOpen} mr={1.5} ml={2}/>
+                <Icon as={FaDoorOpen} mr={1.5} ml={2}/>
                 Log out
               </MenuItem>
             </MenuList>
@@ -367,7 +400,7 @@ const MobileNav = ({ onOpen, ...rest }) => {
             alignItems="center"
           >
           <Icon as={FaUser} mr={2} color={"blue.500"}/>
-            Profile Settings
+            System Settings
           </ModalHeader>
 
           <ModalBody>

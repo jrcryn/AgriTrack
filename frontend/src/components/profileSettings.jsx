@@ -131,14 +131,18 @@ const ProfileSettings = () => {
   return (
     <Box p={4} maxW="6xl" mx="auto">
       <Text fontSize="sm" color="gray.500" mb={6}>
-        Manage your password and two-factor authentication.
+        Manage your password, two-factor authentication and switch subsystems if allowed.
       </Text>
       <Stack direction={stackDirection} spacing={10} align="start">
+
+      <VStack>
+
         <VStack align="stretch" flex={1} spacing={4} w="100%">
           <Heading size="md">Two-Factor Authentication (2FA)</Heading>
           <Text fontSize="sm" color="gray.500">
             View your 2FA QR code and secret for authenticator apps.
           </Text>
+          <form onSubmit={e => { e.preventDefault(); handleShow2FA(); }}>
             <FormControl isRequired>
             <FormLabel>Enter Password to View 2FA</FormLabel>
             <InputGroup>
@@ -157,6 +161,9 @@ const ProfileSettings = () => {
           </InputGroup>
           </FormControl>
           <Button
+            mt={5}
+            mb={5}
+            width="100%"
             colorScheme="teal"
             onClick={handleShow2FA}
             isLoading={isFetching2FASecret}
@@ -164,9 +171,9 @@ const ProfileSettings = () => {
           >
             View 2FA QR Code & Secret
           </Button>
-
+          </form>
           {show2FA && (
-            <Box textAlign="center" mt={2}>
+            <Box textAlign="center" mt={-2} mb={5} p={4} borderWidth="1px" borderRadius="md" borderColor="gray.200">
               {isFetching2FASecret ? (
                 <Spinner size="lg" />
               ) : (
@@ -188,9 +195,9 @@ const ProfileSettings = () => {
           )}
         </VStack>
 
-        <Divider orientation={stackDirection === 'row' ? 'vertical' : 'horizontal'} h="auto" />
+        <Divider />
 
-        <VStack as="form" align="stretch" spacing={5} onSubmit={handlePasswordChange} flex={1} w="100%">
+        <VStack as="form" align="stretch" mt={5} spacing={5} onSubmit={handlePasswordChange} flex={1} w="100%">
           <Heading size="md">Change Password</Heading>
           <FormControl isRequired>
             <FormLabel>Current Password</FormLabel>
@@ -266,6 +273,14 @@ const ProfileSettings = () => {
             Change Password
           </Button>
         </VStack>
+
+      </VStack>
+        <Divider orientation={stackDirection === 'row' ? 'vertical' : 'horizontal'} h="auto" />
+        
+        <VStack>
+
+        </VStack>
+        
       </Stack>
     </Box>
   );

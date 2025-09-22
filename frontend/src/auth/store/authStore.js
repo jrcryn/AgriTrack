@@ -13,6 +13,7 @@ export const useAuthStore = create((set) => ({
     error: null,
     isCheckingAuth: false,
     isCheckingPreAuth: false,
+    availableRoles: [],
 
 
     login: async ({ email, password }) => {
@@ -83,6 +84,19 @@ export const useAuthStore = create((set) => ({
             return response.data;
         } catch (error) {
             set({ error: null, isAuthenticated: false, isCheckingAuth: false });
+            throw error;
+        }
+    },
+
+    switchRole: async (role) => {
+        set({ isLoading: true, error: null });
+        try {
+            await axios.post(`${API_URL}/api/auth/switch-role`, { targetRole: role });
+            // refresh user info
+            await useAuthStore.getState().checkAuth();
+            set({ isLoading: false });
+        } catch (error) {
+            set({ isLoading: false, error: error.response?.data?.message });
             throw error;
         }
     },
