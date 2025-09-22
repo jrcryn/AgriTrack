@@ -473,7 +473,7 @@ const A_Dashboard = () => {
             _active={{ boxShadow: "sm", bg: "blue.100", transform: "translateY(0)" }}
             _focusVisible={{ outline: "none", boxShadow: "0 0 0 3px rgba(66, 153, 225, 0.6)" }}
             textAlign="left"
-            onClick={() => navigate('/doc-track/document-logs')}
+            onClick={() => navigate('/doc-track/archived-documents')}
           >
             <Stat>
               <StatLabel fontSize="md" display="flex" alignItems="center">

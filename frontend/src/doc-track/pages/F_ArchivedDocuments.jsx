@@ -28,22 +28,22 @@ import { LuLogs } from "react-icons/lu";
 import { FaEye } from 'react-icons/fa';
 import { TbFileShredder } from "react-icons/tb";
 
-import { useAdminDashboard } from '../store/adminDashboard.store';
+import { useAdminDashboard } from '../store/adminDashboard.store.js';
 import DocumentLifeCycleModal from '../../components/docLifeCyclePanel.jsx';
 
-const F_DocumentLogs = () => {
+const F_ArchivedDocuments = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [archivedPage, setArchivedPage] = useState(1);
-  const [releasedPage, setReleasedPage] = useState(1);
-  const [isReleased, setIsReleased] = useState(false);
   const [isArchived, setIsArchived] = useState(false);
-  const [isDocumentLogsPage, setIsDocumentLogsPage] = useState(true);
 
   const {
     archivedDocuments,
-    releasedDocuments,
     isLoadingArchivedDocuments,
-    isLoadingReleasedDocuments,
+    archivedDocumentsError,
+
+    expiredDocuments,
+    isLoadingExpiredDocuments,
+    expiredDocumentsError,
   } = useAdminDashboard(
     { archivedPage },
     { searchQuery }
@@ -275,10 +275,9 @@ const F_DocumentLogs = () => {
         isReleased={false}
         isArchived={isArchived}
         isStaffsPage={false}
-        isDocumentLogsPage={isDocumentLogsPage}
       />
     </Box>
   );
 };
 
-export default F_DocumentLogs;
+export default F_ArchivedDocuments;

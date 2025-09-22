@@ -10,7 +10,7 @@ import B_RegisterDocument from '../doc-track/pages/B_RegisterDocument.jsx';
 import C_Incoming from '../doc-track/pages/C_Incoming.jsx';
 import D_Pending from '../doc-track/pages/D_Pending.jsx';
 import E_Outgoing from '../doc-track/pages/E_Outgoing.jsx';
-import F_DocumentLogs from '../doc-track/pages/F_DocumentLogs.jsx';
+import F_ArchivedDocuments from '../doc-track/pages/F_ArchivedDocuments.jsx';
 import G_Staffs from '../doc-track/pages/G_Staffs.jsx';
 
 import { useAuthStore } from '../auth/store/authStore.js';
@@ -71,7 +71,7 @@ const doctrackApp = () => {
           <Route path="incoming" element={<C_Incoming />} />
           <Route path="pending" element={<D_Pending />} />
           <Route path="outgoing" element={<E_Outgoing />} />
-          <Route path="document-logs" element={<F_DocumentLogs />} />
+          <Route path="archived-documents" element={<F_ArchivedDocuments />} />
           <Route path="employees" element={<G_Staffs />} />
         </Route>    
       </Routes>

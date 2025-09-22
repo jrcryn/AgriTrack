@@ -434,6 +434,7 @@ const DocumentLifeCycleModal = ({
 
               
                 {isArchived && (
+                  <>
                   <Tabs colorScheme='orange' variant='enclosed'>
                     <TabList>
                       <Tab>Unarchive Document</Tab>
@@ -487,9 +488,13 @@ const DocumentLifeCycleModal = ({
                       </TabPanel>
                     </TabPanels>
                   </Tabs>
+
+                  <Divider my={2} />
+                  </>
                 )}
 
                 {isReleased && (
+                  <>
                   <Tabs colorScheme='red' variant='enclosed'>
                     <TabList>
                       <Tab>Unrelease Document</Tab>
@@ -543,8 +548,11 @@ const DocumentLifeCycleModal = ({
                       </TabPanel>
                     </TabPanels>
                   </Tabs>
+
+                  <Divider my={2} />
+                  </>
                 )}
-                <Divider my={2} />
+                
 
               {/* Staffs Page: Reroute Tab */}
               {isStaffsPage && (

@@ -5,7 +5,7 @@ import { useAuthStore } from '../../auth/store/authStore';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-export const useDocumentTypesQuery = () => 
+const useDocumentTypesQuery = () => 
     useQuery({
         queryKey: ['documentTypes'],
         queryFn: async () => {
@@ -15,7 +15,7 @@ export const useDocumentTypesQuery = () =>
         },
     });
 
-export const useStaffAndAdminAccountsQuery = (id) => 
+const useStaffAndAdminAccountsQuery = (id) => 
     useQuery({
         queryKey: ['adminStaffAccounts', id],
         queryFn: async () => {
@@ -25,7 +25,7 @@ export const useStaffAndAdminAccountsQuery = (id) =>
         enabled: !!id,
     });
 
-export const useIncomingForwardedDocumentsQuery = (id, page = 1, searchParams = {}) =>
+const useIncomingForwardedDocumentsQuery = (id, page = 1, searchParams = {}) =>
     useQuery({
         queryKey: ['forwardedDocuments', id, page, searchParams],
         queryFn: async () => {
@@ -39,7 +39,7 @@ export const useIncomingForwardedDocumentsQuery = (id, page = 1, searchParams = 
         staleTime: 0,
     });
 
-export const usePendingDocumentsQuery = (id, page = 1, searchParams = {}) =>
+const usePendingDocumentsQuery = (id, page = 1, searchParams = {}) =>
     useQuery({
         queryKey: ['pendingDocuments', id, page, searchParams],
         queryFn: async () => {
@@ -53,7 +53,7 @@ export const usePendingDocumentsQuery = (id, page = 1, searchParams = {}) =>
         staleTime: 0,
     });
 
-export const useOutgoingDocumentsQuery = (id, page = 1, searchParams = {}) =>
+const useOutgoingDocumentsQuery = (id, page = 1, searchParams = {}) =>
     useQuery({
         queryKey: ['outgoingDocuments', id, page, searchParams],
         queryFn: async () => {
@@ -67,7 +67,7 @@ export const useOutgoingDocumentsQuery = (id, page = 1, searchParams = {}) =>
         staleTime: 0,
     });
 
-export const useDocumentHistoryQuery = (id, page = 1) =>
+const useDocumentHistoryQuery = (id, page = 1) =>
     useQuery({
         queryKey: ['documentHistory', id, page],
         queryFn: async () => {
@@ -80,7 +80,7 @@ export const useDocumentHistoryQuery = (id, page = 1) =>
         enabled: !!id,
     });
 
-export const useArchivedDocumentsQuery = (page = 1, searchParams = {}) =>
+const useArchivedDocumentsQuery = (page = 1, searchParams = {}) =>
     useQuery({
         queryKey: ['archivedDocuments', page, searchParams],
         queryFn: async () => {
@@ -92,7 +92,7 @@ export const useArchivedDocumentsQuery = (page = 1, searchParams = {}) =>
         },
     });
 
-export const useReleasedDocumentsQuery = (page = 1, searchParams = {}) =>
+const useReleasedDocumentsQuery = (page = 1, searchParams = {}) =>
     useQuery({
         queryKey: ['releasedDocuments', page, searchParams],
         queryFn: async () => {
@@ -104,7 +104,28 @@ export const useReleasedDocumentsQuery = (page = 1, searchParams = {}) =>
         },
     });
 
-export const useUsersDocumentWorkloadQuery = () =>
+const useExpiredDocumentsQuery = (page = 1, searchParams = {}) =>
+    useQuery({
+        queryKey: ['expiredDocuments', page, searchParams],
+        queryFn: async () => {
+            const response = await axios.get(
+                `${API_URL}/api/doc-track/get-expired-documents`,
+                { params: { page, limit: 10, ...searchParams } }
+            );
+            return response.data;
+        },
+    });
+
+const useTotalIncomingDocumentsQuery = () =>
+    useQuery({
+        queryKey: ['totalIncomingDocuments'],
+        queryFn: async () => {
+            const response = await axios.get(`${API_URL}/api/doc-track/get-total-incoming-documents`);
+            return response.data;
+        },
+    });
+
+const useUsersDocumentWorkloadQuery = () =>
     useQuery({
         queryKey: ['documentWorkload'],
         queryFn: async () => {
@@ -124,6 +145,7 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
         outgoingPage = 1,
         archivedPage = 1,
         releasedPage = 1,
+        expiredPage = 1,
     } = pages;
 
     const { data: documentTypes = [], isLoading: isLoadingDocumentTypes, error: documentTypesError } = useDocumentTypesQuery();
@@ -144,6 +166,10 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
 
     const { data: usersDocumentWorkload = [], isLoading: isLoadingUsersDocumentWorkload, error: usersDocumentWorkloadError } = useUsersDocumentWorkloadQuery();
 
+    const { data: expiredDocuments = [], isLoading: isLoadingExpiredDocuments, error: expiredDocumentsError } = useExpiredDocumentsQuery();
+
+    const { data: totalIncomingDocuments = [], isLoading: isLoadingTotalIncomingDocuments, error: totalIncomingDocumentsError } = useTotalIncomingDocumentsQuery();
+
     const [isCreatingDocument, setIsCreatingDocument] = useState(false);
     const [isUpdatingDocumentType, setIsUpdatingDocumentType] = useState(false);
     const [isRegisteringDocument, setIsRegisteringDocument] = useState(false);
@@ -157,7 +183,7 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
     const [isUnarchivingDocument, setIsUnarchivingDocument] = useState(false);
     const [isUnreleasingDocument, setIsUnreleasingDocument] = useState(false);
     const [isReroutingDocument, setIsReroutingDocument] = useState(false);
-
+    const [isDisposingDocuments, setIsDisposingDocuments] = useState(false);
 
     const createDocument = async (data) => {
         setIsCreatingDocument(true);
@@ -281,6 +307,7 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
             setIsGettingDocumentStatus(false);
         }
     };
+
     const unarchiveDocument = async (data) => {
         setIsUnarchivingDocument(true);
         try {  
@@ -320,6 +347,18 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
         }
     };
 
+    const disposeDocuments = async (data) => {
+        setIsDisposingDocuments(true);
+        try {  
+            const response = await axios.post(`${API_URL}/api/doc-track/dispose-documents`, data)
+            return response.data;
+        } catch (error) {
+            throw error;
+        } finally {
+            setIsDisposingDocuments(false);
+        }
+    };
+
     return {
         // automatic queries
         documentTypes,
@@ -333,6 +372,8 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
         unarchiveDocument,
         unreleaseDocument,
         usersDocumentWorkload,
+        expiredDocuments,
+        totalIncomingDocuments,
 
         // action functions
         createDocument,
@@ -346,6 +387,7 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
         downloadQRCode,
         documentStatus,
         rerouteDocument,
+        disposeDocuments,
 
         //loading states
         isLoadingDocumentTypes,
@@ -357,6 +399,8 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
         isLoadingArchivedDocuments,
         isLoadingReleasedDocuments,
         isLoadingUsersDocumentWorkload,
+        isLoadingExpiredDocuments,
+        isLoadingTotalIncomingDocuments,
 
         // action flags
         isCreatingDocument,
@@ -372,6 +416,7 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
         isUnarchivingDocument,
         isUnreleasingDocument,
         isReroutingDocument,
+        isDisposingDocuments,
 
         //error states
         documentTypesError,
@@ -382,6 +427,8 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
         outgoingDocumentsError,
         archivedDocumentsError,
         releasedDocumentsError,
-        usersDocumentWorkloadError
+        usersDocumentWorkloadError,
+        expiredDocumentsError,
+        totalIncomingDocumentsError,
     };
 }
