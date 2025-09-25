@@ -1671,6 +1671,18 @@ export const getTotalIncomingDocuments = async (req, res) => { //para sa totalli
                     { documentCode: { $regex: word, $options: 'i' } },
                     { refNumber:   { $regex: word, $options: 'i' } },
                     { documentNameText: { $regex: word, $options: 'i' } },
+                    { 'lastAction.performedBy.first_name': { $regex: word, $options: 'i' } },
+                    { 'lastAction.performedBy.last_name': { $regex: word, $options: 'i' } },
+                    // Match "First Last" combined
+                    {
+                        $expr: {
+                            $regexMatch: {
+                                input: { $concat: ['$lastAction.performedBy.first_name', ' ', '$lastAction.performedBy.last_name'] },
+                                regex: word,
+                                options: 'i'
+                            }
+                        }
+                    }
                 ],
             }));
             pipeline.push({ $match: { $and: searchConditions } });
@@ -1724,8 +1736,10 @@ export const getReleasedDocuments = async (req, res) => { //get outgoing documen
             const words = searchQuery.trim().split(/\s+/);
             const searchConditions = words.map((word) => ({
                 $or: [
-                    { refNumber: { $regex: word, $options: 'i' } },
                     { documentName: { $regex: word, $options: 'i' } },
+                    { documentCode: { $regex: word, $options: 'i' } },
+                    { refNumber:   { $regex: word, $options: 'i' } },
+                    { documentNameText: { $regex: word, $options: 'i' } },
                     { 'lastAction.performedBy.first_name': { $regex: word, $options: 'i' } },
                     { 'lastAction.performedBy.last_name': { $regex: word, $options: 'i' } },
                     // Match "First Last" combined

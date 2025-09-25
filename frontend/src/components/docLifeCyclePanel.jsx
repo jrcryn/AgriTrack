@@ -44,11 +44,11 @@ const DocumentLifeCycleModal = ({
   isPendingPage,
   isOutgoingPage,
   isProduceDocumentPage,
-  isReleased,
   isArchived,
   isForDisposal,
   isStaffsPage,
   isIncomingDashboardPage,
+  isOutgoingDashboardPage
 }) => {
     const data = document;
     const toast = useToast();
@@ -338,9 +338,9 @@ const DocumentLifeCycleModal = ({
             </ModalHeader>
         )}
 
-        {(isOutgoingPage || isReleased) && (
+        {(isOutgoingPage || isOutgoingDashboardPage) && (
             <ModalHeader bg="red.50" borderBottomWidth="1px" borderColor="gray.200" display="flex" alignItems="center" py={4}>
-                <GrFolderCycle style={{ marginRight: 12, color: '#2563eb' }} />
+                <GrFolderCycle style={{ marginRight: 12, color: 'red' }} />
                 Document Status
             </ModalHeader>
         )}
@@ -354,7 +354,7 @@ const DocumentLifeCycleModal = ({
 
         {isStaffsPage && (
             <ModalHeader bg="purple.50" borderBottomWidth="1px" borderColor="gray.200" display="flex" alignItems="center" py={4}>
-                <GrFolderCycle style={{ marginRight: 12, color: '#2563eb' }} />
+                <GrFolderCycle style={{ marginRight: 12, color: 'purple' }} />
                 Document Status
             </ModalHeader>
         )}
@@ -723,7 +723,7 @@ const DocumentLifeCycleModal = ({
                     </Tabs>
                   </>
                 )}
-                {isReleased && (
+                {isOutgoingDashboardPage && (
                   <>
                   <Tabs colorScheme='red' variant='enclosed'>
                     <TabList>
@@ -790,8 +790,10 @@ const DocumentLifeCycleModal = ({
                 <Tabs colorScheme="purple" variant="enclosed">
                   <TabList>
                     <Tab>Reroute</Tab>
+                    <Tab>Delete</Tab>
                   </TabList>
                   <TabPanels>
+                    {/* Reroute */}
                     <TabPanel px={0} pt={4} pb={0}>
                       <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
                         <FormControl>
@@ -838,6 +840,24 @@ const DocumentLifeCycleModal = ({
                         </Button>
                       </Flex>
                     </TabPanel>
+
+                    {/* Delete */}
+                    <TabPanel px={0} pt={4} pb={0}>
+                        <Box bg="red.50" p={3} borderRadius="md" mb={3} borderLeft="4px solid" borderLeftColor="red.400">
+                          <Text fontSize="sm" color="red.600">
+                            Deleting permanently removes the document from the system. This action cannot be undone.
+                          </Text>
+                        </Box>
+                        <HStack justify="flex-end" align="center" spacing={2} mt={4}>
+                          <FormControl display="flex" alignItems="center" gap={2}>
+                            <FormLabel mb="0">I understand</FormLabel>
+                            <Switch isChecked={isUnderstood} onChange={(e) => setIsUnderstood(e.target.checked)} />
+                          </FormControl>
+                          <Button colorScheme="red" onClick={handleDeleteDocument} isLoading={isDeletingRegisteredDocument} pl={8} pr={8} isDisabled={!isUnderstood}>
+                            Delete Document
+                          </Button>
+                        </HStack>
+                      </TabPanel>
                   </TabPanels>
                 </Tabs>
                 <Divider my={2} />
@@ -846,7 +866,7 @@ const DocumentLifeCycleModal = ({
 
               {isIncomingDashboardPage && (
                 <>
-                  <Tabs colorScheme='red' variant='enclosed'>
+                  <Tabs colorScheme='green' variant='enclosed'>
                     <TabList>
                       <Tab>Delete Document</Tab>
                     </TabList>
@@ -1097,7 +1117,7 @@ const DocumentLifeCycleModal = ({
               </Box>
 
               {/* Current Handler */}
-              {isProduceDocumentPage && (
+              {(isProduceDocumentPage || isIncomingDashboardPage) && (
                 <Box mt={4} p={4} bg="blue.50" borderRadius="md">
                     <Heading size="sm" mb={2}>Current Document Handler:</Heading>
                     <Text>

@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import {
   Box,
@@ -238,7 +239,7 @@ const H_IncomingDashboard = () => {
         <Flex justifyContent="space-between" alignItems="center" mt={4}>
           <PaginationControls
             currentPage={currentPage}
-            setCurrentPage={setTotalIncomingPage}
+            setCurrentPage={setIsIncomingPage}
             totalPages={totalPages}
             totalItems={totalItems}
             colorScheme='orange'
