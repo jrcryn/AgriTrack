@@ -8,6 +8,7 @@ import { DocTrackManagerSchema } from './schemas/docTrackManagerAccount.schema.j
 import { CounterSchema } from './schemas/counter.schema.js';
 import { ArchivedDocumentsSchema } from './schemas/archivedDocuments.schema.js'
 import { ReleasedDocumentsSchema } from './schemas/releasedDocuments.schema.js'
+import { DisposedDocumentsSchema } from './schemas/disposedDocuments.schema.js'
 
 export const initializeDocTrackModels = () => {
     const db = getDocTrackDB();
@@ -19,6 +20,7 @@ export const initializeDocTrackModels = () => {
         ManagerAccount: db.model('Manager_Account', DocTrackManagerSchema),
         Counter: db.model('Counter', CounterSchema),
         ArchivedDocuments: db.model('Archived_Documents', ArchivedDocumentsSchema),
-        ReleasedDocuments: db.model('Released_Documents', ReleasedDocumentsSchema)
+        ReleasedDocuments: db.model('Released_Documents', ReleasedDocumentsSchema),
+        DisposedDocuments: db.model('Disposed_Documents', DisposedDocumentsSchema)
     };
 };

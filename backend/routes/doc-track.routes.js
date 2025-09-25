@@ -50,7 +50,7 @@ router.get('/get-document-types', getDocumentTypes);
 router.get('/get-document-history/:id', getDocumentHistory);
 router.get('/get-outgoing-forwarded-documents/:id', getOutgoingForwardedDocuments); 
 router.get('/get-archived-documents', getArchivedDocuments);
-router.get('/get-released-documents', getReleasedDocuments);
+
 
 router.post('/get-document-status', getDocumentStatus);
 
@@ -61,11 +61,11 @@ router.post('/unrelease-document', unreleaseDocument);
 router.get('/users-workload', getUsersDocumentWorkload);
 
 router.get('/get-total-incoming-documents', getTotalIncomingDocuments);
+router.get('/get-released-documents', getReleasedDocuments);
 router.get('/get-expired-documents', getExpiredDocuments);
 
 router.post('/dispose-documents', disposeDocuments);
-router.delete('/delete-registered-document/:id', deleteRegisteredDocument);
-
+router.post('/delete-registered-document/:id', deleteRegisteredDocument);
 
 export default router;
 

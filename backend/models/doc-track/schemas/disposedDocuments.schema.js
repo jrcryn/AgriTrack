@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 
 import { lifeCycleIterationsSchema } from './documentLifeCycle.schema.js';
 
-export const ArchivedDocumentsSchema = new mongoose.Schema({
+export const DisposedDocumentsSchema = new mongoose.Schema({
     documentId: {type: mongoose.Schema.Types.ObjectId, ref: 'Document'},
     documentName: {type: String},
     documentCode: {type: String},

@@ -31,48 +31,35 @@ import { TbFileShredder } from "react-icons/tb";
 import { useAdminDashboard } from '../store/adminDashboard.store.js';
 import DocumentLifeCycleModal from '../../components/docLifeCyclePanel.jsx';
 
-const F_ArchivedDocuments = () => {
+const H_IncomingDashboard = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [archivedPage, setArchivedPage] = useState(1);
-  const [isArchived, setIsArchived] = useState(false);
-  const [isForDisposal, setIsForDisposal] = useState(false);
-  const [expiredPage, setExpiredPage] = useState(1);
+  const [totalIncomingPage, setTotalIncomingPage] = useState(1);
+  const [isIncomingPage, setIsIncomingPage] = useState(false);
 
   const {
-    archivedDocuments,
-    isLoadingArchivedDocuments,
-    archivedDocumentsError,
-
-    expiredDocuments,
-    isLoadingExpiredDocuments,
-    expiredDocumentsError,
+    totalIncomingDocuments,
+    isLoadingTotalIncomingDocuments,
+    totalIncomingDocumentsError
   } = useAdminDashboard(
-    { archivedPage, expiredPage },
+    { totalIncomingPage },
     { searchQuery }
   );
 
   useEffect(() => {
-    setArchivedPage(1);
-    setExpiredPage(1);
+    setTotalIncomingPage(1);
   }, [searchQuery]);
 
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [selectedDoc, setSelectedDoc] = useState(null);
 
-  const documents = archivedDocuments?.data?.relevantDocs || [];
-  const totalPages = archivedDocuments?.data?.totalPages || 1;
-  const currentPage = archivedDocuments?.data?.currentPage || 1;
-  const totalItems = archivedDocuments?.data?.totalCount || 0;
+  const documents = totalIncomingDocuments?.data?.relevantDocs || [];
+  const totalPages = totalIncomingDocuments?.data?.totalPages || 1;
+  const currentPage = totalIncomingDocuments?.data?.currentPage || 1;
+  const totalItems = totalIncomingDocuments?.data?.totalCount || 0;
 
-  const expiredDocs = expiredDocuments?.data?.relevantDocs || [];
-  const expiredTotalPages = expiredDocuments?.data?.totalPages || 1;
-  const expiredCurrentPage = expiredDocuments?.data?.currentPage || 1;
-  const expiredTotalItems = expiredDocuments?.data?.totalCount || 0;
-
-  const handleOpenDetails = (doc, { archived = false, disposal = false } = {}) => {
+  const handleOpenDetails = (doc, { isIncomingPage = true } = {}) => {
     setSelectedDoc(doc);
-    setIsArchived(archived);
-    setIsForDisposal(disposal);
+    setIsIncomingPage(isIncomingPage);
     onOpen();
   };
 
@@ -93,7 +80,7 @@ const F_ArchivedDocuments = () => {
           size="sm"
           onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
           isDisabled={currentPage === 1}
-          colorScheme={colorScheme}
+          colorScheme="green"
           variant="outline"
           mr={2}
         >
@@ -103,7 +90,7 @@ const F_ArchivedDocuments = () => {
           size="sm"
           onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
           isDisabled={currentPage >= totalPages}
-          colorScheme={colorScheme}
+          colorScheme='green'
           variant="outline"
         >
           Next
@@ -118,7 +105,7 @@ const F_ArchivedDocuments = () => {
         Document Logs
       </Heading>
       <Text color="gray.600" mb={5}>
-        View and manage archived and expired documents.
+        View and manage incoming documents.
       </Text>
 
       {/* Filter Section */}
@@ -161,13 +148,13 @@ const F_ArchivedDocuments = () => {
 
       {/* Documents Section */}
       <Box mb={8}>
-        <Flex justify="space-between" align="center" mb={4} bg={'orange.50'} p={3} borderRadius="md" borderLeftWidth="4px" borderLeftColor={'orange.500'}>
+        <Flex justify="space-between" align="center" mb={4} bg={'green.50'} p={3} borderRadius="md" borderLeftWidth="4px" borderLeftColor={'green.500'}>
           <Heading as="h2" size="md" display="flex" alignItems="center">
-            <Icon as={LuLogs} mr={2} color={'orange.500'} /> ARCHIVED DOCUMENTS
+            <Icon as={LuLogs} mr={2} color={'green.500'} /> INCOMING DOCUMENTS
           </Heading>
         </Flex>
 
-        {isLoadingArchivedDocuments ? (
+        {isLoadingTotalIncomingDocuments ? (
           <Center p={10}>
             <Spinner size="lg" color={'orange.500'} />
           </Center>
@@ -179,8 +166,8 @@ const F_ArchivedDocuments = () => {
                   <Tr>
                     <Th>Reference #</Th>
                     <Th>Title</Th>
-                    <Th>Date Archived</Th>
-                    <Th>Archived By</Th>
+                    <Th>Date Created</Th>
+                    <Th>Created By</Th>
                     <Th
                       position={{ base: 'static', md: 'sticky' }}
                       right={0}
@@ -214,7 +201,7 @@ const F_ArchivedDocuments = () => {
                         >
                           <Button
                             size="sm"
-                            colorScheme='orange'
+                            colorScheme='green'
                             leftIcon={<FaEye />}
                             onClick={() => handleOpenDetails(doc, { archived: true, disposal: false })}
                           >
@@ -240,7 +227,7 @@ const F_ArchivedDocuments = () => {
           >
             <Icon as={FiInbox} boxSize={10} color="gray.400" />
             <Text color="gray.500" fontWeight="medium">
-              No archived documents found
+              No incoming documents found
             </Text>
             <Text fontSize="sm" color="gray.400">
               Try adjusting your search.
@@ -251,115 +238,9 @@ const F_ArchivedDocuments = () => {
         <Flex justifyContent="space-between" alignItems="center" mt={4}>
           <PaginationControls
             currentPage={currentPage}
-            setCurrentPage={setArchivedPage}
+            setCurrentPage={setTotalIncomingPage}
             totalPages={totalPages}
             totalItems={totalItems}
-            colorScheme='orange'
-          />
-        </Flex>
-      </Box>
-
-      {/* Expired Document Section */}
-      <Box mb={8}>
-        <Flex justify="space-between" align="center" mb={4} bg={'orange.50'} p={3} borderRadius="md" borderLeftWidth="4px" borderLeftColor={'orange.500'}>
-          <Heading as="h2" size="md" display="flex" alignItems="center">
-            <Icon as={TbFileShredder} mr={2} color={'orange.500'} /> EXPIRED DOCUMENTS
-          </Heading>
-        </Flex>
-
-        {isLoadingExpiredDocuments ? (
-          <Center p={10}>
-            <Spinner size="lg" color={'orange.500'} />
-          </Center>
-        ) : expiredDocs.length > 0 ? (
-          <Box overflowX="auto">
-            <TableContainer>
-              <Table variant="simple" size="md">
-                <Thead bg="gray.50">
-                  <Tr>
-                    <Th>Reference #</Th>
-                    <Th>Title</Th>
-                    <Th>Retention Until</Th>
-                    <Th>Archived By</Th>
-                    <Th
-                      position={{ base: 'static', md: 'sticky' }}
-                      right={0}
-                      bg="gray.50"
-                      zIndex={{ base: 0, md: 1 }}
-                      textAlign="center"
-                      width="120px"
-                    >
-                      <Box display={{ base: 'none', md: 'block' }}>Scroll →</Box>
-                      <Box display={{ base: 'block', md: 'none' }}>Actions</Box>
-                    </Th>
-                  </Tr>
-                </Thead>
-                <Tbody>
-                  {expiredDocs.map((doc) => {
-                    
-                    const archiveEvt = (doc.lifeCycle || []).find(ev => ev.action === 'Archived');
-                    const retentionUntil = archiveEvt?.archivalDetails?.retentionUntil
-                      ? new Date(archiveEvt.archivalDetails.retentionUntil).toLocaleDateString()
-                      : '—';
-                    const by = archiveEvt?.performedBy
-                      ? `${archiveEvt.performedBy.first_name || ''} ${archiveEvt.performedBy.last_name || ''}`.trim()
-                      : '—';
-
-                    return (
-                      <Tr key={doc._id} fontSize="sm">
-                        <Td fontWeight="semibold">{doc.refNumber || '—'}</Td>
-                        <Td>{doc.documentName === 'N/A' ? doc.documentNameText : doc.documentName || '-'}</Td>
-                        <Td>{retentionUntil}</Td>
-                        <Td>{by || '—'}</Td>
-                        <Td
-                          isNumeric
-                          position={{ base: 'static', md: 'sticky' }}
-                          right={0}
-                          zIndex={1}
-                          bg="white"
-                        >
-                          <Button
-                            size="sm"
-                            colorScheme='orange'
-                            leftIcon={<FaEye />}
-                            onClick={() => handleOpenDetails(doc, { archived: false, disposal: true })}
-                          >
-                            Details
-                          </Button>
-                        </Td>
-                      </Tr>
-                    );
-                  })}
-                </Tbody>
-              </Table>
-            </TableContainer>
-          </Box>
-        ) : (
-          <Center
-            p={10}
-            borderWidth="1px"
-            borderRadius="md"
-            borderStyle="dashed"
-            borderColor="gray.300"
-            flexDirection="column"
-            gap={3}
-          >
-            <Icon as={FiInbox} boxSize={10} color="gray.400" />
-            <Text color="gray.500" fontWeight="medium">
-              No expired documents found
-            </Text>
-            <Text fontSize="sm" color="gray.400">
-              Try adjusting your search.
-            </Text>
-          </Center>
-        )}
-
-        <Flex justifyContent="space-between" alignItems="center" mt={4}>
-          <PaginationControls
-            currentPage={expiredCurrentPage}
-            setCurrentPage={setExpiredPage}
-            totalPages={expiredTotalPages}
-            totalItems={expiredTotalItems}
             colorScheme='orange'
           />
         </Flex>
@@ -374,11 +255,12 @@ const F_ArchivedDocuments = () => {
         isOutgoingPage={false}
         isProduceDocumentPage={false}
         isReleased={false}
-        isArchived={isArchived}
-        isForDisposal={isForDisposal}
+        isArchived={false}
+        isForDisposal={false}
+        isIncomingDashboardPage={isIncomingPage}
       />
     </Box>
   );
 };
 
-export default F_ArchivedDocuments;
+export default H_IncomingDashboard;

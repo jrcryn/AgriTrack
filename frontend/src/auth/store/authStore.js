@@ -97,8 +97,7 @@ export const useAuthStore = create((set) => ({
         set({ isLoading: true, error: null });
         try {
             await axios.post(`${API_URL}/api/auth/switch-role`, { targetRole: role });
-            // refresh user info
-            await useAuthStore.getState().checkAuth();
+            await useAuthStore.getState().checkAuth(); // Refresh user data after switching role
             set({ isLoading: false });
         } catch (error) {
             set({ isLoading: false, error: error.response?.data?.message });

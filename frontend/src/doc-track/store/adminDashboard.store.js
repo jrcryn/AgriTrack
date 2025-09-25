@@ -92,18 +92,6 @@ const useArchivedDocumentsQuery = (page = 1, searchParams = {}) =>
         },
     });
 
-const useReleasedDocumentsQuery = (page = 1, searchParams = {}) =>
-    useQuery({
-        queryKey: ['releasedDocuments', page, searchParams],
-        queryFn: async () => {
-            const response = await axios.get(
-                `${API_URL}/api/doc-track/get-released-documents`,
-                { params: { page, limit: 10, ...searchParams } }
-            );
-            return response.data;
-        },
-    });
-
 const useExpiredDocumentsQuery = (page = 1, searchParams = {}) =>
     useQuery({
         queryKey: ['expiredDocuments', page, searchParams],
@@ -116,11 +104,14 @@ const useExpiredDocumentsQuery = (page = 1, searchParams = {}) =>
         },
     });
 
-const useTotalIncomingDocumentsQuery = () =>
+const useReleasedDocumentsQuery = (page = 1, searchParams = {}) =>
     useQuery({
-        queryKey: ['totalIncomingDocuments'],
+        queryKey: ['releasedDocuments', page, searchParams],
         queryFn: async () => {
-            const response = await axios.get(`${API_URL}/api/doc-track/get-total-incoming-documents`);
+            const response = await axios.get(
+                `${API_URL}/api/doc-track/get-released-documents`,
+                { params: { page, limit: 10, ...searchParams } }
+            );
             return response.data;
         },
     });
@@ -130,6 +121,18 @@ const useUsersDocumentWorkloadQuery = () =>
         queryKey: ['documentWorkload'],
         queryFn: async () => {
             const response = await axios.get(`${API_URL}/api/doc-track/users-workload`);
+            return response.data;
+        },
+    });
+
+const useTotalIncomingDocumentsQuery = (page = 1, searchParams = {}) =>
+    useQuery({
+        queryKey: ['totalIncomingDocuments', page, searchParams],
+        queryFn: async () => {
+            const response = await axios.get(
+                `${API_URL}/api/doc-track/get-total-incoming-documents`,
+                { params: { page, limit: 10, ...searchParams } }
+            );
             return response.data;
         },
     });
@@ -146,6 +149,7 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
         archivedPage = 1,
         releasedPage = 1,
         expiredPage = 1,
+        totalIncomingPage = 1,
     } = pages;
 
     const { data: documentTypes = [], isLoading: isLoadingDocumentTypes, error: documentTypesError } = useDocumentTypesQuery();
@@ -166,9 +170,9 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
 
     const { data: usersDocumentWorkload = [], isLoading: isLoadingUsersDocumentWorkload, error: usersDocumentWorkloadError } = useUsersDocumentWorkloadQuery();
 
-    const { data: expiredDocuments = [], isLoading: isLoadingExpiredDocuments, error: expiredDocumentsError } = useExpiredDocumentsQuery();
+    const { data: expiredDocuments = [], isLoading: isLoadingExpiredDocuments, error: expiredDocumentsError } = useExpiredDocumentsQuery(expiredPage, searchParams);
 
-    const { data: totalIncomingDocuments = [], isLoading: isLoadingTotalIncomingDocuments, error: totalIncomingDocumentsError } = useTotalIncomingDocumentsQuery();
+    const { data: totalIncomingDocuments = [], isLoading: isLoadingTotalIncomingDocuments, error: totalIncomingDocumentsError } = useTotalIncomingDocumentsQuery(totalIncomingPage, searchParams);
 
     const [isCreatingDocument, setIsCreatingDocument] = useState(false);
     const [isUpdatingDocumentType, setIsUpdatingDocumentType] = useState(false);
@@ -184,6 +188,7 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
     const [isUnreleasingDocument, setIsUnreleasingDocument] = useState(false);
     const [isReroutingDocument, setIsReroutingDocument] = useState(false);
     const [isDisposingDocuments, setIsDisposingDocuments] = useState(false);
+    const [isDeletingRegisteredDocument, setIsDeletingRegisteredDocument] = useState(false);
 
     const createDocument = async (data) => {
         setIsCreatingDocument(true);
@@ -359,6 +364,18 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
         }
     };
 
+    const deleteRegisteredDocument = async (id) => {
+        setIsDeletingRegisteredDocument(true);
+        try {  
+            const response = await axios.post(`${API_URL}/api/doc-track/delete-registered-document/${id}`);
+            return response.data;
+        } catch (error) {
+            throw error;
+        } finally {
+            setIsDeletingRegisteredDocument(false);
+        }
+    };
+
     return {
         // automatic queries
         documentTypes,
@@ -388,6 +405,7 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
         documentStatus,
         rerouteDocument,
         disposeDocuments,
+        deleteRegisteredDocument,
 
         //loading states
         isLoadingDocumentTypes,
@@ -417,6 +435,7 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
         isUnreleasingDocument,
         isReroutingDocument,
         isDisposingDocuments,
+        isDeletingRegisteredDocument,
 
         //error states
         documentTypesError,

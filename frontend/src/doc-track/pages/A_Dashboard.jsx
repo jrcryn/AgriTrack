@@ -30,7 +30,8 @@ import {
   HStack,
   VStack,
   FormErrorMessage,
-  useToast
+  useToast,
+  
 } from "@chakra-ui/react";
 import {
   FiFileText,
@@ -49,6 +50,7 @@ import { GoArchive } from "react-icons/go";
 import { FileOutput, FileInput } from "lucide-react";
 
 import { useAdminDashboard } from '../store/adminDashboard.store.js';
+import F_ArchivedDocuments from './F_ArchivedDocuments.jsx';
 
 
 const A_Dashboard = () => {
@@ -64,20 +66,24 @@ const A_Dashboard = () => {
     createDocument,
     isCreatingDocument,
     updateDocumentType,
-    isUpdatingDocumentType
+    isUpdatingDocumentType,
+
+    totalIncomingDocuments,
+    releasedDocuments,
+    archivedDocuments
   } = useAdminDashboard();
   
   // Mock metrics data
   const metrics = {
-    totalDocuments: 243,
-    incomingDocuments: 46,
-    pendingDocuments: 82,
-    outgoingDocuments: 115,
+    incomingDocuments: totalIncomingDocuments?.data?.totalCount ?? 0,
+    outgoingDocuments: releasedDocuments?.data?.totalCount ?? 0,
+    pendingDocuments: totalIncomingDocuments?.data?.totalCount ?? 0,
+    archivedDocuments: archivedDocuments?.data?.totalCount ?? 0,
+
     processingRate: 78.5,
     avgProcessingTime: 2.4, // days
     responseRate: 92
   };
-
   const departmentPerformance = [
     { name: 'CID OFFICE', processed: 56, pending: 12 },
     { name: 'OSDS/ASDS OFFICE', processed: 42, pending: 8 },
@@ -398,12 +404,13 @@ const A_Dashboard = () => {
             _active={{ boxShadow: "sm", bg: "blue.100", transform: "translateY(0)" }}
             _focusVisible={{ outline: "none", boxShadow: "0 0 0 3px rgba(66, 153, 225, 0.6)" }}
             textAlign="left"
+            onClick={() => navigate('/doc-track/incoming-dashboard')}
           >
             <Stat>
               <StatLabel fontSize="md" display="flex" alignItems="center">
                 <Icon as={FileInput} mr={2} color="green.500" /> Incoming Documents
               </StatLabel>
-              <StatNumber fontSize="4xl" mb={2}>{metrics.totalDocuments}</StatNumber>
+              <StatNumber fontSize="4xl" mb={2}>{metrics.incomingDocuments}</StatNumber>
               <Tag colorScheme="green" size="sm">Registered Documents</Tag>
             </Stat>
           </Box>
@@ -425,13 +432,14 @@ const A_Dashboard = () => {
             _active={{ boxShadow: "sm", bg: "blue.100", transform: "translateY(0)" }}
             _focusVisible={{ outline: "none", boxShadow: "0 0 0 3px rgba(66, 153, 225, 0.6)" }}
             textAlign="left"
+            onClick={() => navigate('/doc-track/outgoing-dashboard')}
           >
             <Stat>
               <StatLabel fontSize="md" display="flex" alignItems="center">
                 <Icon as={FileOutput} mr={2} color="red.500" /> Outgoing Documents
               </StatLabel>
               <StatNumber fontSize="4xl" mb={2}>
-                {metrics.incomingDocuments}
+                {metrics.outgoingDocuments}
               </StatNumber>
               <Tag colorScheme="red" size="sm">Released Documents</Tag>
             </Stat>
@@ -452,7 +460,8 @@ const A_Dashboard = () => {
                 <Icon as={FiClock} mr={2} color="yellow.500" /> Pending Documents
               </StatLabel>
               <StatNumber fontSize="4xl" mb={2}>{metrics.pendingDocuments}</StatNumber>
-              <Tag colorScheme="yellow" size="sm">Received/Work on Progress</Tag>
+                <Tag colorScheme="green" size="sm" mr={{base: 0, md: 1}}>Forwarded</Tag>
+                <Tag colorScheme="yellow" size="sm">Received/Work on Progress</Tag>
             </Stat>
           </Box>
           
@@ -479,7 +488,7 @@ const A_Dashboard = () => {
               <StatLabel fontSize="md" display="flex" alignItems="center">
                 <Icon as={GoArchive} mr={2} color="red.500" /> Archived Documents
               </StatLabel>
-              <StatNumber fontSize="4xl" mb={2}>{metrics.outgoingDocuments}</StatNumber>
+              <StatNumber fontSize="4xl" mb={2}>{metrics.archivedDocuments}</StatNumber>
               <Tag colorScheme="orange" size="sm">Archived Documents</Tag>
             </Stat>
           </Box>
@@ -487,7 +496,7 @@ const A_Dashboard = () => {
       </Box>
       
       {/* DEPARTMENTAL PERFORMANCE */}
-      <Box mb={4}>
+      {/* <Box mb={4}>
         <Flex 
           justify="space-between" 
           align="center" 
@@ -538,7 +547,7 @@ const A_Dashboard = () => {
             </Box>
           ))}
         </SimpleGrid>
-      </Box>
+      </Box> */}
       
       <Modal isOpen={isOpen} onClose={onClose} scrollBehavior='inside' isCentered motionPreset='none' closeOnOverlayClick={false} size='2xl'>
           <ModalOverlay />

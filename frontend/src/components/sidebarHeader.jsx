@@ -77,23 +77,10 @@ const allLinkItems = [
 
 const SidebarContent = ({ onClose, ...rest }) => {
 
-  const { user, switchRole, availableRoles } = useAuthStore();
+  const { user } = useAuthStore();
   const [ dashboardName, setDashboardName ] = useState('');
   const navigate = useNavigate();
   const LinkItems = allLinkItems.filter(link => link.roles.includes(user?.role));
-
-  const roleToHome = {
-    HVCM: '/hvc/metrics',
-    HVCS: '/hvc/metrics',
-    MIS: '/machineries/metrics',
-    DMS: '/doc-track/register-document',
-    DMM: '/doc-track/metrics',
-  };
-
-  const handleSwitch = async (role) => {
-    await switchRole(role);
-    navigate(roleToHome[role] || '/');
-  };
 
   useEffect(() => {
       const roleMap = {
@@ -269,7 +256,7 @@ const MobileNav = ({ onOpen, ...rest }) => {
     return () => clearInterval(interval)
   }, [])
 
-  const { user, logout, switchRole, availableRoles } = useAuthStore();
+  const { user, logout } = useAuthStore();
   const navigate = useNavigate();
   const [ roleName, setRoleName ] = useState('');
 
@@ -284,19 +271,6 @@ const MobileNav = ({ onOpen, ...rest }) => {
 
   const handleLogout = () => {
     logout();
-  };
-
-  const roleToHome = {
-    HVCM: '/hvc/metrics',
-    HVCS: '/hvc/metrics',
-    MIS: '/machineries/metrics',
-    DMS: '/doc-track/register-document',
-    DMM: '/doc-track/metrics',
-  };
-
-  const handleSwitch = async (role) => {
-    await switchRole(role);
-    navigate(roleToHome[role] || '/');
   };
 
   useEffect(() => {
@@ -410,7 +384,7 @@ const MobileNav = ({ onOpen, ...rest }) => {
           </ModalBody>
 
           <ModalFooter bg="gray.50" borderTopWidth="1px" borderColor="gray.200">
-            <Button colorScheme="blue" onClick={onClose}>Close</Button>
+            <Button variant={'outline'} onClick={onClose}>Close</Button>
           </ModalFooter>
         </ModalContent>
       </Modal>

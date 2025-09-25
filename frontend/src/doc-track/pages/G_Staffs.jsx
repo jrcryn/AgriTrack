@@ -156,7 +156,7 @@ const G_Staffs = () => {
                                 <Flex key={doc._id} align="center" justify="space-between" gap={2}>
                                   <Flex direction="column">
                                     <Text fontWeight="medium">{doc.refNumber}</Text>
-                                    <Text fontSize="xs" color="gray.600">{doc.documentName}</Text>
+                                    <Text fontSize="xs" color="gray.600">{doc.documentName || doc.documentNameText}</Text>
                                   </Flex>
                                   <Button
                                     size="xs"

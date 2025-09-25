@@ -48,6 +48,7 @@ const ProfileSettings = () => {
   } = useUserSettingsStore();
 
   const { user, availableRoles, switchRole, isLoading } = useAuthStore();
+  //console.log(availableRoles);
   const navigate = useNavigate();
   const roleToHome = {
     HVCM: '/hvc/metrics',
@@ -173,7 +174,7 @@ const ProfileSettings = () => {
   return (
     <Box p={4} maxW="6xl" mx="auto">
       <Text fontSize="sm" color="gray.500" mb={6}>
-        Manage your password, two-factor authentication and switch subsystems.
+        Manage your password, two-factor authentication and available subsystems.
       </Text>
       <Stack direction={stackDirection} spacing={10} align="start">
 
@@ -329,21 +330,28 @@ const ProfileSettings = () => {
             Switch to another subsystem you have access to.
           </Text>
           <VStack align="stretch">
-            {(availableRoles || [])
-              .filter(r => r.role !== user?.role)
-              .map(r => (
-                <Button
-                  key={r.role}
-                  onClick={() => handleSwitchSubsystem(r.role)}
-                  isLoading={isLoading}
-                  variant="outline"
-                  colorScheme="blue"
-                  justifyContent="flex-start"
-                >
-                  {roleLabel(r.role)}
-                </Button>
-              ))
-            }
+            {isLoading ? (
+              <Box textAlign="center" mt={3}>
+                <Spinner size="md" />
+              </Box>
+            ) : (
+              <>
+                {(availableRoles || [])
+                  .filter(r => r.role !== user?.role)
+                  .map(r => (
+                    <Button
+                      key={r.role}
+                      onClick={() => handleSwitchSubsystem(r.role)}
+                      colorScheme="blue"
+                      justifyContent="flex-start"
+                    >
+                      {roleLabel(r.role)}
+                    </Button>
+                  ))
+                }
+              </>
+            )}
+            
             {(!availableRoles || availableRoles.filter(r => r.role !== user?.role).length === 0) && (
               <Text fontSize="sm" color="gray.500">No other subsystems available.</Text>
             )}

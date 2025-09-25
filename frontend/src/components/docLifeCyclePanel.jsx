@@ -3,13 +3,14 @@ import {
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter,
   Box, VStack, Text, Heading, Divider, SimpleGrid, Badge, Flex, Button, Tabs, TabList, TabPanels, Tab, TabPanel,
   FormControl, FormLabel, Input, Select, useToast,
-  Switch,
+  Switch, NumberInput, NumberInputField, NumberInputStepper, NumberIncrementStepper, NumberDecrementStepper,
+  Tooltip, Icon, HStack
 } from '@chakra-ui/react';
 import { CheckCircleIcon, ArrowForwardIcon, TimeIcon } from "@chakra-ui/icons";
-import { FaArchive } from "react-icons/fa";
+import { FaArchive, FaInfo } from "react-icons/fa";
 import { CiInboxOut } from "react-icons/ci";
 import { GrFolderCycle } from "react-icons/gr";
-import { TbRouteAltRight } from "react-icons/tb";
+import { TbRouteAltRight, TbFileShredder } from "react-icons/tb";
 import { MdOutgoingMail } from "react-icons/md";
 import { FaBoxOpen } from "react-icons/fa";
 import { RiMailDownloadFill } from "react-icons/ri";
@@ -17,6 +18,7 @@ import { RiMailDownloadFill } from "react-icons/ri";
 import { useAdminDashboard } from '../doc-track/store/adminDashboard.store';
 import { useAuthStore } from '../auth/store/authStore.js';
 import { useQueryClient } from '@tanstack/react-query';
+import { Form } from 'react-router-dom';
 
 
 const actionStyles = {
@@ -28,6 +30,7 @@ const actionStyles = {
   "Rerouted": { color: "purple.400", icon: <TbRouteAltRight /> },
   "Unarchived": { color: "yellow.400", icon: <FaBoxOpen /> },
   "Unreleased": { color: "pink.400", icon: <RiMailDownloadFill /> },
+  "Disposed": { color: "red.500", icon: <TbFileShredder /> },
 };
 
 const roleLabel = (office_position, role) =>
@@ -43,7 +46,9 @@ const DocumentLifeCycleModal = ({
   isProduceDocumentPage,
   isReleased,
   isArchived,
-  isStaffsPage // added
+  isForDisposal,
+  isStaffsPage,
+  isIncomingDashboardPage,
 }) => {
     const data = document;
     const toast = useToast();
@@ -65,13 +70,25 @@ const DocumentLifeCycleModal = ({
         isUnarchivingDocument,       
         unreleaseDocument,           
         isUnreleasingDocument,      
-        rerouteDocument,            // added
-        isReroutingDocument,        // added
-    } = useAdminDashboard();
+        rerouteDocument,            
+        isReroutingDocument,
+        disposeDocuments,
+        isDisposingDocuments,
 
+        deleteRegisteredDocument,
+        isDeletingRegisteredDocument
+    } = useAdminDashboard();
+    const [isUnderstood, setIsUnderstood] = useState(false);
     const [forwardData, setForwardData] = useState({ forwardAccountId: '', forwardRemarks: '' });
-    const [archiveData, setArchiveData] = useState({ medium: '', location: '', archiveRemarks: '' });
-    const [releaseData, setReleaseData] = useState({ recipientOffice: '', recipientPerson: '', modeOfRelease: '', releaseRemarks: '' });
+    const [archiveData, setArchiveData] = useState({ 
+      medium: '', 
+      location: '', 
+      archiveRemarks: '', 
+      isCustomDoc: '',
+      customDisposalMethod: '',
+      customRetentionPeriod: ''
+    });
+    const [releaseData, setReleaseData] = useState({ recipientOffice: '', recipientPerson: '', modeOfRelease: '', releaseRemarks: '', isCustomDoc: '' });
 
     const handleForward = async () => {
       if (!data || !forwardData.forwardAccountId || !forwardData.forwardRemarks) {
@@ -103,7 +120,7 @@ const DocumentLifeCycleModal = ({
   
     const handleArchive = async () => {
       const { medium, location, archiveRemarks } = archiveData;
-      if (!data || !medium || !location) {
+      if ( !medium || !location) {
         toast({ title: "Missing fields", description: "Medium and location are required.", status: "warning", duration: 4000, isClosable: true });
         return;
       }
@@ -114,9 +131,12 @@ const DocumentLifeCycleModal = ({
           medium,
           location,
           archiveRemarks,
+          isCustomDoc: data.documentName === 'N/A' ? true : false,
+          customDisposalMethod: data.documentName === 'N/A' ? archiveData.customDisposalMethod : null,
+          customRetentionPeriod: data.documentName === 'N/A' ? archiveData.customRetentionPeriod : null
         });
         toast({ title: "Success", description: res.message, status: "success", duration: 5000, isClosable: true });
-        setArchiveData({ medium: '', location: '', archiveRemarks: '' });
+        setArchiveData({ medium: '', location: '', archiveRemarks: '', isCustomDoc: '', customDisposalMethod: '', customRetentionPeriod: '' });
         onClose();
 
         await Promise.all([
@@ -124,6 +144,7 @@ const DocumentLifeCycleModal = ({
         ])
 
       } catch (error) {
+        console.log(error);
         toast({ title: "Error", description: error.response?.data?.message || "Failed to archive document.", status: "error", duration: 5000, isClosable: true });
       }
     };
@@ -142,6 +163,7 @@ const DocumentLifeCycleModal = ({
           recipientPerson,
           modeOfRelease,
           releaseRemarks,
+          isCustomDoc: data.documentName === 'N/A' ? true : false,
         });
         toast({ title: "Success", description: res.message, status: "success", duration: 5000, isClosable: true });
         setReleaseData({ recipientOffice: '', recipientPerson: '', modeOfRelease: '', releaseRemarks: '' });
@@ -158,8 +180,8 @@ const DocumentLifeCycleModal = ({
     const [unarchiveData, setUnarchiveData] = useState({ forwardToSelf: '', forwardAccountId: '', unarchiveRemarks: '' });
     const [unreleaseData, setUnreleaseData] = useState({ forwardToSelf: '', forwardAccountId: '', unreleaseRemarks: '' });
 
-    // added reroute state
     const [rerouteData, setRerouteData] = useState({ rerouteToSelf: true, rerouteAccountId: '', rerouteRemarks: '' });
+    const [disposeData, setDisposeData] = useState({ disposalRemarks: '' });
 
     const handleUnarchive = async () => {
       if (!data || !user?.id) return;
@@ -219,7 +241,6 @@ const DocumentLifeCycleModal = ({
       }
     };
 
-    // added: reroute handler
     const handleReroute = async () => {
       if (!document || !user?.id) return;
       if (!rerouteData.rerouteToSelf && !rerouteData.rerouteAccountId) {
@@ -248,6 +269,64 @@ const DocumentLifeCycleModal = ({
       }
     };
 
+    const handleDispose = async () => {
+      if (!data || !user?.id) return;
+      try {
+        const res = await disposeDocuments({
+          archivedDocId: data._id,
+          userAccountId: user.id,
+          disposalRemarks: disposeData.disposalRemarks || ''
+        });
+        toast({ title: 'Success', description: res.message || 'Document disposed.', status: 'success', duration: 5000, isClosable: true });
+        setDisposeData({ disposalRemarks: '' });
+        onClose();
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['expiredDocuments'] }),
+          queryClient.invalidateQueries({ queryKey: ['archivedDocuments'] }),
+          queryClient.invalidateQueries({ queryKey: ['documentHistory'] }),
+          queryClient.invalidateQueries({ queryKey: ['pendingDocuments'] }),
+          queryClient.invalidateQueries({ queryKey: ['outgoingDocuments'] }),
+        ]);
+      } catch (error) {
+        toast({ title: 'Error', description: error.response?.data?.message || 'Failed to dispose document.', status: 'error', duration: 5000, isClosable: true });
+      }
+    };
+
+    const handleDeleteDocument = async () => {
+      if (!data || !user?.id) return;
+      try {
+        const res = await deleteRegisteredDocument(data._id);
+        toast({ title: 'Success', description: res.message || 'Document deleted.', status: 'success', duration: 5000, isClosable: true });
+        onClose();
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['totalIncomingDocuments'] }),
+          queryClient.invalidateQueries({ queryKey: ['forwardedDocuments'] }),
+          queryClient.invalidateQueries({ queryKey: ['pendingDocuments'] }),
+          queryClient.invalidateQueries({ queryKey: ['outgoingDocuments'] }),
+          queryClient.invalidateQueries({ queryKey: ['documentWorkload'] }),
+        ]);
+      } catch (error) {
+        toast({ 
+          title: 'Error', description: error.response?.data?.message || 'Failed to delete document.', 
+          status: 'error', 
+          duration: 5000, 
+          isClosable: true 
+        });
+      }
+    }
+
+    // compute if doc is expired based on retentionUntil
+    // const isExpiredDoc = React.useMemo(() => {
+    //   if (!data?.lifeCycle) return false;
+    //   const archEvt = data.lifeCycle.find(ev => ev.action === 'Archived' && ev.archivalDetails?.retentionUntil);
+    //   if (!archEvt) return false;
+    //   try {
+    //     return new Date(archEvt.archivalDetails.retentionUntil) <= new Date();
+    //   } catch {
+    //     return false;
+    //   }
+    // }, [data]);
+
     return (
     <Modal isOpen={isOpen} onClose={onClose} isCentered size="2xl" closeOnOverlayClick={false} scrollBehavior="inside" motionPreset="none">
       <ModalOverlay />
@@ -259,14 +338,14 @@ const DocumentLifeCycleModal = ({
             </ModalHeader>
         )}
 
-        {isOutgoingPage && isReleased && (
+        {(isOutgoingPage || isReleased) && (
             <ModalHeader bg="red.50" borderBottomWidth="1px" borderColor="gray.200" display="flex" alignItems="center" py={4}>
                 <GrFolderCycle style={{ marginRight: 12, color: '#2563eb' }} />
                 Document Status
             </ModalHeader>
         )}
 
-        {isArchived && (
+        {(isArchived || isForDisposal) && (
             <ModalHeader bg="yellow.50" borderBottomWidth="1px" borderColor="gray.200" display="flex" alignItems="center" py={4}>
                 <GrFolderCycle style={{ marginRight: 12, color: '#2563eb' }} />
                 Document Status
@@ -278,6 +357,13 @@ const DocumentLifeCycleModal = ({
                 <GrFolderCycle style={{ marginRight: 12, color: '#2563eb' }} />
                 Document Status
             </ModalHeader>
+        )}
+
+        {isIncomingDashboardPage && (
+          <ModalHeader bg="green.50" borderBottomWidth="1px" borderColor="gray.200" display="flex" alignItems="center" py={4}>
+                <GrFolderCycle style={{ marginRight: 12, color: 'green' }} />
+                Document Status
+          </ModalHeader>
         )}
 
 
@@ -405,6 +491,65 @@ const DocumentLifeCycleModal = ({
                             onChange={(e) => setArchiveData(d => ({ ...d, location: e.target.value }))}
                           />
                         </FormControl>
+
+                        {/* Custom Disposal Method */}
+                        {data.documentName === 'N/A' && (
+                          <>
+                          <FormControl>
+                          <FormLabel>
+                            Disposal Method
+
+                            <text style={{ marginLeft: 4 }}>
+                                <Tooltip label="Specify the disposal method for the document, keep empty if permanent." fontSize="sm" placement="top">
+                                  (<Icon as={FaInfo} color="blue.500" boxSize={3}/>)
+                                </Tooltip>
+
+                              </text>
+                          </FormLabel>
+                          <Input
+                            placeholder='Disposal Method'
+                            value={archiveData.customDisposalMethod}
+                            onChange={(e) => setArchiveData(d => ({ ...d, customDisposalMethod: e.target.value }))}
+                          />
+                          </FormControl>
+
+                          <FormControl>
+                            <FormLabel>
+                              Retention Period in Months 
+                              
+                              <text style={{ marginLeft: 4 }}>
+                                <Tooltip label="Specify the retention period in months, keep empty if permanent." fontSize="sm" placement="top">
+                                  (<Icon as={FaInfo} color="blue.500" boxSize={3}/>)
+                                </Tooltip>
+
+                              </text>
+
+                            </FormLabel>
+                            <NumberInput
+                              min={1}
+                              max={60}
+                              step={1}
+                              value={archiveData.customRetentionPeriod}
+                              onChange={(valueNumber) =>
+                                setArchiveData(d => ({
+                                  ...d,
+                                  customRetentionPeriod: valueNumber 
+                                }))
+                              }
+                            >
+                              <NumberInputField placeholder="e.g. 24 (2 Years)" />
+                              <NumberInputStepper>
+                                <NumberIncrementStepper />
+                                <NumberDecrementStepper />
+                              </NumberInputStepper>
+                            </NumberInput>
+
+                          </FormControl>
+                          </>
+                        )}
+
+
+                        
                         <FormControl gridColumn={{ md: 'span 2' }}>
                           <FormLabel>Archive Remarks</FormLabel>
                           <Input
@@ -437,7 +582,7 @@ const DocumentLifeCycleModal = ({
                   <>
                   <Tabs colorScheme='orange' variant='enclosed'>
                     <TabList>
-                      <Tab>Unarchive Document</Tab>
+                      <Tab>Unarchive</Tab>
                     </TabList>
                     <TabPanels>
                       <TabPanel px={0} pt={4} pb={0}>
@@ -486,13 +631,98 @@ const DocumentLifeCycleModal = ({
                           </Button>
                         </Flex>
                       </TabPanel>
-                    </TabPanels>
-                  </Tabs>
+                        </TabPanels>
+                      </Tabs>
 
                   <Divider my={2} />
                   </>
                 )}
+                {isForDisposal && (
+                  <>
+                    <Tabs colorScheme='orange' variant='enclosed'>
+                      <TabList>
+                        <Tab>Dispose</Tab>
+                        <Tab>Unarchive</Tab>
+                      </TabList>
+                      <TabPanels>
+                        <TabPanel px={0} pt={4} pb={0}>
+                            <Box bg="red.50" p={3} borderRadius="md" mb={3} borderLeft="4px solid" borderLeftColor="red.400">
+                              <Text fontSize="sm" color="red.600">
+                                Disposing permanently removes the document from circulation. This action cannot be undone.
+                              </Text>
+                            </Box>
+                            <SimpleGrid columns={{ base: 1, md: 1 }} spacing={4}>
+                              <FormControl>
+                                <FormLabel>Disposal Remarks</FormLabel>
+                                <Input
+                                  placeholder="Reason or context for disposal (optional)"
+                                  value={disposeData.disposalRemarks}
+                                  onChange={(e) => setDisposeData(d => ({ ...d, disposalRemarks: e.target.value }))}
+                                />
+                              </FormControl>
+                            </SimpleGrid>
+                            <Flex justify="flex-end" mt={4}>
+                              <Button
+                                colorScheme="red"
+                                leftIcon={<TbFileShredder />}
+                                onClick={handleDispose}
+                                isLoading={isDisposingDocuments}
+                              >
+                                Dispose Document
+                              </Button>
+                            </Flex>
+                        </TabPanel>
 
+                        <TabPanel px={0} pt={4} pb={0}>
+                          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+                            <FormControl>
+                              <FormLabel>Forward to myself</FormLabel>
+                              <Switch
+                                isChecked={unarchiveData.forwardToSelf}
+                                onChange={(e) =>
+                                  setUnarchiveData(d => ({ ...d, forwardToSelf: e.target.checked, forwardAccountId: '' }))
+                                }
+                              />
+                            </FormControl>
+                            <FormControl isDisabled={unarchiveData.forwardToSelf} isRequired={!unarchiveData.forwardToSelf}>
+                              <FormLabel>Forward To</FormLabel>
+                              <Select
+                                placeholder={isLoadingAdminAndStaffAccounts ? 'Loading accounts...' : 'Select a user'}
+                                value={unarchiveData.forwardAccountId}
+                                onChange={(e) => setUnarchiveData(d => ({ ...d, forwardAccountId: e.target.value }))}
+                                isDisabled={isLoadingAdminAndStaffAccounts || unarchiveData.forwardToSelf}
+                              >
+                                {!isLoadingAdminAndStaffAccounts && adminAndStaffAccounts?.map(acc => (
+                                  <option key={acc._id} value={acc._id}>
+                                    {`${acc.first_name} ${acc.last_name} (${acc.office_position || (acc.role ? acc.role[0].toUpperCase()+acc.role.slice(1) : '-')})`}
+                                  </option>
+                                ))}
+                              </Select>
+                            </FormControl>
+                            <FormControl gridColumn={{ md: 'span 2' }}>
+                              <FormLabel>Remarks</FormLabel>
+                              <Input
+                                placeholder='Reason or context for unarchiving'
+                                value={unarchiveData.unarchiveRemarks}
+                                onChange={(e) => setUnarchiveData(d => ({ ...d, unarchiveRemarks: e.target.value }))}
+                              />
+                            </FormControl>
+                          </SimpleGrid>
+                          <Flex justify="flex-end" mt={4}>
+                            <Button
+                              colorScheme="orange"
+                              onClick={handleUnarchive}
+                              isLoading={isUnarchivingDocument}
+                              isDisabled={!unarchiveData.forwardToSelf && !unarchiveData.forwardAccountId}
+                            >
+                              Unarchive and Forward
+                            </Button>
+                          </Flex>
+                        </TabPanel>
+                      </TabPanels>
+                    </Tabs>
+                  </>
+                )}
                 {isReleased && (
                   <>
                   <Tabs colorScheme='red' variant='enclosed'>
@@ -554,7 +784,7 @@ const DocumentLifeCycleModal = ({
                 )}
                 
 
-              {/* Staffs Page: Reroute Tab */}
+              {/* Staffs Page */}
               {isStaffsPage && (
                 <>
                 <Tabs colorScheme="purple" variant="enclosed">
@@ -614,14 +844,44 @@ const DocumentLifeCycleModal = ({
                 </>
               )}
 
+              {isIncomingDashboardPage && (
+                <>
+                  <Tabs colorScheme='red' variant='enclosed'>
+                    <TabList>
+                      <Tab>Delete Document</Tab>
+                    </TabList>
+                    <TabPanels>
+                      <TabPanel px={0} pt={4} pb={0}>
+                        <Box bg="red.50" p={3} borderRadius="md" mb={3} borderLeft="4px solid" borderLeftColor="red.400">
+                          <Text fontSize="sm" color="red.600">
+                            Deleting permanently removes the document from the system. This action cannot be undone.
+                          </Text>
+                        </Box>
+                        <HStack justify="flex-end" align="center" spacing={2} mt={4}>
+                          <FormControl display="flex" alignItems="center" gap={2}>
+                            <FormLabel mb="0">I understand</FormLabel>
+                            <Switch isChecked={isUnderstood} onChange={(e) => setIsUnderstood(e.target.checked)} />
+                          </FormControl>
+                          <Button colorScheme="red" onClick={handleDeleteDocument} isLoading={isDeletingRegisteredDocument} pl={8} pr={8} isDisabled={!isUnderstood}>
+                            Delete Document
+                          </Button>
+                        </HStack>
+                      </TabPanel>
+                    </TabPanels>
+                  </Tabs>
+
+                  <Divider my={2} />
+                </>
+              )}
+
               {/* Document Info */}
               <Box bg="gray.50" p={4} borderRadius="md">
                 <SimpleGrid columns={{ base: 1, md: 2 }} spacing={3}>
                   <Box>
                     <Text fontWeight="bold" fontSize="sm" color="gray.600">Document Type</Text>
-                    <Text fontSize="md">{data.documentName || data.documentNameText}</Text>
+                    <Text fontSize="md">{data.documentName === 'N/A' ? data.documentNameText : data.documentName}</Text>
                   </Box>
-                  {data.documentCode ? (
+                  {data.documentCode !== 'N/A' ? (
                   <Box>
                     <Text fontWeight="bold" fontSize="sm" color="gray.600">Document Code</Text>
                     <Text fontSize="md">{data.documentCode}</Text>
@@ -686,7 +946,6 @@ const DocumentLifeCycleModal = ({
                           </Box>
 
                           <Box ml={4} flex={1}>
-
                             {/* Yung mismong name ng action, for example Created, Forwarded, Rerouted, Archived etc. */}
                             <Flex justify="space-between" align="flex-start">
                               <Box>
@@ -755,7 +1014,7 @@ const DocumentLifeCycleModal = ({
                                   <Text>{event.archivalDetails.disposalMethod}</Text>
 
                                   <Text fontWeight="bold">Retention Period:</Text>
-                                  <Text>{event.archivalDetails.retentionPeriod} Months (Until {retentionUntil})</Text>
+                                  <Text>{event.archivalDetails.retentionPeriod} Month/s (Until {retentionUntil})</Text>
 
                                   <Text fontWeight="bold">Document Medium:</Text>
                                   <Text>{event.archivalDetails.medium}</Text>
@@ -809,6 +1068,26 @@ const DocumentLifeCycleModal = ({
                                 )}
                               </Box>
                             )}
+
+                            {/* NEW: show Disposed details if available */}
+                            {event?.action === "Disposed" && event?.disposalDetails && (
+                              <Box mt={2} p={3} bg="red.50" borderRadius="md" borderLeftWidth="3px" borderLeftColor="red.500">
+                                <SimpleGrid columns={2} spacing={2} fontSize="sm">
+                                  {event.disposalDetails.method && (
+                                    <>
+                                      <Text fontWeight="bold">Method:</Text>
+                                      <Text>{event.disposalDetails.method}</Text>
+                                    </>
+                                  )}
+                                  {event.disposalDetails.disposalRemarks && (
+                                    <>
+                                      <Text fontWeight="bold">Remarks:</Text>
+                                      <Text>"{event.disposalDetails.disposalRemarks}"</Text>
+                                    </>
+                                  )}
+                                </SimpleGrid>
+                              </Box>
+                            )}
                           </Box>
                         </Flex>
                       </Box>
@@ -843,11 +1122,13 @@ const DocumentLifeCycleModal = ({
             onClick={() => {
               onClose();
               setForwardData({ forwardAccountId: '', forwardRemarks: '' });
-              setReleaseData({ recipientOffice: '', recipientPerson: '', modeOfRelease: '', releaseRemarks: '' });
-              setArchiveData({ medium: '', location: '', archiveRemarks: '' });
+              setReleaseData({ recipientOffice: '', recipientPerson: '', modeOfRelease: '', releaseRemarks: '', isCustomDoc: '' });
+              setArchiveData({ medium: '', location: '', archiveRemarks: '', isCustomDoc: '', customDisposalMethod: '', customRetentionPeriod: '' });
               setUnarchiveData({ forwardToSelf: true, forwardAccountId: '', unarchiveRemarks: '' });
               setUnreleaseData({ forwardToSelf: true, forwardAccountId: '', unreleaseRemarks: '' });
               setRerouteData({ rerouteToSelf: true, rerouteAccountId: '', rerouteRemarks: '' });
+              setDisposeData({ disposalRemarks: '' });
+              setIsUnderstood(false);
             }}
             size="md"
             _hover={{ bg: "gray.100" }}

@@ -119,7 +119,7 @@ export const registerDocument = async (req, res) => {
     try {
 
         const document = isManuallyTyped ? null : await global.docTrackModels.Document.findById(documentId);
-        if (!document) {
+        if (!document && isManuallyTyped === false) {
             return res.status(404).json({ success: false, message: 'Document type not found.'});
         }
         
@@ -145,7 +145,7 @@ export const registerDocument = async (req, res) => {
 
         const newDocRegistration = await global.docTrackModels.DocumentLifeCycle.create({
             documentId: isManuallyTyped ? null : document._id,
-            documentName: isManuallyTyped ? documentNameText : document.documentName,
+            documentName: isManuallyTyped ? 'N/A' : document.documentName,
             documentCode: isManuallyTyped ? 'N/A' : document.documentCode,
 
             documentNameText: isManuallyTyped ? documentNameText : 'N/A',
@@ -197,7 +197,7 @@ export const registerDocument = async (req, res) => {
                             userModel: userModel,
                             userId: user._id,
                             first_name: user.first_name,
-                            last_name: user.last_name,
+                            last_name: user.lastName,
                             middle_name: user.middle_name,
                             suffix: user.suffix,
                             role: user.role,
@@ -389,7 +389,7 @@ export const registerAndForwardDocument = async (req, res) => {
 
     try {
         const registerDocument = isManuallyTyped ? null : await global.docTrackModels.Document.findById(documentId);
-        if (!registerDocument) {
+        if (!registerDocument && isManuallyTyped === false) {
             return res.status(404).json({ success: false, message: 'Document type not found.'});
         }
 
@@ -414,7 +414,7 @@ export const registerAndForwardDocument = async (req, res) => {
 
         const newDocRegistration = await global.docTrackModels.DocumentLifeCycle.create({
             documentId: isManuallyTyped ? null : registerDocument._id,
-            documentName: isManuallyTyped ? documentNameText : registerDocument.documentName,
+            documentName: isManuallyTyped ? 'N/A' : registerDocument.documentName,
             documentCode: isManuallyTyped ? 'N/A' : registerDocument.documentCode,
 
             documentNameText: isManuallyTyped ? documentNameText : 'N/A',
@@ -564,15 +564,15 @@ export const receiveDocument = async (req, res) => {
 };
 
 export const archiveDocument = async (req, res) => { 
-    const { registeredDocId, userAccountId, medium, location, archiveRemarks } = req.body;
+    const { registeredDocId, userAccountId, medium, location, archiveRemarks, isCustomDoc, customDisposalMethod, customRetentionPeriod } = req.body;
 
     try {
         const document = await global.docTrackModels.DocumentLifeCycle.findById(registeredDocId);
         if (!document) {
             return res.status(404).json({ success:false, message: 'Registered document not found.' });
         }
-        const docType = await global.docTrackModels.Document.findById(document.documentId);
-        if (!docType) {
+        const docType = isCustomDoc !== true ? await global.docTrackModels.Document.findById(document.documentId) : null;
+        if (!docType && isCustomDoc !== true) {
             return res.status(404).json({ success:false, message: 'Document type not found.' });
         }
         const user = await global.docTrackModels.ManagerAccount.findById(userAccountId) ||
@@ -582,11 +582,25 @@ export const archiveDocument = async (req, res) => {
         }
         const userModel = user instanceof global.docTrackModels.ManagerAccount ? 'Manager_Account' : 'Staff_Account';
 
-        const today = new Date();
-        let retentionUntil = new Date(today.setMonth(today.getMonth() + docType.retentionPeriod));
-        if (!docType.retentionPeriod === 0) { //if null, meaning permanent
-            retentionUntil = null;
+
+        const rawPeriod = isCustomDoc === true
+            ? Number(customRetentionPeriod)
+            : Number(docType?.retentionPeriod);
+        const period = Number.isFinite(rawPeriod) && rawPeriod > 0 ? rawPeriod : null;
+
+        let retentionUntil = null;
+        if (period) {
+            const until = new Date();
+            until.setMonth(until.getMonth() + period);
+            retentionUntil = until;
         }
+
+        // const today = new Date();
+        // const retUntil = isCustomDoc !== true ? docType.retentionPeriod : customRetentionPeriod;
+        // let retentionUntil = new Date(today.setMonth(today.getMonth() + retUntil));
+        // if (!docType.retentionPeriod === 0 && isCustomDoc !== true) { //if null, meaning permanent
+        //     retentionUntil = null;
+        // }
 
         const archiveDocument = await global.docTrackModels.DocumentLifeCycle.findOneAndUpdate(
             { _id: document._id },
@@ -607,8 +621,8 @@ export const archiveDocument = async (req, res) => {
                             phone: user.phone
                         },
                         archivalDetails: {
-                            disposalMethod: docType.disposalMethod,
-                            retentionPeriod: docType.retentionPeriod,
+                            disposalMethod: isCustomDoc !== true ? docType.disposalMethod : customDisposalMethod,
+                            retentionPeriod: isCustomDoc !== true ? docType.retentionPeriod : customRetentionPeriod,
 
                             retentionUntil: retentionUntil,
                             medium: medium,
@@ -634,16 +648,17 @@ export const archiveDocument = async (req, res) => {
 
         return res.status(200).json({ success: true, message: 'Document archived successfully', data: archiveDocument });
     } catch (error) {
+        console.error('Error archiving document:', error);
         return res.status(500).json({success: false, message: 'Error archiving document', error: error.message});
      }
 };
 
 export const releaseDocument = async (req, res) => {
-    const { registeredDocId, userAccountId, recipientOffice, recipientPerson, modeOfRelease, releaseRemarks } = req.body;
+    const { registeredDocId, userAccountId, recipientOffice, recipientPerson, modeOfRelease, releaseRemarks, isCustomDoc } = req.body;
 
     try {
-        const document = await global.docTrackModels.DocumentLifeCycle.findById(registeredDocId);
-        if (!document) {
+        const document = isCustomDoc !== true ? await global.docTrackModels.DocumentLifeCycle.findById(registeredDocId) : null;
+        if (!document && isCustomDoc !== true) {
             return res.status(404).json({ success:false, message: 'Registered document not found.' });
         }
         const user = await global.docTrackModels.ManagerAccount.findById(userAccountId) ||
@@ -1102,73 +1117,6 @@ export const getArchivedDocuments = async (req, res) => {
     }
 };
 
-export const getReleasedDocuments = async (req, res) => { //get outgoing documents
-    const { searchQuery } = req.query;
-    try {
-        const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 10;
-        const skip = (page - 1) * limit;
-
-        const pipeline = [
-            // Use the last lifecycle entry; archived docs should end with "Archived"
-            { $addFields: { lastAction: { $arrayElemAt: ['$lifeCycle', -1] } } },
-            { $match: { 'lastAction.action': 'Released' } },
-        ];
-
-        if (searchQuery && searchQuery.trim() !== '') {
-            const words = searchQuery.trim().split(/\s+/);
-            const searchConditions = words.map((word) => ({
-                $or: [
-                    { refNumber: { $regex: word, $options: 'i' } },
-                    { documentName: { $regex: word, $options: 'i' } },
-                    { 'lastAction.performedBy.first_name': { $regex: word, $options: 'i' } },
-                    { 'lastAction.performedBy.last_name': { $regex: word, $options: 'i' } },
-                    // Match "First Last" combined
-                    {
-                        $expr: {
-                            $regexMatch: {
-                                input: { $concat: ['$lastAction.performedBy.first_name', ' ', '$lastAction.performedBy.last_name'] },
-                                regex: word,
-                                options: 'i'
-                            }
-                        }
-                    }
-                ]
-            }));
-            pipeline.push({ $match: { $and: searchConditions } });
-        }
-
-        pipeline.push({
-            $facet: {
-                paginatedResults: [
-                    { $sort: { 'lastAction.timeStamp': -1, _id: -1 } },
-                    { $skip: skip },
-                    { $limit: limit }
-                ],
-                totalCount: [{ $count: 'count' }]
-            }
-        });
-
-        const result = await global.docTrackModels.ReleasedDocuments.aggregate(pipeline);
-        const relevantDocs = result[0]?.paginatedResults || [];
-        const totalCount = result[0]?.totalCount?.[0]?.count || 0;
-
-        return res.status(200).json({
-            success: true,
-            message: 'Successfully fetched released documents.',
-            data: {
-                relevantDocs,
-                totalCount,
-                totalPages: Math.ceil(totalCount / limit),
-                currentPage: page
-            }
-        });
-    } catch (error) {
-        console.error('Error fetching archived documents:', error);
-        return res.status(500).json({ success: false, message: 'Error fetching archived documents', error: error.message });
-    }
-};
-
 export const unarchiveDocument = async (req, res) => {
     const { archivedDocId, userAccountId, forwardAccountId, unarchiveRemarks, forwardToSelf } = req.body;
 
@@ -1505,9 +1453,7 @@ export const getUsersDocumentWorkload = async (req, res) => {
                             refNumber: '$refNumber',
                             documentName: '$documentName',
                             documentCode: '$documentCode',
-                            priority: '$priority',
-                            lastAction: '$lastAction',
-                            currentHandler: '$currentHandler'
+                            documentNameText: '$documentNameText'
                         }
                     }
                 }
@@ -1529,9 +1475,7 @@ export const getUsersDocumentWorkload = async (req, res) => {
                             refNumber: '$refNumber',
                             documentName: '$documentName',
                             documentCode: '$documentCode',
-                            priority: '$priority',
-                            lastAction: '$lastAction',
-                            currentHandler: '$currentHandler'
+                            documentNameText: '$documentNameText'
                         }
                     }
                 }
@@ -1763,6 +1707,73 @@ export const getTotalIncomingDocuments = async (req, res) => { //para sa totalli
     }
 };
 
+export const getReleasedDocuments = async (req, res) => { //get outgoing documents
+    const { searchQuery } = req.query;
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+
+        const pipeline = [
+            // Use the last lifecycle entry; archived docs should end with "Archived"
+            { $addFields: { lastAction: { $arrayElemAt: ['$lifeCycle', -1] } } },
+            { $match: { 'lastAction.action': 'Released' } },
+        ];
+
+        if (searchQuery && searchQuery.trim() !== '') {
+            const words = searchQuery.trim().split(/\s+/);
+            const searchConditions = words.map((word) => ({
+                $or: [
+                    { refNumber: { $regex: word, $options: 'i' } },
+                    { documentName: { $regex: word, $options: 'i' } },
+                    { 'lastAction.performedBy.first_name': { $regex: word, $options: 'i' } },
+                    { 'lastAction.performedBy.last_name': { $regex: word, $options: 'i' } },
+                    // Match "First Last" combined
+                    {
+                        $expr: {
+                            $regexMatch: {
+                                input: { $concat: ['$lastAction.performedBy.first_name', ' ', '$lastAction.performedBy.last_name'] },
+                                regex: word,
+                                options: 'i'
+                            }
+                        }
+                    }
+                ]
+            }));
+            pipeline.push({ $match: { $and: searchConditions } });
+        }
+
+        pipeline.push({
+            $facet: {
+                paginatedResults: [
+                    { $sort: { 'lastAction.timeStamp': -1, _id: -1 } },
+                    { $skip: skip },
+                    { $limit: limit }
+                ],
+                totalCount: [{ $count: 'count' }]
+            }
+        });
+
+        const result = await global.docTrackModels.ReleasedDocuments.aggregate(pipeline);
+        const relevantDocs = result[0]?.paginatedResults || [];
+        const totalCount = result[0]?.totalCount?.[0]?.count || 0;
+
+        return res.status(200).json({
+            success: true,
+            message: 'Successfully fetched released documents.',
+            data: {
+                relevantDocs,
+                totalCount,
+                totalPages: Math.ceil(totalCount / limit),
+                currentPage: page
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching archived documents:', error);
+        return res.status(500).json({ success: false, message: 'Error fetching archived documents', error: error.message });
+    }
+};
+
 export const getExpiredDocuments = async (req, res) => {
     const { searchQuery } = req.query;
     try {
@@ -1879,7 +1890,8 @@ export const disposeDocuments = async (req, res) => {
                         },
                         timeStamp: Date.now()
                     }
-                }
+                },
+                $set: { currentHandler: null }
             }
         );
 
@@ -1896,15 +1908,15 @@ export const disposeDocuments = async (req, res) => {
 };
 
 export const deleteRegisteredDocument = async (req, res) => {
-    const { registeredDocId } = req.body;
+    const { id } = req.params;
 
     try {
-        const registeredDocument = await global.docTrackModels.RegisteredDocuments.findById(registeredDocId);
-        if (!registeredDocument) {
+        const document = await global.docTrackModels.DocumentLifeCycle.findById(id);
+        if (!document) {
             return res.status(404).json({ success: false, message: 'Registered document not found.' });
         }
 
-        await global.docTrackModels.RegisteredDocuments.findByIdAndDelete(registeredDocId);
+        await global.docTrackModels.DocumentLifeCycle.findByIdAndDelete(id);
 
         return res.status(200).json({ success: true, message: 'Document deleted successfully.' });
     } catch (error) {
