@@ -124,7 +124,7 @@ const G_Staffs = () => {
                     <Th isNumeric>Incoming</Th>
                     <Th isNumeric>Pending</Th>
                     <Th isNumeric>Total Active</Th>
-                    <Th>Recent Docs</Th> {/* changed: replace Actions with Recent Docs */}
+                    <Th>Recent Docs</Th> 
                   </Tr>
                 </Thead>
                 <Tbody>
@@ -156,7 +156,7 @@ const G_Staffs = () => {
                                 <Flex key={doc._id} align="center" justify="space-between" gap={2}>
                                   <Flex direction="column">
                                     <Text fontWeight="medium">{doc.refNumber}</Text>
-                                    <Text fontSize="xs" color="gray.600">{doc.documentName || doc.documentNameText}</Text>
+                                    <Text fontSize="xs" color="gray.600">{doc.documentName === 'N/A' ? doc.documentNameText : doc.documentName || '-'}</Text>
                                   </Flex>
                                   <Button
                                     size="xs"
