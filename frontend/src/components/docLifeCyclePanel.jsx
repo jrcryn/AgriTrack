@@ -500,7 +500,7 @@ const DocumentLifeCycleModal = ({
                             Disposal Method
 
                             <text style={{ marginLeft: 4 }}>
-                                <Tooltip label="Specify the disposal method for the document, keep empty if permanent." fontSize="sm" placement="top">
+                                <Tooltip label="Specify the disposal method for the document, keep empty if permanent." fontSize="sm" placement="top" hasArrow={true}>
                                   (<Icon as={FaInfo} color="blue.500" boxSize={3}/>)
                                 </Tooltip>
 
@@ -518,7 +518,7 @@ const DocumentLifeCycleModal = ({
                               Retention Period in Months 
                               
                               <text style={{ marginLeft: 4 }}>
-                                <Tooltip label="Specify the retention period in months, keep empty if permanent." fontSize="sm" placement="top">
+                                <Tooltip label="Specify the retention period in months, keep empty if permanent." fontSize="sm" placement="top" hasArrow={true}>
                                   (<Icon as={FaInfo} color="blue.500" boxSize={3}/>)
                                 </Tooltip>
 
