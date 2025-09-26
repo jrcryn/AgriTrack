@@ -135,7 +135,7 @@ const E_Outgoing = () => {
         Outgoing Documents
       </Heading>
       <Text color="gray.600" mb={5}>
-        View all outgoing documents.
+        View all forwarded documents.
       </Text>
 
       {/* Filter Section */}

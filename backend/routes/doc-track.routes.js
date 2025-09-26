@@ -27,7 +27,8 @@ import {
     getExpiredDocuments,
     disposeDocuments,
     deleteRegisteredDocument,
-    getSectionDocumentCount
+    getSectionDocumentCount,
+    getDisposedDocuments
  } from '../controller/doc-track/adminDashboard.controller.js';
 
 const router = express.Router();
@@ -64,6 +65,7 @@ router.get('/users-workload', getUsersDocumentWorkload);
 router.get('/get-total-incoming-documents', getTotalIncomingDocuments);
 router.get('/get-released-documents', getReleasedDocuments);
 router.get('/get-expired-documents', getExpiredDocuments);
+router.get('/get-disposed-documents', getDisposedDocuments);
 
 router.post('/dispose-documents', disposeDocuments);
 router.post('/delete-registered-document/:id', deleteRegisteredDocument);

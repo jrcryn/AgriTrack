@@ -1912,7 +1912,8 @@ export const disposeDocuments = async (req, res) => {
                     }
                 },
                 $set: { currentHandler: null }
-            }
+            },
+            { new: true } //need kasi deafault update ang binabalik luma prang ewan, kaya dapat new para ang ibalik is yung bagong update.
         );
 
         const disposedColl = global.docTrackModels.DisposedDocuments.db.collection('disposed_documents');
@@ -2061,5 +2062,74 @@ export const getSectionDocumentCount = async (req, res) => {
         });
     }
 };
+
+export const getDisposedDocuments = async (req, res) => {
+    const { searchQuery } = req.query;
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+
+        const pipeline = [
+            // Use the last lifecycle entry; archived docs should end with "Archived"
+            { $addFields: { lastAction: { $arrayElemAt: ['$lifeCycle', -1] } } },
+            { $match: { 'lastAction.action': 'Disposed' } },
+        ];
+
+        if (searchQuery && searchQuery.trim() !== '') {
+            const words = searchQuery.trim().split(/\s+/);
+            const searchConditions = words.map((word) => ({
+                $or: [
+                    { documentName: { $regex: word, $options: 'i' } },
+                    { documentCode: { $regex: word, $options: 'i' } },
+                    { refNumber:   { $regex: word, $options: 'i' } },
+                    { documentNameText: { $regex: word, $options: 'i' } },
+                    { 'lastAction.performedBy.first_name': { $regex: word, $options: 'i' } },
+                    { 'lastAction.performedBy.last_name': { $regex: word, $options: 'i' } },
+                    // Match "First Last" combined
+                    {
+                        $expr: {
+                            $regexMatch: {
+                                input: { $concat: ['$lastAction.performedBy.first_name', ' ', '$lastAction.performedBy.last_name'] },
+                                regex: word,
+                                options: 'i'
+                            }
+                        }
+                    }
+                ]
+            }));
+            pipeline.push({ $match: { $and: searchConditions } });
+        }
+
+        pipeline.push({
+            $facet: {
+                paginatedResults: [
+                    { $sort: { 'lastAction.timeStamp': -1, _id: -1 } },
+                    { $skip: skip },
+                    { $limit: limit }
+                ],
+                totalCount: [{ $count: 'count' }]
+            }
+        });
+
+        const result = await global.docTrackModels.DisposedDocuments.aggregate(pipeline);
+        const relevantDocs = result[0]?.paginatedResults || [];
+        const totalCount = result[0]?.totalCount?.[0]?.count || 0;
+
+        return res.status(200).json({
+            success: true,
+            message: 'Successfully fetched diposed documents.',
+            data: {
+                relevantDocs,
+                totalCount,
+                totalPages: Math.ceil(totalCount / limit),
+                currentPage: page
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching disposed documents:', error);
+        return res.status(500).json({ success: false, message: 'Error fetching disposed documents', error: error.message });
+    }
+}; 
 
 

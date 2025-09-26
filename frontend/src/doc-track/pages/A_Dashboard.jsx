@@ -500,10 +500,11 @@ const A_Dashboard = () => {
           >
             <Stat>
               <StatLabel fontSize="md" display="flex" alignItems="center">
-                <Icon as={GoArchive} mr={2} color="red.500" /> Archived Documents
+                <Icon as={GoArchive} mr={2} color="red.500" /> Disposition Documents
               </StatLabel>
               <StatNumber fontSize="4xl" mb={2}>{metrics.archivedDocuments}</StatNumber>
-              <Tag colorScheme="orange" size="sm">Archived Documents</Tag>
+              <Tag colorScheme="orange" size="sm" mr={{base: 1, md: 1}}>Archived Documents</Tag>
+              <Tag colorScheme="gray" size="sm">Disposed Documents</Tag>
             </Stat>
           </Box>
         </Stack>

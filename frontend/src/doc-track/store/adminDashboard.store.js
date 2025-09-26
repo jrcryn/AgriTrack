@@ -108,6 +108,18 @@ const useExpiredDocumentsQuery = (page = 1, searchParams = {}) =>
         },
     });
 
+const useDisposedDocumentsQuery = (page = 1, searchParams = {}) =>
+    useQuery({
+        queryKey: ['disposedDocuments', page, searchParams],
+        queryFn: async () => {
+            const response = await axios.get(
+                `${API_URL}/api/doc-track/get-disposed-documents`,
+                { params: { page, limit: 10, ...searchParams } }
+            );
+            return response.data;
+        },
+    });
+
 const useReleasedDocumentsQuery = (page = 1, searchParams = {}) =>
     useQuery({
         queryKey: ['releasedDocuments', page, searchParams],
@@ -163,6 +175,7 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
         archivedPage = 1,
         releasedPage = 1,
         expiredPage = 1,
+        disposedPage = 1,
         totalIncomingPage = 1,
     } = pages;
 
@@ -185,6 +198,8 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
     const { data: usersDocumentWorkload = [], isLoading: isLoadingUsersDocumentWorkload, error: usersDocumentWorkloadError } = useUsersDocumentWorkloadQuery();
 
     const { data: expiredDocuments = [], isLoading: isLoadingExpiredDocuments, error: expiredDocumentsError } = useExpiredDocumentsQuery(expiredPage, searchParams);
+
+    const { data: disposedDocuments = [], isLoading: isLoadingDisposedDocuments, error: disposedDocumentError } = useDisposedDocumentsQuery(disposedPage, searchParams);
 
     const { data: totalIncomingDocuments = [], isLoading: isLoadingTotalIncomingDocuments, error: totalIncomingDocumentsError } = useTotalIncomingDocumentsQuery(totalIncomingPage, searchParams);
 
@@ -408,6 +423,7 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
         expiredDocuments,
         totalIncomingDocuments,
         sectionDocumentCount,
+        disposedDocuments,
 
         // action functions
         createDocument,
@@ -437,6 +453,7 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
         isLoadingExpiredDocuments,
         isLoadingTotalIncomingDocuments,
         isLoadingSectionDocumentCount,
+        isLoadingDisposedDocuments,
 
         // action flags
         isCreatingDocument,
@@ -468,5 +485,6 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
         expiredDocumentsError,
         totalIncomingDocumentsError,
         sectionDocumentCountError,
+        disposedDocumentError,
     };
 }

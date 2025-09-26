@@ -106,7 +106,7 @@ const I_OutgoingDashboard = () => {
         Document Logs
       </Heading>
       <Text color="gray.600" mb={5}>
-        View and manage incoming documents.
+        View and manage outgoing documents.
       </Text>
 
       {/* Filter Section */}

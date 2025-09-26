@@ -64,7 +64,7 @@ const H_IncomingDashboard = () => {
     onOpen();
   };
 
-  const PaginationControls = ({ currentPage, setCurrentPage, totalPages, totalItems, colorScheme }) => (
+  const PaginationControls = ({ currentPage, setCurrentPage, totalPages, totalItems }) => (
     <Flex
       justifyContent="space-between"
       mt={4}
