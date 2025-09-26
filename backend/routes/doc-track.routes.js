@@ -14,7 +14,7 @@ import {
     getIncomingForwardedDocuments,
     getPendingDocuments,
     getDocumentTypes,
-    getDocumentHistory,
+    //getDocumentHistory,
     getDocumentStatus,
     getOutgoingForwardedDocuments,
     getArchivedDocuments,
@@ -27,6 +27,7 @@ import {
     getExpiredDocuments,
     disposeDocuments,
     deleteRegisteredDocument,
+    getSectionDocumentCount
  } from '../controller/doc-track/adminDashboard.controller.js';
 
 const router = express.Router();
@@ -47,7 +48,7 @@ router.get('/get-incoming-forwarded-documents/:id', getIncomingForwardedDocument
 router.get('/get-pending-documents/:id', getPendingDocuments);
 
 router.get('/get-document-types', getDocumentTypes);
-router.get('/get-document-history/:id', getDocumentHistory);
+//router.get('/get-document-history/:id', getDocumentHistory);
 router.get('/get-outgoing-forwarded-documents/:id', getOutgoingForwardedDocuments); 
 router.get('/get-archived-documents', getArchivedDocuments);
 
@@ -66,6 +67,8 @@ router.get('/get-expired-documents', getExpiredDocuments);
 
 router.post('/dispose-documents', disposeDocuments);
 router.post('/delete-registered-document/:id', deleteRegisteredDocument);
+
+router.get('/get-section-document-count', getSectionDocumentCount)
 
 export default router;
 

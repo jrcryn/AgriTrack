@@ -152,11 +152,13 @@ const I_OutgoingDashboard = () => {
         <Flex justify="space-between" align="center" mb={4} bg={'red.50'} p={3} borderRadius="md" borderLeftWidth="4px" borderLeftColor={'red.500'}>
           <Heading as="h2" size="md" display="flex" alignItems="center">
             <Icon as={LuLogs} mr={2} color={'red.500'} /> OUTGOING DOCUMENTS
+
             <text style={{ marginLeft: 4 }}>
               <Tooltip label="Released documents records will be automatically deleted after a month." fontSize="sm" placement="top" hasArrow={true}>
                 (<Icon as={FaInfo} color="blue.500" boxSize={3} />)
               </Tooltip>
             </text>
+            
           </Heading>
         </Flex>
 

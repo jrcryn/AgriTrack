@@ -31,7 +31,7 @@ import {
   VStack,
   FormErrorMessage,
   useToast,
-  
+  Tooltip
 } from "@chakra-ui/react";
 import {
   FiFileText,
@@ -70,7 +70,11 @@ const A_Dashboard = () => {
 
     totalIncomingDocuments,
     releasedDocuments,
-    archivedDocuments
+    archivedDocuments,
+
+    sectionDocumentCount,
+    isLoadingSectionDocumentCount,
+    sectionDocumentCountError
   } = useAdminDashboard();
   
   // Mock metrics data
@@ -84,12 +88,22 @@ const A_Dashboard = () => {
     avgProcessingTime: 2.4, // days
     responseRate: 92
   };
-  const departmentPerformance = [
-    { name: 'CID OFFICE', processed: 56, pending: 12 },
-    { name: 'OSDS/ASDS OFFICE', processed: 42, pending: 8 },
-    { name: 'SGOD OFFICE', processed: 31, pending: 15 },
-    { name: 'FINANCE', processed: 24, pending: 6 }
-  ];
+  const sectionPerformance = {
+    managersIncoming: sectionDocumentCount?.data?.sections?.managers?.incoming ?? 0,
+    managersPending: sectionDocumentCount?.data?.sections?.managers?.pending ?? 0,
+
+    cfsIncoming: sectionDocumentCount?.data?.sections?.CFS?.incoming ?? 0,
+    cfsPending: sectionDocumentCount?.data?.sections?.CFS?.pending ?? 0,
+
+    lpmsIncoming: sectionDocumentCount?.data?.sections?.LPMS?.incoming ?? 0,
+    lpmsPending: sectionDocumentCount?.data?.sections?.LPMS?.pending ?? 0,
+
+    anmsIncoming: sectionDocumentCount?.data?.sections?.ANMS?.incoming ?? 0,
+    anmsPending: sectionDocumentCount?.data?.sections?.ANMS?.pending ?? 0,
+
+    rtssIncoming: sectionDocumentCount?.data?.sections?.RTSS?.incoming ?? 0,
+    rtssPending: sectionDocumentCount?.data?.sections?.RTSS?.pending ?? 0,
+  };
 
   const [isPermanent, setIsPermanent] = useState(false); //for retention period
   const [formErrors, setFormErrors] = useState({});
@@ -496,7 +510,7 @@ const A_Dashboard = () => {
       </Box>
       
       {/* DEPARTMENTAL PERFORMANCE */}
-      {/* <Box mb={4}>
+      <Box mb={4}>
         <Flex 
           justify="space-between" 
           align="center" 
@@ -508,14 +522,14 @@ const A_Dashboard = () => {
           borderLeftColor="purple.500"
         >
           <Heading as="h2" size="md" display="flex" alignItems="center">
-            <Icon as={FiUsers} mr={2} color="purple.600" /> OFFICE PERFORMANCE
+            <Icon as={FiUsers} mr={2} color="purple.600" /> SECTION DOCUMENTS
           </Heading>
         </Flex>
         
-        <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={4}>
-          {departmentPerformance.map((dept, index) => (
+        <SimpleGrid columns={{ base: 1, md: 2, lg: 5 }} spacing={4}>
+
+          {/* Managers */}
             <Box 
-              key={index}
               p={4} 
               borderRadius="md" 
               boxShadow="sm" 
@@ -523,31 +537,137 @@ const A_Dashboard = () => {
               borderWidth="1px"
               borderColor="gray.200"
             >
-              <Text fontWeight="medium" mb={2}>{dept.name}</Text>
+              <Text fontWeight="medium" mb={2}>{'Managers'}</Text>
               <Flex align="center" justify="space-between" mb={2}>
                 <Flex align="center">
-                  <Icon as={FiCheckCircle} color="green.500" mr={1} />
-                  <Text fontSize="sm">Processed</Text>
+                  <Icon as={FiInbox} color="green.500" mr={1} />
+                  <Text fontSize="sm">Incoming</Text>
                 </Flex>
-                <Text fontWeight="bold">{dept.processed}</Text>
+                <Text fontWeight="bold">{sectionPerformance.managersIncoming}</Text>
               </Flex>
               <Flex align="center" justify="space-between">
                 <Flex align="center">
-                  <Icon as={FiAlertCircle} color="yellow.500" mr={1} />
+                  <Icon as={FiClock} color="yellow.500" mr={1} />
                   <Text fontSize="sm">Pending</Text>
                 </Flex>
-                <Text fontWeight="bold">{dept.pending}</Text>
+                <Text fontWeight="bold">{sectionPerformance.managersPending}</Text>
               </Flex>
-              <Progress 
-                value={(dept.processed / (dept.processed + dept.pending)) * 100} 
-                colorScheme="purple" 
-                size="sm" 
-                mt={3} 
-              />
             </Box>
-          ))}
+
+            {/* CFS SECTION */}
+            <Tooltip label="Crop and Fishery Section" fontSize="sm" placement="top" hasArrow={true}>
+            <Box 
+              p={4} 
+              borderRadius="md" 
+              boxShadow="sm" 
+              bg="white"
+              borderWidth="1px"
+              borderColor="gray.200"
+            >
+              <Text fontWeight="medium" mb={2} cursor="help">{'CFS'}</Text>  
+              <Flex align="center" justify="space-between" mb={2}>
+                <Flex align="center">
+                  <Icon as={FiInbox} color="green.500" mr={1} />
+                  <Text fontSize="sm">Incoming</Text>
+                </Flex>
+                <Text fontWeight="bold">{sectionPerformance.cfsIncoming}</Text>
+              </Flex>
+              <Flex align="center" justify="space-between">
+                <Flex align="center">
+                  <Icon as={FiClock} color="yellow.500" mr={1} />
+                  <Text fontSize="sm">Pending</Text>
+                </Flex>
+                <Text fontWeight="bold">{sectionPerformance.cfsPending}</Text>
+              </Flex>
+            </Box>
+            </Tooltip>
+
+            {/* LPMS SECTION */}
+            <Tooltip label="Livestock & Poultry Management Section" fontSize="sm" placement="top" hasArrow={true}>
+            <Box 
+              p={4} 
+              borderRadius="md" 
+              boxShadow="sm" 
+              bg="white"
+              borderWidth="1px"
+              borderColor="gray.200"
+            >
+              <Text fontWeight="medium" mb={2}>{'LPMS'}</Text>
+              <Flex align="center" justify="space-between" mb={2}>
+                <Flex align="center">
+                  <Icon as={FiInbox} color="green.500" mr={1} />
+                  <Text fontSize="sm">Incoming</Text>
+                </Flex>
+                <Text fontWeight="bold">{sectionPerformance.lpmsIncoming}</Text>
+              </Flex>
+              <Flex align="center" justify="space-between">
+                <Flex align="center">
+                  <Icon as={FiClock} color="yellow.500" mr={1} />
+                  <Text fontSize="sm">Pending</Text>
+                </Flex>
+                <Text fontWeight="bold">{sectionPerformance.lpmsPending}</Text>
+              </Flex>
+            </Box>
+            </Tooltip>
+
+            {/* ANMS SECTION */}
+            <Tooltip label="Agricultural Nursery Management Section" fontSize="sm" placement="top" hasArrow={true}>
+            <Box 
+              p={4} 
+              borderRadius="md" 
+              boxShadow="sm" 
+              bg="white"
+              borderWidth="1px"
+              borderColor="gray.200"
+            >
+              <Text fontWeight="medium" mb={2}>{'ANMS'}</Text>
+              <Flex align="center" justify="space-between" mb={2}>
+                <Flex align="center">
+                  <Icon as={FiInbox} color="green.500" mr={1} />
+                  <Text fontSize="sm">Incoming</Text>
+                </Flex>
+                <Text fontWeight="bold">{sectionPerformance.anmsIncoming}</Text>
+              </Flex>
+              <Flex align="center" justify="space-between">
+                <Flex align="center">
+                  <Icon as={FiClock} color="yellow.500" mr={1} />
+                  <Text fontSize="sm">Pending</Text>
+                </Flex>
+                <Text fontWeight="bold">{sectionPerformance.anmsPending}</Text>
+              </Flex>
+            </Box>
+            </Tooltip>
+
+            {/* RTSS SECTION */}
+            <Tooltip label="Research and Technical Services Section" fontSize="sm" placement="top" hasArrow={true}>
+            <Box 
+              p={4} 
+              borderRadius="md" 
+              boxShadow="sm" 
+              bg="white"
+              borderWidth="1px"
+              borderColor="gray.200"
+            >
+              <Text fontWeight="medium" mb={2}>{'RTSS'}</Text>
+              <Flex align="center" justify="space-between" mb={2}>
+                <Flex align="center">
+                  <Icon as={FiInbox} color="green.500" mr={1} />
+                  <Text fontSize="sm">Incoming</Text>
+                </Flex>
+                <Text fontWeight="bold">{sectionPerformance.rtssIncoming}</Text>
+              </Flex>
+              <Flex align="center" justify="space-between">
+                <Flex align="center">
+                  <Icon as={FiClock} color="yellow.500" mr={1} />
+                  <Text fontSize="sm">Pending</Text>
+                </Flex>
+                <Text fontWeight="bold">{sectionPerformance.rtssPending}</Text>
+              </Flex>
+            </Box>
+            </Tooltip>
+
         </SimpleGrid>
-      </Box> */}
+      </Box>
       
       <Modal isOpen={isOpen} onClose={onClose} scrollBehavior='inside' isCentered motionPreset='none' closeOnOverlayClick={false} size='2xl'>
           <ModalOverlay />

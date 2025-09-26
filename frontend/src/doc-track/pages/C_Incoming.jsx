@@ -93,6 +93,8 @@ const C_Incoming = () => {
         queryClient.invalidateQueries({ queryKey: ['forwardedDocuments'] }),
         queryClient.invalidateQueries({ queryKey: ['pendingDocuments'] }),
         queryClient.invalidateQueries({ queryKey: ['outgoingDocuments'] }),
+        queryClient.invalidateQueries({ queryKey: ['sectionDocumentCount'] }),
+        queryClient.invalidateQueries({ queryKey: ['documentWorkload'] }),
       ]);
     } catch (error) {
       toast({

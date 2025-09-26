@@ -67,18 +67,22 @@ const useOutgoingDocumentsQuery = (id, page = 1, searchParams = {}) =>
         staleTime: 0,
     });
 
-const useDocumentHistoryQuery = (id, page = 1) =>
-    useQuery({
-        queryKey: ['documentHistory', id, page],
-        queryFn: async () => {
-            const response = await axios.get(
-                `${API_URL}/api/doc-track/get-document-history/${id}`,
-                { params: { page, limit: 10 } }
-            );
-            return response.data;
-        },
-        enabled: !!id,
-    });
+
+
+// const useDocumentHistoryQuery = (id, page = 1) => //para sa history, lahat ng ginawa ni staff ngayong araw, not currently used.
+//     useQuery({
+//         queryKey: ['documentHistory', id, page],
+//         queryFn: async () => {
+//             const response = await axios.get(
+//                 `${API_URL}/api/doc-track/get-document-history/${id}`,
+//                 { params: { page, limit: 10 } }
+//             );
+//             return response.data;
+//         },
+//         enabled: !!id,
+//     });
+
+
 
 const useArchivedDocumentsQuery = (page = 1, searchParams = {}) =>
     useQuery({
@@ -137,6 +141,16 @@ const useTotalIncomingDocumentsQuery = (page = 1, searchParams = {}) =>
         },
     });
 
+const useSectionDocumentCount = () =>
+    useQuery({
+        queryKey: ['sectionDocumentCount'],
+        queryFn: async () => {
+            const response = await axios.get(
+                `${API_URL}/api/doc-track//get-section-document-count`);
+            return response.data;
+        },
+    });
+
 export const useAdminDashboard = (pages = {}, searchParams = {}) => {
     const { user } = useAuthStore()
     const id = user?.id
@@ -162,7 +176,7 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
 
     const { data: outgoingDocuments = [], isLoading: isLoadingOutgoingDocuments, error: outgoingDocumentsError } = useOutgoingDocumentsQuery(id, outgoingPage, searchParams);
 
-    const { data: documentHistory = [], isLoading: isLoadingDocumentHistory, error: documentHistoryError } = useDocumentHistoryQuery(id, historyPage);
+    //const { data: documentHistory = [], isLoading: isLoadingDocumentHistory, error: documentHistoryError } = useDocumentHistoryQuery(id, historyPage);
 
     const { data: archivedDocuments = [], isLoading: isLoadingArchivedDocuments, error: archivedDocumentsError } = useArchivedDocumentsQuery(archivedPage, searchParams);
 
@@ -173,6 +187,8 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
     const { data: expiredDocuments = [], isLoading: isLoadingExpiredDocuments, error: expiredDocumentsError } = useExpiredDocumentsQuery(expiredPage, searchParams);
 
     const { data: totalIncomingDocuments = [], isLoading: isLoadingTotalIncomingDocuments, error: totalIncomingDocumentsError } = useTotalIncomingDocumentsQuery(totalIncomingPage, searchParams);
+
+    const { data: sectionDocumentCount = [], isLoading: isLoadingSectionDocumentCount, error: sectionDocumentCountError } = useSectionDocumentCount();
 
     const [isCreatingDocument, setIsCreatingDocument] = useState(false);
     const [isUpdatingDocumentType, setIsUpdatingDocumentType] = useState(false);
@@ -382,7 +398,7 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
         adminAndStaffAccounts,
         forwardedDocuments,
         pendingDocuments,
-        documentHistory,
+        //documentHistory, //not used
         outgoingDocuments,
         archivedDocuments,
         releasedDocuments,
@@ -391,6 +407,7 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
         usersDocumentWorkload,
         expiredDocuments,
         totalIncomingDocuments,
+        sectionDocumentCount,
 
         // action functions
         createDocument,
@@ -412,13 +429,14 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
         isLoadingAdminAndStaffAccounts,
         isLoadingForwardedDocuments,
         isLoadingPendingDocuments,
-        isLoadingDocumentHistory,
+        //isLoadingDocumentHistory, not used
         isLoadingOutgoingDocuments,
         isLoadingArchivedDocuments,
         isLoadingReleasedDocuments,
         isLoadingUsersDocumentWorkload,
         isLoadingExpiredDocuments,
         isLoadingTotalIncomingDocuments,
+        isLoadingSectionDocumentCount,
 
         // action flags
         isCreatingDocument,
@@ -442,12 +460,13 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
         adminAndStaffAccountsError,
         forwardedDocumentsError,
         pendingDocumentsError,
-        documentHistoryError,
+        //documentHistoryError, not used
         outgoingDocumentsError,
         archivedDocumentsError,
         releasedDocumentsError,
         usersDocumentWorkloadError,
         expiredDocumentsError,
         totalIncomingDocumentsError,
+        sectionDocumentCountError,
     };
 }

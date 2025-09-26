@@ -97,6 +97,8 @@ const B_RegisterDocument = () => {
         resetFormData();
         await Promise.all([
           queryClient.invalidateQueries({ queryKey: ['forwardedDocuments'] }),
+          queryClient.invalidateQueries({ queryKey: ['sectionDocumentCount'] }),
+          queryClient.invalidateQueries({ queryKey: ['documentWorkload'] }),
         ]);
       } catch (error) {
         toast({

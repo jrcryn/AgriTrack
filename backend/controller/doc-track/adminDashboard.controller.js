@@ -959,74 +959,80 @@ export const getDocumentTypes = async (req, res) => {
     }
 };
 
-export const getDocumentHistory = async (req, res) => { //para sa history
-    const {id} = req.params;
-    try {
-        const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 10;
-        const skip = (page - 1) * limit;
 
-        const user = await global.docTrackModels.ManagerAccount.findById(id) ||
-                     await global.docTrackModels.StaffAccount.findById(id);
-        if (!user) {
-            return res.status(404).json({ success: false, message: 'Cannot find your account, please contact IT if error persists.' });
-        }
 
-        // Define the start and end of today
-        const startOfToday = new Date();
-        startOfToday.setHours(0, 0, 0, 0);
 
-        const endOfToday = new Date();
-        endOfToday.setHours(23, 59, 59, 999);
+// export const getDocumentHistory = async (req, res) => { //para sa history, lahat ng ginawa ni staff ngayong araw, not currently used.
+//     const {id} = req.params;
+//     try {
+//         const page = parseInt(req.query.page) || 1;
+//         const limit = parseInt(req.query.limit) || 10;
+//         const skip = (page - 1) * limit;
 
-        const pipeline = [
-            {
-                $match: {
-                    'lifeCycle': {
-                        $elemMatch: {
-                            'performedBy.userId': user._id,
-                            'timeStamp': {
-                                $gte: startOfToday,
-                                $lte: endOfToday
-                            }
-                        }
-                    }
-                },
-            },
-            {
-                $facet: {
-                    paginatedResults: [
-                        { $sort: {'lifeCycle.timeStamp': -1} },
-                        { $skip: skip },
-                        { $limit: limit }
-                    ],
-                    totalCount: [
-                        { $count: 'count' }
-                    ]
-                }
-            }
-        ];
+//         const user = await global.docTrackModels.ManagerAccount.findById(id) ||
+//                      await global.docTrackModels.StaffAccount.findById(id);
+//         if (!user) {
+//             return res.status(404).json({ success: false, message: 'Cannot find your account, please contact IT if error persists.' });
+//         }
 
-        const result = await global.docTrackModels.DocumentLifeCycle.aggregate(pipeline);
+//         // Define the start and end of today
+//         const startOfToday = new Date();
+//         startOfToday.setHours(0, 0, 0, 0);
 
-        const relevantDocs = result[0].paginatedResults;
-        const totalCount = result[0].totalCount.length > 0 ? result[0].totalCount[0].count : 0;
+//         const endOfToday = new Date();
+//         endOfToday.setHours(23, 59, 59, 999);
 
-        return res.status(200).json({
-            success: true,
-            message: 'Successfully fetched document history.',
-            data: {
-                relevantDocs,
-                totalCount,
-                totalPages: Math.ceil(totalCount / limit),
-                currentPage: page
-            }
-        })
-    } catch (error) {
-        console.log(error);
-        return res.status(500).json({success: false, message: 'Error fetching document history', error: error.message})
-    }
-};
+//         const pipeline = [
+//             {
+//                 $match: {
+//                     'lifeCycle': {
+//                         $elemMatch: {
+//                             'performedBy.userId': user._id,
+//                             'timeStamp': {
+//                                 $gte: startOfToday,
+//                                 $lte: endOfToday
+//                             }
+//                         }
+//                     }
+//                 },
+//             },
+//             {
+//                 $facet: {
+//                     paginatedResults: [
+//                         { $sort: {'lifeCycle.timeStamp': -1} },
+//                         { $skip: skip },
+//                         { $limit: limit }
+//                     ],
+//                     totalCount: [
+//                         { $count: 'count' }
+//                     ]
+//                 }
+//             }
+//         ];
+
+//         const result = await global.docTrackModels.DocumentLifeCycle.aggregate(pipeline);
+
+//         const relevantDocs = result[0].paginatedResults;
+//         const totalCount = result[0].totalCount.length > 0 ? result[0].totalCount[0].count : 0;
+
+//         return res.status(200).json({
+//             success: true,
+//             message: 'Successfully fetched document history.',
+//             data: {
+//                 relevantDocs,
+//                 totalCount,
+//                 totalPages: Math.ceil(totalCount / limit),
+//                 currentPage: page
+//             }
+//         })
+//     } catch (error) {
+//         console.log(error);
+//         return res.status(500).json({success: false, message: 'Error fetching document history', error: error.message})
+//     }
+// };
+
+
+
 
 export const getDocumentStatus = async (req, res) => { //check doc status, tatangapin na is buong qr data, need ng controller basahin lang yung ref number
     const { qrData, refNumber } = req.body;
@@ -1939,6 +1945,121 @@ export const deleteRegisteredDocument = async (req, res) => {
     }
 };
 
+export const getSectionDocumentCount = async (req, res) => {
+    try {
+        const SECTIONS = ['CFS', 'LPMS', 'ANMS', 'RTSS'];
 
+        // 1) Load account ids by category
+        const [managers, staffs] = await Promise.all([
+            global.docTrackModels.ManagerAccount.find({}, { _id: 1 }).lean(),
+            global.docTrackModels.StaffAccount.find(
+                { office_position: { $in: SECTIONS } },
+                { _id: 1, office_position: 1 }
+            ).lean()
+        ]);
+
+        const managerIds = managers.map(m => m._id);
+
+        const staffIdsByPos = SECTIONS.reduce((acc, pos) => {
+            acc[pos] = staffs.filter(s => (s.office_position || '').toUpperCase() === pos).map(s => s._id);
+            return acc;
+        }, { CFS: [], LPMS: [], ANMS: [], RTSS: [] });
+
+        // Helper to build $switch branches only when arrays have members
+        const makeBranches = (fieldExpr) => ([
+            ...(managerIds.length ? [{ case: { $in: [fieldExpr, managerIds] }, then: 'managers' }] : []),
+            ...(staffIdsByPos.CFS.length ? [{ case: { $in: [fieldExpr, staffIdsByPos.CFS] }, then: 'CFS' }] : []),
+            ...(staffIdsByPos.LPMS.length ? [{ case: { $in: [fieldExpr, staffIdsByPos.LPMS] }, then: 'LPMS' }] : []),
+            ...(staffIdsByPos.ANMS.length ? [{ case: { $in: [fieldExpr, staffIdsByPos.ANMS] }, then: 'ANMS' }] : []),
+            ...(staffIdsByPos.RTSS.length ? [{ case: { $in: [fieldExpr, staffIdsByPos.RTSS] }, then: 'RTSS' }] : []),
+        ]);
+
+        // 2) Incoming counts (Forwarded/Rerouted/Unarchived/Unreleased to a target user)
+        const incomingPipeline = [
+            { $addFields: { lastAction: { $arrayElemAt: ['$lifeCycle', -1] } } },
+            { $match: { 'lastAction.action': { $in: ['Forwarded', 'Rerouted', 'Unarchived', 'Unreleased'] } } },
+            {
+                $addFields: {
+                    targetUserId: {
+                        $cond: [
+                            { $eq: ['$lastAction.action', 'Rerouted'] },
+                            '$lastAction.rerouteDetails.userId',
+                            '$lastAction.forwardDetails.userId'
+                        ]
+                    }
+                }
+            },
+            {
+                $addFields: {
+                    category: {
+                        $switch: {
+                            branches: makeBranches('$targetUserId'),
+                            default: null
+                        }
+                    }
+                }
+            },
+            { $match: { category: { $ne: null } } },
+            { $group: { _id: '$category', count: { $sum: 1 } } }
+        ];
+
+        // 3) Pending counts (Received/Work on Progress by user)
+        const pendingPipeline = [
+            { $addFields: { lastAction: { $arrayElemAt: ['$lifeCycle', -1] } } },
+            { $match: { 'lastAction.action': 'Received/Work on Progress' } },
+            {
+                $addFields: {
+                    category: {
+                        $switch: {
+                            branches: makeBranches('$lastAction.performedBy.userId'),
+                            default: null
+                        }
+                    }
+                }
+            },
+            { $match: { category: { $ne: null } } },
+            { $group: { _id: '$category', count: { $sum: 1 } } }
+        ];
+
+        const [incomingAgg, pendingAgg] = await Promise.all([
+            global.docTrackModels.DocumentLifeCycle.aggregate(incomingPipeline),
+            global.docTrackModels.DocumentLifeCycle.aggregate(pendingPipeline)
+        ]);
+
+        const toMap = (arr) => Object.fromEntries(arr.map(r => [r._id, r.count]));
+        const incomingMap = toMap(incomingAgg);
+        const pendingMap = toMap(pendingAgg);
+
+        const categories = ['managers', ...SECTIONS];
+        const sections = {};
+        for (const cat of categories) {
+            const incoming = incomingMap[cat] || 0;
+            const pending = pendingMap[cat] || 0;
+            sections[cat] = { incoming, pending, totalActive: incoming + pending };
+        }
+
+        const totals = Object.values(sections).reduce(
+            (acc, s) => ({
+                incoming: acc.incoming + s.incoming,
+                pending: acc.pending + s.pending,
+                totalActive: acc.totalActive + s.totalActive
+            }),
+            { incoming: 0, pending: 0, totalActive: 0 }
+        );
+
+        return res.status(200).json({
+            success: true,
+            message: 'Section document counts fetched successfully.',
+            data: { sections, totals }
+        });
+    } catch (error) {
+        console.error('Error fetching section document counts:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Error fetching section document counts',
+            error: error.message
+        });
+    }
+};
 
 

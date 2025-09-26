@@ -109,7 +109,9 @@ const DocumentLifeCycleModal = ({
         await Promise.all([
             queryClient.invalidateQueries({ queryKey: ['pendingDocuments'] }),
             queryClient.invalidateQueries({ queryKey: ['outgoingDocuments'] }),
-            queryClient.invalidateQueries({ queryKey: ['forwardedDocuments'] })
+            queryClient.invalidateQueries({ queryKey: ['forwardedDocuments'] }),
+            queryClient.invalidateQueries({ queryKey: ['documentWorkload'] }),
+            queryClient.invalidateQueries({ queryKey: ['sectionDocumentCount'] })
         ]);
 
       } catch (error) {
@@ -140,7 +142,9 @@ const DocumentLifeCycleModal = ({
         onClose();
 
         await Promise.all([
-            queryClient.invalidateQueries({ queryKey: ['pendingDocuments'] })
+            queryClient.invalidateQueries({ queryKey: ['pendingDocuments'] }),
+            queryClient.invalidateQueries({ queryKey: ['archivedDocuments'] }),
+            queryClient.invalidateQueries({ queryKey: ['documentWorkload'] }),
         ])
 
       } catch (error) {
@@ -170,7 +174,9 @@ const DocumentLifeCycleModal = ({
         onClose();
 
         await Promise.all([
-            queryClient.invalidateQueries({ queryKey: ['pendingDocuments'] })
+            queryClient.invalidateQueries({ queryKey: ['pendingDocuments'] }),
+            queryClient.invalidateQueries({ queryKey: ['releasedDocuments'] }),
+            queryClient.invalidateQueries({ queryKey: ['documentWorkload'] }),
         ])
       } catch (error) {
         toast({ title: "Error", description: error.response?.data?.message || "Failed to release document.", status: "error", duration: 5000, isClosable: true });
@@ -202,10 +208,9 @@ const DocumentLifeCycleModal = ({
         onClose();
         await Promise.all([
           queryClient.invalidateQueries({ queryKey: ['archivedDocuments'] }),
-          queryClient.invalidateQueries({ queryKey: ['releasedDocuments'] }),
           queryClient.invalidateQueries({ queryKey: ['forwardedDocuments'] }),
-          queryClient.invalidateQueries({ queryKey: ['pendingDocuments'] }),
-          queryClient.invalidateQueries({ queryKey: ['outgoingDocuments'] }),
+          queryClient.invalidateQueries({ queryKey: ['sectionDocumentCount'] }),
+          queryClient.invalidateQueries({ queryKey: ['documentWorkload'] }),
         ]);
       } catch (error) {
         toast({ title: "Error", description: error.response?.data?.message || "Failed to unarchive document.", status: "error", duration: 5000, isClosable: true });
@@ -230,11 +235,10 @@ const DocumentLifeCycleModal = ({
         setUnreleaseData({ forwardToSelf: '', forwardAccountId: '', unreleaseRemarks: '' });
         onClose();
         await Promise.all([
-          queryClient.invalidateQueries({ queryKey: ['archivedDocuments'] }),
           queryClient.invalidateQueries({ queryKey: ['releasedDocuments'] }),
           queryClient.invalidateQueries({ queryKey: ['forwardedDocuments'] }),
-          queryClient.invalidateQueries({ queryKey: ['pendingDocuments'] }),
-          queryClient.invalidateQueries({ queryKey: ['outgoingDocuments'] }),
+          queryClient.invalidateQueries({ queryKey: ['sectionDocumentCount'] }),
+          queryClient.invalidateQueries({ queryKey: ['documentWorkload'] }),
         ]);
       } catch (error) {
         toast({ title: "Error", description: error.response?.data?.message || "Failed to unrelease document.", status: "error", duration: 5000, isClosable: true });
@@ -261,7 +265,7 @@ const DocumentLifeCycleModal = ({
         await Promise.all([
           queryClient.invalidateQueries({ queryKey: ['forwardedDocuments'] }),
           queryClient.invalidateQueries({ queryKey: ['pendingDocuments'] }),
-          queryClient.invalidateQueries({ queryKey: ['outgoingDocuments'] }),
+          queryClient.invalidateQueries({ queryKey: ['sectionDocumentCount'] }),
           queryClient.invalidateQueries({ queryKey: ['documentWorkload'] }),
         ]);
       } catch (error) {
@@ -283,9 +287,6 @@ const DocumentLifeCycleModal = ({
         await Promise.all([
           queryClient.invalidateQueries({ queryKey: ['expiredDocuments'] }),
           queryClient.invalidateQueries({ queryKey: ['archivedDocuments'] }),
-          queryClient.invalidateQueries({ queryKey: ['documentHistory'] }),
-          queryClient.invalidateQueries({ queryKey: ['pendingDocuments'] }),
-          queryClient.invalidateQueries({ queryKey: ['outgoingDocuments'] }),
         ]);
       } catch (error) {
         toast({ title: 'Error', description: error.response?.data?.message || 'Failed to dispose document.', status: 'error', duration: 5000, isClosable: true });
