@@ -52,6 +52,7 @@ const DocumentLifeCycleModal = ({
   isDisposalPage
 }) => {
     const data = document;
+    console.log(data);
     const toast = useToast();
     const queryClient = useQueryClient();
 
@@ -77,7 +78,10 @@ const DocumentLifeCycleModal = ({
         isDisposingDocuments,
 
         deleteRegisteredDocument,
-        isDeletingRegisteredDocument
+        isDeletingRegisteredDocument,
+
+        downloadQRCode,
+        isDownloadingQRCode
     } = useAdminDashboard();
     const [isUnderstood, setIsUnderstood] = useState(false);
     const [forwardData, setForwardData] = useState({ forwardAccountId: '', forwardRemarks: '' });
@@ -317,6 +321,38 @@ const DocumentLifeCycleModal = ({
       }
     }
 
+    const handleDownloadQRCode = async () => {
+      if (!data) return;
+      try {
+        const qrDownload = await downloadQRCode(data._id);
+        const url = window.URL.createObjectURL(new Blob([qrDownload], { type: 'application/pdf' }));
+        const link = window.document.createElement('a');
+
+        link.href = url;
+        link.setAttribute('download', `qr-code-${data?.refNumber}.pdf`);
+        window.document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+
+        toast({
+          title: "Success",
+          description: 'QR Code downloaded successfully.',
+          status: "success",
+          duration: 5000,
+          isClosable: true,
+        });
+      } catch (error) {
+        console.log(error);
+        toast({
+          title: "Error",
+          description: error.response?.data?.message || 'Failed to download QR Code.',
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
+      }
+    };
     // compute if doc is expired based on retentionUntil
     // const isExpiredDoc = React.useMemo(() => {
     //   if (!data?.lifeCycle) return false;
@@ -800,6 +836,7 @@ const DocumentLifeCycleModal = ({
                   <TabList>
                     <Tab>Reroute</Tab>
                     <Tab>Delete</Tab>
+                    <Tab>Download QR Code</Tab>
                   </TabList>
                   <TabPanels>
                     {/* Reroute */}
@@ -866,6 +903,19 @@ const DocumentLifeCycleModal = ({
                             Delete Document
                           </Button>
                         </HStack>
+                    </TabPanel>
+
+                    <TabPanel px={0} pt={4} pb={0}>
+                        <Box bg="orange.50" p={3} borderRadius="md" mb={3} borderLeft="4px solid" borderLeftColor="orange.400">
+                          <Text fontSize="sm" color="orange.600">
+                            Download the QR code for this document.
+                          </Text>
+                        </Box>
+                        <HStack justify="flex-end" align="center" spacing={2} mt={4}>
+                          <Button colorScheme="orange" onClick={handleDownloadQRCode} isLoading={isDownloadingQRCode}>
+                            Download QR Code
+                          </Button>
+                        </HStack>
                       </TabPanel>
                   </TabPanels>
                 </Tabs>
@@ -877,7 +927,8 @@ const DocumentLifeCycleModal = ({
                 <>
                   <Tabs colorScheme='green' variant='enclosed'>
                     <TabList>
-                      <Tab>Delete Document</Tab>
+                      <Tab>Delete</Tab>
+                      <Tab>Download QR Code</Tab>
                     </TabList>
                     <TabPanels>
                       <TabPanel px={0} pt={4} pb={0}>
@@ -893,6 +944,19 @@ const DocumentLifeCycleModal = ({
                           </FormControl>
                           <Button colorScheme="red" onClick={handleDeleteDocument} isLoading={isDeletingRegisteredDocument} pl={8} pr={8} isDisabled={!isUnderstood}>
                             Delete Document
+                          </Button>
+                        </HStack>
+                      </TabPanel>
+
+                      <TabPanel px={0} pt={4} pb={0}>
+                        <Box bg="orange.50" p={3} borderRadius="md" mb={3} borderLeft="4px solid" borderLeftColor="orange.400">
+                          <Text fontSize="sm" color="orange.600">
+                            Download the QR code for this document.
+                          </Text>
+                        </Box>
+                        <HStack justify="flex-end" align="center" spacing={2} mt={4}>
+                          <Button colorScheme="orange" onClick={handleDownloadQRCode} isLoading={isDownloadingQRCode}>
+                            Download QR Code
                           </Button>
                         </HStack>
                       </TabPanel>

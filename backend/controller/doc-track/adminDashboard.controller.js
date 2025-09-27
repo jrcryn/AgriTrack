@@ -506,9 +506,8 @@ export const registerAndForwardDocument = async (req, res) => {
 
         return res.status(201).json({ 
             success: true, 
-            message: 'Document registered and forwarded successfully.', 
-            data: {newDocRegistration, docForwarded},
-            qrImageUrl: `/api/doc-track/download-qr-code/${newDocRegistration._id}`
+            message: 'Document registered, forwarded and QR code generated successfully.', 
+            data: newDocRegistration,
         });
 
     } catch (error) {

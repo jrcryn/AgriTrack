@@ -75,7 +75,11 @@ const B_RegisterDocument = () => {
         isRegisterOnly: true,
 
         forwardAccountId: '',
-        forwardRemarks: ''
+        forwardRemarks: '',
+
+        documentNameText: '',
+        originatingOffice: '',
+        isManuallyTyped: false,
       });
     };
 
@@ -90,16 +94,19 @@ const B_RegisterDocument = () => {
       }
       try {
         const response = await registerDocument(formData);
-        
-        const qrDownload = await downloadQRCode(response.data._id);
-        const url = window.URL.createObjectURL(new Blob([qrDownload]));
+        // Use the actual document payload from response.data
+        const registeredDoc = response?.data;
+
+        const qrDownload = await downloadQRCode(registeredDoc._id);
+        const url = window.URL.createObjectURL(new Blob([qrDownload], { type: 'application/pdf' }));
         const link = document.createElement('a');
 
         link.href = url;
-        link.setAttribute('download', `qr-code-${response.data.refNumber}.pdf`);
+        link.setAttribute('download', `qr-code-${registeredDoc.refNumber}.pdf`);
         document.body.appendChild(link);
         link.click();
         link.remove();
+        window.URL.revokeObjectURL(url);
 
         toast({
           title: "Success",
@@ -131,8 +138,23 @@ const B_RegisterDocument = () => {
       if (formData.documentNameText && formData.originatingOffice) {
         formData.isManuallyTyped = true;
       }
+
       try {
         const response = await registerAndForwardDocument(formData);
+        // Use the actual document payload from response.data
+        const registeredDoc = response?.data;
+
+        const qrDownload = await downloadQRCode(registeredDoc._id);
+        const url = window.URL.createObjectURL(new Blob([qrDownload], { type: 'application/pdf' }));
+        const link = document.createElement('a');
+
+        link.href = url;
+        link.setAttribute('download', `qr-code-${registeredDoc.refNumber}.pdf`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+
         toast({
           title: "Success",
           description: response.message,
@@ -140,11 +162,11 @@ const B_RegisterDocument = () => {
           duration: 5000,
           isClosable: true,
         });
-        resetFormData();
         await Promise.all([
           queryClient.invalidateQueries({ queryKey: ['forwardedDocuments'] }),
           queryClient.invalidateQueries({ queryKey: ['outgoingDocuments'] }),
         ]);
+        resetFormData();
       } catch (error) {
         toast({
           title: "Error",
