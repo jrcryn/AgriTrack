@@ -368,13 +368,6 @@ const DocumentLifeCycleModal = ({
           </ModalHeader>
         )}
 
-        {isIncomingDashboardPage && (
-          <ModalHeader bg="green.50" borderBottomWidth="1px" borderColor="gray.200" display="flex" alignItems="center" py={4}>
-                <GrFolderCycle style={{ marginRight: 12, color: 'green' }} />
-                Document Status
-          </ModalHeader>
-        )}
-
         {isDisposalPage && (
           <ModalHeader bg="gray.50" borderBottomWidth="1px" borderColor="gray.200" display="flex" alignItems="center" py={4}>
                 <GrFolderCycle style={{ marginRight: 12, color: 'gray' }} />
