@@ -9,17 +9,25 @@ import { useAdminDashboard } from '../doc-track/store/adminDashboard.store.js';
 const QrScannerPanel = ({
   scanResults,
   onOpen,
+  scanNow,
+  onCloseQR,
+  handleReceive,
+
+  searchQuery,
+  isPendingPage,
+  isReceivedPage,
+  isOutgoingPage
 }) => {
   const [devices, setDevices] = useState([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState('');
   const [scanning, setScanning] = useState(false);
+  const [scanNowQ, setScanNowQ] = useState(scanNow);
   const toast = useToast();
 
   const { isGettingDocumentStatus, documentStatus } = useAdminDashboard();
 
   const handleStartScanning = async () => {
       setScanning(true);
-      isUsedScanning(true);
       try {
         const availableDevices = await navigator.mediaDevices.enumerateDevices();
         const videoDevices = availableDevices.filter(d => d.kind === 'videoinput');
@@ -46,15 +54,28 @@ const QrScannerPanel = ({
     try {
         const response = await documentStatus(qrData);
         scanResults(response.data);
-        toast({
+        if (isReceivedPage) {
+          null
+        } else if (isPendingPage) {
+          null
+        } else if (isOutgoingPage) {
+          null
+        } else {
+          toast({
             title: "Success",
             description: response.message,
             status: "success",
             duration: 5000,
             isClosable: true,
           });
-        onOpen();
+        }
+        
+        onOpen?.();
+        onCloseQR?.();
+        handleReceive?.(response.data);
+        searchQuery?.(response.data.refNumber);
       } catch (error) {
+        console.log(error)
         toast({
           title: "Error",
           description: error.response?.data?.message || "Failed to retrieve document status.",
@@ -68,7 +89,7 @@ const QrScannerPanel = ({
   return (
         <VStack spacing={5} align="stretch">
 
-            {!scanning ? (
+            {!scanning && !scanNowQ ? (
               <VStack spacing={4} align="center">
                 <Text>Scan a document QR code to quickly view its details and status. Your browser may ask for permission to use the camera.</Text>
                 <Button
@@ -84,9 +105,9 @@ const QrScannerPanel = ({
             ) : isGettingDocumentStatus ? (
               <VStack spacing={4} align="center">
                 <Spinner size="xl" color="blue.500" thickness="4px" speed="0.65s" />
-                <Text color="gray.600">Retrieving document status...</Text>
+                <Text color="gray.600">Retrieving document information...</Text>
               </VStack>
-            ) : scanning && !!scanResults ? (
+            ) : (scanning && !!scanResults) || (scanNowQ && !!scanResults) ? (
               <VStack spacing={4}>
                 <Text>Point your camera at a QR code to scan. Ensure the code is well-lit and clearly visible.</Text>
 
@@ -126,7 +147,11 @@ const QrScannerPanel = ({
                   />
                 </Box>
                 <Button 
-                  onClick={() => setScanning(false)} 
+                  onClick={() => {
+                    setScanning(false); 
+                    setScanNowQ(false); 
+                    onCloseQR();
+                  }} 
                   leftIcon={<MdCancel />}
                   colorScheme="red"
                   size="md"

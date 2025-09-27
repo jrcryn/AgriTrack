@@ -41,10 +41,12 @@ import {
 import { FiSearch, FiInbox } from 'react-icons/fi';
 import { FaQrcode } from 'react-icons/fa';
 import { HiDocumentDuplicate } from "react-icons/hi2";
+import { HiMiniViewfinderCircle } from 'react-icons/hi2';
 
 import { useAuthStore } from '../../auth/store/authStore';
 import { useAdminDashboard } from '../store/adminDashboard.store';
 import  DocumentLifeCycleModal  from '../../components/docLifeCyclePanel.jsx';
+import QrScannerPanel from '../../components/qrScannerPanel.jsx';
 
 const D_Pending = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -62,6 +64,10 @@ const D_Pending = () => {
   useEffect(() => { setPage(1); }, [searchQuery]);
 
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const { isOpen: isOpenQr, onOpen: onOpenQr , onClose: onCloseQr } = useDisclosure();
+  //const [scanResults, setScanResults] = useState(null)
+  const [scanNow, setScanNow] = useState(false);
+
   const toast = useToast();
 
   const [selectedDoc, setSelectedDoc] = useState(null);
@@ -170,7 +176,10 @@ const D_Pending = () => {
             size="md"
             alignSelf={{ base: "stretch", md: "flex-end" }}
             mt={{ base: 2, md: 0 }}
-            // onClick={handleScanQR}
+            onClick={() => {
+              onOpenQr();
+              setScanNow(true);
+            }}
           >
             Scan QR Code
           </Button>
@@ -309,6 +318,29 @@ const D_Pending = () => {
         isOutgoingPage={false}
         isProduceDocumentPage={false}
       />
+
+      <Modal isOpen={isOpenQr} onClose={onCloseQr} isCentered size='2xl' closeOnOverlayClick={false} scrollBehavior="inside" motionPreset="none">
+        <ModalOverlay/>
+            <ModalContent borderRadius="md" overflow="hidden" boxShadow="lg">
+              <ModalHeader bg="yellow.50" borderBottomWidth="1px" borderColor="gray.200" display="flex" alignItems="center" py={4}>
+                <Icon as={HiMiniViewfinderCircle} mr={2} color={'orange.500'}/>
+                Scan QR Code
+              </ModalHeader>
+
+              <ModalBody py={6}>
+                <QrScannerPanel
+                  scanResults={setSelectedDoc}
+                  searchQuery={setSearchQuery}
+                  scanNow={scanNow}
+                  //onOpen={onOpen}
+                  onCloseQR={onCloseQr}
+                  isPendingPage={true}
+                  isIncomingPage={false}
+                  isOutgoingPage={false}
+                />
+              </ModalBody>
+            </ModalContent>
+      </Modal>
     </Box>
   );
 };

@@ -26,15 +26,23 @@ import {
   Center,
   Spinner,
   TableContainer,
-  useToast
+  useToast,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  useDisclosure,
 } from '@chakra-ui/react';
 import { FiSearch, FiInbox } from 'react-icons/fi';
 import { RiFolderReceivedFill } from "react-icons/ri";
-
 import { FaQrcode } from 'react-icons/fa';
+import { HiMiniViewfinderCircle } from 'react-icons/hi2';
+
 import { useAuthStore } from '../../auth/store/authStore';
 import { useAdminDashboard } from '../store/adminDashboard.store';
 import { useQueryClient } from '@tanstack/react-query';
+import QrScannerPanel from '../../components/qrScannerPanel.jsx';
 
 
 const C_Incoming = () => {
@@ -46,6 +54,10 @@ const C_Incoming = () => {
   const toast = useToast();
   const queryClient = useQueryClient();
 
+  const { isOpen: isOpenQr, onOpen: onOpenQr , onClose: onCloseQr } = useDisclosure();
+  const [selectedDoc, setSelectedDoc] = useState(null);
+  const [scanNow, setScanNow] = useState(false);
+  
   const {
     forwardedDocuments,
     isLoadingForwardedDocuments,
@@ -77,11 +89,77 @@ const C_Incoming = () => {
     return allDocs.filter(doc => (priorityLabel === 'All' ? true : doc.priority === priorityLabel));
   };
 
-  const handleReceive = async (docId) => {
+  const handleReceive = async (doc) => {
     if (!user?.id) return;
+
+    const life = Array.isArray(doc?.lifeCycle) ? doc.lifeCycle : [];
+    const lastAction = life[life.length -1];
+
+    if(!lastAction) {
+      toast({ 
+        title: "Error", 
+        description: "Document has no lifecycle.", 
+        status: "error", 
+        duration: 5000, 
+      });
+      return;
+    }
+
+    if (['Archived', 'Released', 'Disposed'].includes(lastAction.action)) {
+        toast({
+          title: "Not receivable",
+          description: `This document is already ${lastAction.action.toLowerCase()}.`,
+          status: "warning",
+          duration: 4000,
+          isClosable: true,
+        });
+        return;
+    }
+
+    if (lastAction.action === 'Received/Work on Progress') {
+        const receivedBy = lastAction?.performedBy?.userId?.toString?.() || String(lastAction?.performedBy?.userId || '');
+        if (receivedBy === String(user?.id || '')) {
+          toast({
+            title: "Already received",
+            description: "You have already received this document.",
+            status: "info",
+            duration: 4000,
+            isClosable: true,
+          });
+        } else {
+          toast({
+            title: "Already in progress",
+            description: "This document is already in progress by another user.",
+            status: "warning",
+            duration: 4000,
+            isClosable: true,
+          });
+        }
+        setHasScanned(false);
+        return;
+    }
+
+    if (['Forwarded', 'Rerouted', 'Unarchived', 'Unreleased'].includes(lastAction.action)) {
+        const targetUserId = (lastAction.action === 'Rerouted'
+          ? lastAction?.rerouteDetails?.userId
+          : lastAction?.forwardDetails?.userId);
+        const target = targetUserId?.toString?.() || String(targetUserId || '');
+        if (target !== String(user?.id || '')) {
+          toast({
+            title: "Not assigned to you",
+            description: "This document is assigned to another user.",
+            status: "warning",
+            duration: 4000,
+            isClosable: true,
+          });
+          return;
+        }
+    }
+
     try {
-      setReceivingDocId(docId);
-      await receiveDocument({ registeredDocId: docId, userAccountId: user.id });
+      setReceivingDocId(doc._id);
+
+      await receiveDocument({ registeredDocId: doc._id, userAccountId: user.id });
       toast({
         title: "Success",
         description: "Successfully marked as received.",
@@ -98,7 +176,7 @@ const C_Incoming = () => {
       ]);
     } catch (error) {
       toast({
-        title: "Error receiving document",
+        title: "Error",
         description: error.response?.data?.message || "Failed to receive document. Please try again.",
         status: "error",
         duration: 5000,
@@ -186,7 +264,10 @@ const C_Incoming = () => {
             size="md"
             alignSelf={{ base: "stretch", md: "flex-end" }}
             mt={{ base: 2, md: 0 }}
-            // onClick={handleScanQR}
+            onClick={() => {
+              onOpenQr();
+              setScanNow(true);
+            }}
           >
             Scan QR Code
           </Button>
@@ -265,7 +346,7 @@ const C_Incoming = () => {
                                     <Button
                                       size="sm"
                                       colorScheme="green"
-                                      onClick={() => handleReceive(doc._id)}
+                                      onClick={() => handleReceive(doc)}
                                       isLoading={receivingDocId === doc._id}
                                       leftIcon={<RiFolderReceivedFill />}
                                     >
@@ -314,6 +395,29 @@ const C_Incoming = () => {
           />
         </Flex>
       </Box>
+      
+      <Modal isOpen={isOpenQr} onClose={onCloseQr} isCentered size='2xl' closeOnOverlayClick={false} scrollBehavior="inside" motionPreset="none">
+        <ModalOverlay/>
+            <ModalContent borderRadius="md" overflow="hidden" boxShadow="lg">
+              <ModalHeader bg="green.50" borderBottomWidth="1px" borderColor="gray.200" display="flex" alignItems="center" py={4}>
+                <Icon as={HiMiniViewfinderCircle} mr={2} color={'green.500'}/>
+                Scan QR Code
+              </ModalHeader>
+
+              <ModalBody py={6}>
+                <QrScannerPanel
+                  scanResults={setSelectedDoc}
+                  scanNow={scanNow}
+                  onCloseQR={onCloseQr}
+                  handleReceive={handleReceive}
+                  isPendingPage={false}
+                  isIncomingPage={true}
+                  isOutgoingPage={false}
+                />
+              </ModalBody>
+            </ModalContent>
+      </Modal>
+
     </Box>
   );
 };

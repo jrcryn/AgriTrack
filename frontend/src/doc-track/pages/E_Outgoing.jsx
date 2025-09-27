@@ -41,11 +41,14 @@ import { CheckCircleIcon, ArrowForwardIcon, TimeIcon } from "@chakra-ui/icons";
 import { FaEye } from 'react-icons/fa';
 import { CiInboxOut } from "react-icons/ci";
 import { GrFolderCycle } from "react-icons/gr";
+import { HiMiniViewfinderCircle } from 'react-icons/hi2';
+
 
 import { FaQrcode, FaArchive } from 'react-icons/fa';
 import { useAuthStore } from '../../auth/store/authStore';
 import { useAdminDashboard } from '../store/adminDashboard.store';
 import  DocumentLifeCycleModal  from '../../components/docLifeCyclePanel.jsx';
+import QrScannerPanel from '../../components/qrScannerPanel.jsx';
 
 const E_Outgoing = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -65,7 +68,9 @@ const E_Outgoing = () => {
 
   // status modal state
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const { isOpen: isOpenQr, onOpen: onOpenQr , onClose: onCloseQr } = useDisclosure();
   const [selectedDoc, setSelectedDoc] = useState(null);
+  const [scanNow, setScanNow] = useState(false);
 
   const priorities = ['All', 'Low', 'Medium', 'Urgent'];
   const getPriorityColor = (priority) => {
@@ -163,7 +168,6 @@ const E_Outgoing = () => {
 
           {/* QR Code Scan Button */}
           <Button
-            onClick={() => {}}
             bg="red.500"
             color={"white"}
             _hover={{ bg: "red.600" }}
@@ -171,6 +175,10 @@ const E_Outgoing = () => {
             size="md"
             alignSelf={{ base: "stretch", md: "flex-end" }}
             mt={{ base: 2, md: 0 }}
+            onClick={() => {
+              onOpenQr();
+              setScanNow(true);
+            }}
           >
             Scan QR Code
           </Button>
@@ -308,6 +316,29 @@ const E_Outgoing = () => {
         isIncomingPage={false}
         isProduceDocumentPage={false}
       />
+
+    <Modal isOpen={isOpenQr} onClose={onCloseQr} isCentered size='2xl' closeOnOverlayClick={false} scrollBehavior="inside" motionPreset="none">
+        <ModalOverlay/>
+            <ModalContent borderRadius="md" overflow="hidden" boxShadow="lg">
+              <ModalHeader bg="yellow.50" borderBottomWidth="1px" borderColor="gray.200" display="flex" alignItems="center" py={4}>
+                <Icon as={HiMiniViewfinderCircle} mr={2} color={'orange.500'}/>
+                Scan QR Code
+              </ModalHeader>
+
+              <ModalBody py={6}>
+                <QrScannerPanel
+                  scanResults={setSelectedDoc}
+                  searchQuery={setSearchQuery}
+                  scanNow={scanNow}
+                  //onOpen={onOpen}
+                  onCloseQR={onCloseQr}
+                  isPendingPage={false}
+                  isIncomingPage={false}
+                  isOutgoingPage={true}
+                />
+              </ModalBody>
+            </ModalContent>
+      </Modal>
     </Box>
   );
 };
