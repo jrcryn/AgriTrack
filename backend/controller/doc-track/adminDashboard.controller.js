@@ -1,5 +1,6 @@
 import qrcode from 'qrcode';
 import PDFDocument from 'pdfkit';
+import mongoose from 'mongoose';
 
 const capitalizeWords = (str) => {
     if (!str) return str;
@@ -1407,9 +1408,6 @@ export const unreleaseDocument = async (req, res) => {
 ;
 export const getUsersDocumentWorkload = async (req, res) => {
     try {
-        
-
-        // 1. Fetch all active accounts
         const projection = {
             first_name: 1,
             last_name: 1,

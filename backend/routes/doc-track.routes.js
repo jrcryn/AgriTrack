@@ -46,13 +46,13 @@ router.post('/receive-document', verifyAuthToken, verifyRole(['DMM', 'DMS']), re
 router.post('/archive-document', verifyAuthToken, verifyRole(['DMM', 'DMS']), archiveDocument);
 router.post('/release-document', verifyAuthToken, verifyRole(['DMM', 'DMS']), releaseDocument);
 
-router.get('/get-admin-staff-accounts/:id', verifyAuthToken, verifyRole(['DMM']), getAdminAndStaffAccounts);
+router.get('/get-admin-staff-accounts/:id', verifyAuthToken, verifyRole(['DMM', 'DMS']), getAdminAndStaffAccounts);
 
 router.get('/get-incoming-forwarded-documents/:id', verifyAuthToken, verifyRole(['DMM', 'DMS']), getIncomingForwardedDocuments);
 router.get('/get-pending-documents/:id', verifyAuthToken, verifyRole(['DMM', 'DMS']), getPendingDocuments);
 router.get('/get-outgoing-forwarded-documents/:id', verifyAuthToken, verifyRole(['DMM', 'DMS']), getOutgoingForwardedDocuments); 
 
-router.get('/get-document-types', verifyAuthToken, verifyRole(['DMM']), getDocumentTypes);
+router.get('/get-document-types', verifyAuthToken, verifyRole(['DMM', 'DMS']), getDocumentTypes);
 
 
 router.get('/get-archived-documents', verifyAuthToken, verifyRole(['DMM']), getArchivedDocuments);

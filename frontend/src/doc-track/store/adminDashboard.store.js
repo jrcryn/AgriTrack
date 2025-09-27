@@ -5,7 +5,7 @@ import { useAuthStore } from '../../auth/store/authStore';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-const useDocumentTypesQuery = () => 
+const useDocumentTypesQuery = (role) => 
     useQuery({
         queryKey: ['documentTypes'],
         queryFn: async () => {
@@ -13,19 +13,20 @@ const useDocumentTypesQuery = () =>
             const response = await axios.get(`${API_URL}/api/doc-track/get-document-types`)
             return response.data.data;
         },
+        enabled: role === 'DMM' || role === 'DMS',
     });
 
-const useStaffAndAdminAccountsQuery = (id) => 
+const useStaffAndAdminAccountsQuery = (id, role) => 
     useQuery({
         queryKey: ['adminStaffAccounts', id],
         queryFn: async () => {
             const response = await axios.get(`${API_URL}/api/doc-track/get-admin-staff-accounts/${id}`)
             return response.data.data;
         },
-        enabled: !!id,
+        enabled: !!id && (role === 'DMM' || role === 'DMS'),
     });
 
-const useIncomingForwardedDocumentsQuery = (id, page = 1, searchParams = {}) =>
+const useIncomingForwardedDocumentsQuery = (id, page = 1, searchParams = {}, role) =>
     useQuery({
         queryKey: ['forwardedDocuments', id, page, searchParams],
         queryFn: async () => {
@@ -35,11 +36,10 @@ const useIncomingForwardedDocumentsQuery = (id, page = 1, searchParams = {}) =>
             );
             return response.data;
         },
-        enabled: !!id,
-        staleTime: 0,
+        enabled: !!id && (role === 'DMM' || role === 'DMS'),
     });
 
-const usePendingDocumentsQuery = (id, page = 1, searchParams = {}) =>
+const usePendingDocumentsQuery = (id, page = 1, searchParams = {}, role) =>
     useQuery({
         queryKey: ['pendingDocuments', id, page, searchParams],
         queryFn: async () => {
@@ -49,11 +49,10 @@ const usePendingDocumentsQuery = (id, page = 1, searchParams = {}) =>
             );
             return response.data;
         },
-        enabled: !!id,
-        staleTime: 0,
+        enabled: !!id && (role === 'DMM' || role === 'DMS')
     });
 
-const useOutgoingDocumentsQuery = (id, page = 1, searchParams = {}) =>
+const useOutgoingDocumentsQuery = (id, page = 1, searchParams = {}, role) =>
     useQuery({
         queryKey: ['outgoingDocuments', id, page, searchParams],
         queryFn: async () => {
@@ -63,8 +62,7 @@ const useOutgoingDocumentsQuery = (id, page = 1, searchParams = {}) =>
             );
             return response.data;
         },
-        enabled: !!id,
-        staleTime: 0,
+        enabled: !!id && (role === 'DMM' || role === 'DMS')
     });
 
 
@@ -84,7 +82,7 @@ const useOutgoingDocumentsQuery = (id, page = 1, searchParams = {}) =>
 
 
 
-const useArchivedDocumentsQuery = (page = 1, searchParams = {}) =>
+const useArchivedDocumentsQuery = (page = 1, searchParams = {}, role) =>
     useQuery({
         queryKey: ['archivedDocuments', page, searchParams],
         queryFn: async () => {
@@ -94,9 +92,10 @@ const useArchivedDocumentsQuery = (page = 1, searchParams = {}) =>
             );
             return response.data;
         },
+        enabled: role === 'DMM', 
     });
 
-const useExpiredDocumentsQuery = (page = 1, searchParams = {}) =>
+const useExpiredDocumentsQuery = (page = 1, searchParams = {}, role) =>
     useQuery({
         queryKey: ['expiredDocuments', page, searchParams],
         queryFn: async () => {
@@ -106,9 +105,10 @@ const useExpiredDocumentsQuery = (page = 1, searchParams = {}) =>
             );
             return response.data;
         },
+        enabled: role === 'DMM',
     });
 
-const useDisposedDocumentsQuery = (page = 1, searchParams = {}) =>
+const useDisposedDocumentsQuery = (page = 1, searchParams = {}, role) =>
     useQuery({
         queryKey: ['disposedDocuments', page, searchParams],
         queryFn: async () => {
@@ -118,9 +118,10 @@ const useDisposedDocumentsQuery = (page = 1, searchParams = {}) =>
             );
             return response.data;
         },
+        enabled: role === 'DMM',
     });
 
-const useReleasedDocumentsQuery = (page = 1, searchParams = {}) =>
+const useReleasedDocumentsQuery = (page = 1, searchParams = {}, role) =>
     useQuery({
         queryKey: ['releasedDocuments', page, searchParams],
         queryFn: async () => {
@@ -130,18 +131,20 @@ const useReleasedDocumentsQuery = (page = 1, searchParams = {}) =>
             );
             return response.data;
         },
+        enabled: role === 'DMM',
     });
 
-const useUsersDocumentWorkloadQuery = () =>
+const useUsersDocumentWorkloadQuery = (role) =>
     useQuery({
         queryKey: ['documentWorkload'],
         queryFn: async () => {
             const response = await axios.get(`${API_URL}/api/doc-track/users-workload`);
             return response.data;
         },
+        enabled: role === 'DMM',
     });
 
-const useTotalIncomingDocumentsQuery = (page = 1, searchParams = {}) =>
+const useTotalIncomingDocumentsQuery = (page = 1, searchParams = {}, role) =>
     useQuery({
         queryKey: ['totalIncomingDocuments', page, searchParams],
         queryFn: async () => {
@@ -151,26 +154,29 @@ const useTotalIncomingDocumentsQuery = (page = 1, searchParams = {}) =>
             );
             return response.data;
         },
+        enabled: role === 'DMM',
     });
 
-const useSectionDocumentCount = () =>
+const useSectionDocumentCount = (role) =>
     useQuery({
         queryKey: ['sectionDocumentCount'],
         queryFn: async () => {
             const response = await axios.get(
-                `${API_URL}/api/doc-track//get-section-document-count`);
+                `${API_URL}/api/doc-track/get-section-document-count`);
             return response.data;
         },
+        enabled: role === 'DMM',
     });
+
 
 export const useAdminDashboard = (pages = {}, searchParams = {}) => {
     const { user } = useAuthStore()
     const id = user?.id
+    const role = user?.role?.toString();
 
     const {
         incomingPage = 1,
         pendingPage = 1,
-        historyPage = 1,
         outgoingPage = 1,
         archivedPage = 1,
         releasedPage = 1,
@@ -178,32 +184,31 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
         disposedPage = 1,
         totalIncomingPage = 1,
     } = pages;
+ 
 
-    const { data: documentTypes = [], isLoading: isLoadingDocumentTypes, error: documentTypesError } = useDocumentTypesQuery();
+    const { data: documentTypes = [], isLoading: isLoadingDocumentTypes, error: documentTypesError } = useDocumentTypesQuery(role);
 
-    const { data: adminAndStaffAccounts = [], isLoading: isLoadingAdminAndStaffAccounts, error: adminAndStaffAccountsError } = useStaffAndAdminAccountsQuery(id);
+    const { data: adminAndStaffAccounts = [], isLoading: isLoadingAdminAndStaffAccounts, error: adminAndStaffAccountsError } = useStaffAndAdminAccountsQuery(id, role);
 
-    const { data: forwardedDocuments = [], isLoading: isLoadingForwardedDocuments, error: forwardedDocumentsError } = useIncomingForwardedDocumentsQuery(id, incomingPage, searchParams);
+    const { data: forwardedDocuments = [], isLoading: isLoadingForwardedDocuments, error: forwardedDocumentsError } = useIncomingForwardedDocumentsQuery(id, incomingPage, searchParams, role);
 
-    const { data: pendingDocuments = [], isLoading: isLoadingPendingDocuments, error: pendingDocumentsError } = usePendingDocumentsQuery(id, pendingPage, searchParams);
+    const { data: pendingDocuments = [], isLoading: isLoadingPendingDocuments, error: pendingDocumentsError } = usePendingDocumentsQuery(id, pendingPage, searchParams, role);
 
-    const { data: outgoingDocuments = [], isLoading: isLoadingOutgoingDocuments, error: outgoingDocumentsError } = useOutgoingDocumentsQuery(id, outgoingPage, searchParams);
+    const { data: outgoingDocuments = [], isLoading: isLoadingOutgoingDocuments, error: outgoingDocumentsError } = useOutgoingDocumentsQuery(id, outgoingPage, searchParams, role);
 
-    //const { data: documentHistory = [], isLoading: isLoadingDocumentHistory, error: documentHistoryError } = useDocumentHistoryQuery(id, historyPage);
+    const { data: archivedDocuments = [], isLoading: isLoadingArchivedDocuments, error: archivedDocumentsError } = useArchivedDocumentsQuery(archivedPage, searchParams, role);
 
-    const { data: archivedDocuments = [], isLoading: isLoadingArchivedDocuments, error: archivedDocumentsError } = useArchivedDocumentsQuery(archivedPage, searchParams);
+    const { data: releasedDocuments = [], isLoading: isLoadingReleasedDocuments, error: releasedDocumentsError } = useReleasedDocumentsQuery(releasedPage, searchParams, role);
 
-    const { data: releasedDocuments = [], isLoading: isLoadingReleasedDocuments, error: releasedDocumentsError } = useReleasedDocumentsQuery(releasedPage, searchParams);
+    const { data: usersDocumentWorkload = [], isLoading: isLoadingUsersDocumentWorkload, error: usersDocumentWorkloadError } = useUsersDocumentWorkloadQuery(role);
 
-    const { data: usersDocumentWorkload = [], isLoading: isLoadingUsersDocumentWorkload, error: usersDocumentWorkloadError } = useUsersDocumentWorkloadQuery();
+    const { data: expiredDocuments = [], isLoading: isLoadingExpiredDocuments, error: expiredDocumentsError } = useExpiredDocumentsQuery(expiredPage, searchParams, role);
 
-    const { data: expiredDocuments = [], isLoading: isLoadingExpiredDocuments, error: expiredDocumentsError } = useExpiredDocumentsQuery(expiredPage, searchParams);
+    const { data: disposedDocuments = [], isLoading: isLoadingDisposedDocuments, error: disposedDocumentError } = useDisposedDocumentsQuery(disposedPage, searchParams, role);
 
-    const { data: disposedDocuments = [], isLoading: isLoadingDisposedDocuments, error: disposedDocumentError } = useDisposedDocumentsQuery(disposedPage, searchParams);
+    const { data: totalIncomingDocuments = [], isLoading: isLoadingTotalIncomingDocuments, error: totalIncomingDocumentsError } = useTotalIncomingDocumentsQuery(totalIncomingPage, searchParams, role);
 
-    const { data: totalIncomingDocuments = [], isLoading: isLoadingTotalIncomingDocuments, error: totalIncomingDocumentsError } = useTotalIncomingDocumentsQuery(totalIncomingPage, searchParams);
-
-    const { data: sectionDocumentCount = [], isLoading: isLoadingSectionDocumentCount, error: sectionDocumentCountError } = useSectionDocumentCount();
+    const { data: sectionDocumentCount = [], isLoading: isLoadingSectionDocumentCount, error: sectionDocumentCountError } = useSectionDocumentCount(role);
 
     const [isCreatingDocument, setIsCreatingDocument] = useState(false);
     const [isUpdatingDocumentType, setIsUpdatingDocumentType] = useState(false);
