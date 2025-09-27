@@ -8,6 +8,7 @@ import DocTrack from './Apps/docTrackApp.jsx'
 import Auth from './Apps/authApp.jsx'
 
 import Maintenance from './components/maintenance.jsx';
+import AutoRefreshErrorBoundary from './components/AutoRefreshErrorBoundary.jsx';
 
 const queryClient = new QueryClient();
 
@@ -26,6 +27,7 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <AutoRefreshErrorBoundary>
       <Routes>
         <Route path="/hvc/*" element={<HighValueCrops />} />
         <Route path="/machineries/*" element={<Machineries />} />
@@ -33,6 +35,7 @@ function App() {
         <Route path="/auth/*" element={<Auth/>} />
         <Route path="/maintenance" element={<Maintenance />} />
       </Routes>
+      </AutoRefreshErrorBoundary>
     </QueryClientProvider>
   )
 }
