@@ -320,8 +320,8 @@ const E_Outgoing = () => {
     <Modal isOpen={isOpenQr} onClose={onCloseQr} isCentered size='2xl' closeOnOverlayClick={false} scrollBehavior="inside" motionPreset="none">
         <ModalOverlay/>
             <ModalContent borderRadius="md" overflow="hidden" boxShadow="lg">
-              <ModalHeader bg="yellow.50" borderBottomWidth="1px" borderColor="gray.200" display="flex" alignItems="center" py={4}>
-                <Icon as={HiMiniViewfinderCircle} mr={2} color={'orange.500'}/>
+              <ModalHeader bg="red.50" borderBottomWidth="1px" borderColor="gray.200" display="flex" alignItems="center" py={4}>
+                <Icon as={HiMiniViewfinderCircle} mr={2} color={'red.500'}/>
                 Scan QR Code
               </ModalHeader>
 
@@ -335,6 +335,9 @@ const E_Outgoing = () => {
                   isPendingPage={false}
                   isIncomingPage={false}
                   isOutgoingPage={true}
+                  isIncomingDashboardPage={false}
+                  isOutgoingDashboardPage={false}
+                  isStaffsPage={false}
                 />
               </ModalBody>
             </ModalContent>

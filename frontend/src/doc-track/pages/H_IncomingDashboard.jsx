@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import {
   Box,
@@ -23,14 +22,21 @@ import {
   TableContainer,
   Select,
   useDisclosure,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
 } from '@chakra-ui/react';
 import { FiSearch, FiInbox } from 'react-icons/fi';
 import { LuLogs } from "react-icons/lu";
-import { FaEye } from 'react-icons/fa';
+import { FaEye, FaQrcode } from 'react-icons/fa';
 import { TbFileShredder } from "react-icons/tb";
+import { HiMiniViewfinderCircle } from 'react-icons/hi2';
 
 import { useAdminDashboard } from '../store/adminDashboard.store.js';
 import DocumentLifeCycleModal from '../../components/docLifeCyclePanel.jsx';
+import QrScannerPanel from '../../components/qrScannerPanel.jsx';
 
 const H_IncomingDashboard = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -52,6 +58,10 @@ const H_IncomingDashboard = () => {
 
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [selectedDoc, setSelectedDoc] = useState(null);
+
+  // QR modal state (copied pattern)
+  const { isOpen: isOpenQr, onOpen: onOpenQr , onClose: onCloseQr } = useDisclosure();
+  const [scanNow, setScanNow] = useState(false);
 
   const documents = totalIncomingDocuments?.data?.relevantDocs || [];
   const totalPages = totalIncomingDocuments?.data?.totalPages || 1;
@@ -132,7 +142,24 @@ const H_IncomingDashboard = () => {
             </InputGroup>
           </FormControl>
 
-          {/* Type Select */}
+          {/* Scan QR Code Button (copied pattern) */}
+          <Button
+            bg="green.500"
+            color={"white"}
+            _hover={{ bg: "green.600" }}
+            leftIcon={<FaQrcode />}
+            size="md"
+            alignSelf={{ base: "stretch", md: "flex-end" }}
+            mt={{ base: 2, md: 0 }}
+            onClick={() => {
+              onOpenQr();
+              setScanNow(true);
+            }}
+          >
+            Scan QR Code
+          </Button>
+
+          {/* Type Select (commented) */}
           {/* <FormControl maxW={{ md: '260px' }}>
             <FormLabel fontSize="sm" fontWeight="medium">Document Type</FormLabel>
             <Select
@@ -260,6 +287,33 @@ const H_IncomingDashboard = () => {
         isForDisposal={false}
         isIncomingDashboardPage={isIncomingPage}
       />
+
+      {/* QR Scanner Modal (copied pattern) */}
+      <Modal isOpen={isOpenQr} onClose={onCloseQr} isCentered size='2xl' closeOnOverlayClick={false} scrollBehavior="inside" motionPreset="none">
+        <ModalOverlay/>
+        <ModalContent borderRadius="md" overflow="hidden" boxShadow="lg">
+          <ModalHeader bg="green.50" borderBottomWidth="1px" borderColor="gray.200" display="flex" alignItems="center" py={4}>
+            <Icon as={HiMiniViewfinderCircle} mr={2} color={'green.500'}/>
+            Scan QR Code
+          </ModalHeader>
+
+          <ModalBody py={6}>
+            <QrScannerPanel
+              scanResults={setSelectedDoc}
+              searchQuery={setSearchQuery}
+              scanNow={scanNow}
+              //onOpen={onOpen}
+              onCloseQR={onCloseQr}
+              isPendingPage={false}
+              isIncomingPage={false}
+              isOutgoingPage={false}
+              isIncomingDashboardPage={true}
+              isOutgoingDashboardPage={false}
+              isStaffsPage={false}
+            />
+          </ModalBody>
+        </ModalContent>
+      </Modal>
     </Box>
   );
 };

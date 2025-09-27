@@ -31,46 +31,50 @@ import {
     getDisposedDocuments
  } from '../controller/doc-track/adminDashboard.controller.js';
 
+import { verifyAuthToken } from '../middleware/verifyToken.js';
+import { verifyRole } from '../middleware/verifyRole.js';
+
 const router = express.Router();
 
-router.post('/create-document', createDocument);
-router.post('/update-document-type', updateDocumentType);
-router.post('/register-document', registerDocument);
-router.get('/download-qr-code/:id', downloadQrCode);
-router.post('/forward-document', forwardDocument);
-router.post('/register-forward-document', registerAndForwardDocument);
-router.post('/receive-document', receiveDocument);
-router.post('/archive-document', archiveDocument);
-router.post('/release-document', releaseDocument);
+router.post('/create-document', verifyAuthToken, verifyRole(['DMM']), createDocument);
+router.post('/update-document-type', verifyAuthToken, verifyRole(['DMM']), updateDocumentType);
+router.post('/register-document', verifyAuthToken, verifyRole(['DMM']),  registerDocument);
+router.get('/download-qr-code/:id', verifyAuthToken, verifyRole(['DMM']), downloadQrCode);
+router.post('/forward-document', verifyAuthToken, verifyRole(['DMM', 'DMS']), forwardDocument);
+router.post('/register-forward-document', verifyAuthToken, verifyRole(['DMM', 'DMS']), registerAndForwardDocument);
+router.post('/receive-document', verifyAuthToken, verifyRole(['DMM', 'DMS']), receiveDocument);
+router.post('/archive-document', verifyAuthToken, verifyRole(['DMM', 'DMS']), archiveDocument);
+router.post('/release-document', verifyAuthToken, verifyRole(['DMM', 'DMS']), releaseDocument);
 
-router.get('/get-admin-staff-accounts/:id', getAdminAndStaffAccounts);
+router.get('/get-admin-staff-accounts/:id', verifyAuthToken, verifyRole(['DMM']), getAdminAndStaffAccounts);
 
-router.get('/get-incoming-forwarded-documents/:id', getIncomingForwardedDocuments);
-router.get('/get-pending-documents/:id', getPendingDocuments);
+router.get('/get-incoming-forwarded-documents/:id', verifyAuthToken, verifyRole(['DMM', 'DMS']), getIncomingForwardedDocuments);
+router.get('/get-pending-documents/:id', verifyAuthToken, verifyRole(['DMM', 'DMS']), getPendingDocuments);
+router.get('/get-outgoing-forwarded-documents/:id', verifyAuthToken, verifyRole(['DMM', 'DMS']), getOutgoingForwardedDocuments); 
 
-router.get('/get-document-types', getDocumentTypes);
-//router.get('/get-document-history/:id', getDocumentHistory);
-router.get('/get-outgoing-forwarded-documents/:id', getOutgoingForwardedDocuments); 
-router.get('/get-archived-documents', getArchivedDocuments);
+router.get('/get-document-types', verifyAuthToken, verifyRole(['DMM']), getDocumentTypes);
 
 
-router.post('/get-document-status', getDocumentStatus);
+router.get('/get-archived-documents', verifyAuthToken, verifyRole(['DMM']), getArchivedDocuments);
 
-router.post('/reroute-document', rerouteDocument);
-router.post('/unarchive-document', unarchiveDocument);
-router.post('/unrelease-document', unreleaseDocument);
 
-router.get('/users-workload', getUsersDocumentWorkload);
+router.post('/get-document-status', verifyAuthToken, verifyRole(['DMM', 'DMS']), getDocumentStatus);
 
-router.get('/get-total-incoming-documents', getTotalIncomingDocuments);
-router.get('/get-released-documents', getReleasedDocuments);
-router.get('/get-expired-documents', getExpiredDocuments);
-router.get('/get-disposed-documents', getDisposedDocuments);
+router.post('/reroute-document', verifyAuthToken, verifyRole(['DMM']), rerouteDocument);
+router.post('/unarchive-document', verifyAuthToken, verifyRole(['DMM']), unarchiveDocument);
+router.post('/unrelease-document', verifyAuthToken, verifyRole(['DMM']),  unreleaseDocument);
 
-router.post('/dispose-documents', disposeDocuments);
-router.post('/delete-registered-document/:id', deleteRegisteredDocument);
+router.get('/users-workload', verifyAuthToken, verifyRole(['DMM']), getUsersDocumentWorkload);
 
-router.get('/get-section-document-count', getSectionDocumentCount)
+router.get('/get-total-incoming-documents', verifyAuthToken, verifyRole(['DMM']), getTotalIncomingDocuments);
+router.get('/get-released-documents', verifyAuthToken, verifyRole(['DMM']), getReleasedDocuments);
+router.get('/get-expired-documents', verifyAuthToken, verifyRole(['DMM']), getExpiredDocuments);
+router.get('/get-disposed-documents', verifyAuthToken, verifyRole(['DMM']), getDisposedDocuments);
+
+router.post('/dispose-documents', verifyAuthToken, verifyRole(['DMM']), disposeDocuments);
+router.post('/delete-registered-document/:id', verifyAuthToken, verifyRole(['DMM']), deleteRegisteredDocument);
+
+router.get('/get-section-document-count', verifyAuthToken, verifyRole(['DMM']), getSectionDocumentCount)
 
 export default router;
 

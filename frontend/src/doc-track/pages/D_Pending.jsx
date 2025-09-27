@@ -337,6 +337,9 @@ const D_Pending = () => {
                   isPendingPage={true}
                   isIncomingPage={false}
                   isOutgoingPage={false}
+                  isIncomingDashboardPage={false}
+                  isOutgoingDashboardPage={false}
+                  isStaffsPage={false}
                 />
               </ModalBody>
             </ModalContent>

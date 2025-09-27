@@ -15,8 +15,13 @@ const QrScannerPanel = ({
 
   searchQuery,
   isPendingPage,
-  isReceivedPage,
-  isOutgoingPage
+  isIncomingPage,
+  isOutgoingPage,
+
+  isIncomingDashboardPage,
+  isOutgoingDashboardPage,
+  
+  isStaffsPage
 }) => {
   const [devices, setDevices] = useState([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState('');
@@ -54,11 +59,17 @@ const QrScannerPanel = ({
     try {
         const response = await documentStatus(qrData);
         scanResults(response.data);
-        if (isReceivedPage) {
+        if (isIncomingPage) {
           null
         } else if (isPendingPage) {
           null
         } else if (isOutgoingPage) {
+          null
+        } else if (isIncomingDashboardPage) {
+          null
+        } else if (isOutgoingDashboardPage) {
+          null
+        } else if (isStaffsPage) {
           null
         } else {
           toast({

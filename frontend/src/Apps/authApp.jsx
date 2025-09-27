@@ -11,7 +11,6 @@ import ResetPassword from '../auth/authPages/resetPassword.jsx'
 
 const RedirectAuthenticatedUser = ({ children }) => {
   const { isAuthenticated, user, isCheckingAuth } = useAuthStore();
-
   if (isCheckingAuth) {
       return null;
   }

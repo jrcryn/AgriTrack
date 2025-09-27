@@ -52,7 +52,6 @@ const DocumentLifeCycleModal = ({
   isDisposalPage
 }) => {
     const data = document;
-    console.log(data);
     const toast = useToast();
     const queryClient = useQueryClient();
 

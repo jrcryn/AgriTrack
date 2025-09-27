@@ -23,14 +23,21 @@ import {
   Select,
   useDisclosure,
   Tooltip,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
 } from '@chakra-ui/react';
 import { FiSearch, FiInbox } from 'react-icons/fi';
 import { LuLogs } from "react-icons/lu";
-import { FaEye, FaInfo } from 'react-icons/fa';
+import { FaEye, FaInfo, FaQrcode } from 'react-icons/fa';
 import { TbFileShredder } from "react-icons/tb";
+import { HiMiniViewfinderCircle } from 'react-icons/hi2';
 
 import { useAdminDashboard } from '../store/adminDashboard.store.js';
 import DocumentLifeCycleModal from '../../components/docLifeCyclePanel.jsx';
+import QrScannerPanel from '../../components/qrScannerPanel.jsx';
 
 const I_OutgoingDashboard = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -52,6 +59,10 @@ const I_OutgoingDashboard = () => {
 
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [selectedDoc, setSelectedDoc] = useState(null);
+
+  // QR modal state (copied pattern)
+  const { isOpen: isOpenQr, onOpen: onOpenQr , onClose: onCloseQr } = useDisclosure();
+  const [scanNow, setScanNow] = useState(false);
 
   const documents = releasedDocuments?.data?.relevantDocs || [];
   const totalPages = releasedDocuments?.data?.totalPages || 1;
@@ -132,18 +143,22 @@ const I_OutgoingDashboard = () => {
             </InputGroup>
           </FormControl>
 
-          {/* Type Select */}
-          {/* <FormControl maxW={{ md: '260px' }}>
-            <FormLabel fontSize="sm" fontWeight="medium">Document Type</FormLabel>
-            <Select
-              bg="white"
-              value={logType}
-              onChange={(e) => setLogType(e.target.value)}
-            >
-              <option value="archived">Archived Documents</option>
-              <option value="released">Released Documents</option>
-            </Select>
-          </FormControl> */}
+          {/* Scan QR Code Button (copied from Outgoing page) */}
+          <Button
+            bg="red.500"
+            color={"white"}
+            _hover={{ bg: "red.600" }}
+            leftIcon={<FaQrcode />}
+            size="md"
+            alignSelf={{ base: "stretch", md: "flex-end" }}
+            mt={{ base: 2, md: 0 }}
+            onClick={() => {
+              onOpenQr();
+              setScanNow(true);
+            }}
+          >
+            Scan QR Code
+          </Button>
         </Flex>
       </Flex>
 
@@ -268,6 +283,33 @@ const I_OutgoingDashboard = () => {
         isIncomingDashboardPage={false}
         isOutgoingDashboardPage={isOutgoingPage}
       />
+
+      {/* QR Scanner Modal (copied from Outgoing page) */}
+      <Modal isOpen={isOpenQr} onClose={onCloseQr} isCentered size='2xl' closeOnOverlayClick={false} scrollBehavior="inside" motionPreset="none">
+        <ModalOverlay/>
+        <ModalContent borderRadius="md" overflow="hidden" boxShadow="lg">
+          <ModalHeader bg="red.50" borderBottomWidth="1px" borderColor="gray.200" display="flex" alignItems="center" py={4}>
+            <Icon as={HiMiniViewfinderCircle} mr={2} color={'red.500'}/>
+            Scan QR Code
+          </ModalHeader>
+
+          <ModalBody py={6}>
+            <QrScannerPanel
+              scanResults={setSelectedDoc}
+              searchQuery={setSearchQuery}
+              scanNow={scanNow}
+              //onOpen={onOpen}
+              onCloseQR={onCloseQr}
+              isPendingPage={false}
+              isIncomingPage={false}
+              isOutgoingPage={false}
+              isIncomingDashboardPage={false}
+              isOutgoingDashboardPage={true}
+              isStaffsPage={false}
+            />
+          </ModalBody>
+        </ModalContent>
+      </Modal>
     </Box>
   );
 };

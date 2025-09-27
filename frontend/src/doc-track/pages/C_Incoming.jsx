@@ -413,6 +413,9 @@ const C_Incoming = () => {
                   isPendingPage={false}
                   isIncomingPage={true}
                   isOutgoingPage={false}
+                  isIncomingDashboardPage={false}
+                  isOutgoingDashboardPage={false}
+                  isStaffsPage={false}
                 />
               </ModalBody>
             </ModalContent>
