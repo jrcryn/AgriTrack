@@ -227,8 +227,8 @@ export const registerDocument = async (req, res) => {
 
         return res.status(201).json({ 
             success: true, 
-            message: 'Document registered successfully.', 
-            qrImageUrl: `/api/doc-track/download-qr-code/${newDocRegistration._id}`
+            message: 'Document registered successfully and QR code generated.',
+            data: newDocRegistration,
         });
 
     } catch (error) {

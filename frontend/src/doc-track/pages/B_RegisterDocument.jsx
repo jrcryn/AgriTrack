@@ -38,6 +38,9 @@ const B_RegisterDocument = () => {
 
       documentStatus,
       isGettingDocumentStatus,
+
+      downloadQRCode,
+      isDownloadingQRCode
     } = useAdminDashboard();
 
     const toast = useToast();
@@ -87,6 +90,17 @@ const B_RegisterDocument = () => {
       }
       try {
         const response = await registerDocument(formData);
+        
+        const qrDownload = await downloadQRCode(response.data._id);
+        const url = window.URL.createObjectURL(new Blob([qrDownload]));
+        const link = document.createElement('a');
+
+        link.href = url;
+        link.setAttribute('download', `qr-code-${response.data.refNumber}.pdf`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+
         toast({
           title: "Success",
           description: response.message,
@@ -100,6 +114,7 @@ const B_RegisterDocument = () => {
           queryClient.invalidateQueries({ queryKey: ['sectionDocumentCount'] }),
           queryClient.invalidateQueries({ queryKey: ['documentWorkload'] }),
         ]);
+
       } catch (error) {
         toast({
           title: "Error",
@@ -328,7 +343,7 @@ const B_RegisterDocument = () => {
                     ) : adminAndStaffAccounts && adminAndStaffAccounts.length > 0 ? (
                       adminAndStaffAccounts.map((account) => (
                         <option key={account._id} value={account._id}>
-                          {`${account.first_name} ${account.last_name} (${account.office_position || account.role.charAt(0).toUpperCase() + account.role.slice(1)})`}
+                          {`${account.first_name} ${account.last_name} (${account.office_position || account?.role?.charAt(0).toUpperCase() + account?.role?.slice(1)})`}
                         </option>
                       ))
                     ) : (
