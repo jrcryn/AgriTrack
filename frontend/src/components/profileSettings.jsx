@@ -355,6 +355,8 @@ const ProfileSettings = () => {
             {(!availableRoles || availableRoles.filter(r => r.role !== user?.role).length === 0) && (
               <Text fontSize="sm" color="gray.500">No other subsystems available.</Text>
             )}
+
+            <Text fontSize="sm" color="gray.500" mt={2}>Note: Switching subsystems may take a moment depending on your network connection, device performance, or server load. If the page goes blank or does not refresh automatically, please refresh it manually.</Text>
           </VStack>
         </VStack>
         
