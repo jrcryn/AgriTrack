@@ -16,15 +16,15 @@ export const register = async (req, res) => {  //system admin level access only 
             return res.status(400).json({ success: false, message: 'All fields are required.' });
         }
 
-        const userAlreadyExists = await global.docTrackModels.StaffAccount.findOne({ $or: [{ email: email }, { phone: phone }]}) ||
-                   await global.docTrackModels.ManagerAccount.findOne({ $or: [{ email: email }, { phone: phone }]}) ||
-                   await global.machineriesModels.StaffAccount.findOne({ $or: [{ email: email }, { phone: phone }]}) ||
-                   await global.highValueCropsModels.StaffAccount.findOne({ $or: [{ email: email }, { phone: phone }]}) ||
-                   await global.highValueCropsModels.ManagerAccount.findOne({ $or: [{ email: email }, { phone: phone }] });
+        // const userAlreadyExists = await global.docTrackModels.StaffAccount.findOne({ $or: [{ email: email }, { phone: phone }]}) ||
+        //            await global.docTrackModels.ManagerAccount.findOne({ $or: [{ email: email }, { phone: phone }]}) ||
+        //            await global.machineriesModels.StaffAccount.findOne({ $or: [{ email: email }, { phone: phone }]}) ||
+        //            await global.highValueCropsModels.StaffAccount.findOne({ $or: [{ email: email }, { phone: phone }]}) ||
+        //            await global.highValueCropsModels.ManagerAccount.findOne({ $or: [{ email: email }, { phone: phone }] });
 
-        if (userAlreadyExists) {
-            return res.status(400).json({ success: false, message: 'User already exists.' });
-        }
+        // if (userAlreadyExists) {
+        //     return res.status(400).json({ success: false, message: 'User already exists.' });
+        // }
 
         // naisip ko gawin lang valid for 12 hours yung default password, if failed to comply si user need bumalik kay IT to create a new one.
         // TO BE IMPLEMENTED:
@@ -35,6 +35,7 @@ export const register = async (req, res) => {  //system admin level access only 
         const model = role === 'DMS' ? global.docTrackModels.StaffAccount :
                       role === 'DMM' ? global.docTrackModels.ManagerAccount :
                       role === 'MIS' ? global.machineriesModels.StaffAccount :
+                      role === 'MIM' ? global.machineriesModels.ManagerAccount :
                       role === 'HVCS' ? global.highValueCropsModels.StaffAccount :
                       role === 'HVCM' ? global.highValueCropsModels.ManagerAccount :
                       null;
@@ -86,6 +87,7 @@ export const checkAuth = async (req, res) => {
         const user = await global.docTrackModels.StaffAccount.findById(req.decodedAuthToken.payload.userId) ||
                      await global.docTrackModels.ManagerAccount.findById(req.decodedAuthToken.payload.userId) ||
                      await global.machineriesModels.StaffAccount.findById(req.decodedAuthToken.payload.userId) ||
+                     await global.machineriesModels.ManagerAccount.findById(req.decodedAuthToken.payload.userId) ||
                      await global.highValueCropsModels.StaffAccount.findById(req.decodedAuthToken.payload.userId) ||
                      await global.highValueCropsModels.ManagerAccount.findById(req.decodedAuthToken.payload.userId);
 
@@ -100,6 +102,7 @@ export const checkAuth = async (req, res) => {
             { role: 'DMS',  model: global.docTrackModels.StaffAccount },
             { role: 'DMM',  model: global.docTrackModels.ManagerAccount },
             { role: 'MIS',  model: global.machineriesModels.StaffAccount },
+            { role: 'MIM',  model: global.machineriesModels.ManagerAccount },
             { role: 'HVCS', model: global.highValueCropsModels.StaffAccount },
             { role: 'HVCM', model: global.highValueCropsModels.ManagerAccount },
         ]
@@ -142,6 +145,7 @@ export const switchRole = async (req, res) => {
         let user = await global.docTrackModels.StaffAccount.findById(req.decodedAuthToken.payload.userId) ||
                    await global.docTrackModels.ManagerAccount.findById(req.decodedAuthToken.payload.userId) ||
                    await global.machineriesModels.StaffAccount.findById(req.decodedAuthToken.payload.userId) ||
+                   await global.machineriesModels.ManagerAccount.findById(req.decodedAuthToken.payload.userId) ||
                    await global.highValueCropsModels.StaffAccount.findById(req.decodedAuthToken.payload.userId) ||
                    await global.highValueCropsModels.ManagerAccount.findById(req.decodedAuthToken.payload.userId);
 
@@ -154,6 +158,7 @@ export const switchRole = async (req, res) => {
             DMS:  global.docTrackModels.StaffAccount,
             DMM:  global.docTrackModels.ManagerAccount,
             MIS:  global.machineriesModels.StaffAccount,
+            MIM:  global.machineriesModels.ManagerAccount,
             HVCS: global.highValueCropsModels.StaffAccount,
             HVCM: global.highValueCropsModels.ManagerAccount,
         };
@@ -201,6 +206,7 @@ export const login = async (req, res) => {
         const user = await global.docTrackModels.StaffAccount.findOne({ email }) ||
                      await global.docTrackModels.ManagerAccount.findOne({ email }) ||
                      await global.machineriesModels.StaffAccount.findOne({ email }) ||
+                     await global.machineriesModels.ManagerAccount.findOne({ email }) ||
                      await global.highValueCropsModels.StaffAccount.findOne({ email }) ||
                      await global.highValueCropsModels.ManagerAccount.findOne({ email });
 

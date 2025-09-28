@@ -62,7 +62,7 @@ const ProfileSettings = () => {
       ? 'High-Value Crops'
       : r === 'DMS' || r === 'DMM'
       ? 'Doc-Track'
-      : r === 'MIS'
+      : r === 'MIS' || r === 'MIM'
       ? 'Machineries'
       : r;
   const handleSwitchSubsystem = async (role) => {

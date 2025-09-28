@@ -87,6 +87,7 @@ const SidebarContent = ({ onClose, ...rest }) => {
         DMS: 'DOC-TRACK',
         DMM: 'DOC-TRACK',
         MIS: 'MACHINERIES',
+        MIM: 'MACHINERIES',
         HVCM: 'HIGH-VALUE CROPS',
         HVCS: 'HIGH-VALUE CROPS',
       };

@@ -35,6 +35,7 @@ const capitalizeWords = (str) => {
 
 export const createDocument = async (req, res) => {
     const { documentName, documentCode, disposalMethod, retentionPeriod } = req.body;
+
     try {
         if (!documentName || !documentCode) {
             return res.status(400).json({
@@ -51,6 +52,7 @@ export const createDocument = async (req, res) => {
             disposalMethod,
             retentionPeriod //in months
         });
+
         return res.status(201).json({
             success: true,
             message: 'Document type created successfully.',
@@ -117,6 +119,7 @@ const getNextSequence = async (key) => {
 
 export const registerDocument = async (req, res) => {
     const { userAccountId, documentId, priority, details, isRegisterOnly, documentNameText, originatingOffice, isManuallyTyped } = req.body;
+
     try {
 
         const document = isManuallyTyped ? null : await global.docTrackModels.Document.findById(documentId);
@@ -198,7 +201,7 @@ export const registerDocument = async (req, res) => {
                             userModel: userModel,
                             userId: user._id,
                             first_name: user.first_name,
-                            last_name: user.lastName,
+                            last_name: user.last_name,
                             middle_name: user.middle_name,
                             suffix: user.suffix,
                             role: user.role,
@@ -222,8 +225,7 @@ export const registerDocument = async (req, res) => {
                     phone: user.phone
                 } }
 
-            }
-        );
+            });
         };
 
         return res.status(201).json({ 
@@ -304,85 +306,89 @@ export const downloadQrCode = async (req, res) => {
     }
 };
 
-export const forwardDocument = async (req, res) => {
-    const { registeredDocId, userAccountId, forwardAccountId, forwardRemarks } = req.body;
+export const forwardDocument = async (req, res) => { 
+  const { registeredDocId, userAccountId, forwardAccountId, forwardRemarks } = req.body;
 
-    try {
-        const document = await global.docTrackModels.DocumentLifeCycle.findById(registeredDocId);
-        if (!document) {
-            return res.status(404).json({ success: false, message: 'Registered document not found.' });
-        }
-
-        let user = await global.docTrackModels.ManagerAccount.findById(userAccountId) ||
-                   await global.docTrackModels.StaffAccount.findById(userAccountId);
-        if (!user) {
-            return res.status(404).json({ success: false, message: 'Cannot find your account, please contact IT if error persists.' });
-        }
-        const userModel = user instanceof global.docTrackModels.ManagerAccount ? 'Manager_Account' : 'Staff_Account';
-
-        let forwardAccount = await global.docTrackModels.ManagerAccount.findById(forwardAccountId) ||
-                          await global.docTrackModels.StaffAccount.findById(forwardAccountId);
-        if (!forwardAccount) {
-            return res.status(404).json({ success: false, message: 'Cannot find the user you are trying to forward to.' });
-        }
-        const userForwardModel = forwardAccount instanceof global.docTrackModels.ManagerAccount ? 'Manager_Account' : 'Staff_Account';
-
-
-        const forwardDocument = await global.docTrackModels.DocumentLifeCycle.updateOne(
-            {_id: document._id},
-            {
-                $push: {
-                    lifeCycle: {
-                        action: 'Forwarded',
-                        performedBy: {
-                            userModel: userModel,
-                            userId: user._id,
-                            first_name: user.first_name,
-                            last_name: user.last_name,
-                            middle_name: user.middle_name,
-                            suffix: user.suffix,
-                            role: user.role,
-                            office_position: user.office_position,
-                            email: user.email,
-                            phone: user.phone
-                        },
-                        forwardDetails: {
-                            userModel: userForwardModel,
-                            userId: forwardAccount._id,
-                            first_name: forwardAccount.first_name,
-                            last_name: forwardAccount.lastName,
-                            middle_name: forwardAccount.middle_name,
-                            suffix: forwardAccount.suffix,
-                            role: forwardAccount.role,
-                            office_position: forwardAccount.office_position,
-                            email: forwardAccount.email,
-                            phone: forwardAccount.phone,
-                            forwardRemarks: forwardRemarks
-                        },
-                        timeStamp: Date.now()
-                    }
-                    
-                },
-                $set: { currentHandler: { 
-                    first_name: forwardAccount.first_name,
-                    last_name: forwardAccount.lastName,
-                    middle_name: forwardAccount.middle_name,
-                    suffix: forwardAccount.suffix,
-                    role: forwardAccount.role,
-                    office_position: forwardAccount.office_position,
-                    email: forwardAccount.email,
-                    phone: forwardAccount.phone
-                } }
-
-            }
-        );
-
-        return res.status(200).json({ success: true, message: 'Document forwarded successfully', data: forwardDocument });
-
-    } catch (error) {
-        console.error('Error forwarding document:', error);
-        return res.status(500).json({ success: false, message: 'Error forwarding document', error: error.message });
+  try {
+    const document = await global.docTrackModels.DocumentLifeCycle.findById(registeredDocId);
+    if (!document) {
+      return res.status(404).json({ success: false, message: 'Registered document not found.' });
     }
+
+    let user = await global.docTrackModels.ManagerAccount.findById(userAccountId) ||
+               await global.docTrackModels.StaffAccount.findById(userAccountId);
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Cannot find your account, please contact IT if error persists.' });
+    }
+    const userModel = user instanceof global.docTrackModels.ManagerAccount ? 'Manager_Account' : 'Staff_Account';
+
+    let forwardAccount = await global.docTrackModels.ManagerAccount.findById(forwardAccountId) ||
+                         await global.docTrackModels.StaffAccount.findById(forwardAccountId);
+
+    if (!forwardAccount) {
+      return res.status(404).json({ success: false, message: 'Cannot find the user you are trying to forward to.' });
+    }
+    const userForwardModel = forwardAccount instanceof global.docTrackModels.ManagerAccount ? 'Manager_Account' : 'Staff_Account';
+
+    const forwardDocument = await global.docTrackModels.DocumentLifeCycle.updateOne(
+      { _id: document._id },
+      {
+        $push: {
+          lifeCycle: {
+            action: 'Forwarded',
+            performedBy: {
+              userModel: userModel,
+              userId: user._id,
+              first_name: user.first_name,
+              last_name: user.last_name,
+              middle_name: user.middle_name,
+              suffix: user.suffix,
+              role: user.role,
+              office_position: user.office_position,
+              email: user.email,
+              phone: user.phone
+            },
+            forwardDetails: {
+              userModel: userForwardModel,
+              userId: forwardAccount._id,
+              first_name: forwardAccount.first_name,
+              last_name: forwardAccount.last_name, 
+              middle_name: forwardAccount.middle_name,
+              suffix: forwardAccount.suffix,
+              role: forwardAccount.role,
+              office_position: forwardAccount.office_position,
+              email: forwardAccount.email,
+              phone: forwardAccount.phone,
+              forwardRemarks: forwardRemarks
+            },
+            timeStamp: Date.now()
+          }
+        },
+        $set: {
+          currentHandler: {
+            first_name: forwardAccount.first_name,
+            last_name: forwardAccount.last_name,
+            middle_name: forwardAccount.middle_name,
+            suffix: forwardAccount.suffix,
+            role: forwardAccount.role,
+            office_position: forwardAccount.office_position,
+            email: forwardAccount.email,
+            phone: forwardAccount.phone
+          }
+        }
+      });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Document forwarded successfully',
+      data: forwardDocument
+    });
+
+  } catch (error) {
+    console.error('Error forwarding document:', error);
+    return res.status(500).json({ success: false, message: 'Error forwarding document', error: error.message });
+  }
 };
 
 export const registerAndForwardDocument = async (req, res) => {
@@ -478,7 +484,7 @@ export const registerAndForwardDocument = async (req, res) => {
                             userModel: forwardAccountModel,
                             userId: forwardAccount._id,
                             first_name: forwardAccount.first_name,
-                            last_name: forwardAccount.lastName,
+                            last_name: forwardAccount.last_name,
                             middle_name: forwardAccount.middle_name,
                             suffix: forwardAccount.suffix,
                             role: forwardAccount.role,
@@ -493,7 +499,7 @@ export const registerAndForwardDocument = async (req, res) => {
                 },
                 $set: { currentHandler: { 
                     first_name: forwardAccount.first_name,
-                    last_name: forwardAccount.lastName,
+                    last_name: forwardAccount.last_name,
                     middle_name: forwardAccount.middle_name,
                     suffix: forwardAccount.suffix,
                     role: forwardAccount.role,
@@ -1177,7 +1183,7 @@ export const unarchiveDocument = async (req, res) => {
                             userModel: userModel,
                             userId: user._id,
                             first_name: user.first_name,
-                            last_name: user.lastName,
+                            last_name: user.last_name,
                             middle_name: user.middle_name,
                             suffix: user.suffix,
                             role: user.role,
@@ -1231,7 +1237,7 @@ export const unarchiveDocument = async (req, res) => {
                             userModel: userForwardModel,
                             userId: forwardAccount._id,
                             first_name: forwardAccount.first_name,
-                            last_name: forwardAccount.lastName,
+                            last_name: forwardAccount.last_name,
                             middle_name: forwardAccount.middle_name,
                             suffix: forwardAccount.suffix,
                             role: forwardAccount.role,
@@ -1245,7 +1251,7 @@ export const unarchiveDocument = async (req, res) => {
                     },
                     $set: { currentHandler: { 
                             first_name: forwardAccount.first_name,
-                            last_name: forwardAccount.lastName,
+                            last_name: forwardAccount.last_name,
                             middle_name: forwardAccount.middle_name,
                             suffix: forwardAccount.suffix,
                             role: forwardAccount.role,
@@ -1318,7 +1324,7 @@ export const unreleaseDocument = async (req, res) => {
                             userModel: userModel,
                             userId: user._id,
                             first_name: user.first_name,
-                            last_name: user.lastName,
+                            last_name: user.last_name,
                             middle_name: user.middle_name,
                             suffix: user.suffix,
                             role: user.role,
@@ -1372,7 +1378,7 @@ export const unreleaseDocument = async (req, res) => {
                             userModel: userForwardModel,
                             userId: forwardAccount._id,
                             first_name: forwardAccount.first_name,
-                            last_name: forwardAccount.lastName,
+                            last_name: forwardAccount.last_name,
                             middle_name: forwardAccount.middle_name,
                             suffix: forwardAccount.suffix,
                             role: forwardAccount.role,
@@ -1386,7 +1392,7 @@ export const unreleaseDocument = async (req, res) => {
                     },
                     $set: { currentHandler: { 
                             first_name: forwardAccount.first_name,
-                            last_name: forwardAccount.lastName,
+                            last_name: forwardAccount.last_name,
                             middle_name: forwardAccount.middle_name,
                             suffix: forwardAccount.suffix,
                             role: forwardAccount.role,
@@ -1619,7 +1625,7 @@ export const rerouteDocument = async (req, res) => {
                                 userModel: rerouteAccountModel,
                                 userId: rerouteAccount._id,
                                 first_name: rerouteAccount.first_name,
-                                last_name: rerouteAccount.lastName,
+                                last_name: rerouteAccount.last_name,
                                 middle_name: rerouteAccount.middle_name,
                                 suffix: rerouteAccount.suffix,
                                 role: rerouteAccount.role,
@@ -1633,7 +1639,7 @@ export const rerouteDocument = async (req, res) => {
                     },
                     $set: { currentHandler: { 
                             first_name: rerouteAccount.first_name,
-                            last_name: rerouteAccount.lastName,
+                            last_name: rerouteAccount.last_name,
                             middle_name: rerouteAccount.middle_name,
                             suffix: rerouteAccount.suffix,
                             role: rerouteAccount.role,
