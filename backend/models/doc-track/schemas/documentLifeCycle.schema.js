@@ -1,43 +1,106 @@
 import mongoose from 'mongoose';
 
-const lifeCycleIterationsSchema = new mongoose.Schema({
+export const lifeCycleIterationsSchema = new mongoose.Schema({
     action: { 
         type: String,
-        enum: ['Document Created', 'Forwarded', 'Received', 'Work on Progress', 'Finalized'],
+        enum: ['Document Created', 'Forwarded', 'Received/Work on Progress', 'Archived', 'Unarchived', 'Unreleased', 'Rerouted', 'Disposed'],
         required: true
     },
-    status: {
-        type: String,
-        enum: ['Incoming', 'Pending', 'Outgoing', 'Archived', 'Released'],
-        required: true
+
+    performedBy: { // hindi lang sya naka reference kay Staff_Account or Manager_Account for historical accuracy
+        userModel: { type: String, enum: ['Staff_Account', 'Manager_Account'] },
+        userId: { type: mongoose.Schema.Types.ObjectId, refPath: 'performedBy.userModel' },
+        first_name: String,
+        last_name: String,
+        middle_name: String,
+        suffix: String,
+        role: String,
+        office_position: String,
+        email: String,
+        phone: String
     },
-    performedBy: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: ['Staff_Account', 'Manager_Account'],
-        required: true
+
+    forwardDetails: { // same goes here
+        userModel: { type: String, enum: ['Staff_Account', 'Manager_Account'] },
+        userId: { type: mongoose.Schema.Types.ObjectId, refPath: 'forwardDetails.userModel' },
+        first_name: String,
+        last_name: String,
+        middle_name: String,
+        suffix: String,
+        role: String,
+        office_position: String,
+        email: String,
+        phone: String,
+        forwardRemarks: String,
     },
-    remarks: String,
-    timestamp: {
-        type: Date,
-        default: Date.now,
-    },
-    forwardDetails: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: ['Staff_Account', 'Manager_Account'],
-        required: true
+
+    rerouteDetails: { // same goes here
+        userModel: { type: String, enum: ['Staff_Account', 'Manager_Account'] },
+        userId: { type: mongoose.Schema.Types.ObjectId, refPath: 'rerouteDetails.userModel' },
+        first_name: String,
+        last_name: String,
+        middle_name: String,
+        suffix: String,
+        role: String,
+        office_position: String,
+        email: String,
+        phone: String,
+        rerouteRemarks: String,
     },
 
     //finalized actions
-    archivalDetails: {
+    archivalDetails: { //same goes here
+        disposalMethod: String,
+        retentionPeriod: Number,
 
+        //sa mismong archival date magkakaroon ng info based sa active and retention period
+        retentionUntil: Date,
+        medium: String,
+        location: String,
+        archiveRemarks: String
     },
+
+    disposalDetails: {
+        disposedDate: Date,
+        disposalRemarks: String
+    },
+
     releaseDetails: {
         recipientOffice: String,
         recipientPerson: String,
         modeOfRelease: String, // pick up, email, courier, etc
-    }
-});
+        releaseRemarks: String,
+    },
 
-export const documentLifeCycleSchema = new mongoose.Schema({
-    
-});
+    timeStamp: {
+        type: Date,
+        default: Date.now,
+    },
+}, {_id: false});
+
+export const DocumentLifeCycleSchema = new mongoose.Schema({
+    documentId: {type: mongoose.Schema.Types.ObjectId, ref: 'Document'},
+    documentName: {type: String},
+    documentCode: {type: String},
+
+    documentNameText: {type: String, trim: true},
+    originatingOffice: {type: String, trim: true},
+
+    priority: {type: String, enum: ['Urgent', 'Medium', 'Low'], required: true},
+    refNumber: {type: String, required: true},
+    docQRData: {type: String, required: true},
+    details: String,
+
+    lifeCycle: [lifeCycleIterationsSchema],
+
+    currentHandler: { //for forwarding lang, not indicative of actual current handler kung hindi pa na re-receive
+        first_name: String,
+        last_name: String,
+        middle_name: String,
+        suffix: String,
+        role: String,
+        office_position: String,
+        email: String,
+        phone: String,
+    }
+}, {versionKey: false});

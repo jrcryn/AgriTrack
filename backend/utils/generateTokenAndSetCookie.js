@@ -16,7 +16,7 @@ export const generateTokenAndSetCookie = (res, userId, role) => {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production' ? true : false, // Set to true in production for secure cookies
         sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Strict', // Use 'None' for cross-site cookies in production, 'Strict' for local development
-        maxAge: 4 * 60 * 60 * 1000, // 4 hours in milliseconds
+        maxAge: 10 * 60 * 60 * 1000, // 10 hours
     });
 
     return token;

@@ -1,39 +1,50 @@
 import { Box, Spinner, Text } from '@chakra-ui/react';
 import { useEffect, useState, useRef } from 'react';
-import { Routes, Route, useNavigate, Navigate } from 'react-router-dom'
+import { Routes, Route, useNavigate, Navigate, useLocation } from 'react-router-dom'
 import axios from 'axios';
 
 import Layout from '../components/layout.jsx';
 
 import A_Dashboard from '../doc-track/pages/A_Dashboard.jsx';
-import B_Incoming from '../doc-track/pages/B_Incoming.jsx';
-import C_Pending from '../doc-track/pages/C_Pending.jsx';
-import D_Outgoing from '../doc-track/pages/D_Outgoing.jsx';
-import E_GenReports from '../doc-track/pages/E_GenReports.jsx';
-import F_History from '../doc-track/pages/F_History.jsx';
+import B_RegisterDocument from '../doc-track/pages/B_RegisterDocument.jsx';
+import C_Incoming from '../doc-track/pages/C_Incoming.jsx';
+import D_Pending from '../doc-track/pages/D_Pending.jsx';
+import E_Outgoing from '../doc-track/pages/E_Outgoing.jsx';
+import F_ArchivedDocuments from '../doc-track/pages/F_ArchivedDocuments.jsx';
 import G_Staffs from '../doc-track/pages/G_Staffs.jsx';
+import H_IncomingDashboard from '../doc-track/pages/H_IncomingDashboard.jsx';
+import I_OutgoingDashboard from '../doc-track/pages/I_OutgoingDashboard.jsx';
 
 import { useAuthStore } from '../auth/store/authStore.js';
 
 const ProtectedRoute = ({children}) => {
-    const {isAuthenticated, isCheckingAuth, user, checkAuth} = useAuthStore();
+  const {isAuthenticated, isCheckingAuth, user, checkAuth} = useAuthStore();
+  const location = useLocation();
 
-    useEffect(() => {
-      checkAuth();
-    }, [checkAuth]);
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
 
-    if (isCheckingAuth) {
-      return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <Spinner size={'xl'} /><Text ml={4}>Please wait...</Text>
-      </div>;
+  if (isCheckingAuth) {
+    return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+      <Spinner size={'xl'} /><Text ml={4}>Please wait...</Text>
+    </div>;
+  }
+
+  if (!isAuthenticated || !user) {
+    return <Navigate to='/auth/login' replace />;
+  }
+
+  // Normalize role and make sure DMS staff does not land on /doc-track/metrics
+  const role = String(user?.role || '').trim().toUpperCase();
+  const path = location.pathname;
+  if (role === 'DMS') {
+    if (path === '/doc-track' || path === '/doc-track/' || path.startsWith('/doc-track/metrics')) {
+      return <Navigate to='/doc-track/register-document' replace />;
     }
+  }
 
-    // If not authenticated or user is missing or 2FA not enabled, redirect
-    if (!isAuthenticated || !user) {
-      return <Navigate to='/auth/login' replace />;
-    }
-
-    return children;
+  return children;
 }
 
 axios.interceptors.response.use(
@@ -53,24 +64,23 @@ axios.interceptors.response.use(
 );
 
 const doctrackApp = () => {
-    
-    return (
-        <Box>
-           
-            <Routes>
-                <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-                    <Route path="metrics" element={<A_Dashboard />} />
-                    <Route path="incoming" element={<B_Incoming />} />
-                    <Route path="pending" element={<C_Pending />} />
-                    <Route path="outgoing" element={<D_Outgoing />} />
-                    <Route path="gen-reports" element={<E_GenReports />} />
-                    <Route path="history" element={<F_History />} />
-                    <Route path="staffs" element={<G_Staffs />} />
-                </Route>    
-            </Routes>
-            
-        </Box>
-    );
+  return (
+    <Box>
+      <Routes>
+        <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+          <Route path="metrics" element={<A_Dashboard />} />
+          <Route path="register-document" element={<B_RegisterDocument />} />
+          <Route path="incoming" element={<C_Incoming />} />
+          <Route path="pending" element={<D_Pending />} />
+          <Route path="outgoing" element={<E_Outgoing />} />
+          <Route path="archived-documents" element={<F_ArchivedDocuments />} />
+          <Route path="employees" element={<G_Staffs />} />
+          <Route path='incoming-dashboard' element={<H_IncomingDashboard />} />
+          <Route path='outgoing-dashboard' element={<I_OutgoingDashboard />} />
+        </Route>    
+      </Routes>
+    </Box>
+  );
 };
 
 export default doctrackApp

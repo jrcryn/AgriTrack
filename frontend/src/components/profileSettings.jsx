@@ -21,6 +21,8 @@ import {
 } from '@chakra-ui/react';
 import { FiEye, FiEyeOff } from 'react-icons/fi';
 import { useUserSettingsStore } from './userSettings.store';
+import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../auth/store/authStore.js';
 
 const ProfileSettings = () => {
   const [currentPassword, setCurrentPassword] = useState('');
@@ -44,6 +46,47 @@ const ProfileSettings = () => {
     isFetching2FASecret,
     error,
   } = useUserSettingsStore();
+
+  const { user, availableRoles, switchRole, isLoading } = useAuthStore();
+  //console.log(availableRoles);
+  const navigate = useNavigate();
+  const roleToHome = {
+    HVCM: '/hvc/metrics',
+    HVCS: '/hvc/metrics',
+    MIS: '/machineries/metrics',
+    DMS: '/doc-track/register-document',
+    DMM: '/doc-track/metrics',
+  };
+  const roleLabel = (r) =>
+    r === 'HVCM' || r === 'HVCS'
+      ? 'High-Value Crops'
+      : r === 'DMS' || r === 'DMM'
+      ? 'Doc-Track'
+      : r === 'MIS' || r === 'MIM'
+      ? 'Machineries'
+      : r;
+  const handleSwitchSubsystem = async (role) => {
+    try {
+      await switchRole(role);
+      toast({
+        title: 'Switched subsystem',
+        description: roleLabel(role),
+        status: 'success',
+        duration: 2500,
+        isClosable: true,
+      });
+      navigate(roleToHome[role] || '/');
+    } catch (err) {
+      toast({
+        title: 'Error',
+        description:
+          err.response?.data?.message || 'Failed to switch subsystem.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
 
   const isStrongPassword = (password) => {
     const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
@@ -131,14 +174,18 @@ const ProfileSettings = () => {
   return (
     <Box p={4} maxW="6xl" mx="auto">
       <Text fontSize="sm" color="gray.500" mb={6}>
-        Manage your password and two-factor authentication.
+        Manage your password, two-factor authentication and available subsystems.
       </Text>
       <Stack direction={stackDirection} spacing={10} align="start">
+
+      <VStack>
+
         <VStack align="stretch" flex={1} spacing={4} w="100%">
           <Heading size="md">Two-Factor Authentication (2FA)</Heading>
           <Text fontSize="sm" color="gray.500">
             View your 2FA QR code and secret for authenticator apps.
           </Text>
+          <form onSubmit={e => { e.preventDefault(); handleShow2FA(); }}>
             <FormControl isRequired>
             <FormLabel>Enter Password to View 2FA</FormLabel>
             <InputGroup>
@@ -157,6 +204,9 @@ const ProfileSettings = () => {
           </InputGroup>
           </FormControl>
           <Button
+            mt={5}
+            mb={5}
+            width="100%"
             colorScheme="teal"
             onClick={handleShow2FA}
             isLoading={isFetching2FASecret}
@@ -164,9 +214,9 @@ const ProfileSettings = () => {
           >
             View 2FA QR Code & Secret
           </Button>
-
+          </form>
           {show2FA && (
-            <Box textAlign="center" mt={2}>
+            <Box textAlign="center" mt={-2} mb={5} p={4} borderWidth="1px" borderRadius="md" borderColor="gray.200">
               {isFetching2FASecret ? (
                 <Spinner size="lg" />
               ) : (
@@ -188,10 +238,13 @@ const ProfileSettings = () => {
           )}
         </VStack>
 
-        <Divider orientation={stackDirection === 'row' ? 'vertical' : 'horizontal'} h="auto" />
+        <Divider />
 
-        <VStack as="form" align="stretch" spacing={5} onSubmit={handlePasswordChange} flex={1} w="100%">
+        <VStack as="form" align="stretch" mt={5} spacing={5} onSubmit={handlePasswordChange} flex={1} w="100%">
           <Heading size="md">Change Password</Heading>
+          <Text fontSize="sm" color="gray.500">
+            Change your account password regularly to enhance security.
+          </Text>
           <FormControl isRequired>
             <FormLabel>Current Password</FormLabel>
             <InputGroup>
@@ -266,6 +319,47 @@ const ProfileSettings = () => {
             Change Password
           </Button>
         </VStack>
+
+      </VStack>
+
+        <Divider orientation={stackDirection === 'row' ? 'vertical' : 'horizontal'} h="auto" mb={-3}/>
+        
+        <VStack align="stretch" flex={1} spacing={4} w="100%">
+          <Heading size="md">Switch Subsystem</Heading>
+          <Text fontSize="sm" color="gray.500">
+            Switch to another subsystem you have access to.
+          </Text>
+          <VStack align="stretch">
+            {isLoading ? (
+              <Box textAlign="center" mt={3}>
+                <Spinner size="md" />
+              </Box>
+            ) : (
+              <>
+                {(availableRoles || [])
+                  .filter(r => r.role !== user?.role)
+                  .map(r => (
+                    <Button
+                      key={r.role}
+                      onClick={() => handleSwitchSubsystem(r.role)}
+                      colorScheme="blue"
+                      justifyContent="flex-start"
+                    >
+                      {roleLabel(r.role)}
+                    </Button>
+                  ))
+                }
+              </>
+            )}
+            
+            {(!availableRoles || availableRoles.filter(r => r.role !== user?.role).length === 0) && (
+              <Text fontSize="sm" color="gray.500">No other subsystems available.</Text>
+            )}
+
+            <Text fontSize="sm" color="gray.500" mt={2}>Note: Switching subsystems may take a moment depending on your network connection, device performance, or server load. If the page goes blank or does not refresh automatically, please refresh it manually.</Text>
+          </VStack>
+        </VStack>
+        
       </Stack>
     </Box>
   );

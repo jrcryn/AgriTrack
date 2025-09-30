@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import {  Link as RouterLink, useLocation } from 'react-router-dom';
+import {  Link as RouterLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   IconButton,
   Avatar,
@@ -18,6 +18,7 @@ import {
   MenuDivider,
   MenuItem,
   MenuList,
+  MenuGroup, // added
   Divider,
   Image,
   Badge,
@@ -29,7 +30,7 @@ import {
   ModalFooter,
   Button,
   Link,
-  useBreakpointValue, // added
+  useBreakpointValue,
 } from '@chakra-ui/react'
 import {
   FiGrid,
@@ -44,10 +45,13 @@ import {
   FiBox
 } from 'react-icons/fi'
 import { FaWpforms, FaUser, FaPowerOff, FaDoorOpen, FaBug  } from "react-icons/fa";
+import { IoSettingsSharp } from "react-icons/io5";
+
+import { IoDocumentAttachOutline } from "react-icons/io5";
 import Logo from '../images/Calamba_Seal.png'
 import { useAuthStore } from '../auth/store/authStore.js'
 import ProfileSettings from './profileSettings.jsx';
-
+import { useAdminDashboard } from '../doc-track/store/adminDashboard.store.js';
 
 const allLinkItems = [
   // high-value-crops
@@ -58,12 +62,12 @@ const allLinkItems = [
   { name: 'Farmers', icon: FiUsers, path : '/hvc/farmers', roles: ['HVCM', 'HVCS'] },
   
   //doc-track
-  { name: 'Dashboard', icon: FiGrid, path : '/doc-track/metrics', roles: ['DMS', 'DMM'] },
+  { name: 'Dashboard', icon: FiGrid, path : '/doc-track/metrics', roles: ['DMM'] },
+  { name: 'Produce Document', icon: IoDocumentAttachOutline, path : '/doc-track/register-document', roles: ['DMS', 'DMM'] },
   { name: 'Incoming', icon: FiInbox, path : '/doc-track/incoming', count: 8, roles: ['DMS', 'DMM'] },
   { name: 'Pending', icon: FiClock, path : '/doc-track/pending', count: 6, roles: ['DMS', 'DMM'] },
-  { name: 'Outgoing', icon: FiSend, path : '/doc-track/outgoing', count: 4, roles: ['DMS', 'DMM'] },
-  { name: 'History', icon: FiArchive, path : '/doc-track/history', roles: ['DMS', 'DMM'] },
-  { name: 'Staffs', icon: FiUsers, path : '/doc-track/staffs', roles: ['DMM'] },
+  { name: 'Forwarded', icon: FiSend, path : '/doc-track/outgoing', count: 4, roles: ['DMS', 'DMM'] },
+  { name: 'Employees', icon: FiUsers, path : '/doc-track/employees', roles: ['DMM'] },
 
   //machineries
   { name: 'Dashboard', icon: FiGrid, path: '/machineries/metrics', roles: ['MIS'] },
@@ -75,6 +79,7 @@ const SidebarContent = ({ onClose, ...rest }) => {
 
   const { user } = useAuthStore();
   const [ dashboardName, setDashboardName ] = useState('');
+  const navigate = useNavigate();
   const LinkItems = allLinkItems.filter(link => link.roles.includes(user?.role));
 
   useEffect(() => {
@@ -82,6 +87,7 @@ const SidebarContent = ({ onClose, ...rest }) => {
         DMS: 'DOC-TRACK',
         DMM: 'DOC-TRACK',
         MIS: 'MACHINERIES',
+        MIM: 'MACHINERIES',
         HVCM: 'HIGH-VALUE CROPS',
         HVCS: 'HIGH-VALUE CROPS',
       };
@@ -89,6 +95,16 @@ const SidebarContent = ({ onClose, ...rest }) => {
         setDashboardName(roleMap[user.role] || '');
       }
     }, [user?.role]);
+
+  const {
+    forwardedDocuments,
+    pendingDocuments,
+    outgoingDocuments,
+  } = useAdminDashboard();
+
+  const incomingCount = forwardedDocuments?.data?.totalCount ?? 0;
+  const pendingCount = pendingDocuments?.data?.totalCount ?? 0;
+  const outgoingCount = outgoingDocuments?.data?.totalCount ?? 0;
 
   // close drawer on mobile after clicking a link
   const isMobile = useBreakpointValue({ base: true, md: false });
@@ -130,7 +146,12 @@ const SidebarContent = ({ onClose, ...rest }) => {
           key={link.name} 
           icon={link.icon} 
           path={link.path} 
-          count={link.count}
+          count={
+            link.name === 'Incoming' ? incomingCount :
+            link.name === 'Pending' ? pendingCount :
+            link.name === 'Forwarded' ? outgoingCount :
+            undefined
+          }
           linkName={link.name}
           onClick={handleNavClick} // added
         >
@@ -171,7 +192,7 @@ const NavItem = ({ icon, children, path, linkName, onClick, ...rest }) => {
         return { bg: "green.500", color: "white" };
       case 'Pending':
         return { bg: "yellow.500", color: "white" };
-      case 'Outgoing':
+      case 'Forwarded':
         return { bg: "red.500", color: "white" };
       default:
         return { bg: "gray.500", color: "white" };
@@ -237,6 +258,7 @@ const MobileNav = ({ onOpen, ...rest }) => {
   }, [])
 
   const { user, logout } = useAuthStore();
+  const navigate = useNavigate();
   const [ roleName, setRoleName ] = useState('');
 
   const middle_name = user?.middle_name 
@@ -310,6 +332,7 @@ const MobileNav = ({ onOpen, ...rest }) => {
         <Divider orientation="vertical" height="20px" borderColor="gray.400" />
         <Flex alignItems="center">
           <Menu>
+
             <MenuButton py={2} transition="none" _focus={{ boxShadow: 'none' }}>
               <HStack>
                 <VStack display={{ base: 'none', md: 'flex' }} alignItems="flex-start" spacing="1px">
@@ -323,14 +346,17 @@ const MobileNav = ({ onOpen, ...rest }) => {
                 </Box>
               </HStack>
             </MenuButton>
+
             <MenuList bg="white" borderColor="gray.200" boxShadow={'md'}>
               <MenuItem as="button" onClick={onOpen1} _focus={{ bg: 'blue.50' }}>
-              <Icon as={FaUser} mr={1.5} ml={2}/>
-                Profile Settings
+                <Icon as={IoSettingsSharp} mr={1.5} ml={2}/>
+                Settings
               </MenuItem>
+
               <MenuDivider mt={'1'} mb={'1'}/>
+
               <MenuItem as="button" onClick={handleLogout} color={"red.500"} _focus={{ bg: 'blue.50' }}>
-              <Icon as={FaDoorOpen} mr={1.5} ml={2}/>
+                <Icon as={FaDoorOpen} mr={1.5} ml={2}/>
                 Log out
               </MenuItem>
             </MenuList>
@@ -350,8 +376,8 @@ const MobileNav = ({ onOpen, ...rest }) => {
             display="flex" 
             alignItems="center"
           >
-          <Icon as={FaUser} mr={2} color={"blue.500"}/>
-            Profile Settings
+          <Icon as={IoSettingsSharp} mr={2} color={"blue.500"}/>
+            System Settings
           </ModalHeader>
 
           <ModalBody>
@@ -359,7 +385,7 @@ const MobileNav = ({ onOpen, ...rest }) => {
           </ModalBody>
 
           <ModalFooter bg="gray.50" borderTopWidth="1px" borderColor="gray.200">
-            <Button colorScheme="blue" onClick={onClose}>Close</Button>
+            <Button variant={'outline'} onClick={onClose}>Close</Button>
           </ModalFooter>
         </ModalContent>
       </Modal>
