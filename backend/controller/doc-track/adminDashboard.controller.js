@@ -660,11 +660,11 @@ export const archiveDocument = async (req, res) => {
 };
 
 export const releaseDocument = async (req, res) => {
-    const { registeredDocId, userAccountId, recipientOffice, recipientPerson, modeOfRelease, releaseRemarks, isCustomDoc } = req.body;
+    const { registeredDocId, userAccountId, recipientOffice, recipientPerson, modeOfRelease, releaseRemarks } = req.body;
 
     try {
-        const document = isCustomDoc !== true ? await global.docTrackModels.DocumentLifeCycle.findById(registeredDocId) : null;
-        if (!document && isCustomDoc !== true) {
+        const document = await global.docTrackModels.DocumentLifeCycle.findById(registeredDocId);
+        if (!document) {
             return res.status(404).json({ success:false, message: 'Registered document not found.' });
         }
         const user = await global.docTrackModels.ManagerAccount.findById(userAccountId) ||
@@ -718,6 +718,7 @@ export const releaseDocument = async (req, res) => {
 
         return res.status(200).json({ success: true, message: 'Document released successfully', data: releaseDocument });
     } catch (error) {
+        console.log(error);
         return res.status(500).json({success: false, message: 'Error releasing document', error: error.message});
      }
 };

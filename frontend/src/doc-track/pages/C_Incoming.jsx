@@ -135,7 +135,6 @@ const C_Incoming = () => {
             isClosable: true,
           });
         }
-        setHasScanned(false);
         return;
     }
 

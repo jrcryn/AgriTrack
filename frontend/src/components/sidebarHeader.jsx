@@ -46,7 +46,7 @@ import {
 } from 'react-icons/fi'
 import { FaWpforms, FaUser, FaPowerOff, FaDoorOpen, FaBug  } from "react-icons/fa";
 import { IoSettingsSharp } from "react-icons/io5";
-
+import { Ticket, CornerDownLeft } from 'lucide-react';
 import { IoDocumentAttachOutline } from "react-icons/io5";
 import Logo from '../images/Calamba_Seal.png'
 import { useAuthStore } from '../auth/store/authStore.js'
@@ -70,9 +70,11 @@ const allLinkItems = [
   { name: 'Employees', icon: FiUsers, path : '/doc-track/employees', roles: ['DMM'] },
 
   //machineries
-  { name: 'Dashboard', icon: FiGrid, path: '/machineries/metrics', roles: ['MIS'] },
-  { name: 'Machinery Inventory', icon: FiBox, path: '/machineries/machine-inventory', roles: ['MIS'] },
-  { name: 'Generate Report', icon: FiDownload, path: '/machineries/gen-reports', roles: ['MIS'] },
+  { name: 'Dashboard', icon: FiGrid, path: '/machineries/metrics', roles: ['MIS', 'MIM'] },
+  { name: 'Machinery Management', icon: FiBox, path: '/machineries/machine-inventory', roles: ['MIS', 'MIM'] },
+  { name: 'Requests', icon: Ticket, path: '/machineries/gen-reports', roles: ['MIS', 'MIM'] },
+  { name: 'Returns', icon: CornerDownLeft, path: '/machineries/gen-reports', roles: ['MIS', 'MIM'] },
+  { name: 'Usage Report', icon: FiDownload, path: '/machineries/gen-reports', roles: ['MIS', 'MIM'] },
 ]
 
 const SidebarContent = ({ onClose, ...rest }) => {

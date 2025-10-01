@@ -92,7 +92,7 @@ const DocumentLifeCycleModal = ({
       customDisposalMethod: '',
       customRetentionPeriod: ''
     });
-    const [releaseData, setReleaseData] = useState({ recipientOffice: '', recipientPerson: '', modeOfRelease: '', releaseRemarks: '', isCustomDoc: '' });
+    const [releaseData, setReleaseData] = useState({ recipientOffice: '', recipientPerson: '', modeOfRelease: '', releaseRemarks: ''});
 
     const handleForward = async () => {
       if (!data || !forwardData.forwardAccountId || !forwardData.forwardRemarks) {
@@ -171,7 +171,6 @@ const DocumentLifeCycleModal = ({
           recipientPerson,
           modeOfRelease,
           releaseRemarks,
-          isCustomDoc: data.documentName === 'N/A' ? true : false,
         });
         toast({ title: "Success", description: res.message, status: "success", duration: 5000, isClosable: true });
         setReleaseData({ recipientOffice: '', recipientPerson: '', modeOfRelease: '', releaseRemarks: '' });
@@ -183,6 +182,7 @@ const DocumentLifeCycleModal = ({
             queryClient.invalidateQueries({ queryKey: ['documentWorkload'] }),
         ])
       } catch (error) {
+        console.log(error);
         toast({ title: "Error", description: error.response?.data?.message || "Failed to release document.", status: "error", duration: 5000, isClosable: true });
       }
     };

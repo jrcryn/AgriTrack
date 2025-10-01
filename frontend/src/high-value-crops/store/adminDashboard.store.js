@@ -2,11 +2,12 @@ import axios from 'axios';
 import { create } from 'zustand';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
+import { useAuthStore } from '../../auth/store/authStore';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
 // React Query hooks for data fetching
-export const useUnvalidatedNewlyPlantedQuery = (page = 1, isPaused = false) => 
+export const useUnvalidatedNewlyPlantedQuery = (page = 1, isPaused = false, role) => 
   useQuery({
     queryKey: ['unvalidatedNewlyPlanted', page],
     queryFn: async () => {
@@ -16,9 +17,10 @@ export const useUnvalidatedNewlyPlantedQuery = (page = 1, isPaused = false) =>
     },
     staleTime: 0,
     refetchInterval: isPaused ? false : 1000, // Refetch every second unless paused
+    enabled: role === 'HVCM' || role === 'HVCS' 
   });
 
-export const useUnvalidatedHarvestingQuery = (page = 1, isPaused = false) => 
+export const useUnvalidatedHarvestingQuery = (page = 1, isPaused = false, role) => 
   useQuery({
     queryKey: ['unvalidatedHarvesting', page],
     queryFn: async () => {
@@ -28,6 +30,7 @@ export const useUnvalidatedHarvestingQuery = (page = 1, isPaused = false) =>
     },
     staleTime: 0,
     refetchInterval: isPaused ? false : 1000, // Refetch every second unless paused
+    enabled: role === 'HVCM' || role === 'HVCS' 
   });
 
 // export const useValidatedInputsQuery = () => 
@@ -61,7 +64,7 @@ export const useUnvalidatedHarvestingQuery = (page = 1, isPaused = false) =>
 // };
 
 
-export const useFarmerAccountsQuery = (searchParams = {}) => {
+export const useFarmerAccountsQuery = (searchParams = {}, role) => {
  
   return useQuery({
    queryKey: ['farmerAccounts', searchParams],
@@ -84,10 +87,11 @@ export const useFarmerAccountsQuery = (searchParams = {}) => {
     },
     staleTime: 0, // Data is always fresh
     keepPreviousData: true, // Keep previous data while loading new data
+    enabled: role === 'HVCM' || role === 'HVCS' 
   });
 };
 
-export const useUnifiedFarmerResponseYearQuery = () =>
+export const useUnifiedFarmerResponseYearQuery = (role) =>
   useQuery({
     queryKey: ['availableYears'],
     queryFn: async () => {
@@ -97,21 +101,22 @@ export const useUnifiedFarmerResponseYearQuery = () =>
       return response.data;
     },
     staleTime: 0, // Data is always fresh
-    refetchInterval: 1000 // Refetch every second
+    refetchInterval: 1000, // Refetch every second
+    enabled: role === 'HVCM' || role === 'HVCS' 
   });
 
-export const useUnifiedFarmerResponseMonthsQuery = (year) =>
+export const useUnifiedFarmerResponseMonthsQuery = (year, role) =>
   useQuery({
     queryKey: ['availableMonths', year],
     queryFn: async () => {
       const response = await axios.get(`${API_URL}/api/hvc/metrics/available-months/${year}`);
       return response.data;
     },
-    enabled: !!year, // Only run the query if year is provided
+    enabled: !!year && (role === 'HVCM' || role === 'HVCS'), // Only run the query if year is provided
     staleTime: 0, // Data is always fresh
   });
 
-  export const useMetricsForYearMonthQuery = (year, month, barangay, commodity) =>
+  export const useMetricsForYearMonthQuery = (year, month, barangay, commodity, role) =>
     useQuery({
       // Use 0 in the query key to represent "All Months" when month is null
       queryKey: ['metricsData', year, month ?? 0, barangay, commodity],
@@ -141,12 +146,12 @@ export const useUnifiedFarmerResponseMonthsQuery = (year) =>
         return response.data;
       },
       // Enable the query as long as a year is selected
-      enabled: !!year,
+      enabled: !!year && (role === 'HVCM' || role === 'HVCS'),
       staleTime: 0,
     });
 
 //for report generation, date ranges
-export const useDateRangesQuery = (year, month) => 
+export const useDateRangesQuery = (year, month, role) => 
   useQuery({
     queryKey: ['dateRanges', year, month],
     queryFn: async () => {
@@ -155,11 +160,11 @@ export const useDateRangesQuery = (year, month) =>
       const response = await axios.get(`${API_URL}/api/hvc/report-date-ranges/${year}/${month}`);
       return response.data;
     },
-    enabled: !!(year && month), // Only run if both year and month are provided
+    enabled: !!(year && month) && (role === 'HVCM' || role === 'HVCS'), // Only run if both year and month are provided
     staleTime: 0, // Data is always fresh
   });
 
-export const useAvailableBarangaysQuery = (year, month) => 
+export const useAvailableBarangaysQuery = (year, month, role) => 
   useQuery({
     queryKey: ['barangays', year, month],
     queryFn: async () => {
@@ -168,7 +173,7 @@ export const useAvailableBarangaysQuery = (year, month) =>
       const response = await axios.get(`${API_URL}/api/hvc/available-barangays/${year}/${month}`);
       return response.data;
     },
-    enabled: !!(year && month), // Only run if both year and month are provided
+    enabled: !!(year && month) && (role === 'HVCM' || role === 'HVCS'), // Only run if both year and month are provided
     staleTime: 0, // Data is always fresh
   });
 
@@ -177,32 +182,32 @@ export const useAvailableBarangaysQuery = (year, month) =>
 
 // Composite hook that combines React Query and Zustand
 export const useAdminDashboard = (searchParams = {}) => {
+  const { user } = useAuthStore()
+  const role = user?.role?.toString();
 
   const [selectedYear, setSelectedYear] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState(null);
   const [selectedBarangay, setSelectedBarangay] = useState('');
   const [selectedCommodity, setSelectedCommodity] = useState('');
-  const [error, setError] = useState(null);
   const [newlyPlantedPage, setNewlyPlantedPage] = useState(1);
   const [harvestingPage, setHarvestingPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const { data: newlyPlantedInputs = { results: [], totalPages: 1, totalCount: 0 }, isLoading: isLoadingNewlyPlanted, error: newlyPlantedError } = useUnvalidatedNewlyPlantedQuery(newlyPlantedPage, isModalOpen);
-  const { data: harvestingInputs = { results: [], totalPages: 1, totalCount: 0 }, isLoading: isLoadingHarvesting, error: harvestingError } = useUnvalidatedHarvestingQuery(harvestingPage, isModalOpen);
-  //const { data: validatedInputs = [], isLoading: isLoadingValidated, error: validatedError } = useValidatedInputsQuery();
-  //const { mutate: updateFarmerInput, isPending: isUpdating, error: updateError } = useUpdateFarmerInputMutation();
-  const { data: farmerAccounts = [], isLoading: isLoadingAccounts, error: farmerAccountsError } = useFarmerAccountsQuery(searchParams);
+  const { data: newlyPlantedInputs = { results: [], totalPages: 1, totalCount: 0 }, isLoading: isLoadingNewlyPlanted, error: newlyPlantedError } = useUnvalidatedNewlyPlantedQuery(newlyPlantedPage, isModalOpen, role);
+  const { data: harvestingInputs = { results: [], totalPages: 1, totalCount: 0 }, isLoading: isLoadingHarvesting, error: harvestingError } = useUnvalidatedHarvestingQuery(harvestingPage, isModalOpen, role);
+  const { data: farmerAccounts = [], isLoading: isLoadingAccounts, error: farmerAccountsError } = useFarmerAccountsQuery(searchParams, role);
 
-  const { data: availableYears = [], isLoading: isLoadingUFRY, error: ufrYearsError } = useUnifiedFarmerResponseYearQuery();
-  const { data: availableMonths = [], isLoading: isLoadingUFRM, error: ufrMonthsError } = useUnifiedFarmerResponseMonthsQuery(selectedYear);
+  const { data: availableYears = [], isLoading: isLoadingUFRY, error: ufrYearsError } = useUnifiedFarmerResponseYearQuery(role);
+  const { data: availableMonths = [], isLoading: isLoadingUFRM, error: ufrMonthsError } = useUnifiedFarmerResponseMonthsQuery(selectedYear, role);
   const { data: metricsData, isLoading: isLoadingMetrics, error: metricsError } = useMetricsForYearMonthQuery(
     selectedYear, 
     selectedMonth,
     selectedBarangay || null,  // Pass as null if empty string
     selectedCommodity || null,  // Pass as null if empty string
+    role
   );
-  const { data: dateRanges = [], isLoading: isLoadingDateRanges, error: dateRangesError } = useDateRangesQuery(selectedYear, selectedMonth);
-  const { data: barangays = [], isLoading: isLoadingBarangays, error: barangaysError } = useAvailableBarangaysQuery(selectedYear, selectedMonth);
+  const { data: dateRanges = [], isLoading: isLoadingDateRanges, error: dateRangesError } = useDateRangesQuery(selectedYear, selectedMonth, role);
+  const { data: barangays = [], isLoading: isLoadingBarangays, error: barangaysError } = useAvailableBarangaysQuery(selectedYear, selectedMonth, role);
 
   const [isCreatingUnifiedResponse, setIsCreatingUnifiedResponse] = useState(false);
   const [isDeletingFarmerAccount, setIsDeletingFarmerAccount] = useState(false);
@@ -255,7 +260,7 @@ export const useAdminDashboard = (searchParams = {}) => {
     } finally {
       setIsFindingFarmerAccount(false);
     }
-  };////////////////////////////////////////////////////////////////////////////
+  };
 
   const deleteFarmerAccount = async (farmerId) => {
     setIsDeletingFarmerAccount(true);
