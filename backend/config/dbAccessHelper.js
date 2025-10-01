@@ -15,3 +15,8 @@ export const getMachineriesDB = () => {
   const connections = getConnections();
   return connections.machineriesDb;
 };
+
+export const getGlobalDB = () => {
+  const connections = getConnections();
+  return connections.globalDb;
+};

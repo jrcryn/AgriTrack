@@ -1,4 +1,3 @@
-import { parse } from 'path';
 import { getHighValueCropsDB } from '../../config/dbAccessHelper.js'; // import hvc db access
 import mongoose from 'mongoose';
 
@@ -565,7 +564,7 @@ export const createFarmerAccount = async (req, res) => {
     const formattedNumber = String(newNumber).padStart(4, '0');
     const farmerId = `F-${initials}-${formattedNumber}`;
 
-    const newFarmerAccount = await global.highValueCropsModels.FarmerAccount.create({
+    const newFarmerAccount = await global.globalModels.FarmerAccount.create({
       farmerId,
       surname: formattedSurname,
       first_name: formattedFirstName,
@@ -595,7 +594,7 @@ export const deleteFarmerAccount = async (req, res) => {
     return res.status(400).json({ message: 'Farmer ID is required.' });
   }
   try {
-    const result = await global.highValueCropsModels.FarmerAccount.deleteOne({ farmerId: farmerId });
+    const result = await global.globalModels.FarmerAccount.deleteOne({ farmerId: farmerId });
     if (result.deleteCount === 0) {
       return res.status(404).json({ message: 'Farmer account not found' });
     }
@@ -641,8 +640,8 @@ export const getFarmerAccounts = async (req, res) => {
       };
     }
 
-    const totalCount = await global.highValueCropsModels.FarmerAccount.countDocuments(filter);
-    const farmerAccounts = await global.highValueCropsModels.FarmerAccount.aggregate([
+    const totalCount = await global.globalModels.FarmerAccount.countDocuments(filter);
+    const farmerAccounts = await global.globalModels.FarmerAccount.aggregate([
           { $match: filter },
           { 
             $addFields: {
@@ -683,7 +682,7 @@ export const getFarmerAccounts = async (req, res) => {
 //   }
 
 //   try {
-//     const farmerAccount = await global.highValueCropsModels.FarmerAccount.findOne({ farmerId: farmerId }).lean();
+//     const farmerAccount = await global.globalModels.FarmerAccount.findOne({ farmerId: farmerId }).lean();
 //     if (!farmerAccount) {
 //       return res.status(404).json({ message: 'Farmer account not found' });
 //     }
@@ -696,13 +695,16 @@ export const getFarmerAccounts = async (req, res) => {
 // };
 
 // get farmer accounts by name or farmer Id
+
+
+
 export const getFarmerAccountByNameUser = async (req, res) => {
   const {  surname, first_name, middle_name, suffix, farmer_barangay, farmer_id } = req.body;
   if (!surname || !first_name ) {
     return res.status(400).json({ message: 'Farmer not found.' });
   }
   try {
-    const farmerAccount = await global.highValueCropsModels.FarmerAccount.find({
+    const farmerAccount = await global.globalModels.FarmerAccount.find({
       surname: {$regex: `^${surname}$`, $options: 'i'},
       first_name: {$regex: `^${first_name}$`, $options: 'i'},
       middle_name: middle_name ? {$regex: `^${middle_name}$`, $options: 'i'} : '',
@@ -733,7 +735,7 @@ export const updateFarmerAccount = async (req, res) => {
 
   try {
     // Find the farmer by ID
-    const farmerAccount = await global.highValueCropsModels.FarmerAccount.findOne({ farmerId });
+    const farmerAccount = await global.globalModels.FarmerAccount.findOne({ farmerId });
     
     if (!farmerAccount) {
       return res.status(404).json({ message: 'Farmer account not found' });

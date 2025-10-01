@@ -12,7 +12,7 @@ import { D2BcOtherFctHarvestSchema } from './schemas/D2_bc-other-fctHarvest.sche
 
 import { FormStatus } from './schemas/formStatus.js';
 
-import { FarmerAccountSchema } from './schemas/farmerAccount.schema.js';
+import { FarmerAccountSchema } from '../global/schemas/farmerAccount.schema.js';
 import { HVCManagerSchema } from './schemas/hvcManagerAccount.schema.js';
 import { HVCStaffSchema } from './schemas/hvcStaffAccount.schema.js';
 

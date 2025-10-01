@@ -28,6 +28,7 @@ app.use(cors({
 import initHVC from './config/hvcAppInitializer.js';
 import initMachineries from './config/machineriesAppInitializer.js';
 import initDocTrack from './config/doc-trackAppInitializer.js';
+import initGlobal from './config/globalAppInitilizer.js';
 
 import highValueCropsRoutes from './routes/high-value-crops.routes.js';
 import machineriesRoutes from './routes/machineries.routes.js';
@@ -40,7 +41,8 @@ async function startServer() {
     await Promise.all([
         initHVC(),
         initMachineries(),
-        initDocTrack()
+        initDocTrack(),
+        initGlobal(),
     ]);
 
     // Now that globals are set, add routes
