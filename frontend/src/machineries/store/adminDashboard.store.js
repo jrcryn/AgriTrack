@@ -2,10 +2,11 @@ import axios from 'axios';
 import { create } from 'zustand';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
+import { useAuthStore } from '../../auth/store/authStore.js'
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-export const useMachineryUnitsQuery = () => 
+export const useMachineryUnitsQuery = (role) => 
     useQuery({
         queryKey: ['machineryUnits'],
         queryFn: async () => {
@@ -16,12 +17,15 @@ export const useMachineryUnitsQuery = () =>
             return response.data;
         },
         staleTime: 0, //data is alwasys fresh
-        refetchInterval: 1000 // (1 second)
+        refetchInterval: 1000, // (1 second)
+        enabled: role === 'MIM' || role === 'MIS' 
     });
 
 export const useAdminDashboard = () => {
+    const { user } = useAuthStore();
+    const role = user?.role.toString();
 
-    const { data: machineryUnits = [], isLoading: isLoadingMachineries, error: loadingMachineriesError } = useMachineryUnitsQuery();
+    const { data: machineryUnits = [], isLoading: isLoadingMachineries, error: loadingMachineriesError } = useMachineryUnitsQuery(role);
 
     const [isCreatingMachineryUnit, setIsCreatingMachineryUnit] = useState(false);
     const [isUpdatingMachineryUnit, setIsUpdatingMachineryUnit] = useState(false);

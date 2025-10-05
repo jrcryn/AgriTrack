@@ -460,7 +460,7 @@ const E_Farmers = () => {
             
             <InputGroup>
               <Input
-                placeholder="Name, Barangay, Farmer ID, or Contact Number..."
+                placeholder="Farmer Name, Barangay, Farmer ID, or Contact #..."
                 bg="white"
                 value={farmerNameSearch}
                 onChange={(e) => setFarmerNameSearch(e.target.value)}
