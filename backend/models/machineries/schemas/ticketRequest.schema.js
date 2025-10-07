@@ -18,7 +18,8 @@ export const ticketRequestSchema = new mongoose.Schema({
     },
     estimatedArea: { type: Number, required: true},
     barangay: {type: String, required: true},
-    status: { type: String, required: true, enum: ['Pending', 'Scheduled', 'Declined'], default: 'Pending'},
+    dateRequested: {type: Date, required: true},
+    status: { type: String, required: true, enum: ['Pending', 'Scheduled', 'Ongoing' ,'Declined'], default: 'Pending'},
 
     // to be filled in when a schedule is created
     scheduleId: {

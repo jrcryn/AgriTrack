@@ -4,7 +4,11 @@ export const tripTicketSchema = new mongoose.Schema({
     ticketRequest: { 
         type: mongoose.Schema.Types.ObjectId, // Ref: TicketRequest (1:1)
         ref: 'Ticket_Request',
-    },          
+    },
+    weeklySchedule: { 
+        type: mongoose.Schema.Types.ObjectId, // for grouping under that week's schedule
+        ref: 'Weekly_Schedule',
+    },
     assignedOperator: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Staff_Account',
@@ -34,12 +38,28 @@ export const tripTicketSchema = new mongoose.Schema({
         facebook: { type: String, trim: true },
         birthdate: { type: Date },
     },
-    actualArea: {type: Number, required: true},
+
     barangay: {type:String, required: true},
+    dateServiced: {type: Date, required: true},
+    areaServiced: {type: Number, required: true},
+
+    status: { type: String, required: true, enum: ["Completed", "Partialy Completed", "Not Completed"]},
+    remainingArea: { type: Number, required: true}, // how much area is still left to be serviced pag partially completed
+    reasonIncomplete: {type: String}, //e.g., Rain, Tractor Breakdown, 
+
 
     farmerSignature: String,
     photoEvidence: [String],
-    completedAt: Date,
-    verifiedBy: ObjectId,
+    
+    verifiedBy: {
+        type: mongoose.Schema.Types.ObjectId, // Ref: TicketRequest (1:1)
+        ref: 'Admin_Account',
+        first_name: String,
+        last_name: String,
+        middle_name: String,
+        suffix: String,
+        email: String,
+        phone: { type: String, trim: true },
+    },
     verifiedAt: Date
 });
