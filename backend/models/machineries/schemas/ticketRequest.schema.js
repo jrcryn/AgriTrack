@@ -11,13 +11,22 @@ export const ticketRequestSchema = new mongoose.Schema({
         ref: 'Farmer_Account',
         required: true
     },
-    machineryType: {
+    requestedMachineType: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Machinery_Type',
+        ref: 'Machine_Type',
         required: true
     },
-    estimatedArea: { type: Number, required: true},
+    assignedMachineUnit: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Machine_Unit',
+    },
+    assignedOperator: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Staff_Account',
+    },
+    
     barangay: {type: String, required: true},
+    estimatedArea: { type: Number, required: true},
     dateRequested: {type: Date, required: true},
     status: { type: String, required: true, enum: ['Pending', 'Scheduled', 'Ongoing' ,'Declined'], default: 'Pending'},
 

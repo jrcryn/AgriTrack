@@ -9,23 +9,7 @@ export const tripTicketSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId, // for grouping under that week's schedule
         ref: 'Weekly_Schedule',
     },
-    assignedOperator: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Staff_Account',
-        first_name: String,
-        last_name: String,
-        middle_name: String,
-        suffix: String,
-        email: String,
-        phone: { type: String, trim: true },
-    },
-    assignedMachineUnit: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Machine_Unit',
-        plateNumber: String,
-        engineBrand: String,
-        engineHorsepower: Number
-    },
+
     requestorFarmer: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Farmer_Account',
@@ -38,13 +22,30 @@ export const tripTicketSchema = new mongoose.Schema({
         facebook: { type: String, trim: true },
         birthdate: { type: Date },
     },
+    utilizedMachineUnit: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Machine_Unit',
+        plateNumber: String,
+        engineBrand: String,
+        engineHorsepower: Number
+    },
+    workedOperator: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Staff_Account',
+        first_name: String,
+        last_name: String,
+        middle_name: String,
+        suffix: String,
+        email: String,
+        phone: { type: String, trim: true },
+    },
 
     barangay: {type:String, required: true},
     dateServiced: {type: Date, required: true},
     areaServiced: {type: Number, required: true},
 
     status: { type: String, required: true, enum: ["Completed", "Partialy Completed", "Not Completed"]},
-    remainingArea: { type: Number, required: true}, // how much area is still left to be serviced pag partially completed
+    remainingArea: { type: Number}, // how much area is still left to be serviced pag partially completed
     reasonIncomplete: {type: String}, //e.g., Rain, Tractor Breakdown, 
 
 

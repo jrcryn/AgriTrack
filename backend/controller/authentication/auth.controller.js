@@ -12,62 +12,48 @@ export const register = async (req, res) => {  //system admin level access only 
     const { first_name, last_name, middle_name, suffix, email, phone, role, office_position } = req.body;
     try {
 
+        const employee = await global.globalModels.EmployeeAccount.find({ $or: [{ email }, { phone }, { first_name }, { last_name }] });
+        if (employee.length > 0) {
+            return res.status(400).json({ success: false, message: 'Employee already exists.' });
+        }
+
         if (!first_name || !last_name || !email || !phone || !role || (role === 'DMS' && !office_position)) {
             return res.status(400).json({ success: false, message: 'All fields are required.' });
         }
-
-        // const userAlreadyExists = await global.docTrackModels.StaffAccount.findOne({ $or: [{ email: email }, { phone: phone }]}) ||
-        //            await global.docTrackModels.ManagerAccount.findOne({ $or: [{ email: email }, { phone: phone }]}) ||
-        //            await global.machineriesModels.StaffAccount.findOne({ $or: [{ email: email }, { phone: phone }]}) ||
-        //            await global.highValueCropsModels.StaffAccount.findOne({ $or: [{ email: email }, { phone: phone }]}) ||
-        //            await global.highValueCropsModels.ManagerAccount.findOne({ $or: [{ email: email }, { phone: phone }] });
-
-        // if (userAlreadyExists) {
-        //     return res.status(400).json({ success: false, message: 'User already exists.' });
-        // }
+        const position = ['DMS'].includes(role) ? office_position : null;
 
         // naisip ko gawin lang valid for 12 hours yung default password, if failed to comply si user need bumalik kay IT to create a new one.
         // TO BE IMPLEMENTED:
         // const defaultPasswordExpiry = Date.now() + 12 * 60 * 60 * 1000;
+
         const defaultPassword = crypto.randomBytes(8).toString('hex'); 
         const hashedPassword = await bcrypt.hash(defaultPassword, 12);
 
-        const model = role === 'DMS' ? global.docTrackModels.StaffAccount :
-                      role === 'DMM' ? global.docTrackModels.ManagerAccount :
-                      role === 'MIS' ? global.machineriesModels.StaffAccount :
-                      role === 'MIM' ? global.machineriesModels.ManagerAccount :
-                      role === 'HVCS' ? global.highValueCropsModels.StaffAccount :
-                      role === 'HVCM' ? global.highValueCropsModels.ManagerAccount :
-                      null;
-
-        if (!model) {
-            return res.status(400).json({ success: false, message: 'Invalid account type specified.' });
-        }
-
         await sendWelcomeEmail(email, defaultPassword);
-        const newUser = new model({
+        const newEmployee = await global.globalModels.EmployeeAccount.create({
             first_name,
             last_name,
             middle_name,
             suffix,
-            office_position: role === 'DMS' ? office_position : null, // Office position is only required when creating Doc-Track Staff accounts
+            office_position: position, // Office position is only required when creating Doc-Track Staff accounts
+            role,
             email,
             phone,
             password: hashedPassword, //for testing purposes, should be changed to hashedPassword in the future
         });
-        await newUser.save();
+        await newEmployee.save();
         
         res.status(201).json({ 
             message: 'User registered successfully', 
             success: true,
             user: {
-                id: newUser._id,
+                id: newEmployee._id,
                 first_name,
                 last_name,
                 middle_name,
                 suffix,
-                role: role,
-                office_position: newUser.office_position
+                role,
+                office_position
             } 
         }); 
 
@@ -84,35 +70,12 @@ export const register = async (req, res) => {  //system admin level access only 
 export const checkAuth = async (req, res) => {
     try {
 
-        const user = await global.docTrackModels.StaffAccount.findById(req.decodedAuthToken.payload.userId) ||
-                     await global.docTrackModels.ManagerAccount.findById(req.decodedAuthToken.payload.userId) ||
-                     await global.machineriesModels.StaffAccount.findById(req.decodedAuthToken.payload.userId) ||
-                     await global.machineriesModels.ManagerAccount.findById(req.decodedAuthToken.payload.userId) ||
-                     await global.highValueCropsModels.StaffAccount.findById(req.decodedAuthToken.payload.userId) ||
-                     await global.highValueCropsModels.ManagerAccount.findById(req.decodedAuthToken.payload.userId);
+        const user = await global.globalModels.EmployeeAccount.findById(req.decodedAuthToken.payload.userId);
 
         const role = req.decodedAuthToken.payload.role;
 
         if (!user || !role) {
             return res.status(404).json({ success: false, message: 'User not found.' });
-        }
-        
-        const email = user.email
-        const roleModels = [
-            { role: 'DMS',  model: global.docTrackModels.StaffAccount },
-            { role: 'DMM',  model: global.docTrackModels.ManagerAccount },
-            { role: 'MIS',  model: global.machineriesModels.StaffAccount },
-            { role: 'MIM',  model: global.machineriesModels.ManagerAccount },
-            { role: 'HVCS', model: global.highValueCropsModels.StaffAccount },
-            { role: 'HVCM', model: global.highValueCropsModels.ManagerAccount },
-        ]
-
-        const availableRoles = [];
-        for (const rm of roleModels) {
-            const acc = await rm.model.findOne({email}).select({_id: 1}).lean();
-            if (acc) {
-                availableRoles.push({role: rm.role, userId: acc._id});
-            }
         }
 
         res.status(200).json({
@@ -126,7 +89,7 @@ export const checkAuth = async (req, res) => {
                 role: role,
                 office_position: user.office_position
             },
-            availableRoles
+            availableRoles: user.roles
         });
 
     } catch (error) {
@@ -142,35 +105,15 @@ export const switchRole = async (req, res) => {
             return res.status(400).json({success: false, message: 'Target role is not found.'})
         };
 
-        let user = await global.docTrackModels.StaffAccount.findById(req.decodedAuthToken.payload.userId) ||
-                   await global.docTrackModels.ManagerAccount.findById(req.decodedAuthToken.payload.userId) ||
-                   await global.machineriesModels.StaffAccount.findById(req.decodedAuthToken.payload.userId) ||
-                   await global.machineriesModels.ManagerAccount.findById(req.decodedAuthToken.payload.userId) ||
-                   await global.highValueCropsModels.StaffAccount.findById(req.decodedAuthToken.payload.userId) ||
-                   await global.highValueCropsModels.ManagerAccount.findById(req.decodedAuthToken.payload.userId);
+        const user = await global.globalModels.EmployeeAccount.findById(req.decodedAuthToken.payload.userId);
 
         if (!user) {
             return res.status(400).json({success: false, message: 'User not found.'})
         };
 
-        const email = user.email;
-        const roleToModel = {
-            DMS:  global.docTrackModels.StaffAccount,
-            DMM:  global.docTrackModels.ManagerAccount,
-            MIS:  global.machineriesModels.StaffAccount,
-            MIM:  global.machineriesModels.ManagerAccount,
-            HVCS: global.highValueCropsModels.StaffAccount,
-            HVCM: global.highValueCropsModels.ManagerAccount,
-        };
-
-        const model = roleToModel[targetRole];
-        if (!model) {
-            return res.status(404).json({success:false, message: 'Invalid role.'})
-        };
-
-        const targetAccount = await model.findOne({ email }); 
+        const targetAccount = await global.globalModels.EmployeeAccount.findOne({ _id: user._id, email: user.email, roles: targetRole });
         if (!targetAccount) {
-            return res.status(404).json({success: false, message: 'No account for the requested role.'})
+            return res.status(404).json({success: false, message: 'You don\'t have access to this role or role does not exist.'})
         };
 
         generateTokenAndSetCookie(res, targetAccount._id, targetRole);
@@ -203,13 +146,7 @@ export const login = async (req, res) => {
             return res.status(400).json({ success: false, message: 'All fields are required.'})
         }
 
-        const user = await global.docTrackModels.StaffAccount.findOne({ email }) ||
-                     await global.docTrackModels.ManagerAccount.findOne({ email }) ||
-                     await global.machineriesModels.StaffAccount.findOne({ email }) ||
-                     await global.machineriesModels.ManagerAccount.findOne({ email }) ||
-                     await global.highValueCropsModels.StaffAccount.findOne({ email }) ||
-                     await global.highValueCropsModels.ManagerAccount.findOne({ email });
-
+        const user = await global.globalModels.EmployeeAccount.findOne({ email }) 
         if (!user) {
             return res.status(404).json({ success: false, message: 'Invalid credentials.' });
         }
@@ -269,13 +206,7 @@ export const generate2FASecret = async (req, res) => {
     const { userId } = req.body;
 
     try {
-        const user = await global.docTrackModels.StaffAccount.findById( userId ) ||
-                     await global.docTrackModels.ManagerAccount.findById( userId ) ||
-                     await global.machineriesModels.StaffAccount.findById( userId ) ||
-                     await global.highValueCropsModels.StaffAccount.findById( userId ) ||
-                     await global.highValueCropsModels.ManagerAccount.findById( userId );
-
-
+        const user = await global.globalModels.EmployeeAccount.findById( userId );
         if (!user) {
             return res.status(404).json({ success: false, message: 'User not found.' });
         }
@@ -320,25 +251,13 @@ export const verify2FA = async (req, res) => {
     const { token, userId } = req.body;
 
     try {
-        let user, role;
 
-        if (( user = await global.docTrackModels.ManagerAccount.findById(userId) )) {
-            role = 'DMM';
-        } else if (( user = await global.docTrackModels.StaffAccount.findById(userId) )) {
-            role = 'DMS';
-        } else if (( user = await global.machineriesModels.StaffAccount.findById(userId) )) {
-            role = 'MIS';
-        } else if (( user = await global.highValueCropsModels.ManagerAccount.findById(userId) )) {
-            role = 'HVCM';
-        } else if (( user = await global.highValueCropsModels.StaffAccount.findById(userId) )) {
-            role = 'HVCS';
-        }
-
+        const user = await global.globalModels.EmployeeAccount.findById(userId);
         if (user.isLocked) {
             return res.status(403).json({ success: false, message: 'Account locked. Contact IT support to regain access.' });
         }
 
-        if (!user || !role) {
+        if (!user) {
             return res.status(404).json({ success: false, message: 'User not found.' });
         }
 
@@ -352,6 +271,8 @@ export const verify2FA = async (req, res) => {
             token,
             secret: decryptedSecret
         });
+
+        const activeRole = user.roles[0]; // if activeRole is not set, default to the first role in the roles array
 
         if (!isValid) {
 
@@ -383,7 +304,7 @@ export const verify2FA = async (req, res) => {
             sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Strict', // Use 'None' for cross-site cookies in production, 'Strict' for local development
             path: '/' //cookie is cleared for the entire domain
         }); 
-        generateTokenAndSetCookie(res, user._id, role);
+        generateTokenAndSetCookie(res, user._id, activeRole);
 
         res.status(200).json({
             success: true,
@@ -391,7 +312,7 @@ export const verify2FA = async (req, res) => {
             user: {
                 id: user._id,
                 name: user.name,
-                role: role,
+                role: user.role,
                 office_position: user.office_position
             }
         });

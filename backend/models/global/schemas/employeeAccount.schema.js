@@ -1,12 +1,16 @@
 import mongoose from 'mongoose';
 
-export const HVCManagerSchema = new mongoose.Schema({
+export const EmployeeAccountSchema = new mongoose.Schema({
     first_name: { type: String, required: true },
     last_name: { type: String, required: true },
     middle_name: { type: String, required: false },
     suffix: { type: String, required: false },
     email: { type: String, required: true, unique: true },
     phone: { type: String, required: true, unique: true },
+
+    
+    office_position: { type: String, enum: ['CFS', 'LPMS', 'ANMS', 'RTSS'] }, // pag gagawa lang ng staff account for doc-track sya applicable 
+    roles: [String],
 
     password: { type: String, required: true },
     lastLogin: { type: Date, default: Date.now },

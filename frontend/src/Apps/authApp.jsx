@@ -28,10 +28,7 @@ const RedirectAuthenticatedUser = ({ children }) => {
     if (role === 'HVCM' || role === 'HVCS') {
       return <Navigate to='/hvc/metrics' replace />;
     } else if (role === 'MIS') {
-      return <Navigate to='/machineries/metrics' replace />;
-    } else if (role === 'DMS') {
-      return <Navigate to='/doc-track/register-document' replace />;
-    } else if (role === 'DMM') {
+      
       return <Navigate to='/doc-track/metrics' replace />;
     } else {
       return <Navigate to='/404' replace />;
