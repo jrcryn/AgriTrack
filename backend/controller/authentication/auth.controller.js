@@ -36,7 +36,7 @@ export const register = async (req, res) => {  //system admin level access only 
             middle_name,
             suffix,
             office_position: position, // Office position is only required when creating Doc-Track Staff accounts
-            role,
+            roles: [role],
             email,
             phone,
             password: hashedPassword, //for testing purposes, should be changed to hashedPassword in the future
@@ -76,8 +76,7 @@ export const checkAuth = async (req, res) => {
 
         if (!user || !role) {
             return res.status(404).json({ success: false, message: 'User not found.' });
-        }
-
+        }        
         res.status(200).json({
             success: true,
             user: {
@@ -89,7 +88,7 @@ export const checkAuth = async (req, res) => {
                 role: role,
                 office_position: user.office_position
             },
-            availableRoles: user.roles
+            availableRoles: user.roles,
         });
 
     } catch (error) {
@@ -272,7 +271,9 @@ export const verify2FA = async (req, res) => {
             secret: decryptedSecret
         });
 
-        const activeRole = user.roles[0]; // if activeRole is not set, default to the first role in the roles array
+        const role = Array.isArray(user.roles) && user.roles.length > 0
+                    ? String(user.roles[0])
+                    : null;
 
         if (!isValid) {
 
@@ -304,15 +305,18 @@ export const verify2FA = async (req, res) => {
             sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Strict', // Use 'None' for cross-site cookies in production, 'Strict' for local development
             path: '/' //cookie is cleared for the entire domain
         }); 
-        generateTokenAndSetCookie(res, user._id, activeRole);
+        generateTokenAndSetCookie(res, user._id, role);
 
         res.status(200).json({
             success: true,
             message: '2FA verified successfully.', 
             user: {
                 id: user._id,
-                name: user.name,
-                role: user.role,
+                first_name: user.first_name,
+                last_name: user.last_name,
+                middle_name: user.middle_name,
+                suffix: user.suffix,
+                role: role,
                 office_position: user.office_position
             }
         });
@@ -346,12 +350,7 @@ export const forgotPassword = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Email is required.'})
         }
 
-        let user = await global.docTrackModels.StaffAccount.findOne({ email }) ||
-                     await global.docTrackModels.ManagerAccount.findOne({ email }) ||
-                     await global.machineriesModels.StaffAccount.findOne({ email }) ||
-                     await global.highValueCropsModels.StaffAccount.findOne({ email }) ||
-                     await global.highValueCropsModels.ManagerAccount.findOne({ email });
-
+        let user = await global.globalModels.EmployeeAccount.findOne({ email });
         if (!user) {
             return res.status(404).json({ success: false, message: 'We cannot find your email.' });
         }
@@ -383,12 +382,7 @@ export const resetPassword = async (req, res) => {
     const { newPassword } = req.body;
 
     try {
-        let user = await global.docTrackModels.StaffAccount.findOne({ resetPasswordToken: token, resetPasswordExpiresAt: { $gt: Date.now() } }) ||
-                     await global.docTrackModels.ManagerAccount.findOne({ resetPasswordToken: token, resetPasswordExpiresAt: { $gt: Date.now() } }) ||
-                     await global.machineriesModels.StaffAccount.findOne({ resetPasswordToken: token, resetPasswordExpiresAt: { $gt: Date.now() } }) ||
-                     await global.highValueCropsModels.StaffAccount.findOne({ resetPasswordToken: token, resetPasswordExpiresAt: { $gt: Date.now() } }) ||
-                     await global.highValueCropsModels.ManagerAccount.findOne({ resetPasswordToken: token, resetPasswordExpiresAt: { $gt: Date.now() } });
-
+        let user = await global.globalModels.EmployeeAccount.findOne({ resetPasswordToken: token, resetPasswordExpiresAt: { $gt: Date.now() } });
         if (!user) {
             return res.status(404).json({ success: false, message: 'Invalid or expired reset token.' });
         }

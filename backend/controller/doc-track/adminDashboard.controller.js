@@ -128,13 +128,10 @@ export const registerDocument = async (req, res) => {
         }
         
 
-        let user = await global.docTrackModels.ManagerAccount.findById(userAccountId) ||
-                   await global.docTrackModels.StaffAccount.findById(userAccountId);
+        let user = await global.globalModels.EmployeeAccount.findById(userAccountId);
         if (!user) {
             return res.status(404).json({ success: false, message: 'Cannot find your account, please contact IT if error persists.'});
         }
-
-        const userModel = user instanceof global.docTrackModels.ManagerAccount ? 'Manager_Account' : 'Staff_Account';
 
         const newRefNumber = await getNextSequence('document_ref_number');
         const readableDate = new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
@@ -162,7 +159,6 @@ export const registerDocument = async (req, res) => {
             lifeCycle: {
                 action: 'Document Created',
                 performedBy: {
-                    userModel: userModel,
                     userId: user._id,
                     first_name: user.first_name,
                     last_name: user.last_name,
@@ -186,7 +182,6 @@ export const registerDocument = async (req, res) => {
                     lifeCycle: {
                         action: 'Forwarded',
                         performedBy: {
-                            userModel: userModel,
                             userId: user._id,
                             first_name: user.first_name,
                             last_name: user.last_name,
@@ -198,7 +193,6 @@ export const registerDocument = async (req, res) => {
                             phone: user.phone
                         },
                         forwardDetails: {
-                            userModel: userModel,
                             userId: user._id,
                             first_name: user.first_name,
                             last_name: user.last_name,
@@ -315,21 +309,15 @@ export const forwardDocument = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Registered document not found.' });
     }
 
-    let user = await global.docTrackModels.ManagerAccount.findById(userAccountId) ||
-               await global.docTrackModels.StaffAccount.findById(userAccountId);
-
+    let user = await global.globalModels.EmployeeAccount.findById(userAccountId);
     if (!user) {
       return res.status(404).json({ success: false, message: 'Cannot find your account, please contact IT if error persists.' });
     }
-    const userModel = user instanceof global.docTrackModels.ManagerAccount ? 'Manager_Account' : 'Staff_Account';
 
-    let forwardAccount = await global.docTrackModels.ManagerAccount.findById(forwardAccountId) ||
-                         await global.docTrackModels.StaffAccount.findById(forwardAccountId);
-
+    let forwardAccount = await global.globalModels.EmployeeAccount.findById(forwardAccountId);
     if (!forwardAccount) {
       return res.status(404).json({ success: false, message: 'Cannot find the user you are trying to forward to.' });
     }
-    const userForwardModel = forwardAccount instanceof global.docTrackModels.ManagerAccount ? 'Manager_Account' : 'Staff_Account';
 
     const forwardDocument = await global.docTrackModels.DocumentLifeCycle.updateOne(
       { _id: document._id },
@@ -338,7 +326,6 @@ export const forwardDocument = async (req, res) => {
           lifeCycle: {
             action: 'Forwarded',
             performedBy: {
-              userModel: userModel,
               userId: user._id,
               first_name: user.first_name,
               last_name: user.last_name,
@@ -350,7 +337,6 @@ export const forwardDocument = async (req, res) => {
               phone: user.phone
             },
             forwardDetails: {
-              userModel: userForwardModel,
               userId: forwardAccount._id,
               first_name: forwardAccount.first_name,
               last_name: forwardAccount.last_name, 
@@ -400,13 +386,10 @@ export const registerAndForwardDocument = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Document type not found.'});
         }
 
-        let registerAccount = await global.docTrackModels.ManagerAccount.findById(userAccountId) ||
-                              await global.docTrackModels.StaffAccount.findById(userAccountId);
+        let registerAccount = await global.globalModels.EmployeeAccount.findById(userAccountId);
         if (!registerAccount) {
             return res.status(404).json({ success: false, message: 'Cannot find your account, please contact IT if error persists.'});
         }
-
-        const registerAccountModel = registerAccount instanceof global.docTrackModels.ManagerAccount ? 'Manager_Account' : 'Staff_Account';
 
         const newRefNumber = await getNextSequence('document_ref_number');
         const readableDate = new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
@@ -434,7 +417,6 @@ export const registerAndForwardDocument = async (req, res) => {
             lifeCycle: {
                 action: 'Document Created',
                 performedBy: {
-                    userModel: registerAccountModel,
                     userId: registerAccount._id,
                     first_name: registerAccount.first_name,
                     last_name: registerAccount.last_name,
@@ -450,26 +432,23 @@ export const registerAndForwardDocument = async (req, res) => {
             details: details,
         });
         
-        let forwardAccount = await global.docTrackModels.ManagerAccount.findById(forwardAccountId) ||
-                   await global.docTrackModels.StaffAccount.findById(forwardAccountId);
+        let forwardAccount = await global.globalModels.EmployeeAccount.findById(forwardAccountId);
         if (!forwardAccount) {
             return res.status(404).json({ success: false, message: 'Cannot find the user you are trying to forward to.'});
         }
-        const forwardAccountModel = forwardAccount instanceof global.docTrackModels.ManagerAccount ? 'Manager_Account' : 'Staff_Account';
 
         const forwardDocument = await global.docTrackModels.DocumentLifeCycle.findById(newDocRegistration._id);
         if (!forwardDocument) {
             return res.status(404).json({ success: false, message: 'Registered document not found.' });
         }
         
-        const docForwarded = await global.docTrackModels.DocumentLifeCycle.updateOne(
+        await global.docTrackModels.DocumentLifeCycle.updateOne(
             {_id: forwardDocument._id},
             {
                 $push: {
                     lifeCycle: {
                         action: 'Forwarded',
                         performedBy: {
-                            userModel: forwardAccountModel,
                             userId: registerAccount._id,
                             first_name: registerAccount.first_name,
                             last_name: registerAccount.last_name,
@@ -481,7 +460,6 @@ export const registerAndForwardDocument = async (req, res) => {
                             phone: registerAccount.phone
                         },
                         forwardDetails: {
-                            userModel: forwardAccountModel,
                             userId: forwardAccount._id,
                             first_name: forwardAccount.first_name,
                             last_name: forwardAccount.last_name,
@@ -532,12 +510,10 @@ export const receiveDocument = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Registered document not found.' });
         }
 
-        let user = await global.docTrackModels.ManagerAccount.findById(userAccountId) ||
-                   await global.docTrackModels.StaffAccount.findById(userAccountId);
+        let user = await global.globalModels.EmployeeAccount.findById(userAccountId);
         if (!user) {
             return res.status(404).json({ success: false, message: 'Cannot find your account, please contact IT if error persists.' });
         }
-        const userModel = user instanceof global.docTrackModels.ManagerAccount ? 'Manager_Account' : 'Staff_Account';
 
         const receiveDocument = await global.docTrackModels.DocumentLifeCycle.updateOne(
             {_id: document._id},
@@ -546,7 +522,6 @@ export const receiveDocument = async (req, res) => {
                     lifeCycle: {
                         action: 'Received/Work on Progress',
                         performedBy: {
-                            userModel: userModel,
                             userId: user._id,
                             first_name: user.first_name,
                             last_name: user.last_name,
@@ -581,13 +556,10 @@ export const archiveDocument = async (req, res) => {
         if (!docType && isCustomDoc !== true) {
             return res.status(404).json({ success:false, message: 'Document type not found.' });
         }
-        const user = await global.docTrackModels.ManagerAccount.findById(userAccountId) ||
-                     await global.docTrackModels.StaffAccount.findById(userAccountId);
+        const user = await global.globalModels.EmployeeAccount.findById(userAccountId);
         if (!user) {
             return res.status(404).json({ success: false, message: 'Cannot find your account, please contact IT if error persists.' });
         }
-        const userModel = user instanceof global.docTrackModels.ManagerAccount ? 'Manager_Account' : 'Staff_Account';
-
 
         const rawPeriod = isCustomDoc === true
             ? Number(customRetentionPeriod)
@@ -615,7 +587,6 @@ export const archiveDocument = async (req, res) => {
                     lifeCycle: {
                         action: 'Archived',
                         performedBy: {
-                            userModel: userModel,
                             userId: user._id,
                             first_name: user.first_name,
                             last_name: user.last_name,
@@ -667,12 +638,10 @@ export const releaseDocument = async (req, res) => {
         if (!document) {
             return res.status(404).json({ success:false, message: 'Registered document not found.' });
         }
-        const user = await global.docTrackModels.ManagerAccount.findById(userAccountId) ||
-                     await global.docTrackModels.StaffAccount.findById(userAccountId);
+        const user = await global.globalModels.EmployeeAccount.findById(userAccountId);
         if (!user) {
             return res.status(404).json({ success: false, message: 'Cannot find your account, please contact IT if error persists.' });
         }
-        const userModel = user instanceof global.docTrackModels.ManagerAccount ? 'Manager_Account' : 'Staff_Account';
 
         const releaseDocument = await global.docTrackModels.DocumentLifeCycle.findOneAndUpdate(
             { _id: document._id },
@@ -681,7 +650,6 @@ export const releaseDocument = async (req, res) => {
                     lifeCycle: {
                         action: 'Released',
                         performedBy: {
-                            userModel: userModel,
                             userId: user._id,
                             first_name: user.first_name,
                             last_name: user.last_name,
@@ -735,14 +703,11 @@ export const getAdminAndStaffAccounts = async (req, res) => {
             office_position: 1
         }
         const filter = {_id: {$ne: id}};
-        const [managers, staffs] = await Promise.all([
-            global.docTrackModels.ManagerAccount.find(filter, projection).lean(),
-            global.docTrackModels.StaffAccount.find(filter, projection).lean()
+        const [employees] = await Promise.all([
+            global.globalModels.EmployeeAccount.find(filter, projection).lean()
         ]);
 
-        const allAccounts = [...managers, ...staffs];
-
-        return res.status(200).json({success: true, message: 'Successfully fetched all admin and staff accounts.', data: allAccounts})
+        return res.status(200).json({success: true, message: 'Successfully fetched all admin and staff accounts.', data: employees})
     } catch (error) {   
         console.error('Error fetching admin and staff accounts:', error);
         return res.status(500).json({success: false, message: 'Error fetching accounts.', error: error.message});
@@ -757,8 +722,7 @@ export const getIncomingForwardedDocuments = async (req, res) => {
         const limit = parseInt(req.query.limit) || 10;
         const skip = (page - 1) * limit;
 
-        const user = await global.docTrackModels.ManagerAccount.findById(id) ||
-                     await global.docTrackModels.StaffAccount.findById(id);
+        const user = await global.globalModels.EmployeeAccount.findById(id);
         if (!user) {
             return res.status(404).json({ success: false, message: 'Cannot find your account, please contact IT if error persists.' });
         }
@@ -832,8 +796,7 @@ export const getPendingDocuments = async (req, res) => {
         const limit = parseInt(req.query.limit) || 10; // Default to 5 per page for each section
         const skip = (page - 1) * limit;
 
-        const user = await global.docTrackModels.ManagerAccount.findById(id) ||
-                     await global.docTrackModels.StaffAccount.findById(id);
+        const user = await global.globalModels.EmployeeAccount.findById(id);
         if (!user) {
             return res.status(404).json({ success: false, message: 'Cannot find your account, please contact IT if error persists.' });
         }
@@ -900,8 +863,7 @@ export const getOutgoingForwardedDocuments = async (req, res) => {
         const limit = parseInt(req.query.limit) || 10;
         const skip = (page - 1) * limit;
 
-        const user = await global.docTrackModels.ManagerAccount.findById(id) ||
-                     await global.docTrackModels.StaffAccount.findById(id);
+        const user = await global.globalModels.EmployeeAccount.findById(id);
         if (!user) {
             return res.status(404).json({ success: false, message: 'Cannot find your account, please contact IT if error persists.' });
         }
@@ -1149,17 +1111,10 @@ export const unarchiveDocument = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Document with this ID already exists in active documents.' });
         };
 
-
-
-
-        let user = await global.docTrackModels.ManagerAccount.findById(userAccountId) ||
-                   await global.docTrackModels.StaffAccount.findById(userAccountId);
+        let user = await global.globalModels.EmployeeAccount.findById(userAccountId);
         if (!user) {
             return res.status(404).json({ success: false, message: 'Cannot find your account, please contact IT if error persists.' });
         }
-        const userModel = user instanceof global.docTrackModels.ManagerAccount ? 'Manager_Account' : 'Staff_Account';
-
-
 
         if (forwardToSelf === true) {
             await global.docTrackModels.DocumentLifeCycle.updateOne(
@@ -1169,7 +1124,6 @@ export const unarchiveDocument = async (req, res) => {
                         lifeCycle: {
                             action: 'Unarchived',
                         performedBy: {
-                            userModel: userModel,
                             userId: user._id,
                             first_name: user.first_name,
                             last_name: user.last_name,
@@ -1181,7 +1135,6 @@ export const unarchiveDocument = async (req, res) => {
                             phone: user.phone
                         },
                         forwardDetails: {
-                            userModel: userModel,
                             userId: user._id,
                             first_name: user.first_name,
                             last_name: user.last_name,
@@ -1209,12 +1162,10 @@ export const unarchiveDocument = async (req, res) => {
                 }
             );
         } else {
-            let forwardAccount = await global.docTrackModels.ManagerAccount.findById(forwardAccountId) ||
-                             await global.docTrackModels.StaffAccount.findById(forwardAccountId);
+            let forwardAccount = await global.globalModels.EmployeeAccount.findById(forwardAccountId);
             if (!forwardAccount) {
                 return res.status(404).json({ success: false, message: 'Cannot find the user you are trying to forward to.' });
             }
-            const userForwardModel = forwardAccount instanceof global.docTrackModels.ManagerAccount ? 'Manager_Account' : 'Staff_Account';
 
             await global.docTrackModels.DocumentLifeCycle.updateOne(
                 {_id: archivedDocument._id},
@@ -1223,7 +1174,6 @@ export const unarchiveDocument = async (req, res) => {
                         lifeCycle: {
                             action: 'Unarchived',
                         performedBy: {
-                            userModel: userModel,
                             userId: user._id,
                             first_name: user.first_name,
                             last_name: user.last_name,
@@ -1235,7 +1185,6 @@ export const unarchiveDocument = async (req, res) => {
                             phone: user.phone
                         },
                         forwardDetails: {
-                            userModel: userForwardModel,
                             userId: forwardAccount._id,
                             first_name: forwardAccount.first_name,
                             last_name: forwardAccount.last_name,
@@ -1292,14 +1241,10 @@ export const unreleaseDocument = async (req, res) => {
         };
 
 
-
-
-        let user = await global.docTrackModels.ManagerAccount.findById(userAccountId) ||
-                   await global.docTrackModels.StaffAccount.findById(userAccountId);
+        let user = await global.globalModels.EmployeeAccount.findById(userAccountId);
         if (!user) {
             return res.status(404).json({ success: false, message: 'Cannot find your account, please contact IT if error persists.' });
         }
-        const userModel = user instanceof global.docTrackModels.ManagerAccount ? 'Manager_Account' : 'Staff_Account';
 
 
         if (forwardToSelf === true) {
@@ -1310,7 +1255,6 @@ export const unreleaseDocument = async (req, res) => {
                         lifeCycle: {
                             action: 'Unreleased',
                         performedBy: {
-                            userModel: userModel,
                             userId: user._id,
                             first_name: user.first_name,
                             last_name: user.last_name,
@@ -1322,7 +1266,6 @@ export const unreleaseDocument = async (req, res) => {
                             phone: user.phone
                         },
                         forwardDetails: {
-                            userModel: userModel,
                             userId: user._id,
                             first_name: user.first_name,
                             last_name: user.last_name,
@@ -1350,12 +1293,10 @@ export const unreleaseDocument = async (req, res) => {
                 }
             );
         } else {
-            let forwardAccount = await global.docTrackModels.ManagerAccount.findById(forwardAccountId) ||
-                                 await global.docTrackModels.StaffAccount.findById(forwardAccountId);
+            let forwardAccount = await global.globalModels.EmployeeAccount.findById(forwardAccountId);
             if (!forwardAccount) {
                 return res.status(404).json({ success: false, message: 'Cannot find the user you are trying to forward to.' });
             }
-            const userForwardModel = forwardAccount instanceof global.docTrackModels.ManagerAccount ? 'Manager_Account' : 'Staff_Account';
 
             await global.docTrackModels.DocumentLifeCycle.updateOne(
                 {_id: releasedDocument._id},
@@ -1364,7 +1305,6 @@ export const unreleaseDocument = async (req, res) => {
                         lifeCycle: {
                             action: 'Unreleased',
                         performedBy: {
-                            userModel: userModel,
                             userId: user._id,
                             first_name: user.first_name,
                             last_name: user.last_name,
@@ -1376,7 +1316,6 @@ export const unreleaseDocument = async (req, res) => {
                             phone: user.phone
                         },
                         forwardDetails: {
-                            userModel: userForwardModel,
                             userId: forwardAccount._id,
                             first_name: forwardAccount.first_name,
                             last_name: forwardAccount.last_name,
@@ -1412,7 +1351,7 @@ export const unreleaseDocument = async (req, res) => {
         return res.status(500).json({ success: false, message: 'Error unrelease document', error: error.message });
     }
 };
-;
+
 export const getUsersDocumentWorkload = async (req, res) => {
     try {
         const projection = {
@@ -1423,17 +1362,11 @@ export const getUsersDocumentWorkload = async (req, res) => {
             role: 1,
             office_position: 1
         };
-        const [managers, staffs] = await Promise.all([
-            global.docTrackModels.ManagerAccount.find({}, projection).lean(),
-            global.docTrackModels.StaffAccount.find({}, projection).lean()
+        const [employees] = await Promise.all([
+            global.globalModels.EmployeeAccount.find({}, projection).lean(),
         ]);
 
-        const allAccounts = [
-            ...managers.map(a => ({ ...a, accountModel: 'Manager_Account' })),
-            ...staffs.map(a => ({ ...a, accountModel: 'Staff_Account' }))
-        ];
-
-        if (allAccounts.length === 0) {
+        if (employees.length === 0) {
             return res.status(200).json({ success: true, data: [] });
         }
 
@@ -1501,14 +1434,13 @@ export const getUsersDocumentWorkload = async (req, res) => {
         const pendingMap = new Map(pendingAgg.map(r => [String(r._id), r]));
 
         // 4. Merge into account list
-        const result = allAccounts
+        const result = employees
             .map(acc => {
                 const key = String(acc._id);
                 const incoming = incomingMap.get(key) || { count: 0, documents: [] };
                 const pending = pendingMap.get(key) || { count: 0, documents: [] };
                 return {
                     userId: acc._id,
-                    accountModel: acc.accountModel,
                     first_name: acc.first_name,
                     last_name: acc.last_name,
                     middle_name: acc.middle_name,
@@ -1542,13 +1474,10 @@ export const rerouteDocument = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Registered document not found.' });
         }
 
-        const user = await global.docTrackModels.ManagerAccount.findById(userAccountId) ||
-                   await global.docTrackModels.StaffAccount.findById(userAccountId);
+        const user = await global.globalModels.EmployeeAccount.findById(userAccountId);
         if (!user) {
             return res.status(404).json({ success: false, message: 'Cannot find your account, please contact IT if error persists.' });
         }
-        const userModel = user instanceof global.docTrackModels.ManagerAccount ? 'Manager_Account' : 'Staff_Account';
-
         
         if (rerouteToSelf === true) {
             await global.docTrackModels.DocumentLifeCycle.updateOne(
@@ -1558,7 +1487,6 @@ export const rerouteDocument = async (req, res) => {
                         lifeCycle: {
                             action: 'Rerouted',
                             performedBy: {
-                                userModel: userModel,
                                 userId: user._id,
                                 first_name: user.first_name,
                                 last_name: user.last_name,
@@ -1570,7 +1498,6 @@ export const rerouteDocument = async (req, res) => {
                                 phone: user.phone
                             },
                             rerouteDetails: {
-                                userModel: userModel,
                                 userId: user._id,
                                 first_name: user.first_name,
                                 last_name: user.last_name,
@@ -1598,12 +1525,10 @@ export const rerouteDocument = async (req, res) => {
                 }
             );
         } else {
-            const rerouteAccount = await global.docTrackModels.ManagerAccount.findById(rerouteAccountId) ||
-                                   await global.docTrackModels.StaffAccount.findById(rerouteAccountId);
+            const rerouteAccount = await global.globalModels.EmployeeAccount.findById(rerouteAccountId);
             if (!rerouteAccount) {
                 return res.status(404).json({ success: false, message: 'Cannot find the user you are trying to reroute to.' });
             }
-            const rerouteAccountModel = rerouteAccount instanceof global.docTrackModels.ManagerAccount ? 'Manager_Account' : 'Staff_Account';
             await global.docTrackModels.DocumentLifeCycle.updateOne(
                 {_id: document._id},
                 {
@@ -1611,7 +1536,6 @@ export const rerouteDocument = async (req, res) => {
                         lifeCycle: {
                             action: 'Rerouted',
                             performedBy: {
-                                userModel: userModel,
                                 userId: user._id,
                                 first_name: user.first_name,
                                 last_name: user.last_name,
@@ -1623,7 +1547,6 @@ export const rerouteDocument = async (req, res) => {
                                 phone: user.phone
                             },
                             rerouteDetails: {
-                                userModel: rerouteAccountModel,
                                 userId: rerouteAccount._id,
                                 first_name: rerouteAccount.first_name,
                                 last_name: rerouteAccount.last_name,
@@ -1883,12 +1806,10 @@ export const disposeDocuments = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Archived document not found.' });
         }
 
-        const user = await global.docTrackModels.ManagerAccount.findById(userAccountId) ||
-                     await global.docTrackModels.StaffAccount.findById(userAccountId);
+        const user = await global.globalModels.EmployeeAccount.findById(userAccountId);
         if (!user) {
             return res.status(404).json({ success: false, message: 'Cannot find your account, please contact IT if error persists.' });
         }
-        const userModel = user instanceof global.docTrackModels.ManagerAccount ? 'Manager_Account' : 'Staff_Account';
 
         const updatedArchived = await global.docTrackModels.ArchivedDocuments.findOneAndUpdate(
             { _id: archivedDocument._id },
@@ -1897,7 +1818,6 @@ export const disposeDocuments = async (req, res) => {
                     lifeCycle: {
                         action: 'Disposed',
                         performedBy: {
-                            userModel: userModel,
                             userId: user._id,
                             first_name: user.first_name,
                             last_name: user.last_name,
@@ -1956,8 +1876,12 @@ export const getSectionDocumentCount = async (req, res) => {
 
         // 1) Load account ids by category
         const [managers, staffs] = await Promise.all([
-            global.docTrackModels.ManagerAccount.find({}, { _id: 1 }).lean(),
-            global.docTrackModels.StaffAccount.find(
+            global.globalModels.EmployeeAccount.find(
+                { roles: { $in: 'DMM'} }, 
+                { _id: 1 }
+            ).lean(),
+
+            global.globalModels.EmployeeAccount.find(
                 { office_position: { $in: SECTIONS } },
                 { _id: 1, office_position: 1 }
             ).lean()

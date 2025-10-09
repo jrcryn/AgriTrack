@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+ import { useEffect, useState, useCallback } from "react";
 import { Alert, AlertIcon, Box, Slide, Text } from "@chakra-ui/react";
 
 const NetworkStatusAlert = () => {

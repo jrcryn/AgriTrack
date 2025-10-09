@@ -4,12 +4,7 @@ import { decrypt } from '../../utils/encryption.js';
 export const changeUserPassword = async (req, res) => {
     const { currentPassword, newPassword } = req.body;
     try {
-        const user = await global.docTrackModels.StaffAccount.findById(req.decodedAuthToken.payload.userId) ||
-                     await global.docTrackModels.ManagerAccount.findById(req.decodedAuthToken.payload.userId) ||
-                     await global.machineriesModels.StaffAccount.findById(req.decodedAuthToken.payload.userId) ||
-                     await global.highValueCropsModels.StaffAccount.findById(req.decodedAuthToken.payload.userId) ||
-                     await global.highValueCropsModels.ManagerAccount.findById(req.decodedAuthToken.payload.userId);
-
+        const user = await global.globalModels.EmployeeAccount.findById(req.decodedAuthToken.payload.userId);
         if (!user) {
             return res.status(404).json({ success: false, message: 'User not found.' });
         }
@@ -34,12 +29,7 @@ export const changeUserPassword = async (req, res) => {
 export const get2FAsecret = async (req, res) => {
     const { password } = req.body;
     try {
-        const user = await global.docTrackModels.StaffAccount.findById(req.decodedAuthToken.payload.userId) ||
-                     await global.docTrackModels.ManagerAccount.findById(req.decodedAuthToken.payload.userId) ||
-                     await global.machineriesModels.StaffAccount.findById(req.decodedAuthToken.payload.userId) ||
-                     await global.highValueCropsModels.StaffAccount.findById(req.decodedAuthToken.payload.userId) ||
-                     await global.highValueCropsModels.ManagerAccount.findById(req.decodedAuthToken.payload.userId);
-
+        const user = await global.globalModels.EmployeeAccount.findById(req.decodedAuthToken.payload.userId);
         if (!user || !user.twoFAQRCode || !user.twoFASecret) {
             return res.status(404).json({ success: false, message: '2FA setup not found.' });
         } 

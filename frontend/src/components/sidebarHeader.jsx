@@ -281,6 +281,7 @@ const MobileNav = ({ onOpen, ...rest }) => {
         DMS: 'STAFF',
         DMM: 'MANAGER',
         MIS: 'STAFF',
+        MIM: 'MANAGER',
         HVCM: 'MANAGER',
         HVCS: 'STAFF',
       };

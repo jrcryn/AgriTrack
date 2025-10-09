@@ -37,7 +37,7 @@ export const getUnvalidatedFarmerInputs = async (req, res) => {
     // Fetch the paginated farmer inputs based on the filtered IDs
     const farmerInputs = await global.highValueCropsModels.A_farmer_inputs
       .find({ _id: { $in: relevantFarmerInputIds } })
-      .populate('farmer_account_id')
+      .populate({ path: 'farmer_account_id', model: global.globalModels.FarmerAccount })
       .lean()
       .skip(skip)
       .limit(limit);
@@ -93,6 +93,7 @@ export const getUnvalidatedFarmerInputs = async (req, res) => {
       currentPage: page
     });
   } catch (error) {
+    console.log(error);
     res.status(500).json({ message: 'Error fetching unvalidated farmer inputs', error: error.message });
   }
 };
@@ -528,7 +529,7 @@ export const checkFormStatus = async (req, res) => {
 
 
 const getNextSequence = async (key) => {
-  const counter = await global.highValueCropsModels.Counter.findOneAndUpdate(
+  const counter = await global.globalModels.Counter.findOneAndUpdate(
     { _id: key },
     { $inc: { seq: 1 } },
     { new: true, upsert: true }

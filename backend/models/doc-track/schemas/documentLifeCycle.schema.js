@@ -8,8 +8,7 @@ export const lifeCycleIterationsSchema = new mongoose.Schema({
     },
 
     performedBy: { // hindi lang sya naka reference kay Staff_Account or Manager_Account for historical accuracy
-        userModel: { type: String, enum: ['Staff_Account', 'Manager_Account'] },
-        userId: { type: mongoose.Schema.Types.ObjectId, refPath: 'performedBy.userModel' },
+        userId: { type: mongoose.Schema.Types.ObjectId, path: 'Employee_Account' },
         first_name: String,
         last_name: String,
         middle_name: String,
@@ -21,8 +20,7 @@ export const lifeCycleIterationsSchema = new mongoose.Schema({
     },
 
     forwardDetails: { // same goes here
-        userModel: { type: String, enum: ['Staff_Account', 'Manager_Account'] },
-        userId: { type: mongoose.Schema.Types.ObjectId, refPath: 'forwardDetails.userModel' },
+        userId: { type: mongoose.Schema.Types.ObjectId, path: 'Employee_Account' },
         first_name: String,
         last_name: String,
         middle_name: String,
@@ -35,8 +33,7 @@ export const lifeCycleIterationsSchema = new mongoose.Schema({
     },
 
     rerouteDetails: { // same goes here
-        userModel: { type: String, enum: ['Staff_Account', 'Manager_Account'] },
-        userId: { type: mongoose.Schema.Types.ObjectId, refPath: 'rerouteDetails.userModel' },
+        userId: { type: mongoose.Schema.Types.ObjectId, path: 'Employee_Account' },
         first_name: String,
         last_name: String,
         middle_name: String,

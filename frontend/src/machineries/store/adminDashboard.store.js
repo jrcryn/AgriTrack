@@ -23,7 +23,7 @@ export const useMachineryUnitsQuery = (role) =>
 
 export const useAdminDashboard = () => {
     const { user } = useAuthStore();
-    const role = user?.role.toString();
+    const role = user?.role.toString().toUpperCase();
 
     const { data: machineryUnits = [], isLoading: isLoadingMachineries, error: loadingMachineriesError } = useMachineryUnitsQuery(role);
 

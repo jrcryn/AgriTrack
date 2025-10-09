@@ -183,8 +183,8 @@ export const useAvailableBarangaysQuery = (year, month, role) =>
 // Composite hook that combines React Query and Zustand
 export const useAdminDashboard = (searchParams = {}) => {
   const { user } = useAuthStore()
-  const role = user?.role?.toString();
-
+  const role = user?.role?.toString().toUpperCase();
+  
   const [selectedYear, setSelectedYear] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState(null);
   const [selectedBarangay, setSelectedBarangay] = useState('');

@@ -12,12 +12,6 @@ import { D2BcOtherFctHarvestSchema } from './schemas/D2_bc-other-fctHarvest.sche
 
 import { FormStatus } from './schemas/formStatus.js';
 
-import { FarmerAccountSchema } from '../global/schemas/farmerAccount.schema.js';
-import { HVCManagerSchema } from './schemas/hvcManagerAccount.schema.js';
-import { HVCStaffSchema } from './schemas/hvcStaffAccount.schema.js';
-
-import { CounterSchema } from './schemas/counter.schema.js';
-
 import { UnifiedFarmerRecordSchema } from './schemas/unifiedFarmerResponse.schema.js';
 
 // Create and export models with the high-value-crops database
@@ -34,11 +28,6 @@ export const initializeHighValueCropsModels = () => {
     D2_bc_other_fct_new: db.model('D2_bc_other_fct_new', D2BcOtherFctNewSchema),
     D2_bc_other_fct_harvest: db.model('D2_bc_other_fct_harvest', D2BcOtherFctHarvestSchema),
     FormStatus: db.model('FormStatus', FormStatus),
-
-    FarmerAccount: db.model('Farmer_Account', FarmerAccountSchema),
-    ManagerAccount: db.model('Manager_Account', HVCManagerSchema),
-    StaffAccount: db.model('Staff_Account', HVCStaffSchema),
-    Counter: db.model('Counter', CounterSchema)
   };
 };
 

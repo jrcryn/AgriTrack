@@ -14,7 +14,7 @@ const RedirectAuthenticatedUser = ({ children }) => {
   if (isCheckingAuth) {
       return null;
   }
-
+  
   if (isAuthenticated) {
 
     if (!user.role) {
@@ -24,12 +24,12 @@ const RedirectAuthenticatedUser = ({ children }) => {
     }
 
     const role = String(user?.role || '').trim().toUpperCase();
-
     if (role === 'HVCM' || role === 'HVCS') {
       return <Navigate to='/hvc/metrics' replace />;
-    } else if (role === 'MIS') {
-      
+    } else if (role === 'DMM' || role === 'DMS') {
       return <Navigate to='/doc-track/metrics' replace />;
+    } else if (role === 'MIM' || role === 'MIS') {
+      return <Navigate to='/machineries/metrics' replace />;
     } else {
       return <Navigate to='/404' replace />;
     }
