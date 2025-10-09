@@ -9,7 +9,7 @@ import { generateTokenAndSetCookie } from '../../utils/generateTokenAndSetCookie
 import { generatePreTokenAndSetCookie } from '../../utils/generatePreTokenAndSetCookie.js';
 
 export const register = async (req, res) => {  //system admin level access only (ililipat in the future to a separate route for admin job controllers)
-    const { first_name, last_name, middle_name, suffix, email, phone, role, office_position } = req.body;
+    const { first_name, last_name, middle_name, suffix, email, phone, roles, office_position } = req.body;
     try {
 
         const employee = await global.globalModels.EmployeeAccount.find({ $or: [{ email }, { phone }, { first_name }, { last_name }] });
@@ -17,10 +17,10 @@ export const register = async (req, res) => {  //system admin level access only 
             return res.status(400).json({ success: false, message: 'Employee already exists.' });
         }
 
-        if (!first_name || !last_name || !email || !phone || !role || (role === 'DMS' && !office_position)) {
+        if (!first_name || !last_name || !email || !phone || !roles || (roles.includes('DMS') && !office_position)) {
             return res.status(400).json({ success: false, message: 'All fields are required.' });
         }
-        const position = ['DMS'].includes(role) ? office_position : null;
+        const position = roles.includes('DMS') ? office_position : null;
 
         // naisip ko gawin lang valid for 12 hours yung default password, if failed to comply si user need bumalik kay IT to create a new one.
         // TO BE IMPLEMENTED:
@@ -36,7 +36,7 @@ export const register = async (req, res) => {  //system admin level access only 
             middle_name,
             suffix,
             office_position: position, // Office position is only required when creating Doc-Track Staff accounts
-            roles: [role],
+            roles,
             email,
             phone,
             password: hashedPassword, //for testing purposes, should be changed to hashedPassword in the future
@@ -52,7 +52,7 @@ export const register = async (req, res) => {  //system admin level access only 
                 last_name,
                 middle_name,
                 suffix,
-                role,
+                roles,
                 office_position
             } 
         }); 
