@@ -212,7 +212,6 @@ export const getMachineriesUnits = async (req, res) => {
         console.error("Error fetching machinery units:", error);
         res.status(500).json({ message: "Error fetching machinery units.", error: error.message });
     }
-    
 };
 
 

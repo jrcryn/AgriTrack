@@ -7,7 +7,10 @@ import Layout from '../components/layout.jsx';
 
 import Metrics from '../machineries/pages/A_Metrics.jsx';
 import MachineryInventory from '../machineries/pages/B_MachineInventory.jsx'
-import GenReports from '../machineries/pages/C_GenReports.jsx';
+import TicketRequests from '../machineries/pages/C_TicketRequests.jsx';
+import TripTicketReturns from '../machineries/pages/D_TripTicketReturns.jsx';
+import GenReports from '../machineries/pages/E_GenReports.jsx';
+import Operators from '../machineries/pages/F_Operators.jsx';
 
 import { useAuthStore } from '../auth/store/authStore.js';
 
@@ -60,7 +63,10 @@ const machineriesApp = () => {
                 <Route path="/" element={<Layout />}>
                    <Route path="metrics" element={<Metrics/>} />
                    <Route path="machine-inventory" element={<MachineryInventory/>} />
+                   <Route path="ticket-requests" element={<TicketRequests/>} />
+                   <Route path="trip-ticket-returns" element={<TripTicketReturns/>} />
                    <Route path="gen-reports" element={<GenReports/>} />
+                   <Route path="operators" element={<Operators/>} />
                 </Route>    
             </Routes>
             </ProtectedRoute>

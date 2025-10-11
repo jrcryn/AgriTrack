@@ -43,11 +43,13 @@ import {
   Tooltip,
 } from '@chakra-ui/react';
 import numOfTreesToHectares from '../../components/conversions.js';
-import { FaSearch, FaEye, FaSeedling, FaBoxes, FaUser, FaLeaf, FaWifi, FaUpload, FaInfo, FaCheck, FaStop } from 'react-icons/fa';
+import { FaSearch, FaEye, FaSeedling, FaBoxes, FaUser, FaLeaf, FaWifi, FaUpload, FaInfo, FaCheck, FaStop, FaLink, FaExternalLinkAlt } from 'react-icons/fa';
 import { GoAlertFill } from "react-icons/go";
 import { useAdminDashboard } from '../store/adminDashboard.store.js';
 import { useFormStatusCheck } from '../store/farmerForm.store.js'
 import { useQueryClient } from '@tanstack/react-query';
+
+const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL;
 
 const Responses = () => {
   // States for search and pagination
@@ -1387,6 +1389,37 @@ const Responses = () => {
           <Button colorScheme={formButtonColor} size="sm" width={{ base: "full", md: "auto" }} onClick={handleFormToggle} isLoading={isUpdatingFormStatus}>
             <Icon as={isFormOpen ? FaCheck : FaStop} mr={2}/>
             {isFormOpen ? "Accepting Responses..." : "Not Accepting Responses"}
+          </Button>
+
+          <Button 
+            ml={2} 
+            colorScheme='blue' 
+            size="sm" 
+            width={{ base: "full", md: "auto" }} 
+            onClick={() => {
+              navigator.clipboard.writeText(`${FRONTEND_URL}/hvc/form/istcns`);
+              toast({
+                title: "Link Copied",
+                description: "The form link has been copied to your clipboard.",
+                status: "success",
+                duration: 3000,
+                isClosable: true,
+              });
+            }}
+            >
+            <Icon as={FaLink} mr={2}/>
+            Copy Form Link
+          </Button>
+
+          <Button 
+            ml={2} 
+            colorScheme='blue' 
+            size="sm" 
+            width={{ base: "full", md: "auto" }} 
+            onClick={() => { window.open(`${FRONTEND_URL}/hvc/form/istcns`, '_blank') }} 
+            >
+            <Icon as={FaExternalLinkAlt} mr={2}/>
+            Open Form in New Tab
           </Button>
 
         </Flex>
