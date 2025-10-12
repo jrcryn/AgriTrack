@@ -34,6 +34,7 @@ import highValueCropsRoutes from './routes/high-value-crops.routes.js';
 import machineriesRoutes from './routes/machineries.routes.js';
 import docTrackRoutes from './routes/doc-track.routes.js';
 import authRoutes from './routes/auth.routes.js';
+import globalRoutes from './routes/global.routes.js';
 import userSettingsRoutes from './routes/userSettings.route.js';     
 
 async function startServer() {
@@ -50,6 +51,7 @@ async function startServer() {
     app.use("/api/machineries", machineriesRoutes);
     app.use("/api/doc-track", docTrackRoutes);
     app.use("/api/auth",authRoutes);
+    app.use("/api/global", globalRoutes);
     app.use("/api/user-settings", userSettingsRoutes);
 
     app.listen(process.env.PORT, () => {

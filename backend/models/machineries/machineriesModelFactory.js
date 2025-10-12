@@ -5,7 +5,7 @@ import { MachineriesUnitSchema } from "./schemas/machineriesUnit.schema.js";
 import { ticketRequestSchema } from "./schemas/ticketRequest.schema.js"
 import { WeeklyScheduleSchema } from "./schemas/weeklySchedule.schema.js";
 import { tripTicketSchema } from "./schemas/tripTicket.schema.js";
-
+import { FormStatus } from "./schemas/formStatus.js";
 export const initializeMachineriesModels = () => {
     const db = getMachineriesDB();
 
@@ -15,5 +15,6 @@ export const initializeMachineriesModels = () => {
         TicketRequest: db.model("Ticket_Request", ticketRequestSchema),
         WeeklySchedule: db.model("Weekly_Schedule", WeeklyScheduleSchema),
         TripTciket: db.model("Trip_Ticket", tripTicketSchema),
+        FormStatus: db.model('FormStatus', FormStatus),
     }
 };

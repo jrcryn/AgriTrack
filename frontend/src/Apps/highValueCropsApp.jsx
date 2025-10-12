@@ -29,8 +29,6 @@ import D2_bc_Other_fctHarvest from '../high-value-crops/formPages/D2_bc-other-fc
 import D2_bc_Other_fctNew from '../high-value-crops/formPages/D2_bc-other-fctNew.jsx';
 import SuccessPage from '../high-value-crops/formPages/E_successPage.jsx';
 
-import Maintenance from '../components/maintenance.jsx';
-
 //redirect authenticated users
 const ProtectedRoute = ({children}) => {
     const {isAuthenticated, isCheckingAuth, user, checkAuth} = useAuthStore();
@@ -72,7 +70,7 @@ const CheckFormStatus = ({children}) => {
   return children;
 };
 
-axios.interceptors.response.use(
+axios.interceptors.response.use( //if unauthorized redirect to login
   response => response,
   error => {
     const currentPath = window.location.pathname;
@@ -88,7 +86,7 @@ axios.interceptors.response.use(
   }
 );
 
-axios.interceptors.response.use(
+axios.interceptors.response.use( //if forbidden (form closed) redirect to form closed page
   response => response,
   error => {
     const currentPath = window.location.pathname;

@@ -31,7 +31,6 @@ import {
 
 import {
     submitCompleteFarmerForm,
-    getFarmerAccountByName
 } from '../controller/high-value-crops/farmerForm.controller.js';
 
 import { verifyAuthToken } from '../middleware/verifyToken.js';
@@ -87,8 +86,7 @@ router.post('/generate-hvc-pr', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), g
 //________________________________ FARMER FORM PAGES ____________________________________
 
 
-router.post('/farmer-form-submission', ensureHvcFormOpen, submitCompleteFarmerForm);
-router.post('/get-farmer-account-by-name', ensureHvcFormOpen, getFarmerAccountByName);
+router.post('/farmer-form-submission', ensureHvcFormOpen, submitCompleteFarmerForm); // need ng way para ma-verify muna kung nahanap ba talaga (JWT probably again?) yung farmer bago magsubmit ng form, otherwise, reject ung submission. create middleware.
 router.get('/check-form-status', checkFormStatus);
 
 

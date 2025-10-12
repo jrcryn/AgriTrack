@@ -18,15 +18,15 @@ import {
   InputGroup,
   InputLeftAddon,
 } from '@chakra-ui/react';
-import { useFarmerFormStore } from '../store/farmerForm.store.js';
-import { usePublicFormStore } from '../../global/publicForm.store.js';
-import Barangays from '../../components/barangays.js';
+import { useTicketRequestFormStore } from '../../store/ticketRequestForm.store.js';
+import { usePublicFormStore } from '../../../global/publicForm.store.js';
+import Barangays from '../../../components/barangays.js';
 import { FaUserCheck, FaSearch } from 'react-icons/fa';
 
 const FarmerInput = ({ onNext, onBack }) => {
 
   // Get the existing farmer input data from the store
-  const { formData, updateFarmerInput, isLoading } = useFarmerFormStore();
+  const { formData, updateFarmerInput, isLoading } = useTicketRequestFormStore();
   const { getFarmerAccountByName } = usePublicFormStore();
   
   // Initialize form data with existing data from the store
