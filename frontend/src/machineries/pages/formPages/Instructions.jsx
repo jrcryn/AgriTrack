@@ -40,7 +40,7 @@ const Instructions = ({ onNext }) => {
               letterSpacing="tight"
               mb={3}
             >
-              High Value Crop Planting and Harvesting Report
+              Free Tractor Services (Ticket Request) Form
             </Heading>
             <Text fontSize="sm" color="gray.500" fontWeight="medium" mb={-2}>
               BASAHIN NG MABUTI
