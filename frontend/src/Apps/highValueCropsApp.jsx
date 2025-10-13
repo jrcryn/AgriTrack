@@ -14,7 +14,7 @@ import Responses from '../high-value-crops/pages/D_Responses.jsx';
 import Farmers from '../high-value-crops/pages/E_Farmers.jsx';
 import ProfileSettings from '../components/profileSettings.jsx';
 
-import FormClosedPage from '../high-value-crops/formPages/formClosedPage.jsx';
+import FormClosedPage from '../high-value-crops/formPages/FormClosedPage.jsx';
 
 // Form imports
 import Instructions from '../high-value-crops/formPages/Instructions.jsx';
