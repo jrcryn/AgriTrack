@@ -22,7 +22,11 @@ import SuccessPage from '../machineries/pages/formPages/SuccessPage.jsx';
 import { useAuthStore } from '../auth/store/authStore.js';
 
 const ProtectedRoute = ({children}) => {
-    const {isAuthenticated, user, isCheckingAuth} = useAuthStore();
+    const {isAuthenticated, user, isCheckingAuth, checkAuth} = useAuthStore();
+
+    useEffect(() => {
+      checkAuth();
+    }, [checkAuth]);
 
     if (isCheckingAuth) {
       return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
@@ -59,13 +63,6 @@ const machineriesApp = () => {
     const navigate = useNavigate();
     const navigationType = useNavigationType();
     const location = useLocation();
-
-    // CHECK AUTHENTICATION STATUS
-    const { checkAuth } = useAuthStore();
-
-    useEffect(() => {
-        checkAuth();
-    }, [checkAuth]);
 
     // PAGE DIRECTION CONTROLLER FOR FARMER FORM PAGES
 
@@ -115,7 +112,7 @@ const machineriesApp = () => {
 
                  {/*ticket request form*/}
 
-                 <Route path="form/istcns" element={<Instructions onNext={() => handleNext('/dpa')} />} />
+                 <Route path="/form/istcns" element={<Instructions onNext={() => handleNext('/dpa')} />} />
 
                  <Route path="form">
                   <Route path="dpa" element={<DataPrivacyAct onNext={() => handleNext('/farmer-input')} onBack={handleBack} />} />

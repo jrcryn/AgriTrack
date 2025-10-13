@@ -1,11 +1,6 @@
 import mongoose from 'mongoose';
 
 export const ticketRequestSchema = new mongoose.Schema({
-    farmerId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Farmer_Account',
-        required: true
-    },
     requestorFarmer: {
         type: mongoose.Schema.Types.ObjectId, 
         ref: 'Farmer_Account',

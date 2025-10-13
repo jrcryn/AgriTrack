@@ -22,6 +22,7 @@ import { useTicketRequestFormStore } from '../../store/ticketRequestForm.store.j
 import { usePublicFormStore } from '../../../global/publicForm.store.js';
 import Barangays from '../../../components/barangays.js';
 import { FaUserCheck, FaSearch } from 'react-icons/fa';
+import { Form } from 'react-router-dom';
 
 const FarmerInput = ({ onNext, onBack }) => {
 
@@ -213,6 +214,7 @@ const FarmerInput = ({ onNext, onBack }) => {
               </Text>
               
                 <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
+
                 <FormControl id="surname" isRequired>
                   <FormLabel 
                     fontSize="sm" 
@@ -250,9 +252,7 @@ const FarmerInput = ({ onNext, onBack }) => {
                     isDisabled={isFarmerSelected}
                   />
                 </FormControl>
-              </SimpleGrid>
 
-              <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
                 <FormControl id="middleName">
                   <FormLabel 
                     fontSize="sm" 
@@ -322,7 +322,9 @@ const FarmerInput = ({ onNext, onBack }) => {
                     ))}
                   </Select>
                 </FormControl>
+
               </SimpleGrid>
+
 
               {!isFarmerSelected ? (
                  <Button
@@ -351,36 +353,81 @@ const FarmerInput = ({ onNext, onBack }) => {
               )}
 
 
+              {isFarmerSelected && (
+                <>
+                <Divider my={1} borderWidth={1} borderColor="gray.300" />
 
-              {isFarmerSelected && (
-                 <Divider my={1} borderWidth={1} borderColor="gray.300" />
-              )}
-              {isFarmerSelected && (
                 <SimpleGrid>
-                <FormControl id="farmLocation" isRequired>
-                  <FormLabel 
-                    fontSize="sm" 
-                    fontWeight="medium"
-                    color="gray.600"
-                  >
-                    FARM LOCATION (PILIIN ANG BARANGAY KUNG NASAAN ANG INYONG TANIMAN)
-                  </FormLabel>
-                  <Select 
-                    name='farm_location'
-                    value={localFormData.farm_location}
-                    onChange={handleChange}
-                    placeholder="Select Barangay"
-                    borderRadius="md"
-                    focusBorderColor={accentColor}
-                  >
-                    {Barangays.map((barangay) => (
-                      <option key={barangay} value={barangay}>
-                        {barangay}
-                      </option>
-                    ))}
-                  </Select>
-                </FormControl>
-              </SimpleGrid>
+                  <FormControl id="farmLocation" isRequired>
+                    <FormLabel 
+                      fontSize="sm" 
+                      fontWeight="medium"
+                      color="gray.600"
+                    >
+                      FARM LOCATION (PILIIN ANG BARANGAY KUNG SAAN GAGAMITIN ANG MAKINARYA)
+                    </FormLabel>
+                    <Select 
+                      name='farm_location'
+                      value={localFormData.farm_location}
+                      onChange={handleChange}
+                      placeholder="Select Barangay"
+                      borderRadius="md"
+                      focusBorderColor={accentColor}
+                    >
+                      {Barangays.map((barangay) => (
+                        <option key={barangay} value={barangay}>
+                          {barangay}
+                        </option>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </SimpleGrid>
+
+                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
+                  <FormControl id="machineType" isRequired>
+                    <FormLabel 
+                      fontSize="sm" 
+                      fontWeight="medium"
+                      color="gray.600"
+                    >
+                      MACHINE TYPE
+                    </FormLabel>
+                    <Select 
+                      name='machine_type'
+                      value={localFormData.machine_type || ''}
+                      onChange={handleChange}
+                      placeholder="Select Machine Type"
+                      borderRadius="md"
+                      focusBorderColor={accentColor}
+                    >
+                      {/* Options will be added later */}
+                    </Select>
+                  </FormControl>
+
+                  <FormControl id="estimatedArea" isRequired>
+                    <FormLabel 
+                      fontSize="sm" 
+                      fontWeight="medium"
+                      color="gray.600"
+                    >
+                      ESTIMATED AREA (HECTARES)
+                    </FormLabel>
+                    <InputGroup>
+                      <InputLeftAddon children="ha" />
+                      <Input 
+                        name='estimated_area'
+                        value={localFormData.estimated_area || ''}
+                        onChange={handleChange}
+                        type="number"
+                        min="1"
+                        placeholder="Enter area"
+                        borderRadius="md"
+                        focusBorderColor={accentColor}
+                      />
+                    </InputGroup>
+                  </FormControl>
+                </SimpleGrid>
+              </>
               )}
 
             </VStack>
@@ -411,10 +458,12 @@ const FarmerInput = ({ onNext, onBack }) => {
                 borderRadius="md"
                 isDisabled={!isFormValid}
               >
-                Continue
+                Submit
               </Button>
             </Stack>
           </Box>
+
+
         </Box>
       </VStack>
     </Box>

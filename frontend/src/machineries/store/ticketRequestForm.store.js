@@ -14,10 +14,12 @@ export const useTicketRequestFormStore = create((set, get) => ({
         first_name: '',
         middle_name: '',
         suffix: '',
-        farm_location: '',
         farmer_location: '', 
-        },
-        ticketRequest: null,
+
+        farm_location: '',
+        estimated_area: '',
+        machine_type: '',
+        }
     },
 
     updatePrivacyConsent: (consent) => set((state) => ({

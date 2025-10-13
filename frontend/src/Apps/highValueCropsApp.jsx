@@ -14,7 +14,7 @@ import Responses from '../high-value-crops/pages/D_Responses.jsx';
 import Farmers from '../high-value-crops/pages/E_Farmers.jsx';
 import ProfileSettings from '../components/profileSettings.jsx';
 
-import FormClosedPage from '../components/formClosedPage.jsx';
+import FormClosedPage from '../high-value-crops/formPages/formClosedPage.jsx';
 
 // Form imports
 import Instructions from '../high-value-crops/formPages/Instructions.jsx';
@@ -78,7 +78,7 @@ axios.interceptors.response.use( //if unauthorized redirect to login
       error.response &&
       error.response.status === 401 &&
       !currentPath.startsWith('/auth') &&
-      !currentPath.startsWith('/hvc/form') // ignore 403 while on public form pages
+      !currentPath.startsWith('/hvc/form') // ignore 401 while on public form pages
     ) {
       window.location.href = '/auth/login';
     }
