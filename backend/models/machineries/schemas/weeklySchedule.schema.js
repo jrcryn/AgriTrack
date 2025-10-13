@@ -5,7 +5,8 @@ const tr = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Ticket_Request',
         required: true
-    }
+    },
+    assignedDay: { type: Date, required: true }
 })
 
 export const WeeklyScheduleSchema = new mongoose.Schema({

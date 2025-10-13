@@ -14,7 +14,6 @@ import Operators from '../machineries/pages/F_Operators.jsx';
 
 //form inports
 import TicketRequestForm from '../machineries/pages/formPages/TicketRequestForm.jsx';
-import FarmerInput from '../machineries/pages/formPages/FindFarmer.jsx';
 import Instructions from '../machineries/pages/formPages/Instructions.jsx';
 import DataPrivacyAct from '../machineries/pages/formPages/DataPrivacyAct.jsx';
 import SuccessPage from '../machineries/pages/formPages/SuccessPage.jsx';
@@ -115,8 +114,7 @@ const machineriesApp = () => {
                  <Route path="/form/istcns" element={<Instructions onNext={() => handleNext('/dpa')} />} />
 
                  <Route path="form">
-                  <Route path="dpa" element={<DataPrivacyAct onNext={() => handleNext('/farmer-input')} onBack={handleBack} />} />
-                  <Route path="farmer-input" element={<FarmerInput onNext={() => handleNext('/ticket-request')} onBack={handleBack} />} />
+                  <Route path="dpa" element={<DataPrivacyAct onNext={() => handleNext('/ticket-request')} onBack={handleBack} />} />
                   <Route path="ticket-request" element={<TicketRequestForm onNext={() => handleNext('/success')} onBack={handleBack} />} />
                   <Route path="success" element={<SuccessPage />} />
                  </Route>

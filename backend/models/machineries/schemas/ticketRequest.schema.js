@@ -11,15 +11,7 @@ export const ticketRequestSchema = new mongoose.Schema({
         ref: 'Machine_Type',
         required: true
     },
-    assignedMachineUnit: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Machine_Unit',
-    },
-    assignedOperator: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Staff_Account',
-    },
-    
+
     barangay: {type: String, required: true},
     estimatedArea: { type: Number, required: true},
     dateRequested: {type: Date, required: true},

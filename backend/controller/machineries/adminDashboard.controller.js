@@ -307,5 +307,153 @@ export const transferMachineriesUnit = async (req, res) => {
 
 
 export const ticketRequestForm = async (req, res) => {
-    
+    const {
+        requestorFarmer,
+        requestedMachineType,
+        barangay,
+        estimatedArea
+    } = req.body;
+
+    if (!requestorFarmer || !requestedMachineType || !barangay || !estimatedArea) {
+        return res.status(400).json({ 
+            message: "Please provide all required fields: requestorFarmer, requestedMachineType, barangay, and estimatedArea." 
+        });
+    }
+
+    try {
+        const farmerExists = await global.globalModels.FarmerAccount.findById(requestorFarmer);
+        if (!farmerExists) {
+            return res.status(404).json({ success: false, message: "Farmer not found." });
+        }
+
+        const machineTypeExists = await global.machineriesModels.MachineriesType.findById(requestedMachineType);
+        if (!machineTypeExists) {
+            return res.status(404).json({ success: false, message: "Machine type not found." });
+        }
+
+        // Create new ticket request
+        const newTicketRequest = await global.machineriesModels.TicketRequest.create({
+            requestorFarmer,
+            requestedMachineType,
+            barangay,
+            estimatedArea,
+            dateRequested: new Date(),
+            status: 'Pending'
+        });
+
+        return res.status(201).json({
+            success: true,
+            message: "Ticket request submitted successfully.",
+            data: newTicketRequest
+        });
+    } catch (error) {
+        console.error("Error submitting ticket request:", error);
+        return res.status(500).json({ success: false, message: "Error submitting ticket request.", error: error.message });
+    }
+};
+
+export const createMachineriesType = async (req, res) => {
+    const { ownerName, ownerType, equipmentType, ratedCapacity } = req.body;
+
+    // Validate required fields
+    if (!ownerName || !ownerType || !equipmentType || !ratedCapacity) {
+        return res.status(400).json({ success: false, message: "Please provide all required fields: ownerName, ownerType, equipmentType, and ratedCapacity." });
+    }
+
+    try {
+        // Check if a machine type with the same details already exists
+        const existingMachineType = await global.machineriesModels.MachineriesType.findOne({
+            ownerName,
+            equipmentType
+        });
+
+        if (existingMachineType) {
+            return res.status(400).json({ success: false, message: "A machinery type with this owner and equipment type already exists." });
+        }
+
+        // Create new machinery type
+        const newMachineType = await global.machineriesModels.MachineriesType.create({
+            ownerName,
+            ownerType,
+            equipmentType,
+            ratedCapacity
+        });
+
+        return res.status(201).json({
+            success: true, 
+            message: "Machinery type created successfully.",
+            data: newMachineType
+        });
+    } catch (error) {
+        console.error("Error creating machinery type:", error);
+        return res.status(500).json({ success: false, message: "Error creating machinery type.", error: error.message });
+    }
+};
+
+export const addMachineryUnit = async (req, res) => {
+    const { 
+        machineryTypeId, 
+        plateNumber, 
+        engineBrand, 
+        engineHorsepower, 
+        modeOfAcquisition, 
+        costOfAcquisition, 
+        yearAcquired, 
+        condition, 
+        location, 
+        remarks, 
+        status 
+    } = req.body;
+
+    if (!machineryTypeId || !plateNumber || !engineBrand || !engineHorsepower || 
+        !modeOfAcquisition || !costOfAcquisition || !yearAcquired || !condition || 
+        !location || !status) {
+        return res.status(400).json({ success: false, message: "Please provide all required fields." });
+    }
+
+    try {
+        const machineType = await global.machineriesModels.MachineriesType.findById(machineryTypeId);
+        if (!machineType) {
+            return res.status(404).json({ success: false, message: "Machinery type not found." });
+        }
+
+        const existingUnit = await global.machineriesModels.MachineriesUnit.findOne({ plateNumber });
+        if (existingUnit) {
+            return res.status(400).json({ success: false, message: "A machinery unit with this plate number already exists." });
+        }
+
+        const newMachineryUnit = await global.machineriesModels.MachineriesUnit.create({
+            machineryTypeId,
+            plateNumber,
+            engineBrand,
+            engineHorsepower,
+            modeOfAcquisition,
+            costOfAcquisition,
+            yearAcquired: new Date(yearAcquired),
+            condition,
+            location,
+            remarks,
+            status
+        });
+
+        return res.status(201).json({
+            success: true, 
+            message: "Machinery unit created successfully.",
+            data: newMachineryUnit
+        });
+    } catch (error) {
+        console.error("Error creating machinery unit:", error);
+        return res.status(500).json({ success: false, message: "Error creating machinery unit.", error: error.message });
+    }
+};
+
+export const weeklySchedule = async (req, res) => {
+    const { weekStart, weekEnd, tickets } = req.body;
+
+    try {
+        
+    } catch (error) {
+        console.error("Error creating a weekly schedule:", error);
+        return res.status(500).json({ success: false, message: "Error creating a weekly schedule.", error: error.message })
+    }
 };
