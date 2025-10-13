@@ -450,10 +450,106 @@ export const addMachineryUnit = async (req, res) => {
 export const weeklySchedule = async (req, res) => {
     const { weekStart, weekEnd, tickets } = req.body;
 
-    try {
-        
-    } catch (error) {
-        console.error("Error creating a weekly schedule:", error);
-        return res.status(500).json({ success: false, message: "Error creating a weekly schedule.", error: error.message })
+    // Validation
+    if (!weekStart || !weekEnd || !tickets || !Array.isArray(tickets) || tickets.length === 0) {
+        return res.status(400).json({ 
+            success: false, 
+            message: "Please provide weekStart, weekEnd, and a valid array of tickets." 
+        });
     }
+
+    const startDate = new Date(weekStart);
+    const endDate = new Date(weekEnd);
+
+    // Validate date range
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime()) || startDate > endDate) {
+        return res.status(400).json({ 
+            success: false, 
+            message: "Invalid date range. weekStart must be before weekEnd." 
+        });
+    }
+
+    try {
+        // Extract ticket IDs
+        const ticketIds = tickets.map(t => t.ticketId);
+        
+        const foundTickets = await global.machineriesModels.TicketRequest.find({ 
+            _id: { $in: ticketIds } 
+        });
+        
+        if (foundTickets.length !== ticketIds.length) {
+            return res.status(404).json({ success: false, message: "One or more tickets not found." });
+        }
+
+        // Create new weekly schedule
+        const newSchedule = await global.machineriesModels.WeeklySchedule.create({
+            weekStart: startDate,
+            weekEnd: endDate,
+            //ticketRequests: ticketIds
+        });
+
+        // Update each ticket with its assigned date and schedule reference
+        const updateOperations = [];
+        
+        for (const ticket of tickets) {
+            // Validate that the assigned date is within the week range
+            const assignedDate = new Date(ticket.assignedDate);
+            
+            if (isNaN(assignedDate.getTime()) || assignedDate < startDate || assignedDate > endDate) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Invalid assigned date for ticket ${ticket.ticketId}. Date must be within the week range. All operations aborted.`
+                });
+            }
+            
+            const updateData = {
+                assignedDate: assignedDate,
+                scheduleId: newSchedule._id,
+                assignedMachineUnitId: ticket.assignedMachineUnitId,
+                assignedOperatorId: ticket.assignedOperatorId,
+                status: 'Scheduled'
+            };
+
+            const updateData1 = {
+                ticketRequests: {
+                    tr: {
+                        trId: ticket.ticketId,
+                        assignedDate: assignedDate
+                    }
+                }
+            }
+            
+            updateOperations.push(
+                global.machineriesModels.TicketRequest.findByIdAndUpdate(
+                    ticket.ticketId,
+                    updateData,
+                    { new: true }
+                ),
+                global.machineriesModels.WeeklySchedule.findOneAndUpdate(
+                    newSchedule._id,
+                    updateData1,
+                    { new: true }
+                )
+            );
+        }
+        
+        // Execute all updates in parallel
+        const updatedTickets = await Promise.all(updateOperations);
+
+        return res.status(201).json({
+            success: true,
+            message: "Weekly schedule created successfully.",
+            data: {
+                schedule: newSchedule,
+                updatedTickets: updatedTickets
+            }
+        });
+    } catch (error) {
+        console.error("Error creating weekly schedule:", error);
+        return res.status(500).json({ success: false, message: "Error creating weekly schedule.", error: error.message });
+    }
+};
+
+export const moveTicketRequestSchedule = async (req, res) => {
+
 };

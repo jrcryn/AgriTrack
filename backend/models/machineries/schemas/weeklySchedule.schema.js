@@ -1,12 +1,12 @@
 import mongoose from 'mongoose';
 
 const tr = new mongoose.Schema({
-    tr: {
+    trId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Ticket_Request',
         required: true
     },
-    assignedDay: { type: Date, required: true }
+    assignedDate: { type: Date, required: true }
 })
 
 export const WeeklyScheduleSchema = new mongoose.Schema({

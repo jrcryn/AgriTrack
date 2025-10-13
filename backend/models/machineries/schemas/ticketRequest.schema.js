@@ -15,13 +15,14 @@ export const ticketRequestSchema = new mongoose.Schema({
     barangay: {type: String, required: true},
     estimatedArea: { type: Number, required: true},
     dateRequested: {type: Date, required: true},
-    status: { type: String, required: true, enum: ['Pending', 'Scheduled', 'Ongoing' ,'Declined'], default: 'Pending'},
+    status: { type: String, enum: ['Pending', 'Scheduled', 'Ongoing' ,'Declined'] },
 
     // to be filled in when a schedule is created
     scheduleId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Request_Schedule',
     },
+    assignedDate: Date,
     assignedMachineUnitId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Machine_Unit',
