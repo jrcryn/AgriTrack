@@ -108,33 +108,33 @@ export const deleteMachinery = async (req, res) => { //pang delete ng machine ta
     }
 };
 
-export const updateMachineryUnit = async (req, res) => { //update for name and remarks lang
-    const { machineryId, unit_name, remarks } = req.body;
+// export const updateMachineryUnit = async (req, res) => { //update for name and remarks lang
+//     const { machineryId, unit_name, remarks } = req.body;
 
-    if (!machineryId) {
-        return res.status(400).json({ message: "Please provide all the required fields." });
-    }
+//     if (!machineryId) {
+//         return res.status(400).json({ message: "Please provide all the required fields." });
+//     }
     
-    const findMachinery = await global.machineriesModels.MachineriesUnit.findById(machineryId);
-    if (!findMachinery) {
-        return res.status(404).json({ message: "Machinery unit not found." });
-    }
+//     const findMachinery = await global.machineriesModels.MachineriesUnit.findById(machineryId);
+//     if (!findMachinery) {
+//         return res.status(404).json({ message: "Machinery unit not found." });
+//     }
 
-    try {
-        const updatedMachinery = await global.machineriesModels.MachineriesUnit.findByIdAndUpdate(
-            machineryId,
-            { unit_name, remarks },
-            { new: true } // Return the updated document
-        );
-        return res.status(200).json({
-            message: "Machinery unit updated successfully.",
-            data: updatedMachinery
-        });
-    } catch (error) {
-        console.error("Error updating machinery unit:", error);
-        return res.status(500).json({ message: "Error updating machinery unit." });
-    }
-};
+//     try {
+//         const updatedMachinery = await global.machineriesModels.MachineriesUnit.findByIdAndUpdate(
+//             machineryId,
+//             { unit_name, remarks },
+//             { new: true } // Return the updated document
+//         );
+//         return res.status(200).json({
+//             message: "Machinery unit updated successfully.",
+//             data: updatedMachinery
+//         });
+//     } catch (error) {
+//         console.error("Error updating machinery unit:", error);
+//         return res.status(500).json({ message: "Error updating machinery unit." });
+//     }
+// };
 
 export const deleteMachineryUnits = async (req, res) => {
     const { machineryId, barangay, unitType, unitCount } = req.body;
@@ -304,7 +304,7 @@ export const transferMachineriesUnit = async (req, res) => {
 
 
 
-
+//process controllers
 
 export const ticketRequestForm = async (req, res) => {
     const {
@@ -390,6 +390,69 @@ export const createMachineriesType = async (req, res) => {
     }
 };
 
+export const updateMachineryType = async (req, res) => {
+    const { machineryTypeId, ownerName, ownerType, equipmentType, ratedCapacity } = req.body;
+
+    // Validate required fields
+    if (!machineryTypeId) {
+        return res.status(400).json({ success: false, message: "Please provide machineryTypeId." });
+    }
+
+    try {
+        const existingMachineType = await global.machineriesModels.MachineriesType.findById(machineryTypeId);
+        
+        if (!existingMachineType) {
+            return res.status(404).json({ 
+                success: false, 
+                message: "Machinery type not found." 
+            });
+        }
+
+        // Prepare update data - only include fields that are provided
+        const updateData = {};
+        if (ownerName !== undefined) updateData.ownerName = ownerName;
+        if (ownerType !== undefined) updateData.ownerType = ownerType;
+        if (equipmentType !== undefined) updateData.equipmentType = equipmentType;
+        if (ratedCapacity !== undefined) updateData.ratedCapacity = ratedCapacity;
+
+        // If duplicate check is needed when updating
+        if (ownerName && equipmentType) {
+            const duplicateCheck = await global.machineriesModels.MachineriesType.findOne({
+                _id: { $ne: machineryTypeId }, // exclude the current item
+                ownerName,
+                equipmentType
+            });
+
+            if (duplicateCheck) {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: "A machinery type with this owner and equipment type already exists." 
+                });
+            }
+        }
+
+        // Update the machinery type
+        const updatedMachineType = await global.machineriesModels.MachineriesType.findByIdAndUpdate(
+            machineryTypeId,
+            updateData,
+            { new: true } // Return the updated document
+        );
+
+        return res.status(200).json({
+            success: true,
+            message: "Machinery type updated successfully.",
+            data: updatedMachineType
+        });
+    } catch (error) {
+        console.error("Error updating machinery type:", error);
+        return res.status(500).json({ 
+            success: false, 
+            message: "Error updating machinery type.", 
+            error: error.message 
+        });
+    }
+};
+
 export const addMachineryUnit = async (req, res) => {
     const { 
         machineryTypeId, 
@@ -447,7 +510,87 @@ export const addMachineryUnit = async (req, res) => {
     }
 };
 
-export const weeklySchedule = async (req, res) => {
+export const updateMachineryUnit = async (req, res) => {
+    const { 
+        machineryUnitId,
+        machineryTypeId,
+        plateNumber, 
+        engineBrand, 
+        engineHorsepower, 
+        modeOfAcquisition, 
+        costOfAcquisition, 
+        yearAcquired, 
+        condition, 
+        location, 
+        remarks, 
+        status 
+    } = req.body;
+
+    if (!machineryUnitId) {
+        return res.status(400).json({ success: false, message: "Please provide the machinery unit ID." });
+    }
+
+    try {
+        // Check if the machinery unit exists
+        const existingUnit = await global.machineriesModels.MachineriesUnit.findById(machineryUnitId);
+        
+        if (!existingUnit) {
+            return res.status(404).json({ 
+                success: false, 
+                message: "Machinery unit not found." 
+            });
+        }
+
+        const updateData = {};
+        
+        if (machineryTypeId !== undefined) {
+           const machineTypeExists = await global.machineriesModels.MachineriesType.findById(machineryTypeId);
+            if (!machineTypeExists) {
+                return res.status(404).json({ success: false, message: "Machinery type not found." });
+            }
+            updateData.machineryTypeId = machineryTypeId;
+        }
+
+        // Check for duplicate plate number if it's being updated
+        if (plateNumber !== undefined && plateNumber !== existingUnit.plateNumber) {
+            const duplicateCheck = await global.machineriesModels.MachineriesUnit.findOne({
+                _id: { $ne: machineryUnitId }, // exclude the current item
+                plateNumber
+            });
+
+            if (duplicateCheck) {
+                return res.status(400).json({ success: false, message: "A machinery unit with this plate number already exists." });
+            }
+            updateData.plateNumber = plateNumber;
+        }
+
+        // Add other fields to updateData if they are provided
+        if (engineBrand !== undefined) updateData.engineBrand = engineBrand;
+        if (engineHorsepower !== undefined) updateData.engineHorsepower = engineHorsepower;
+        if (modeOfAcquisition !== undefined) updateData.modeOfAcquisition = modeOfAcquisition;
+        if (costOfAcquisition !== undefined) updateData.costOfAcquisition = costOfAcquisition;
+        if (yearAcquired !== undefined) updateData.yearAcquired = new Date(yearAcquired);
+        if (condition !== undefined) updateData.condition = condition;
+        if (location !== undefined) updateData.location = location;
+        if (remarks !== undefined) updateData.remarks = remarks;
+        if (status !== undefined) updateData.status = status;
+
+        // Update the machinery unit
+        const updatedMachineryUnit = await global.machineriesModels.MachineriesUnit.findByIdAndUpdate(
+            machineryUnitId,
+            updateData,
+            { new: true } 
+        );
+
+        return res.status(200).json({ success: true, message: "Machinery unit updated successfully.", data: updatedMachineryUnit});
+
+    } catch (error) {
+        console.error("Error updating machinery unit:", error);
+        return res.status(500).json({ success: false, message: "Error updating machinery unit.", error: error.message });
+    }
+};
+
+export const createWeeklySchedule = async (req, res) => {
     const { weekStart, weekEnd, tickets } = req.body;
 
     // Validation
@@ -485,7 +628,6 @@ export const weeklySchedule = async (req, res) => {
         const newSchedule = await global.machineriesModels.WeeklySchedule.create({
             weekStart: startDate,
             weekEnd: endDate,
-            //ticketRequests: ticketIds
         });
 
         // Update each ticket with its assigned date and schedule reference
@@ -511,13 +653,15 @@ export const weeklySchedule = async (req, res) => {
             };
 
             const updateData1 = {
-                ticketRequests: {
-                    tr: {
-                        trId: ticket.ticketId,
-                        assignedDate: assignedDate
+                $push: {
+                    ticketRequests: {
+                        tr: {
+                            trId: ticket.ticketId,
+                            assignedDate: assignedDate
+                        }
                     }
                 }
-            }
+            };
             
             updateOperations.push(
                 global.machineriesModels.TicketRequest.findByIdAndUpdate(
@@ -550,6 +694,247 @@ export const weeklySchedule = async (req, res) => {
     }
 };
 
-export const moveTicketRequestSchedule = async (req, res) => {
+export const removeTicketRequestSchedule = async (req, res) => {
+    const { ticketRequestId } = req.body;
 
+    if (!ticketRequestId) {
+        return res.status(400).json({ 
+            success: false, 
+            message: "Please provide a ticket request ID." 
+        });
+    }
+
+    try {
+        // Find the ticket request
+        const ticketRequest = await global.machineriesModels.TicketRequest.findById(ticketRequestId);
+        
+        if (!ticketRequest) {
+            return res.status(404).json({ 
+                success: false, 
+                message: "Ticket request not found." 
+            });
+        }
+
+        if (!ticketRequest.scheduleId) {
+            return res.status(400).json({
+                success: false,
+                message: "This ticket request is not assigned to any schedule."
+            });
+        }
+
+        // Store the schedule ID for later reference
+        const scheduleId = ticketRequest.scheduleId;
+
+        // Update the ticket request - remove schedule information
+        const updatedTicketRequest = await global.machineriesModels.TicketRequest.findByIdAndUpdate(
+            ticketRequestId,
+            {
+                $unset: {
+                    scheduleId: "",
+                    assignedDate: "",
+                    assignedMachineUnitId: "",
+                    assignedOperatorId: ""
+                },
+                status: "Pending"
+            },
+            { new: true }
+        );
+
+        // Update the weekly schedule - remove ticket from ticketRequests array
+        const updatedSchedule = await global.machineriesModels.WeeklySchedule.findByIdAndUpdate(
+            scheduleId,
+            {
+                $pull: {
+                    ticketRequests: { trId: ticketRequestId }
+                }
+            },
+            { new: true }
+        );
+
+        return res.status(200).json({
+            success: true,
+            message: "Ticket request has been removed from the schedule.",
+            data: {
+                ticketRequest: updatedTicketRequest,
+                schedule: updatedSchedule
+            }
+        });
+    } catch (error) {
+        console.error("Error removing ticket request from schedule:", error);
+        return res.status(500).json({ 
+            success: false, 
+            message: "Error removing ticket request from schedule.", 
+            error: error.message 
+        });
+    }
 };
+
+export const moveTicketRequestSchedule = async (req, res) => {
+    const { targetScheduleId, tickets } = req.body;
+
+    // Validate input
+    if (!targetScheduleId || !tickets || !Array.isArray(tickets) || tickets.length === 0) {
+        return res.status(400).json({ 
+            success: false, 
+            message: "Please provide target schedule and a valid array of tickets." 
+        });
+    }
+
+    try {
+        // Check if the target schedule exists
+        const targetSchedule = await global.machineriesModels.WeeklySchedule.findById(targetScheduleId);
+        if (!targetSchedule) {
+            return res.status(404).json({
+                success: false,
+                message: "Target schedule not found."
+            });
+        }
+
+        // Extract ticket IDs
+        const ticketIds = tickets.map(t => t.ticketId);
+        
+        // Find all tickets
+        const foundTickets = await global.machineriesModels.TicketRequest.find({ 
+            _id: { $in: ticketIds } 
+        });
+        
+        if (foundTickets.length !== ticketIds.length) {
+            return res.status(404).json({ 
+                success: false, 
+                message: "One or more tickets not found." 
+            });
+        }
+
+        // Validate all assigned dates are within schedule range
+        for (const ticket of tickets) {
+            const assignedDate = new Date(ticket.assignedDate);
+            
+            if (isNaN(assignedDate.getTime()) || 
+                assignedDate < targetSchedule.weekStart || 
+                assignedDate > targetSchedule.weekEnd) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Invalid assigned date for ticket ${ticket.ticketId}. Date must be within the schedule's week range.`
+                });
+            }
+        }
+
+        // Process each ticket
+        const updateOperations = [];
+        const scheduleUpdates = [];
+        
+        for (const ticket of tickets) {
+            const ticketRequest = foundTickets.find(t => t._id.toString() === ticket.ticketId);
+            
+            // If ticket is already in another schedule, remove it from that schedule
+            if (ticketRequest.scheduleId && 
+                ticketRequest.scheduleId.toString() !== targetScheduleId) {
+                
+                // Remove from previous schedule
+                scheduleUpdates.push(
+                    global.machineriesModels.WeeklySchedule.findByIdAndUpdate(
+                        ticketRequest.scheduleId,
+                        {
+                            $pull: {
+                                ticketRequests: { 
+                                    "tr.trId": ticket.ticketId 
+                                }
+                            }
+                        }
+                    )
+                );
+            }
+
+            // Update the ticket with new schedule information
+            const updateData = {
+                scheduleId: targetScheduleId,
+                assignedDate: new Date(ticket.assignedDate),
+                status: 'Scheduled'
+            };
+            
+            // Add optional fields if provided
+            if (ticket.assignedMachineUnitId) {
+                updateData.assignedMachineUnitId = ticket.assignedMachineUnitId;
+            }
+            
+            if (ticket.assignedOperatorId) {
+                updateData.assignedOperatorId = ticket.assignedOperatorId;
+            }
+            
+            updateOperations.push(
+                global.machineriesModels.TicketRequest.findByIdAndUpdate(
+                    ticket.ticketId,
+                    updateData,
+                    { new: true }
+                )
+            );
+
+            // Check if the ticket is already in the target schedule
+            const ticketInSchedule = await global.machineriesModels.WeeklySchedule.findOne({
+                _id: targetScheduleId,
+                'ticketRequests.tr.trId': ticket.ticketId
+            });
+
+            if (!ticketInSchedule) {
+                // Add to the target schedule's ticketRequests array
+                scheduleUpdates.push(
+                    global.machineriesModels.WeeklySchedule.findByIdAndUpdate(
+                        targetScheduleId,
+                        {
+                            $push: {
+                                ticketRequests: {
+                                    tr: {
+                                        trId: ticket.ticketId,
+                                        assignedDate: new Date(ticket.assignedDate)
+                                    }
+                                }
+                            }
+                        },
+                        { new: true }
+                    )
+                );
+            } else {
+                // Update the existing ticket in the schedule with new assigned date
+                scheduleUpdates.push(
+                    global.machineriesModels.WeeklySchedule.findOneAndUpdate(
+                        {
+                            _id: targetScheduleId,
+                            'ticketRequests.tr.trId': ticket.ticketId
+                        },
+                        {
+                            $set: {
+                                'ticketRequests.$.tr.assignedDate': new Date(ticket.assignedDate)
+                            }
+                        },
+                        { new: true }
+                    )
+                );
+            }
+        }
+        
+        // Execute all updates
+        const [updatedTickets, updatedSchedules] = await Promise.all([
+            Promise.all(updateOperations),
+            Promise.all(scheduleUpdates)
+        ]);
+
+        return res.status(200).json({
+            success: true,
+            message: "Ticket requests successfully moved to the target schedule.",
+            data: {
+                tickets: updatedTickets,
+                schedules: updatedSchedules
+            }
+        });
+    } catch (error) {
+        console.error("Error moving ticket requests to schedule:", error);
+        return res.status(500).json({ 
+            success: false, 
+            message: "Error moving ticket requests to schedule.", 
+            error: error.message 
+        });
+    }
+};
+
+//fetch controllers
+
