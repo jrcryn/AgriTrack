@@ -715,7 +715,7 @@ export const createWeeklySchedule = async (req, res) => {
 };
 
 export const removeTicketRequestFromSchedule = async (req, res) => {
-    const { ticketRequestId } = req.body;
+    const { ticketRequestId } = req.params;
 
     if (!ticketRequestId) {
         return res.status(400).json({ success: false, message: "Please provide a ticket request ID." });
@@ -790,13 +790,9 @@ export const moveTicketRequestToASchedule = async (req, res) => {
         // Check if the target schedule exists
         const targetSchedule = await global.machineriesModels.WeeklySchedule.findById(targetScheduleId);
         if (!targetSchedule) {
-            return res.status(404).json({
-                success: false,
-                message: "Target schedule not found."
-            });
+            return res.status(404).json({ success: false, message: "Target schedule not found."});
         }
 
-        // Extract ticket IDs
         const ticketIds = tickets.map(t => t.ticketId);
         
         // Find all tickets
@@ -805,10 +801,7 @@ export const moveTicketRequestToASchedule = async (req, res) => {
         });
         
         if (foundTickets.length !== ticketIds.length) {
-            return res.status(404).json({ 
-                success: false, 
-                message: "One or more tickets not found." 
-            });
+            return res.status(404).json({  success: false, message: "One or more tickets not found." });
         }
 
         // Validate all assigned dates are within schedule range
@@ -820,8 +813,60 @@ export const moveTicketRequestToASchedule = async (req, res) => {
                 assignedDate > targetSchedule.weekEnd) {
                 return res.status(400).json({
                     success: false,
-                    message: `Invalid assigned date for ticket ${ticket.ticketId}. Date must be within the schedule's week range.`
+                    message: 'Please check the ticket assigned dates. It must be within the target schedule range.'
                 });
+            }
+            
+            // Check for machine unit and operator conflicts
+            if (ticket.assignedMachineUnitId || ticket.assignedOperatorId) {
+                // Format assigned date to compare only the date part (not time)
+                const dateToCheck = new Date(ticket.assignedDate);
+                dateToCheck.setHours(0, 0, 0, 0);
+                
+                const nextDay = new Date(dateToCheck);
+                nextDay.setDate(nextDay.getDate() + 1);
+                
+                // Build the conflict query
+                const conflictQuery = {
+                    _id: { $ne: ticket.ticketId }, // Exclude the current ticket
+                    assignedDate: {
+                        $gte: dateToCheck,
+                        $lt: nextDay
+                    },
+                    status: 'Scheduled'
+                };
+                
+                // Check for machine unit conflicts
+                if (ticket.assignedMachineUnitId) {
+                    const machineConflict = await global.machineriesModels.TicketRequest.findOne({
+                        ...conflictQuery,
+                        assignedMachineUnitId: ticket.assignedMachineUnitId
+                    });
+                    
+                    if (machineConflict) {
+                        return res.status(409).json({
+                            success: false,
+                            message: `Machine unit conflict: The machine unit assigned to ticket ${ticket.ticketId} is already scheduled for another ticket on the same date.`,
+                            conflictingTicket: machineConflict._id
+                        });
+                    }
+                }
+                
+                // Check for operator conflicts
+                if (ticket.assignedOperatorId) {
+                    const operatorConflict = await global.machineriesModels.TicketRequest.findOne({
+                        ...conflictQuery,
+                        assignedOperatorId: ticket.assignedOperatorId
+                    });
+                    
+                    if (operatorConflict) {
+                        return res.status(409).json({
+                            success: false,
+                            message: `Operator conflict: The operator assigned to ticket ${ticket.ticketId} is already scheduled for another ticket on the same date.`,
+                            conflictingTicket: operatorConflict._id
+                        });
+                    }
+                }
             }
         }
 

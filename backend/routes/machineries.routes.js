@@ -55,8 +55,8 @@ router.post('/get-machinery-unit', getMachineryUnits);
 router.get('/pending-ticket-requests', getPendingTicketRequests);
 
 router.post('/create-weekly-schedule', createWeeklySchedule); //working
-router.post('/remove-from-schedule', removeTicketRequestFromSchedule); 
-router.post('/move-to-schedule', moveTicketRequestToASchedule);
+router.post('/remove-from-schedule/:ticketRequestId', removeTicketRequestFromSchedule); //working
+router.post('/move-to-schedule', moveTicketRequestToASchedule);  // FOR REVIEW
 
 
 // Public API routes
