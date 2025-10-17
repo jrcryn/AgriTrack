@@ -305,8 +305,7 @@ export const transferMachineriesUnit = async (req, res) => {
 
 
 //process controllers
-
-export const ticketRequestForm = async (req, res) => {
+export const createTicketRequestForm = async (req, res) => {
     const {
         requestorFarmer,
         requestedMachineType,
@@ -468,7 +467,7 @@ export const addMachineryUnit = async (req, res) => {
         status 
     } = req.body;
 
-    if (!machineryTypeId || !plateNumber || !engineBrand || !engineHorsepower || 
+    if (!machineryTypeId || !plateNumber || !engineHorsepower || 
         !modeOfAcquisition || !costOfAcquisition || !yearAcquired || !condition || 
         !location || !status) {
         return res.status(400).json({ success: false, message: "Please provide all required fields." });
@@ -492,7 +491,7 @@ export const addMachineryUnit = async (req, res) => {
             engineHorsepower,
             modeOfAcquisition,
             costOfAcquisition,
-            yearAcquired: new Date(yearAcquired),
+            yearAcquired,
             condition,
             location,
             remarks,
@@ -525,7 +524,7 @@ export const updateMachineryUnit = async (req, res) => {
         remarks, 
         status 
     } = req.body;
-
+ 
     if (!machineryUnitId) {
         return res.status(400).json({ success: false, message: "Please provide the machinery unit ID." });
     }
@@ -588,7 +587,7 @@ export const updateMachineryUnit = async (req, res) => {
         console.error("Error updating machinery unit:", error);
         return res.status(500).json({ success: false, message: "Error updating machinery unit.", error: error.message });
     }
-};
+}; 
 
 export const createWeeklySchedule = async (req, res) => {
     const { weekStart, weekEnd, tickets } = req.body;
@@ -597,7 +596,7 @@ export const createWeeklySchedule = async (req, res) => {
     if (!weekStart || !weekEnd || !tickets || !Array.isArray(tickets) || tickets.length === 0) {
         return res.status(400).json({ 
             success: false, 
-            message: "Please provide weekStart, weekEnd, and a valid array of tickets." 
+            message: "Please provide day of start and end within a week, and a valid array of tickets." 
         });
     }
 
@@ -638,12 +637,29 @@ export const createWeeklySchedule = async (req, res) => {
             const assignedDate = new Date(ticket.assignedDate);
             
             if (isNaN(assignedDate.getTime()) || assignedDate < startDate || assignedDate > endDate) {
-                return res.status(400).json({
-                    success: false,
-                    message: `Invalid assigned date for ticket ${ticket.ticketId}. Date must be within the week range. All operations aborted.`
-                });
+                await global.machineriesModels.WeeklySchedule.findByIdAndDelete(newSchedule._id);
+                return res.status(400).json({ success: false, message: `Invalid assigned date for ticket ${ticket.ticketId}. Date must be within the week range. All operations aborted.`});
             }
-            
+
+            const operatorCheck = await global.globalModels.EmployeeAccount.findById(ticket.assignedOperatorId);
+            if (!operatorCheck || !operatorCheck.roles.includes('MIS')) {
+                await global.machineriesModels.WeeklySchedule.findByIdAndDelete(newSchedule._id);
+                return res.status(404).json({ success: false, message: `Operator not found or does not have a valid role.` });
+            };
+
+            const machineUnitCheck = await global.machineriesModels.MachineriesUnit.findById(ticket.assignedMachineUnitId);
+            if (!machineUnitCheck) {
+                await global.machineriesModels.WeeklySchedule.findByIdAndDelete(newSchedule._id);
+                return res.status(404).json({ success: false, message: `Machine unit not found.` });
+            };
+
+            //validate if a tciket already belongs to another schedule
+            const checkExistingSchedule = await global.machineriesModels.TicketRequest.findById(ticket.ticketId);
+            if (checkExistingSchedule.scheduleId) {
+                await global.machineriesModels.WeeklySchedule.findByIdAndDelete(newSchedule._id);
+                return res.status(400).json({ success: false, message: `Ticket ${ticket.ticketId} is already assigned to another schedule. All operations aborted.` });
+            }
+
             const updateData = {
                 assignedDate: assignedDate,
                 scheduleId: newSchedule._id,
@@ -655,10 +671,8 @@ export const createWeeklySchedule = async (req, res) => {
             const updateData1 = {
                 $push: {
                     ticketRequests: {
-                        tr: {
-                            trId: ticket.ticketId,
-                            assignedDate: assignedDate
-                        }
+                        ticketRequestId: ticket.ticketId,
+                        assignedDate: assignedDate
                     }
                 }
             };
@@ -676,13 +690,19 @@ export const createWeeklySchedule = async (req, res) => {
                 )
             );
         }
+
+        updateOperations.push(
+            global.machineriesModels.WeeklySchedule.findOneAndUpdate(
+                newSchedule._id,
+                { status: 'Scheduled' },
+                { new: true }
+            )
+        );
         
         // Execute all updates in parallel
         const updatedTickets = await Promise.all(updateOperations);
 
-        return res.status(201).json({
-            success: true,
-            message: "Weekly schedule created successfully.",
+        return res.status(201).json({ success: true, message: "Weekly schedule created successfully.",
             data: {
                 schedule: newSchedule,
                 updatedTickets: updatedTickets
@@ -694,14 +714,11 @@ export const createWeeklySchedule = async (req, res) => {
     }
 };
 
-export const removeTicketRequestSchedule = async (req, res) => {
+export const removeTicketRequestFromSchedule = async (req, res) => {
     const { ticketRequestId } = req.body;
 
     if (!ticketRequestId) {
-        return res.status(400).json({ 
-            success: false, 
-            message: "Please provide a ticket request ID." 
-        });
+        return res.status(400).json({ success: false, message: "Please provide a ticket request ID." });
     }
 
     try {
@@ -709,20 +726,13 @@ export const removeTicketRequestSchedule = async (req, res) => {
         const ticketRequest = await global.machineriesModels.TicketRequest.findById(ticketRequestId);
         
         if (!ticketRequest) {
-            return res.status(404).json({ 
-                success: false, 
-                message: "Ticket request not found." 
-            });
+            return res.status(404).json({ success: false, message: "Ticket request not found." });
         }
 
         if (!ticketRequest.scheduleId) {
-            return res.status(400).json({
-                success: false,
-                message: "This ticket request is not assigned to any schedule."
-            });
+            return res.status(400).json({ success: false, message: "This ticket request is not assigned to any schedule."});
         }
 
-        // Store the schedule ID for later reference
         const scheduleId = ticketRequest.scheduleId;
 
         // Update the ticket request - remove schedule information
@@ -745,7 +755,7 @@ export const removeTicketRequestSchedule = async (req, res) => {
             scheduleId,
             {
                 $pull: {
-                    ticketRequests: { trId: ticketRequestId }
+                    ticketRequests: { ticketRequestId: ticketRequestId }
                 }
             },
             { new: true }
@@ -761,15 +771,11 @@ export const removeTicketRequestSchedule = async (req, res) => {
         });
     } catch (error) {
         console.error("Error removing ticket request from schedule:", error);
-        return res.status(500).json({ 
-            success: false, 
-            message: "Error removing ticket request from schedule.", 
-            error: error.message 
-        });
+        return res.status(500).json({ success: false, message: "Error removing ticket request from schedule.", error: error.message });
     }
 };
 
-export const moveTicketRequestSchedule = async (req, res) => {
+export const moveTicketRequestToASchedule = async (req, res) => {
     const { targetScheduleId, tickets } = req.body;
 
     // Validate input
@@ -937,4 +943,138 @@ export const moveTicketRequestSchedule = async (req, res) => {
 };
 
 //fetch controllers
+export const formGetAvailableMachineryTypes = async (req, res) => {
+    try {
+        const filter = {status: "Available"}
+        const projection = {
+            equipmentType: 1
+        }
+        const availableMachineryTypes = await global.machineriesModels.MachineriesType.find( filter, projection).lean();
+        
+        return res.status(200).json({
+            success: true,
+            message: "Available machinery types retrieved successfully.",
+            data: availableMachineryTypes
+        });
+    } catch (error) {
+        console.error("Error fetching available machinery types:", error);
+        return res.status(500).json({ 
+            success: false, 
+            message: "Error fetching available machinery types.", 
+            error: error.message 
+        });
+    }
+};
+
+export const getMachineryTypes = async (req, res) => {
+    try {
+        const machineryTypes = await global.machineriesModels.MachineriesTypes();
+
+        return res.status(200).json({ success: true, message: "Machinery types retrieved successfully.", data: machineryTypes });
+    } catch (error) {
+        console.error("Error fetching available machinery types:", error);
+        return res.status(500).json({ success: false, message: "Error fetching machinery types.", error: error.message });
+    }
+};
+
+export const getPendingTicketRequests = async (req, res) => {
+    try {
+        const pendingTickets = await global.machineriesModels.TicketRequest.find({ 
+            status: 'Pending' 
+        })
+        .populate('requestorFarmer', 'first_name surname farmerId')
+        .populate('requestedMachineType', 'equipmentType')
+        .lean();
+        
+        return res.status(200).json({
+            success: true,
+            message: "Pending ticket requests retrieved successfully.",
+            data: pendingTickets
+        });
+    } catch (error) {
+        console.error("Error fetching pending ticket requests:", error);
+        return res.status(500).json({ 
+            success: false, 
+            message: "Error fetching pending ticket requests.", 
+            error: error.message 
+        });
+    }
+};
+
+export const getMachineryUnits = async (req, res) => {
+    try {
+        // Extract query parameters
+        const { 
+            page = 1, 
+            limit = 10, 
+            status, 
+            condition, 
+            location, 
+            machineryTypeId,
+            sortBy = 'createdAt', 
+            sortOrder = 'desc',
+            search,
+            populate = 'true'
+        } = req.query;
+
+        // Build filter object
+        const filter = {};
+        
+        if (status) filter.status = status;
+        if (condition) filter.condition = condition;
+        if (location) filter.location = location;
+        if (machineryTypeId) filter.machineryTypeId = machineryTypeId;
+        
+        if (search) {
+            filter.$or = [
+                { plateNumber: { $regex: search, $options: 'i' } },
+                { engineBrand: { $regex: search, $options: 'i' } },
+                { remarks: { $regex: search, $options: 'i' } }
+            ];
+        }
+
+        // Set up pagination
+        const skip = (parseInt(page) - 1) * parseInt(limit);
+        const sort = {};
+        sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
+
+        // Create query
+        let query = global.machineriesModels.MachineriesUnit.find(filter)
+            .sort(sort)
+            .skip(skip)
+            .limit(parseInt(limit));
+
+        // Populate related machinery type if requested
+        if (populate === 'true') {
+            query = query.populate('machineryTypeId', 'equipmentType ownerName ratedCapacity');
+        }
+
+        // Execute query
+        const machineryUnits = await query.lean();
+        
+        // Get total count for pagination
+        const totalCount = await global.machineriesModels.MachineriesUnit.countDocuments(filter);
+        
+        return res.status(200).json({
+            success: true,
+            message: "Machinery units retrieved successfully.",
+            data: {
+                machineryUnits,
+                pagination: {
+                    total: totalCount,
+                    page: parseInt(page),
+                    limit: parseInt(limit),
+                    pages: Math.ceil(totalCount / parseInt(limit))
+                }
+            }
+        });
+    } catch (error) {
+        console.error("Error fetching machinery units:", error);
+        return res.status(500).json({ 
+            success: false, 
+            message: "Error fetching machinery units.", 
+            error: error.message 
+        });
+    }
+};
 
