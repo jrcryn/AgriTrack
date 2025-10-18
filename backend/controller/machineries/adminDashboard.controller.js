@@ -1012,105 +1012,116 @@ export const formGetAvailableMachineryTypes = async (req, res) => {
 };
 
 export const getMachineryTypes = async (req, res) => {
+    const { searchQuery } = req.query;
     try {
-        const machineryTypes = await global.machineriesModels.MachineriesTypes();
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
 
-        return res.status(200).json({ success: true, message: "Machinery types retrieved successfully.", data: machineryTypes });
+        const pipeline = [];
+
+        if (searchQuery && searchQuery.trim() !== '') {
+            const words = searchQuery.trim().split(/\s+/);
+            const searchConditions = words.map((word) => ({
+                $or: [
+                    { ownerName: { $regex: word, $options: 'i' } },
+                    { ownerType: { $regex: word, $options: 'i' } },
+                    { equipmentType: { $regex: word, $options: 'i' } },
+                    { ratedCapacity: { $regex: word, $options: 'i' } },
+                ],
+            }));
+            pipeline.push({ $match: { $and: searchConditions } });
+        }
+
+        pipeline.push({
+            $facet: {
+                paginatedResults: [
+                    { $sort: { _id: -1 } },
+                    { $skip: skip },
+                    { $limit: limit }
+                ],
+                totalCount: [{ $count: 'count' }]
+            }
+        });
+
+        const result = await global.machineriesModels.MachineriesType.aggregate(pipeline);
+        const relevantTypes = result[0]?.paginatedResults || [];
+        const totalCount = result[0]?.totalCount?.[0]?.count || 0;
+
+        return res.status(200).json({
+            success: true,
+            message: "Machinery types retrieved successfully.",
+            data: {
+                relevantTypes,
+                totalCount,
+                totalPages: Math.ceil(totalCount / limit),
+                currentPage: page
+            }
+        });
     } catch (error) {
-        console.error("Error fetching available machinery types:", error);
+        console.error("Error fetching machinery types:", error);
         return res.status(500).json({ success: false, message: "Error fetching machinery types.", error: error.message });
     }
 };
 
-export const getPendingTicketRequests = async (req, res) => {
-    try {
-        const pendingTickets = await global.machineriesModels.TicketRequest.find({ 
-            status: 'Pending' 
-        })
-        .populate('requestorFarmer', 'first_name surname farmerId')
-        .populate('requestedMachineType', 'equipmentType')
-        .lean();
-        
-        return res.status(200).json({
-            success: true,
-            message: "Pending ticket requests retrieved successfully.",
-            data: pendingTickets
-        });
-    } catch (error) {
-        console.error("Error fetching pending ticket requests:", error);
-        return res.status(500).json({ 
-            success: false, 
-            message: "Error fetching pending ticket requests.", 
-            error: error.message 
-        });
-    }
-};
-
 export const getMachineryUnits = async (req, res) => {
+    const { searchQuery } = req.query;
     try {
-        // Extract query parameters
-        const { 
-            page = 1, 
-            limit = 10, 
-            status, 
-            condition, 
-            location, 
-            machineryTypeId,
-            sortBy = 'createdAt', 
-            sortOrder = 'desc',
-            search,
-            populate = 'true'
-        } = req.query;
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
 
-        // Build filter object
-        const filter = {};
-        
-        if (status) filter.status = status;
-        if (condition) filter.condition = condition;
-        if (location) filter.location = location;
-        if (machineryTypeId) filter.machineryTypeId = machineryTypeId;
-        
-        if (search) {
-            filter.$or = [
-                { plateNumber: { $regex: search, $options: 'i' } },
-                { engineBrand: { $regex: search, $options: 'i' } },
-                { remarks: { $regex: search, $options: 'i' } }
-            ];
+        const machineTypeColl = global.machineriesModels.MachineriesType.collection.name;
+
+        const pipeline = [
+            {
+                $lookup: {
+                    from: machineTypeColl,
+                    localField: 'machineryTypeId',
+                    foreignField: '_id',
+                    as: 'machineTypeDetails'
+                }
+            },
+            { $unwind: { path: '$machineTypeDetails', preserveNullAndEmptyArrays: true } },
+        ];
+
+        if (searchQuery && searchQuery.trim() !== '') {
+            const words = searchQuery.trim().split(/\s+/);
+            const searchConditions = words.map((word) => ({
+                $or: [
+                    { plateNumber: { $regex: word, $options: 'i' } },
+                    { engineBrand: { $regex: word, $options: 'i' } },
+                    { location: { $regex: word, $options: 'i' } },
+                    { 'machineTypeDetails.equipmentType': { $regex: word, $options: 'i' } },
+                    { 'machineTypeDetails.ownerName': { $regex: word, $options: 'i' } },
+                ],
+            }));
+            pipeline.push({ $match: { $and: searchConditions } });
         }
 
-        // Set up pagination
-        const skip = (parseInt(page) - 1) * parseInt(limit);
-        const sort = {};
-        sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
+        pipeline.push({
+            $facet: {
+                paginatedResults: [
+                    { $sort: { createdAt: -1, _id: -1 } },
+                    { $skip: skip },
+                    { $limit: limit }
+                ],
+                totalCount: [{ $count: 'count' }]
+            }
+        });
 
-        // Create query
-        let query = global.machineriesModels.MachineriesUnit.find(filter)
-            .sort(sort)
-            .skip(skip)
-            .limit(parseInt(limit));
+        const result = await global.machineriesModels.MachineriesUnit.aggregate(pipeline);
+        const relevantUnits = result[0]?.paginatedResults || [];
+        const totalCount = result[0]?.totalCount?.[0]?.count || 0;
 
-        // Populate related machinery type if requested
-        if (populate === 'true') {
-            query = query.populate('machineryTypeId', 'equipmentType ownerName ratedCapacity');
-        }
-
-        // Execute query
-        const machineryUnits = await query.lean();
-        
-        // Get total count for pagination
-        const totalCount = await global.machineriesModels.MachineriesUnit.countDocuments(filter);
-        
         return res.status(200).json({
             success: true,
             message: "Machinery units retrieved successfully.",
             data: {
-                machineryUnits,
-                pagination: {
-                    total: totalCount,
-                    page: parseInt(page),
-                    limit: parseInt(limit),
-                    pages: Math.ceil(totalCount / parseInt(limit))
-                }
+                relevantUnits,
+                totalCount,
+                totalPages: Math.ceil(totalCount / limit),
+                currentPage: page
             }
         });
     } catch (error) {
@@ -1122,4 +1133,348 @@ export const getMachineryUnits = async (req, res) => {
         });
     }
 };
+
+export const getPendingTicketRequests = async (req, res) => {
+    const { searchQuery } = req.query;
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+        
+        const farmerColl = global.globalModels.FarmerAccount.collection.name;
+        const machineTypeColl = global.machineriesModels.MachineriesType.collection.name;
+
+        const pipeline = [
+            //populate farmer details
+            {
+                $lookup: {
+                    from: farmerColl,
+                    localField: 'requestorFarmer',
+                    foreignField: '_id',
+                    as: 'farmerDetails'
+                }
+            },
+            { $unwind: { path: '$farmerDetails', preserveNullAndEmptyArrays: true } },
+
+            //populate machine type details
+            {
+                $lookup: {
+                    from: machineTypeColl,
+                    localField: 'requestedMachineType',
+                    foreignField: '_id',
+                    as: 'machineTypeDetails'
+                }
+            },
+            { $unwind: { path: '$machineTypeDetails', preserveNullAndEmptyArrays: true } },
+
+            //request ticket matching itself
+            { $match: { status: 'Pending' } },
+        ]
+
+        if (searchQuery && searchQuery.trim() !== '') {
+            const words = searchQuery.trim().split(/\s+/);
+            const searchConditions = words.map((word) => ({
+                $or: [
+                    { barangay: { $regex: word, $options: 'i' } },
+                    { estimatedArea: { $regex: word, $options: 'i' } },
+
+                     // machine type fields (populated)
+                    { 'requestedMachineTypeDoc.equipmentType': { $regex: word, $options: 'i' } },
+
+                    // farmer fields (populated)
+                    { 'requestorFarmerDoc.first_name': { $regex: word, $options: 'i' } },
+                    { 'requestorFarmerDoc.middle_name': { $regex: word, $options: 'i' } },
+                    { 'requestorFarmerDoc.surname': { $regex: word, $options: 'i' } },
+                    { 'requestorFarmerDoc.farmerId': { $regex: word, $options: 'i' } },
+                    { 'requestorFarmerDoc.mobile_number': { $regex: word, $options: 'i' } },
+                ],
+            }));
+            pipeline.push({ $match: { $and: searchConditions } });
+        }
+
+        // const pendingTickets = await global.machineriesModels.TicketRequest.find({ 
+        //     status: 'Pending' 
+        // })
+        // .populate('requestorFarmer', 'first_name surname farmerId')
+        // .populate('requestedMachineType', 'equipmentType')
+        // .lean();
+
+        pipeline.push({
+            $facet: {
+                paginatedResults: [
+                    { $sort: { dateRequested: -1 } },
+                    { $skip: skip },
+                    { $limit: limit }
+                ],
+                totalCount: [{ $count: 'count' }]
+            }
+        });
+
+        const result = await global.machineriesModels.TicketRequest.aggregate(pipeline);
+        const relevantTickets = result[0].paginatedResults;
+        const totalCount = result[0].totalCount.length > 0 ? result[0].totalCount[0].count : 0;
+        
+        return res.status(200).json({
+            success: true,
+            message: "Pending ticket requests retrieved successfully.",
+            data: {
+                relevantTickets,
+                totalCount,
+                totalPages: Math.ceil(totalCount / limit),
+                currentPage: page
+            }
+        });
+
+    } catch (error) {
+        console.error("Error fetching pending ticket requests:", error);
+        return res.status(500).json({ success: false, message: "Error fetching pending ticket requests.", error: error.message });
+    }
+};
+
+export const getOngoingTicketRequests = async (req, res) => {
+    const { searchQuery } = req.query;
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+        
+        const farmerColl = global.globalModels.FarmerAccount.collection.name;
+        const machineTypeColl = global.machineriesModels.MachineriesType.collection.name;
+
+        const pipeline = [
+            {
+                $lookup: {
+                    from: farmerColl,
+                    localField: 'requestorFarmer',
+                    foreignField: '_id',
+                    as: 'farmerDetails'
+                }
+            },
+            { $unwind: { path: '$farmerDetails', preserveNullAndEmptyArrays: true } },
+            {
+                $lookup: {
+                    from: machineTypeColl,
+                    localField: 'requestedMachineType',
+                    foreignField: '_id',
+                    as: 'machineTypeDetails'
+                }
+            },
+            { $unwind: { path: '$machineTypeDetails', preserveNullAndEmptyArrays: true } },
+            { $match: { status: 'Ongoing' } },
+        ];
+
+        if (searchQuery && searchQuery.trim() !== '') {
+            const words = searchQuery.trim().split(/\s+/);
+            const searchConditions = words.map((word) => ({
+                $or: [
+                    { barangay: { $regex: word, $options: 'i' } },
+                    { estimatedArea: { $regex: word, $options: 'i' } },
+                    { 'requestedMachineTypeDoc.equipmentType': { $regex: word, $options: 'i' } },
+                    { 'requestorFarmerDoc.first_name': { $regex: word, $options: 'i' } },
+                    { 'requestorFarmerDoc.middle_name': { $regex: word, $options: 'i' } },
+                    { 'requestorFarmerDoc.surname': { $regex: word, $options: 'i' } },
+                    { 'requestorFarmerDoc.farmerId': { $regex: word, $options: 'i' } },
+                    { 'requestorFarmerDoc.mobile_number': { $regex: word, $options: 'i' } },
+                ],
+            }));
+            pipeline.push({ $match: { $and: searchConditions } });
+        }
+
+        pipeline.push({
+            $facet: {
+                paginatedResults: [
+                    { $sort: { dateRequested: -1 } },
+                    { $skip: skip },
+                    { $limit: limit }
+                ],
+                totalCount: [{ $count: 'count' }]
+            }
+        });
+
+        const result = await global.machineriesModels.TicketRequest.aggregate(pipeline);
+        const relevantTickets = result[0].paginatedResults;
+        const totalCount = result[0].totalCount.length > 0 ? result[0].totalCount[0].count : 0;
+        
+        return res.status(200).json({
+            success: true,
+            message: "Ongoing ticket requests retrieved successfully.",
+            data: {
+                relevantTickets,
+                totalCount,
+                totalPages: Math.ceil(totalCount / limit),
+                currentPage: page
+            }
+        });
+
+    } catch (error) {
+        console.error("Error fetching ongoing ticket requests:", error);
+        return res.status(500).json({ success: false, message: "Error fetching ongoing ticket requests.", error: error.message });
+    }
+};
+
+export const getScheduledTicketRequests = async (req, res) => {
+    const { searchQuery } = req.query;
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+        
+        const farmerColl = global.globalModels.FarmerAccount.collection.name;
+        const machineTypeColl = global.machineriesModels.MachineriesType.collection.name;
+
+        const pipeline = [
+            {
+                $lookup: {
+                    from: farmerColl,
+                    localField: 'requestorFarmer',
+                    foreignField: '_id',
+                    as: 'farmerDetails'
+                }
+            },
+            { $unwind: { path: '$farmerDetails', preserveNullAndEmptyArrays: true } },
+            {
+                $lookup: {
+                    from: machineTypeColl,
+                    localField: 'requestedMachineType',
+                    foreignField: '_id',
+                    as: 'machineTypeDetails'
+                }
+            },
+            { $unwind: { path: '$machineTypeDetails', preserveNullAndEmptyArrays: true } },
+            { $match: { status: 'Scheduled' } },
+        ];
+
+        if (searchQuery && searchQuery.trim() !== '') {
+            const words = searchQuery.trim().split(/\s+/);
+            const searchConditions = words.map((word) => ({
+                $or: [
+                    { barangay: { $regex: word, $options: 'i' } },
+                    { estimatedArea: { $regex: word, $options: 'i' } },
+                    { 'requestedMachineTypeDoc.equipmentType': { $regex: word, $options: 'i' } },
+                    { 'requestorFarmerDoc.first_name': { $regex: word, $options: 'i' } },
+                    { 'requestorFarmerDoc.middle_name': { $regex: word, $options: 'i' } },
+                    { 'requestorFarmerDoc.surname': { $regex: word, $options: 'i' } },
+                    { 'requestorFarmerDoc.farmerId': { $regex: word, $options: 'i' } },
+                    { 'requestorFarmerDoc.mobile_number': { $regex: word, $options: 'i' } },
+                ],
+            }));
+            pipeline.push({ $match: { $and: searchConditions } });
+        }
+
+        pipeline.push({
+            $facet: {
+                paginatedResults: [
+                    { $sort: { dateRequested: -1 } },
+                    { $skip: skip },
+                    { $limit: limit }
+                ],
+                totalCount: [{ $count: 'count' }]
+            }
+        });
+
+        const result = await global.machineriesModels.TicketRequest.aggregate(pipeline);
+        const relevantTickets = result[0].paginatedResults;
+        const totalCount = result[0].totalCount.length > 0 ? result[0].totalCount[0].count : 0;
+        
+        return res.status(200).json({
+            success: true,
+            message: "Scheduled ticket requests retrieved successfully.",
+            data: {
+                relevantTickets,
+                totalCount,
+                totalPages: Math.ceil(totalCount / limit),
+                currentPage: page
+            }
+        });
+
+    } catch (error) {
+        console.error("Error fetching scheduled ticket requests:", error);
+        return res.status(500).json({ success: false, message: "Error fetching scheduled ticket requests.", error: error.message });
+    }
+};
+
+export const getDeclinedTicketRequests = async (req, res) => {
+    const { searchQuery } = req.query;
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+        
+        const farmerColl = global.globalModels.FarmerAccount.collection.name;
+        const machineTypeColl = global.machineriesModels.MachineriesType.collection.name;
+
+        const pipeline = [
+            {
+                $lookup: {
+                    from: farmerColl,
+                    localField: 'requestorFarmer',
+                    foreignField: '_id',
+                    as: 'farmerDetails'
+                }
+            },
+            { $unwind: { path: '$farmerDetails', preserveNullAndEmptyArrays: true } },
+            {
+                $lookup: {
+                    from: machineTypeColl,
+                    localField: 'requestedMachineType',
+                    foreignField: '_id',
+                    as: 'machineTypeDetails'
+                }
+            },
+            { $unwind: { path: '$machineTypeDetails', preserveNullAndEmptyArrays: true } },
+            { $match: { status: 'Declined' } },
+        ];
+
+        if (searchQuery && searchQuery.trim() !== '') {
+            const words = searchQuery.trim().split(/\s+/);
+            const searchConditions = words.map((word) => ({
+                $or: [
+                    { barangay: { $regex: word, $options: 'i' } },
+                    { estimatedArea: { $regex: word, $options: 'i' } },
+                    { 'requestedMachineTypeDoc.equipmentType': { $regex: word, $options: 'i' } },
+                    { 'requestorFarmerDoc.first_name': { $regex: word, $options: 'i' } },
+                    { 'requestorFarmerDoc.middle_name': { $regex: word, $options: 'i' } },
+                    { 'requestorFarmerDoc.surname': { $regex: word, $options: 'i' } },
+                    { 'requestorFarmerDoc.farmerId': { $regex: word, $options: 'i' } },
+                    { 'requestorFarmerDoc.mobile_number': { $regex: word, $options: 'i' } },
+                ],
+            }));
+            pipeline.push({ $match: { $and: searchConditions } });
+        }
+
+        pipeline.push({
+            $facet: {
+                paginatedResults: [
+                    { $sort: { dateRequested: -1 } },
+                    { $skip: skip },
+                    { $limit: limit }
+                ],
+                totalCount: [{ $count: 'count' }]
+            }
+        });
+
+        const result = await global.machineriesModels.TicketRequest.aggregate(pipeline);
+        const relevantTickets = result[0].paginatedResults;
+        const totalCount = result[0].totalCount.length > 0 ? result[0].totalCount[0].count : 0;
+        
+        return res.status(200).json({
+            success: true,
+            message: "Declined ticket requests retrieved successfully.",
+            data: {
+                relevantTickets,
+                totalCount,
+                totalPages: Math.ceil(totalCount / limit),
+                currentPage: page
+            }
+        });
+
+    } catch (error) {
+        console.error("Error fetching declined ticket requests:", error);
+        return res.status(500).json({ success: false, message: "Error fetching declined ticket requests.", error: error.message });
+    }
+};
+
+
+
+
 

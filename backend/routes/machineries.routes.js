@@ -52,7 +52,7 @@ router.post('/create-machinery-unit', addMachineryUnit); //working
 router.post('/update-machinery-unit', updateMachineryUnit);
 router.post('/get-machinery-unit', getMachineryUnits);
 
-router.get('/pending-ticket-requests', getPendingTicketRequests);
+router.get('/get-pending-ticket-requests', getPendingTicketRequests);
 
 router.post('/create-weekly-schedule', createWeeklySchedule); //working
 router.post('/remove-from-schedule/:ticketRequestId', removeTicketRequestFromSchedule); //working

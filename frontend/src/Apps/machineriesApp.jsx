@@ -5,12 +5,12 @@ import axios from 'axios';
 
 import Layout from '../components/layout.jsx';
 
-import Metrics from '../machineries/pages/A_Metrics.jsx';
-import MachineryInventory from '../machineries/pages/B_MachineInventory.jsx'
-import TicketRequests from '../machineries/pages/C_TicketRequests.jsx';
-import TripTicketReturns from '../machineries/pages/D_TripTicketReturns.jsx';
-import GenReports from '../machineries/pages/E_GenReports.jsx';
-import Operators from '../machineries/pages/F_Operators.jsx';
+import A_Metrics from '../machineries/pages/A_Metrics.jsx';
+import B_MachineryInventory from '../machineries/pages/B_MachineInventory.jsx'
+import C_TicketRequests from '../machineries/pages/C_TicketRequests.jsx';
+import D_TripTicketReturns from '../machineries/pages/D_TripTicketReturns.jsx';
+import E_GenReports from '../machineries/pages/E_GenReports.jsx';
+import F_Operators from '../machineries/pages/F_Operators.jsx';
 
 //form inports
 import TicketRequestForm from '../machineries/pages/formPages/TicketRequestForm.jsx';
@@ -100,12 +100,12 @@ const machineriesApp = () => {
             
             <Routes>
                 <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-                   <Route path="metrics" element={<Metrics/>} />
-                   <Route path="machine-inventory" element={<MachineryInventory/>} />
-                   <Route path="ticket-requests" element={<TicketRequests/>} />
-                   <Route path="trip-ticket-returns" element={<TripTicketReturns/>} />
-                   <Route path="gen-reports" element={<GenReports/>} />
-                   <Route path="operators" element={<Operators/>} />
+                   <Route path="metrics" element={<A_Metrics />} />
+                   <Route path="machine-inventory" element={<B_MachineryInventory />} />
+                   <Route path="ticket-requests" element={<C_TicketRequests />} />
+                   <Route path="trip-ticket-returns" element={<D_TripTicketReturns />} />
+                   <Route path="gen-reports" element={<E_GenReports />} />
+                   <Route path="operators" element={<F_Operators />} />
                 </Route>   
 
 
