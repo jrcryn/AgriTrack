@@ -1,164 +1,329 @@
 import axios from 'axios';
-import { create } from 'zustand';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
-import { useAuthStore } from '../../auth/store/authStore.js'
+import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useAuthStore } from '../../auth/store/authStore.js';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-export const useMachineryUnitsQuery = (role) => 
+// Queries
+const useMachineryTypesQuery = (role) =>
+    useQuery({
+        queryKey: ['machineryTypes'],
+        queryFn: async () => {
+            const res = await axios.get(`${API_URL}/api/machineries/get-machinery-types`);
+            return res.data?.data ?? res.data;
+        },
+        enabled: role === 'MIM' || role === 'MIS',
+    });
+
+const useMachineryUnitsQuery = (role) =>
     useQuery({
         queryKey: ['machineryUnits'],
         queryFn: async () => {
-
-            //await new Promise(resolve => setTimeout(resolve, 5000));
-
-            const response = await axios.get(`${API_URL}/api/machineries/machinery-units`);
-            return response.data;
+            const res = await axios.get(`${API_URL}/api/machineries/machinery-units`);
+            return res.data;
         },
-        staleTime: 0, //data is alwasys fresh
-        refetchInterval: 1000, // (1 second)
-        enabled: role === 'MIM' || role === 'MIS' 
+        enabled: role === 'MIM' || role === 'MIS',
     });
 
-export const useAdminDashboard = () => {
+const usePendingTicketRequestsQuery = (page = 1, searchParams = {}, role) =>
+    useQuery({
+        queryKey: ['pendingTicketRequests', page, searchParams],
+        queryFn: async () => {
+            const res = await axios.get(`${API_URL}/api/machineries/get-pending-ticket-requests`, {
+                params: { page, limit: 10, ...searchParams },
+            });
+            return res.data;
+        },
+        enabled: role === 'MIM' || role === 'MIS',
+    });
+
+const useOngoingTicketRequestsQuery = (page = 1, searchParams = {}, role) =>
+    useQuery({
+        queryKey: ['ongoingTicketRequests', page, searchParams],
+        queryFn: async () => {
+            const res = await axios.get(`${API_URL}/api/machineries/get-ongoing-ticket-requests`, {
+                params: { page, limit: 10, ...searchParams },
+            });
+            return res.data;
+        },
+        enabled: role === 'MIM' || role === 'MIS',
+    });
+
+const useScheduledTicketRequestsQuery = (page = 1, searchParams = {}, role) =>
+    useQuery({
+        queryKey: ['scheduledTicketRequests', page, searchParams],
+        queryFn: async () => {
+            const res = await axios.get(`${API_URL}/api/machineries/get-scheduled-ticket-requests`, {
+                params: { page, limit: 10, ...searchParams },
+            });
+            return res.data;
+        },
+        enabled: role === 'MIM' || role === 'MIS',
+    });
+
+const useDeclinedTicketRequestsQuery = (page = 1, searchParams = {}, role) =>
+    useQuery({
+        queryKey: ['declinedTicketRequests', page, searchParams],
+        queryFn: async () => {
+            const res = await axios.get(`${API_URL}/api/machineries/get-declined-ticket-requests`, {
+                params: { page, limit: 10, ...searchParams },
+            });
+            return res.data;
+        },
+        enabled: role === 'MIM' || role === 'MIS',
+    });
+
+const useAvailableMachineryTypesQuery = () =>
+    useQuery({
+        queryKey: ['availableMachineryTypes'],
+        queryFn: async () => {
+            const res = await axios.get(`${API_URL}/api/machineries/get-available-machinery-types`);
+            return res.data;
+        },
+        enabled: true,
+    });
+
+// Exported store
+export const useAdminDashboard = (pages = {}, searchParams = {}) => {
     const { user } = useAuthStore();
-    const role = user?.role.toString().toUpperCase();
+    const role = user?.role?.toString();
 
-    const { data: machineryUnits = [], isLoading: isLoadingMachineries, error: loadingMachineriesError } = useMachineryUnitsQuery(role);
+    const {
+        pendingPage = 1,
+        ongoingPage = 1,
+        scheduledPage = 1,
+        declinedPage = 1,
+    } = pages;
 
+    // Queries
+    const { data: machineryTypes = [], isLoading: isLoadingMachineryTypes, error: machineryTypesError } =
+        useMachineryTypesQuery(role);
+
+    const { data: machineryUnits = [], isLoading: isLoadingMachineryUnits, error: machineryUnitsError } =
+        useMachineryUnitsQuery(role);
+
+    const { data: pendingTicketRequests = [], isLoading: isLoadingPendingTicketRequests, error: pendingTicketRequestsError } =
+        usePendingTicketRequestsQuery(pendingPage, searchParams, role);
+
+    const { data: ongoingTicketRequests = [], isLoading: isLoadingOngoingTicketRequests, error: ongoingTicketRequestsError } =
+        useOngoingTicketRequestsQuery(ongoingPage, searchParams, role);
+
+    const { data: scheduledTicketRequests = [], isLoading: isLoadingScheduledTicketRequests, error: scheduledTicketRequestsError } =
+        useScheduledTicketRequestsQuery(scheduledPage, searchParams, role);
+
+    const { data: declinedTicketRequests = [], isLoading: isLoadingDeclinedTicketRequests, error: declinedTicketRequestsError } =
+        useDeclinedTicketRequestsQuery(declinedPage, searchParams, role);
+
+    const { data: availableMachineryTypes = [], isLoading: isLoadingAvailableMachineryTypes, error: availableMachineryTypesError } =
+        useAvailableMachineryTypesQuery();
+
+    // Action flags
+    const [isCreatingMachineryType, setIsCreatingMachineryType] = useState(false);
+    const [isUpdatingMachineryType, setIsUpdatingMachineryType] = useState(false);
     const [isCreatingMachineryUnit, setIsCreatingMachineryUnit] = useState(false);
     const [isUpdatingMachineryUnit, setIsUpdatingMachineryUnit] = useState(false);
     const [isAddingMachineryUnits, setIsAddingMachineryUnits] = useState(false);
     const [isDeletingMachinery, setIsDeletingMachinery] = useState(false);
     const [isDeletingMachineryUnits, setIsDeletingMachineryUnits] = useState(false);
+    const [isTransferringMachineryUnit, setIsTransferringMachineryUnit] = useState(false);
     const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+    const [isCreatingWeeklySchedule, setIsCreatingWeeklySchedule] = useState(false);
+    const [isRemovingFromSchedule, setIsRemovingFromSchedule] = useState(false);
+    const [isMovingToSchedule, setIsMovingToSchedule] = useState(false);
+    const [isSubmittingTicketRequest, setIsSubmittingTicketRequest] = useState(false);
 
-    const [creationError, setCreationError] = useState(null);
-    const [updateError, setUpdateError] = useState(null);
-    const [addingError, setAddingError] = useState(null);
-    const [deletionError, setDeletionError] = useState(null);
+    // Actions
+    const createMachineryType = async (data) => {
+        setIsCreatingMachineryType(true);
+        try {
+            const res = await axios.post(`${API_URL}/api/machineries/create-machinery-type`, data);
+            return res.data;
+        } finally {
+            setIsCreatingMachineryType(false);
+        }
+    };
 
-    const createMachineriesUnit = async (machineData) => {
+    const updateMachineryType = async (data) => {
+        setIsUpdatingMachineryType(true);
+        try {
+            const res = await axios.put(`${API_URL}/api/machineries/update-machinery-type`, data);
+            return res.data;
+        } finally {
+            setIsUpdatingMachineryType(false);
+        }
+    };
+
+    const createMachineryUnit = async (data) => {
         setIsCreatingMachineryUnit(true);
         try {
-            const response = await axios.post(`${API_URL}/api/machineries/add-machinery-unit`, machineData);
-            return response.data;
-        } catch (error) {
-            const errorMessage = error.response?.data?.message || 'An error occurred while creating the machinery unit.';
-            setCreationError(errorMessage);
-            throw new Error(errorMessage); // Rethrow the error to be handled by the calling component
+            const res = await axios.post(`${API_URL}/api/machineries/create-machinery-unit`, data);
+            return res.data;
         } finally {
             setIsCreatingMachineryUnit(false);
         }
     };
 
-    const addMachineryUnits = async (machineData) => {
+    const updateMachineryUnit = async (data) => {
+        setIsUpdatingMachineryUnit(true);
+        try {
+            // Route is POST in backend for update
+            const res = await axios.post(`${API_URL}/api/machineries/update-machinery-unit`, data);
+            return res.data;
+        } finally {
+            setIsUpdatingMachineryUnit(false);
+        }
+    };
+
+    const addMachineryUnits = async (data) => {
         setIsAddingMachineryUnits(true);
         try {
-            const response = await axios.post(`${API_URL}/api/machineries/add-machinery-units`, machineData);
-            return response.data;
-        } catch (error) {
-            const errorMessage = error.response?.data?.message || 'An error occurred while creating the machinery unit.';
-            setAddingError(errorMessage);
-            throw new Error(errorMessage); // Rethrow the error to be handled by the calling component
+            const res = await axios.post(`${API_URL}/api/machineries/add-machinery-units`, data);
+            return res.data;
         } finally {
             setIsAddingMachineryUnits(false);
         }
     };
 
-    const updateMachineriesUnit = async (machineData) => {
-        setIsUpdatingMachineryUnit(true);
-        try {
-            const response = await axios.post(`${API_URL}/api/machineries/transfer-machinery-unit`, machineData);
-            return response.data;
-        } catch (error) {
-            const errorMessage = error.response?.data?.message || 'An error occurred while updating the machinery unit.';
-            setUpdateError(errorMessage);
-            throw new Error(errorMessage); // Rethrow the error to be handled by the calling component
-        } finally {
-            setIsUpdatingMachineryUnit(false);
-        }
-    };
-
-    const deleteMachinery = async (machineData) => {
+    const deleteMachinery = async (data) => {
         setIsDeletingMachinery(true);
         try {
-            const response = await axios.delete(`${API_URL}/api/machineries/delete-machinery`, { data: machineData });
-            return response.data;
-        } catch (error) {
-            const errorMessage = error.response?.data?.message || 'An error occurred while deleting the machinery unit.';
-            setDeletionError(errorMessage);
-            throw new Error(errorMessage); // Rethrow the error to be handled by the calling component
+            const res = await axios.delete(`${API_URL}/api/machineries/delete-machinery`, { data });
+            return res.data;
         } finally {
             setIsDeletingMachinery(false);
         }
-    }
+    };
 
-    const deleteMachineryUnits = async (machineData) => {
+    const deleteMachineryUnits = async (data) => {
         setIsDeletingMachineryUnits(true);
         try {
-            const response = await axios.post(`${API_URL}/api/machineries/delete-machinery-units`, machineData);
-            return response.data;
-        } catch (error) {
-            const errorMessage = error.response?.data?.message || 'An error occurred while deleting the machinery unit.';
-            setDeletionError(errorMessage);
-            throw new Error(errorMessage); // Rethrow the error to be handled by the calling component
+            const res = await axios.post(`${API_URL}/api/machineries/delete-machinery-units`, data);
+            return res.data;
         } finally {
             setIsDeletingMachineryUnits(false);
         }
-    }
+    };
 
-    const updateMachineryNameAndRemarks = async (machineData) => {
-        setIsUpdatingMachineryUnit(true);
+    const transferMachineryUnit = async (data) => {
+        setIsTransferringMachineryUnit(true);
         try {
-            const response = await axios.post(`${API_URL}/api/machineries/update-machinery-unit`, machineData);
-            return response.data;
-        } catch (error) {
-            const errorMessage = error.response?.data?.message || 'An error occurred while updating the machinery unit.';
-            setUpdateError(errorMessage);
-            throw new Error(errorMessage); // Rethrow the error to be handled by the calling component
+            const res = await axios.post(`${API_URL}/api/machineries/transfer-machinery-unit`, data);
+            return res.data;
         } finally {
-            setIsUpdatingMachineryUnit(false);
+            setIsTransferringMachineryUnit(false);
         }
-    }; 
-    
-    const generateExcelReport = async () => {
+    };
+
+    const generateMachineryReport = async (params = {}) => {
         setIsGeneratingReport(true);
         try {
-            const response = await axios.get(`${API_URL}/api/machineries/generate-machinery-report`, { responseType: 'blob' })
-            return response.data;
-        } catch (error) {
-            const errorMessage = error.response?.data?.message || 'An error occurred while generating the report.';
-            setReportError(errorMessage);
-            throw new Error(errorMessage); // Rethrow the error to be handled by the calling component
+            const res = await axios.get(`${API_URL}/api/machineries/generate-machinery-report`, {
+                params,
+                responseType: 'blob',
+            });
+            return res.data;
         } finally {
             setIsGeneratingReport(false);
         }
-    }
+    };
+
+    const createWeeklySchedule = async (data) => {
+        setIsCreatingWeeklySchedule(true);
+        try {
+            const res = await axios.post(`${API_URL}/api/machineries/create-weekly-schedule`, data);
+            return res.data;
+        } finally {
+            setIsCreatingWeeklySchedule(false);
+        }
+    };
+
+    const removeFromSchedule = async (ticketRequestId) => {
+        setIsRemovingFromSchedule(true);
+        try {
+            const res = await axios.post(`${API_URL}/api/machineries/remove-from-schedule/${ticketRequestId}`);
+            return res.data;
+        } finally {
+            setIsRemovingFromSchedule(false);
+        }
+    };
+
+    const moveToSchedule = async (data) => {
+        setIsMovingToSchedule(true);
+        try {
+            const res = await axios.post(`${API_URL}/api/machineries/move-to-schedule`, data);
+            return res.data;
+        } finally {
+            setIsMovingToSchedule(false);
+        }
+    };
+
+    const submitTicketRequest = async (data) => {
+        setIsSubmittingTicketRequest(true);
+        try {
+            const res = await axios.post(`${API_URL}/api/machineries/submit-ticket-request`, data);
+            return res.data;
+        } finally {
+            setIsSubmittingTicketRequest(false);
+        }
+    };
 
     return {
-        //data to be fecthed
+        // query data
+        machineryTypes,
         machineryUnits,
+        pendingTicketRequests,
+        ongoingTicketRequests,
+        scheduledTicketRequests,
+        declinedTicketRequests,
+        availableMachineryTypes,
 
-        //loading states
-        isLoading: isLoadingMachineries,
+        // actions
+        createMachineryType,
+        updateMachineryType,
+        createMachineryUnit,
+        updateMachineryUnit,
+        addMachineryUnits,
+        deleteMachinery,
+        deleteMachineryUnits,
+        transferMachineryUnit,
+        generateMachineryReport,
+        createWeeklySchedule,
+        removeFromSchedule,
+        moveToSchedule,
+        submitTicketRequest,
+
+        // loading states (queries)
+        isLoadingMachineryTypes,
+        isLoadingMachineryUnits,
+        isLoadingPendingTicketRequests,
+        isLoadingOngoingTicketRequests,
+        isLoadingScheduledTicketRequests,
+        isLoadingDeclinedTicketRequests,
+        isLoadingAvailableMachineryTypes,
+
+        // action flags
+        isCreatingMachineryType,
+        isUpdatingMachineryType,
         isCreatingMachineryUnit,
         isUpdatingMachineryUnit,
         isAddingMachineryUnits,
         isDeletingMachinery,
         isDeletingMachineryUnits,
+        isTransferringMachineryUnit,
         isGeneratingReport,
+        isCreatingWeeklySchedule,
+        isRemovingFromSchedule,
+        isMovingToSchedule,
+        isSubmittingTicketRequest,
 
-        error: loadingMachineriesError || creationError || updateError || addingError || deletionError,
- 
-        //actions
-        createMachineriesUnit,
-        updateMachineriesUnit,
-        addMachineryUnits,
-        deleteMachinery,
-        deleteMachineryUnits,
-        updateMachineryNameAndRemarks,
-        generateExcelReport
+        // error states
+        machineryTypesError,
+        machineryUnitsError,
+        pendingTicketRequestsError,
+        ongoingTicketRequestsError,
+        scheduledTicketRequestsError,
+        declinedTicketRequestsError,
+        availableMachineryTypesError,
     };
 };
