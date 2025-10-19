@@ -22,7 +22,10 @@ import {
     formGetAvailableMachineryTypes,
     getMachineryTypes,
     getPendingTicketRequests,
-    getMachineryUnits
+    getMachineryUnits,
+    getOngoingTicketRequests,
+    getScheduledTicketRequests,
+    getDeclinedTicketRequests
 } from '../controller/machineries/adminDashboard.controller.js';
 
 import { generateMachineryExcelReport } from '../controller/machineries/genReports.controller.js';
@@ -53,6 +56,9 @@ router.post('/update-machinery-unit', updateMachineryUnit);
 router.post('/get-machinery-unit', getMachineryUnits);
 
 router.get('/get-pending-ticket-requests', getPendingTicketRequests);
+router.get('/get-ongoing-ticket-requests', getOngoingTicketRequests);
+router.get('/get-scheduled-ticket-requests', getScheduledTicketRequests);
+router.get('/get-declined-ticket-requests', getDeclinedTicketRequests);
 
 router.post('/create-weekly-schedule', createWeeklySchedule); //working
 router.post('/remove-from-schedule/:ticketRequestId', removeTicketRequestFromSchedule); //working

@@ -1,15 +1,29 @@
+import { stat } from 'fs';
 import mongoose from 'mongoose';
 
 export const ticketRequestSchema = new mongoose.Schema({
     requestorFarmer: {
-        type: mongoose.Schema.Types.ObjectId, 
-        ref: 'Farmer_Account',
-        required: true
+        requestorFarmerId: { 
+            type: mongoose.Schema.Types.ObjectId, 
+            ref: 'Farmer_Account',
+            required: true
+        },
+        farmerId: String,
+        surname: String,
+        first_name: String,
+        middle_name: String,
+        suffix: String,
     },
     requestedMachineType: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Machine_Type',
-        required: true
+        requestedMachineTypeId: { 
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Machine_Type',
+            required: true
+        },
+        ownerName: String,
+        ownerType: String,
+        equipmentType: String,
+        ratedCapacity: String
     },
 
     barangay: {type: String, required: true},
@@ -23,12 +37,25 @@ export const ticketRequestSchema = new mongoose.Schema({
         ref: 'Request_Schedule',
     },
     assignedDate: Date,
-    assignedMachineUnitId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Machine_Unit',
+    assignedMachineUnit: {
+        assignedMachineUnitId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Machine_Unit',
+        },
+        plateNumber: String, 
+        engineBrand: String,
+        engineHorsepower: String
     },
-    assignedOperatorId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Staff_Account',
+    assignedOperator: {
+        assignedOperatorId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Staff_Account',
+        },
+        first_name: String,
+        last_name: String,
+        middle_name: String,
+        suffix: String,
+        email: String,
+        phone: String
     }
 }, { versionKey: false }, { timestamps: true });

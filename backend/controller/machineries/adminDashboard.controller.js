@@ -320,20 +320,33 @@ export const createTicketRequestForm = async (req, res) => {
     }
 
     try {
-        const farmerExists = await global.globalModels.FarmerAccount.findById(requestorFarmer);
-        if (!farmerExists) {
-            return res.status(404).json({ success: false, message: "Farmer not found." });
+        const farmerDoc = await global.globalModels.FarmerAccount.findById(requestorFarmer).lean();
+        if (!farmerDoc) {
+            return res.status(404).json({ success:  false, message: "Farmer not found." });
         }
 
-        const machineTypeExists = await global.machineriesModels.MachineriesType.findById(requestedMachineType);
-        if (!machineTypeExists) {
+        const machineTypeDoc = await global.machineriesModels.MachineriesType.findById(requestedMachineType).lean();
+        if (!machineTypeDoc) {
             return res.status(404).json({ success: false, message: "Machine type not found." });
         }
 
-        // Create new ticket request
+        // Create new ticket request with denormalized details
         const newTicketRequest = await global.machineriesModels.TicketRequest.create({
-            requestorFarmer,
-            requestedMachineType,
+            requestorFarmer: {
+                requestorFarmerId: farmerDoc._id,
+                farmerId: farmerDoc.farmerId,
+                surname: farmerDoc.surname,
+                first_name: farmerDoc.first_name,
+                middle_name: farmerDoc.middle_name,
+                suffix: farmerDoc.suffix
+            },
+            requestedMachineType: {
+                requestedMachineTypeId: machineTypeDoc._id,
+                ownerName: machineTypeDoc.ownerName,
+                ownerType: machineTypeDoc.ownerType,
+                equipmentType: machineTypeDoc.equipmentType,
+                ratedCapacity: machineTypeDoc.ratedCapacity
+            },
             barangay,
             estimatedArea,
             dateRequested: new Date(),
@@ -660,11 +673,29 @@ export const createWeeklySchedule = async (req, res) => {
                 return res.status(400).json({ success: false, message: `Ticket ${ticket.ticketId} is already assigned to another schedule. All operations aborted.` });
             }
 
+            // Build nested assignment details per schema
+            const assignedMachineUnit = {
+                assignedMachineUnitId: machineUnitCheck._id,
+                plateNumber: machineUnitCheck.plateNumber,
+                engineBrand: machineUnitCheck.engineBrand,
+                engineHorsepower: machineUnitCheck.engineHorsepower
+            };
+
+            const assignedOperator = {
+                assignedOperatorId: operatorCheck._id,
+                first_name: operatorCheck.first_name,
+                last_name: operatorCheck.last_name,
+                middle_name: operatorCheck.middle_name,
+                suffix: operatorCheck.suffix,
+                email: operatorCheck.email,
+                phone: operatorCheck.phone
+            };
+
             const updateData = {
                 assignedDate: assignedDate,
                 scheduleId: newSchedule._id,
-                assignedMachineUnitId: ticket.assignedMachineUnitId,
-                assignedOperatorId: ticket.assignedOperatorId,
+                assignedMachineUnit,
+                assignedOperator,
                 status: 'Scheduled'
             };
 
@@ -1140,64 +1171,35 @@ export const getPendingTicketRequests = async (req, res) => {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
         const skip = (page - 1) * limit;
-        
-        const farmerColl = global.globalModels.FarmerAccount.collection.name;
-        const machineTypeColl = global.machineriesModels.MachineriesType.collection.name;
 
         const pipeline = [
-            //populate farmer details
-            {
-                $lookup: {
-                    from: farmerColl,
-                    localField: 'requestorFarmer',
-                    foreignField: '_id',
-                    as: 'farmerDetails'
-                }
-            },
-            { $unwind: { path: '$farmerDetails', preserveNullAndEmptyArrays: true } },
-
-            //populate machine type details
-            {
-                $lookup: {
-                    from: machineTypeColl,
-                    localField: 'requestedMachineType',
-                    foreignField: '_id',
-                    as: 'machineTypeDetails'
-                }
-            },
-            { $unwind: { path: '$machineTypeDetails', preserveNullAndEmptyArrays: true } },
-
-            //request ticket matching itself
             { $match: { status: 'Pending' } },
-        ]
+        ];
 
         if (searchQuery && searchQuery.trim() !== '') {
             const words = searchQuery.trim().split(/\s+/);
             const searchConditions = words.map((word) => ({
                 $or: [
                     { barangay: { $regex: word, $options: 'i' } },
-                    { estimatedArea: { $regex: word, $options: 'i' } },
 
-                     // machine type fields (populated)
-                    { 'requestedMachineTypeDoc.equipmentType': { $regex: word, $options: 'i' } },
+                    { 'requestorFarmer.first_name': { $regex: word, $options: 'i' } },
+                    { 'requestorFarmer.middle_name': { $regex: word, $options: 'i' } },
+                    { 'requestorFarmer.surname': { $regex: word, $options: 'i' } },
+                    { 'requestorFarmer.farmerId': { $regex: word, $options: 'i' } },
 
-                    // farmer fields (populated)
-                    { 'requestorFarmerDoc.first_name': { $regex: word, $options: 'i' } },
-                    { 'requestorFarmerDoc.middle_name': { $regex: word, $options: 'i' } },
-                    { 'requestorFarmerDoc.surname': { $regex: word, $options: 'i' } },
-                    { 'requestorFarmerDoc.farmerId': { $regex: word, $options: 'i' } },
-                    { 'requestorFarmerDoc.mobile_number': { $regex: word, $options: 'i' } },
+                    { 'assignedOperator.first_name': { $regex: word, $options: 'i' } },
+                    { 'assignedOperator.middle_name': { $regex: word, $options: 'i' } },
+                    { 'assignedOperator.last_name': { $regex: word, $options: 'i' } },
+                    { 'assignedOperator.email': { $regex: word, $options: 'i' } },
+                    { 'assignedOperator.phone': { $regex: word, $options: 'i' } },
+
+                    { 'assignedMachineUnit.plateNumber': { $regex: word, $options: 'i' } },
+                    { 'assignedMachineUnit.engineBrand': { $regex: word, $options: 'i' } },
+                    { 'assignedMachineUnit.engineHorsepower': { $regex: word, $options: 'i' } },
                 ],
             }));
             pipeline.push({ $match: { $and: searchConditions } });
         }
-
-        // const pendingTickets = await global.machineriesModels.TicketRequest.find({ 
-        //     status: 'Pending' 
-        // })
-        // .populate('requestorFarmer', 'first_name surname farmerId')
-        // .populate('requestedMachineType', 'equipmentType')
-        // .lean();
 
         pipeline.push({
             $facet: {
@@ -1213,7 +1215,7 @@ export const getPendingTicketRequests = async (req, res) => {
         const result = await global.machineriesModels.TicketRequest.aggregate(pipeline);
         const relevantTickets = result[0].paginatedResults;
         const totalCount = result[0].totalCount.length > 0 ? result[0].totalCount[0].count : 0;
-        
+
         return res.status(200).json({
             success: true,
             message: "Pending ticket requests retrieved successfully.",
@@ -1237,29 +1239,8 @@ export const getOngoingTicketRequests = async (req, res) => {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
         const skip = (page - 1) * limit;
-        
-        const farmerColl = global.globalModels.FarmerAccount.collection.name;
-        const machineTypeColl = global.machineriesModels.MachineriesType.collection.name;
 
         const pipeline = [
-            {
-                $lookup: {
-                    from: farmerColl,
-                    localField: 'requestorFarmer',
-                    foreignField: '_id',
-                    as: 'farmerDetails'
-                }
-            },
-            { $unwind: { path: '$farmerDetails', preserveNullAndEmptyArrays: true } },
-            {
-                $lookup: {
-                    from: machineTypeColl,
-                    localField: 'requestedMachineType',
-                    foreignField: '_id',
-                    as: 'machineTypeDetails'
-                }
-            },
-            { $unwind: { path: '$machineTypeDetails', preserveNullAndEmptyArrays: true } },
             { $match: { status: 'Ongoing' } },
         ];
 
@@ -1268,13 +1249,21 @@ export const getOngoingTicketRequests = async (req, res) => {
             const searchConditions = words.map((word) => ({
                 $or: [
                     { barangay: { $regex: word, $options: 'i' } },
-                    { estimatedArea: { $regex: word, $options: 'i' } },
-                    { 'requestedMachineTypeDoc.equipmentType': { $regex: word, $options: 'i' } },
-                    { 'requestorFarmerDoc.first_name': { $regex: word, $options: 'i' } },
-                    { 'requestorFarmerDoc.middle_name': { $regex: word, $options: 'i' } },
-                    { 'requestorFarmerDoc.surname': { $regex: word, $options: 'i' } },
-                    { 'requestorFarmerDoc.farmerId': { $regex: word, $options: 'i' } },
-                    { 'requestorFarmerDoc.mobile_number': { $regex: word, $options: 'i' } },
+
+                    { 'requestorFarmer.first_name': { $regex: word, $options: 'i' } },
+                    { 'requestorFarmer.middle_name': { $regex: word, $options: 'i' } },
+                    { 'requestorFarmer.surname': { $regex: word, $options: 'i' } },
+                    { 'requestorFarmer.farmerId': { $regex: word, $options: 'i' } },
+
+                    { 'assignedOperator.first_name': { $regex: word, $options: 'i' } },
+                    { 'assignedOperator.middle_name': { $regex: word, $options: 'i' } },
+                    { 'assignedOperator.last_name': { $regex: word, $options: 'i' } },
+                    { 'assignedOperator.email': { $regex: word, $options: 'i' } },
+                    { 'assignedOperator.phone': { $regex: word, $options: 'i' } },
+
+                    { 'assignedMachineUnit.plateNumber': { $regex: word, $options: 'i' } },
+                    { 'assignedMachineUnit.engineBrand': { $regex: word, $options: 'i' } },
+                    { 'assignedMachineUnit.engineHorsepower': { $regex: word, $options: 'i' } },
                 ],
             }));
             pipeline.push({ $match: { $and: searchConditions } });
@@ -1294,7 +1283,7 @@ export const getOngoingTicketRequests = async (req, res) => {
         const result = await global.machineriesModels.TicketRequest.aggregate(pipeline);
         const relevantTickets = result[0].paginatedResults;
         const totalCount = result[0].totalCount.length > 0 ? result[0].totalCount[0].count : 0;
-        
+
         return res.status(200).json({
             success: true,
             message: "Ongoing ticket requests retrieved successfully.",
@@ -1318,29 +1307,8 @@ export const getScheduledTicketRequests = async (req, res) => {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
         const skip = (page - 1) * limit;
-        
-        const farmerColl = global.globalModels.FarmerAccount.collection.name;
-        const machineTypeColl = global.machineriesModels.MachineriesType.collection.name;
 
         const pipeline = [
-            {
-                $lookup: {
-                    from: farmerColl,
-                    localField: 'requestorFarmer',
-                    foreignField: '_id',
-                    as: 'farmerDetails'
-                }
-            },
-            { $unwind: { path: '$farmerDetails', preserveNullAndEmptyArrays: true } },
-            {
-                $lookup: {
-                    from: machineTypeColl,
-                    localField: 'requestedMachineType',
-                    foreignField: '_id',
-                    as: 'machineTypeDetails'
-                }
-            },
-            { $unwind: { path: '$machineTypeDetails', preserveNullAndEmptyArrays: true } },
             { $match: { status: 'Scheduled' } },
         ];
 
@@ -1349,13 +1317,21 @@ export const getScheduledTicketRequests = async (req, res) => {
             const searchConditions = words.map((word) => ({
                 $or: [
                     { barangay: { $regex: word, $options: 'i' } },
-                    { estimatedArea: { $regex: word, $options: 'i' } },
-                    { 'requestedMachineTypeDoc.equipmentType': { $regex: word, $options: 'i' } },
-                    { 'requestorFarmerDoc.first_name': { $regex: word, $options: 'i' } },
-                    { 'requestorFarmerDoc.middle_name': { $regex: word, $options: 'i' } },
-                    { 'requestorFarmerDoc.surname': { $regex: word, $options: 'i' } },
-                    { 'requestorFarmerDoc.farmerId': { $regex: word, $options: 'i' } },
-                    { 'requestorFarmerDoc.mobile_number': { $regex: word, $options: 'i' } },
+
+                    { 'requestorFarmer.first_name': { $regex: word, $options: 'i' } },
+                    { 'requestorFarmer.middle_name': { $regex: word, $options: 'i' } },
+                    { 'requestorFarmer.surname': { $regex: word, $options: 'i' } },
+                    { 'requestorFarmer.farmerId': { $regex: word, $options: 'i' } },
+
+                    { 'assignedOperator.first_name': { $regex: word, $options: 'i' } },
+                    { 'assignedOperator.middle_name': { $regex: word, $options: 'i' } },
+                    { 'assignedOperator.last_name': { $regex: word, $options: 'i' } },
+                    { 'assignedOperator.email': { $regex: word, $options: 'i' } },
+                    { 'assignedOperator.phone': { $regex: word, $options: 'i' } },
+
+                    { 'assignedMachineUnit.plateNumber': { $regex: word, $options: 'i' } },
+                    { 'assignedMachineUnit.engineBrand': { $regex: word, $options: 'i' } },
+                    { 'assignedMachineUnit.engineHorsepower': { $regex: word, $options: 'i' } },
                 ],
             }));
             pipeline.push({ $match: { $and: searchConditions } });
@@ -1375,7 +1351,7 @@ export const getScheduledTicketRequests = async (req, res) => {
         const result = await global.machineriesModels.TicketRequest.aggregate(pipeline);
         const relevantTickets = result[0].paginatedResults;
         const totalCount = result[0].totalCount.length > 0 ? result[0].totalCount[0].count : 0;
-        
+
         return res.status(200).json({
             success: true,
             message: "Scheduled ticket requests retrieved successfully.",
@@ -1399,29 +1375,8 @@ export const getDeclinedTicketRequests = async (req, res) => {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
         const skip = (page - 1) * limit;
-        
-        const farmerColl = global.globalModels.FarmerAccount.collection.name;
-        const machineTypeColl = global.machineriesModels.MachineriesType.collection.name;
 
         const pipeline = [
-            {
-                $lookup: {
-                    from: farmerColl,
-                    localField: 'requestorFarmer',
-                    foreignField: '_id',
-                    as: 'farmerDetails'
-                }
-            },
-            { $unwind: { path: '$farmerDetails', preserveNullAndEmptyArrays: true } },
-            {
-                $lookup: {
-                    from: machineTypeColl,
-                    localField: 'requestedMachineType',
-                    foreignField: '_id',
-                    as: 'machineTypeDetails'
-                }
-            },
-            { $unwind: { path: '$machineTypeDetails', preserveNullAndEmptyArrays: true } },
             { $match: { status: 'Declined' } },
         ];
 
@@ -1430,13 +1385,21 @@ export const getDeclinedTicketRequests = async (req, res) => {
             const searchConditions = words.map((word) => ({
                 $or: [
                     { barangay: { $regex: word, $options: 'i' } },
-                    { estimatedArea: { $regex: word, $options: 'i' } },
-                    { 'requestedMachineTypeDoc.equipmentType': { $regex: word, $options: 'i' } },
-                    { 'requestorFarmerDoc.first_name': { $regex: word, $options: 'i' } },
-                    { 'requestorFarmerDoc.middle_name': { $regex: word, $options: 'i' } },
-                    { 'requestorFarmerDoc.surname': { $regex: word, $options: 'i' } },
-                    { 'requestorFarmerDoc.farmerId': { $regex: word, $options: 'i' } },
-                    { 'requestorFarmerDoc.mobile_number': { $regex: word, $options: 'i' } },
+
+                    { 'requestorFarmer.first_name': { $regex: word, $options: 'i' } },
+                    { 'requestorFarmer.middle_name': { $regex: word, $options: 'i' } },
+                    { 'requestorFarmer.surname': { $regex: word, $options: 'i' } },
+                    { 'requestorFarmer.farmerId': { $regex: word, $options: 'i' } },
+
+                    { 'assignedOperator.first_name': { $regex: word, $options: 'i' } },
+                    { 'assignedOperator.middle_name': { $regex: word, $options: 'i' } },
+                    { 'assignedOperator.last_name': { $regex: word, $options: 'i' } },
+                    { 'assignedOperator.email': { $regex: word, $options: 'i' } },
+                    { 'assignedOperator.phone': { $regex: word, $options: 'i' } },
+
+                    { 'assignedMachineUnit.plateNumber': { $regex: word, $options: 'i' } },
+                    { 'assignedMachineUnit.engineBrand': { $regex: word, $options: 'i' } },
+                    { 'assignedMachineUnit.engineHorsepower': { $regex: word, $options: 'i' } },
                 ],
             }));
             pipeline.push({ $match: { $and: searchConditions } });
@@ -1456,7 +1419,7 @@ export const getDeclinedTicketRequests = async (req, res) => {
         const result = await global.machineriesModels.TicketRequest.aggregate(pipeline);
         const relevantTickets = result[0].paginatedResults;
         const totalCount = result[0].totalCount.length > 0 ? result[0].totalCount[0].count : 0;
-        
+
         return res.status(200).json({
             success: true,
             message: "Declined ticket requests retrieved successfully.",
