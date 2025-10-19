@@ -305,6 +305,22 @@ export const transferMachineriesUnit = async (req, res) => {
 
 
 //process controllers
+
+// Helper: atomic daily counter via Counter collection to generate unique TR-YYYYMMDD-#### refs
+const getNextCounterSeq = async (counterId) => {
+    const doc = await global.machineriesModels.Counter.findOneAndUpdate(
+        { _id: counterId },
+        { $inc: { seq: 1 } },
+        { new: true, upsert: true }
+    );
+    return doc.seq;
+};
+
+// Replaces previous random-based generator; uses Counter for O(1) uniqueness
+export const generateUniqueTicketRef = async () => {
+    
+};
+
 export const createTicketRequestForm = async (req, res) => {
     const {
         requestorFarmer,
@@ -330,6 +346,16 @@ export const createTicketRequestForm = async (req, res) => {
             return res.status(404).json({ success: false, message: "Machine type not found." });
         }
 
+        const now = new Date();
+        const yyyy = now.getFullYear();
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        const dd = String(now.getDate()).padStart(2, '0');
+        const datePart = `${yyyy}${mm}${dd}`;
+
+        // counter id is scoped per day to reset counts daily
+        const seq = await getNextCounterSeq(`TR-${datePart}`);
+        const refNumber =  `TR-${datePart}-${String(seq).padStart(4, '0')}`;
+
         // Create new ticket request with denormalized details
         const newTicketRequest = await global.machineriesModels.TicketRequest.create({
             requestorFarmer: {
@@ -347,6 +373,7 @@ export const createTicketRequestForm = async (req, res) => {
                 equipmentType: machineTypeDoc.equipmentType,
                 ratedCapacity: machineTypeDoc.ratedCapacity
             },
+            refNumber, 
             barangay,
             estimatedArea,
             dateRequested: new Date(),
@@ -1178,8 +1205,10 @@ const buildTicketSearchMatch = (searchQuery) => {
 
         return {
             $or: [
-                { barangay: { $regex: word, $options: 'i' } },
+                // allow searching by ticket ref #
+                { refNumber: { $regex: word, $options: 'i' } },
 
+                { barangay: { $regex: word, $options: 'i' } },
                 { 'requestorFarmer.first_name': { $regex: word, $options: 'i' } },
                 { 'requestorFarmer.middle_name': { $regex: word, $options: 'i' } },
                 { 'requestorFarmer.surname': { $regex: word, $options: 'i' } },

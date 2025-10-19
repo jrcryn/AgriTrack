@@ -11,6 +11,7 @@ import C_TicketRequests from '../machineries/pages/C_TicketRequests.jsx';
 import D_TripTicketReturns from '../machineries/pages/D_TripTicketReturns.jsx';
 import E_GenReports from '../machineries/pages/E_GenReports.jsx';
 import F_Operators from '../machineries/pages/F_Operators.jsx';
+import G_WeeklySchedules from '../machineries/pages/G_WeeklySchedules.jsx';
 
 //form inports
 import TicketRequestForm from '../machineries/pages/formPages/TicketRequestForm.jsx';
@@ -103,6 +104,7 @@ const machineriesApp = () => {
                    <Route path="metrics" element={<A_Metrics />} />
                    <Route path="machine-inventory" element={<B_MachineryInventory />} />
                    <Route path="ticket-requests" element={<C_TicketRequests />} />
+                   <Route path="weekly-schedules" element={<G_WeeklySchedules />} />
                    <Route path="trip-ticket-returns" element={<D_TripTicketReturns />} />
                    <Route path="gen-reports" element={<E_GenReports />} />
                    <Route path="operators" element={<F_Operators />} />

@@ -25,7 +25,8 @@ export const ticketRequestSchema = new mongoose.Schema({
         equipmentType: String,
         ratedCapacity: String
     },
-
+    
+    refNumber: { type: String, required: true, unique: true },
     barangay: {type: String, required: true},
     estimatedArea: { type: Number, required: true},
     dateRequested: {type: Date, required: true},

@@ -20,54 +20,55 @@ const useMachineryUnitsQuery = (role) =>
     useQuery({
         queryKey: ['machineryUnits'],
         queryFn: async () => {
-            const res = await axios.get(`${API_URL}/api/machineries/machinery-units`);
+            // updated to match new backend route (POST /get-machinery-unit)
+            const res = await axios.post(`${API_URL}/api/machineries/get-machinery-unit`, {});
             return res.data;
         },
         enabled: role === 'MIM' || role === 'MIS',
     });
 
-const usePendingTicketRequestsQuery = (page = 1, searchParams = {}, role) =>
+const usePendingTicketRequestsQuery = (page = 1, searchQuery = {}, role) =>
     useQuery({
-        queryKey: ['pendingTicketRequests', page, searchParams],
+        queryKey: ['pendingTicketRequests', page, searchQuery],
         queryFn: async () => {
             const res = await axios.get(`${API_URL}/api/machineries/get-pending-ticket-requests`, {
-                params: { page, limit: 10, ...searchParams },
+                params: { page, limit: 10, ...searchQuery },
             });
             return res.data;
         },
         enabled: role === 'MIM' || role === 'MIS',
     });
 
-const useOngoingTicketRequestsQuery = (page = 1, searchParams = {}, role) =>
+const useOngoingTicketRequestsQuery = (page = 1, searchQuery = {}, role) =>
     useQuery({
-        queryKey: ['ongoingTicketRequests', page, searchParams],
+        queryKey: ['ongoingTicketRequests', page, searchQuery],
         queryFn: async () => {
             const res = await axios.get(`${API_URL}/api/machineries/get-ongoing-ticket-requests`, {
-                params: { page, limit: 10, ...searchParams },
+                params: { page, limit: 10, ...searchQuery },
             });
             return res.data;
         },
         enabled: role === 'MIM' || role === 'MIS',
     });
 
-const useScheduledTicketRequestsQuery = (page = 1, searchParams = {}, role) =>
+const useScheduledTicketRequestsQuery = (page = 1, searchQuery = {}, role) =>
     useQuery({
-        queryKey: ['scheduledTicketRequests', page, searchParams],
+        queryKey: ['scheduledTicketRequests', page, searchQuery],
         queryFn: async () => {
             const res = await axios.get(`${API_URL}/api/machineries/get-scheduled-ticket-requests`, {
-                params: { page, limit: 10, ...searchParams },
+                params: { page, limit: 10, ...searchQuery },
             });
             return res.data;
         },
         enabled: role === 'MIM' || role === 'MIS',
     });
 
-const useDeclinedTicketRequestsQuery = (page = 1, searchParams = {}, role) =>
+const useDeclinedTicketRequestsQuery = (page = 1, searchQuery = {}, role) =>
     useQuery({
-        queryKey: ['declinedTicketRequests', page, searchParams],
+        queryKey: ['declinedTicketRequests', page, searchQuery],
         queryFn: async () => {
             const res = await axios.get(`${API_URL}/api/machineries/get-declined-ticket-requests`, {
-                params: { page, limit: 10, ...searchParams },
+                params: { page, limit: 10, ...searchQuery },
             });
             return res.data;
         },
@@ -85,7 +86,7 @@ const useAvailableMachineryTypesQuery = () =>
     });
 
 // Exported store
-export const useAdminDashboard = (pages = {}, searchParams = {}) => {
+export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
     const { user } = useAuthStore();
     const role = user?.role?.toString();
 
@@ -104,16 +105,16 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
         useMachineryUnitsQuery(role);
 
     const { data: pendingTicketRequests = [], isLoading: isLoadingPendingTicketRequests, error: pendingTicketRequestsError } =
-        usePendingTicketRequestsQuery(pendingPage, searchParams, role);
+        usePendingTicketRequestsQuery(pendingPage, searchQuery, role);
 
     const { data: ongoingTicketRequests = [], isLoading: isLoadingOngoingTicketRequests, error: ongoingTicketRequestsError } =
-        useOngoingTicketRequestsQuery(ongoingPage, searchParams, role);
+        useOngoingTicketRequestsQuery(ongoingPage, searchQuery, role);
 
     const { data: scheduledTicketRequests = [], isLoading: isLoadingScheduledTicketRequests, error: scheduledTicketRequestsError } =
-        useScheduledTicketRequestsQuery(scheduledPage, searchParams, role);
+        useScheduledTicketRequestsQuery(scheduledPage, searchQuery, role);
 
     const { data: declinedTicketRequests = [], isLoading: isLoadingDeclinedTicketRequests, error: declinedTicketRequestsError } =
-        useDeclinedTicketRequestsQuery(declinedPage, searchParams, role);
+        useDeclinedTicketRequestsQuery(declinedPage, searchQuery, role);
 
     const { data: availableMachineryTypes = [], isLoading: isLoadingAvailableMachineryTypes, error: availableMachineryTypesError } =
         useAvailableMachineryTypesQuery();
@@ -123,10 +124,6 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
     const [isUpdatingMachineryType, setIsUpdatingMachineryType] = useState(false);
     const [isCreatingMachineryUnit, setIsCreatingMachineryUnit] = useState(false);
     const [isUpdatingMachineryUnit, setIsUpdatingMachineryUnit] = useState(false);
-    const [isAddingMachineryUnits, setIsAddingMachineryUnits] = useState(false);
-    const [isDeletingMachinery, setIsDeletingMachinery] = useState(false);
-    const [isDeletingMachineryUnits, setIsDeletingMachineryUnits] = useState(false);
-    const [isTransferringMachineryUnit, setIsTransferringMachineryUnit] = useState(false);
     const [isGeneratingReport, setIsGeneratingReport] = useState(false);
     const [isCreatingWeeklySchedule, setIsCreatingWeeklySchedule] = useState(false);
     const [isRemovingFromSchedule, setIsRemovingFromSchedule] = useState(false);
@@ -172,46 +169,6 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
             return res.data;
         } finally {
             setIsUpdatingMachineryUnit(false);
-        }
-    };
-
-    const addMachineryUnits = async (data) => {
-        setIsAddingMachineryUnits(true);
-        try {
-            const res = await axios.post(`${API_URL}/api/machineries/add-machinery-units`, data);
-            return res.data;
-        } finally {
-            setIsAddingMachineryUnits(false);
-        }
-    };
-
-    const deleteMachinery = async (data) => {
-        setIsDeletingMachinery(true);
-        try {
-            const res = await axios.delete(`${API_URL}/api/machineries/delete-machinery`, { data });
-            return res.data;
-        } finally {
-            setIsDeletingMachinery(false);
-        }
-    };
-
-    const deleteMachineryUnits = async (data) => {
-        setIsDeletingMachineryUnits(true);
-        try {
-            const res = await axios.post(`${API_URL}/api/machineries/delete-machinery-units`, data);
-            return res.data;
-        } finally {
-            setIsDeletingMachineryUnits(false);
-        }
-    };
-
-    const transferMachineryUnit = async (data) => {
-        setIsTransferringMachineryUnit(true);
-        try {
-            const res = await axios.post(`${API_URL}/api/machineries/transfer-machinery-unit`, data);
-            return res.data;
-        } finally {
-            setIsTransferringMachineryUnit(false);
         }
     };
 
@@ -283,10 +240,6 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
         updateMachineryType,
         createMachineryUnit,
         updateMachineryUnit,
-        addMachineryUnits,
-        deleteMachinery,
-        deleteMachineryUnits,
-        transferMachineryUnit,
         generateMachineryReport,
         createWeeklySchedule,
         removeFromSchedule,
@@ -307,10 +260,6 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
         isUpdatingMachineryType,
         isCreatingMachineryUnit,
         isUpdatingMachineryUnit,
-        isAddingMachineryUnits,
-        isDeletingMachinery,
-        isDeletingMachineryUnits,
-        isTransferringMachineryUnit,
         isGeneratingReport,
         isCreatingWeeklySchedule,
         isRemovingFromSchedule,
