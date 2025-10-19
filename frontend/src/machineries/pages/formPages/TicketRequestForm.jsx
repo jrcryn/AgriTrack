@@ -25,9 +25,8 @@ import { FaUserCheck, FaSearch } from 'react-icons/fa';
 import { Form } from 'react-router-dom';
 
 const TicketRequestForm = ({ onNext, onBack }) => {
-
   // Get the existing farmer input data from the store
-  const { formData, updateFarmerInput, isLoading } = useTicketRequestFormStore();
+  const { formData, updateFarmerInput, isLoading, fetchAvailableMachineTypes, availableMachineTypes, availableMachineTypesLoading, availableMachineTypesError, submitFarmerForm, error: submitError, success: submitSuccess } = useTicketRequestFormStore();
   const { getFarmerAccountByName } = usePublicFormStore();
   
   // Initialize form data with existing data from the store
@@ -63,7 +62,14 @@ const TicketRequestForm = ({ onNext, onBack }) => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setLocalFormData((prevData) => ({ ...prevData, [name]: value }));
+    // Persist immediately to the store so data is retained across navigation
+    updateFarmerInput({ [name]: value });
   };
+
+  // Keep local form in sync when store changes (e.g., after navigating back)
+  useEffect(() => {
+    setLocalFormData(formData.farmerInput);
+  }, [formData.farmerInput]);
 
   const handleNext = () => {
     // Update the store with the form data
@@ -131,21 +137,20 @@ const TicketRequestForm = ({ onNext, onBack }) => {
 
   // Reset farmer selection - FIXED
   const handleResetFarmerSelection = () => {
-    // First update the form data
     const resetData = {
+      _id: '',
+      farmerId: '',
       surname: '',
       first_name: '',
       middle_name: '',
       suffix: '',
+      farmer_location: '',
       farm_location: '',
+      estimated_area: '',
+      machine_type: '',
     };
-    
-    // Update store first
     updateFarmerInput(resetData);
-    
-    // Then update local state
     setLocalFormData(resetData);
-    
     // Finally update UI state with small delay to ensure re-render
     setTimeout(() => {
       setFarmerName('');
@@ -158,10 +163,41 @@ const TicketRequestForm = ({ onNext, onBack }) => {
   };
 
   useEffect(() => {
-    const { farm_location } = localFormData;
-    setIsFormValid(farm_location);
+    // Load available machine types on mount
+    fetchAvailableMachineTypes();
+  }, [fetchAvailableMachineTypes]);
+
+  useEffect(() => {
+    const { farm_location, machine_type, estimated_area } = localFormData;
+    const isValid = !!farm_location && !!machine_type && Number(estimated_area) > 0;
+    setIsFormValid(isValid);
   }, [localFormData]);
   
+  const handleSubmit = async () => {
+    // Persist latest inputs to store before submit
+    updateFarmerInput(localFormData);
+
+    const ok = await submitFarmerForm();
+    if (ok) {
+      toast({
+        title: 'Submitted',
+        description: 'Your ticket request has been submitted.',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+      onNext && onNext();
+    } else {
+      toast({
+        title: 'Submission failed',
+        description: submitError || 'Please try again.',
+        status: 'error',
+        duration: 4000,
+        isClosable: true,
+      });
+    }
+  };
+
   const cardBg = 'white';
   const headerBorder = 'gray.200';
   const accentColor = 'blue.600'; 
@@ -396,12 +432,23 @@ const TicketRequestForm = ({ onNext, onBack }) => {
                       name='machine_type'
                       value={localFormData.machine_type || ''}
                       onChange={handleChange}
-                      placeholder="Select Machine Type"
+                      placeholder={availableMachineTypesLoading ? 'Loading...' : 'Select Machine Type'}
                       borderRadius="md"
                       focusBorderColor={accentColor}
+                      isDisabled={availableMachineTypesLoading || !!availableMachineTypesError}
                     >
-                      {/* Options will be added later */}
+                      {/* Populate from store */}
+                      {availableMachineTypes.map((mt) => (
+                        <option key={mt._id} value={mt._id}>
+                          {mt.equipmentType}
+                        </option>
+                      ))}
                     </Select>
+                    {availableMachineTypesError && (
+                      <Text mt={2} fontSize="sm" color="red.500">
+                        {availableMachineTypesError}
+                      </Text>
+                    )}
                   </FormControl>
 
                   <FormControl id="estimatedArea" isRequired>
@@ -419,7 +466,8 @@ const TicketRequestForm = ({ onNext, onBack }) => {
                         value={localFormData.estimated_area || ''}
                         onChange={handleChange}
                         type="number"
-                        min="1"
+                        min="0.1"
+                        step="0.1"
                         placeholder="Enter area"
                         borderRadius="md"
                         focusBorderColor={accentColor}
@@ -452,7 +500,7 @@ const TicketRequestForm = ({ onNext, onBack }) => {
                 bg={accentColor}
                 color="white"
                 _hover={{ bg: 'blue.700' }}
-                onClick={handleNext}
+                onClick={handleSubmit}
                 isLoading={isLoading}
                 px={8}
                 borderRadius="md"

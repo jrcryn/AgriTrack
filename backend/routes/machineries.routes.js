@@ -67,6 +67,6 @@ router.post('/move-to-schedule', moveTicketRequestToASchedule);  // FOR REVIEW
 
 // Public API routes
 router.get('/get-available-machinery-types', formGetAvailableMachineryTypes); //working
-router.post('/create-ticket-request', createTicketRequestForm); //working
+router.post('/submit-ticket-request', createTicketRequestForm); //working
 
 export default router;

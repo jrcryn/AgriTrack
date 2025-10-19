@@ -1165,6 +1165,46 @@ export const getMachineryUnits = async (req, res) => {
     }
 };
 
+
+
+// Helper to build $match for free-text and numeric search (adds estimatedArea equality when a term is numeric)
+const buildTicketSearchMatch = (searchQuery) => {
+    if (!searchQuery || !searchQuery.trim()) return null;
+    const words = searchQuery.trim().split(/\s+/);
+
+    const andClauses = words.map((word) => {
+        const num = Number(word);
+        const numericClauses = Number.isFinite(num) ? [{ estimatedArea: num }] : [];
+
+        return {
+            $or: [
+                { barangay: { $regex: word, $options: 'i' } },
+
+                { 'requestorFarmer.first_name': { $regex: word, $options: 'i' } },
+                { 'requestorFarmer.middle_name': { $regex: word, $options: 'i' } },
+                { 'requestorFarmer.surname': { $regex: word, $options: 'i' } },
+                { 'requestorFarmer.farmerId': { $regex: word, $options: 'i' } },
+
+                { 'assignedOperator.first_name': { $regex: word, $options: 'i' } },
+                { 'assignedOperator.middle_name': { $regex: word, $options: 'i' } },
+                { 'assignedOperator.last_name': { $regex: word, $options: 'i' } },
+                { 'assignedOperator.email': { $regex: word, $options: 'i' } },
+                { 'assignedOperator.phone': { $regex: word, $options: 'i' } },
+
+                { 'assignedMachineUnit.plateNumber': { $regex: word, $options: 'i' } },
+                { 'assignedMachineUnit.engineBrand': { $regex: word, $options: 'i' } },
+                { 'assignedMachineUnit.engineHorsepower': { $regex: word, $options: 'i' } },
+
+                // Numeric search on estimatedArea
+                ...numericClauses
+            ],
+        };
+    });
+
+    return { $and: andClauses };
+};
+
+
 export const getPendingTicketRequests = async (req, res) => {
     const { searchQuery } = req.query;
     try {
@@ -1176,29 +1216,9 @@ export const getPendingTicketRequests = async (req, res) => {
             { $match: { status: 'Pending' } },
         ];
 
-        if (searchQuery && searchQuery.trim() !== '') {
-            const words = searchQuery.trim().split(/\s+/);
-            const searchConditions = words.map((word) => ({
-                $or: [
-                    { barangay: { $regex: word, $options: 'i' } },
-
-                    { 'requestorFarmer.first_name': { $regex: word, $options: 'i' } },
-                    { 'requestorFarmer.middle_name': { $regex: word, $options: 'i' } },
-                    { 'requestorFarmer.surname': { $regex: word, $options: 'i' } },
-                    { 'requestorFarmer.farmerId': { $regex: word, $options: 'i' } },
-
-                    { 'assignedOperator.first_name': { $regex: word, $options: 'i' } },
-                    { 'assignedOperator.middle_name': { $regex: word, $options: 'i' } },
-                    { 'assignedOperator.last_name': { $regex: word, $options: 'i' } },
-                    { 'assignedOperator.email': { $regex: word, $options: 'i' } },
-                    { 'assignedOperator.phone': { $regex: word, $options: 'i' } },
-
-                    { 'assignedMachineUnit.plateNumber': { $regex: word, $options: 'i' } },
-                    { 'assignedMachineUnit.engineBrand': { $regex: word, $options: 'i' } },
-                    { 'assignedMachineUnit.engineHorsepower': { $regex: word, $options: 'i' } },
-                ],
-            }));
-            pipeline.push({ $match: { $and: searchConditions } });
+        const searchMatch = buildTicketSearchMatch(searchQuery);
+            if (searchMatch) {
+                    pipeline.push({ $match: searchMatch });
         }
 
         pipeline.push({
@@ -1244,29 +1264,9 @@ export const getOngoingTicketRequests = async (req, res) => {
             { $match: { status: 'Ongoing' } },
         ];
 
-        if (searchQuery && searchQuery.trim() !== '') {
-            const words = searchQuery.trim().split(/\s+/);
-            const searchConditions = words.map((word) => ({
-                $or: [
-                    { barangay: { $regex: word, $options: 'i' } },
-
-                    { 'requestorFarmer.first_name': { $regex: word, $options: 'i' } },
-                    { 'requestorFarmer.middle_name': { $regex: word, $options: 'i' } },
-                    { 'requestorFarmer.surname': { $regex: word, $options: 'i' } },
-                    { 'requestorFarmer.farmerId': { $regex: word, $options: 'i' } },
-
-                    { 'assignedOperator.first_name': { $regex: word, $options: 'i' } },
-                    { 'assignedOperator.middle_name': { $regex: word, $options: 'i' } },
-                    { 'assignedOperator.last_name': { $regex: word, $options: 'i' } },
-                    { 'assignedOperator.email': { $regex: word, $options: 'i' } },
-                    { 'assignedOperator.phone': { $regex: word, $options: 'i' } },
-
-                    { 'assignedMachineUnit.plateNumber': { $regex: word, $options: 'i' } },
-                    { 'assignedMachineUnit.engineBrand': { $regex: word, $options: 'i' } },
-                    { 'assignedMachineUnit.engineHorsepower': { $regex: word, $options: 'i' } },
-                ],
-            }));
-            pipeline.push({ $match: { $and: searchConditions } });
+        const searchMatch = buildTicketSearchMatch(searchQuery);
+        if (searchMatch) {
+            pipeline.push({ $match: searchMatch });
         }
 
         pipeline.push({
@@ -1281,8 +1281,8 @@ export const getOngoingTicketRequests = async (req, res) => {
         });
 
         const result = await global.machineriesModels.TicketRequest.aggregate(pipeline);
-        const relevantTickets = result[0].paginatedResults;
-        const totalCount = result[0].totalCount.length > 0 ? result[0].totalCount[0].count : 0;
+        const relevantTickets = result[0]?.paginatedResults || [];
+        const totalCount = result[0]?.totalCount?.[0]?.count || 0;
 
         return res.status(200).json({
             success: true,
@@ -1312,29 +1312,9 @@ export const getScheduledTicketRequests = async (req, res) => {
             { $match: { status: 'Scheduled' } },
         ];
 
-        if (searchQuery && searchQuery.trim() !== '') {
-            const words = searchQuery.trim().split(/\s+/);
-            const searchConditions = words.map((word) => ({
-                $or: [
-                    { barangay: { $regex: word, $options: 'i' } },
-
-                    { 'requestorFarmer.first_name': { $regex: word, $options: 'i' } },
-                    { 'requestorFarmer.middle_name': { $regex: word, $options: 'i' } },
-                    { 'requestorFarmer.surname': { $regex: word, $options: 'i' } },
-                    { 'requestorFarmer.farmerId': { $regex: word, $options: 'i' } },
-
-                    { 'assignedOperator.first_name': { $regex: word, $options: 'i' } },
-                    { 'assignedOperator.middle_name': { $regex: word, $options: 'i' } },
-                    { 'assignedOperator.last_name': { $regex: word, $options: 'i' } },
-                    { 'assignedOperator.email': { $regex: word, $options: 'i' } },
-                    { 'assignedOperator.phone': { $regex: word, $options: 'i' } },
-
-                    { 'assignedMachineUnit.plateNumber': { $regex: word, $options: 'i' } },
-                    { 'assignedMachineUnit.engineBrand': { $regex: word, $options: 'i' } },
-                    { 'assignedMachineUnit.engineHorsepower': { $regex: word, $options: 'i' } },
-                ],
-            }));
-            pipeline.push({ $match: { $and: searchConditions } });
+        const searchMatch = buildTicketSearchMatch(searchQuery);
+        if (searchMatch) {
+            pipeline.push({ $match: searchMatch });
         }
 
         pipeline.push({
@@ -1349,8 +1329,8 @@ export const getScheduledTicketRequests = async (req, res) => {
         });
 
         const result = await global.machineriesModels.TicketRequest.aggregate(pipeline);
-        const relevantTickets = result[0].paginatedResults;
-        const totalCount = result[0].totalCount.length > 0 ? result[0].totalCount[0].count : 0;
+        const relevantTickets = result[0]?.paginatedResults || [];
+        const totalCount = result[0]?.totalCount?.[0]?.count || 0;
 
         return res.status(200).json({
             success: true,
@@ -1380,29 +1360,9 @@ export const getDeclinedTicketRequests = async (req, res) => {
             { $match: { status: 'Declined' } },
         ];
 
-        if (searchQuery && searchQuery.trim() !== '') {
-            const words = searchQuery.trim().split(/\s+/);
-            const searchConditions = words.map((word) => ({
-                $or: [
-                    { barangay: { $regex: word, $options: 'i' } },
-
-                    { 'requestorFarmer.first_name': { $regex: word, $options: 'i' } },
-                    { 'requestorFarmer.middle_name': { $regex: word, $options: 'i' } },
-                    { 'requestorFarmer.surname': { $regex: word, $options: 'i' } },
-                    { 'requestorFarmer.farmerId': { $regex: word, $options: 'i' } },
-
-                    { 'assignedOperator.first_name': { $regex: word, $options: 'i' } },
-                    { 'assignedOperator.middle_name': { $regex: word, $options: 'i' } },
-                    { 'assignedOperator.last_name': { $regex: word, $options: 'i' } },
-                    { 'assignedOperator.email': { $regex: word, $options: 'i' } },
-                    { 'assignedOperator.phone': { $regex: word, $options: 'i' } },
-
-                    { 'assignedMachineUnit.plateNumber': { $regex: word, $options: 'i' } },
-                    { 'assignedMachineUnit.engineBrand': { $regex: word, $options: 'i' } },
-                    { 'assignedMachineUnit.engineHorsepower': { $regex: word, $options: 'i' } },
-                ],
-            }));
-            pipeline.push({ $match: { $and: searchConditions } });
+        const searchMatch = buildTicketSearchMatch(searchQuery);
+        if (searchMatch) {
+            pipeline.push({ $match: searchMatch });
         }
 
         pipeline.push({
@@ -1417,8 +1377,8 @@ export const getDeclinedTicketRequests = async (req, res) => {
         });
 
         const result = await global.machineriesModels.TicketRequest.aggregate(pipeline);
-        const relevantTickets = result[0].paginatedResults;
-        const totalCount = result[0].totalCount.length > 0 ? result[0].totalCount[0].count : 0;
+        const relevantTickets = result[0]?.paginatedResults || [];
+        const totalCount = result[0]?.totalCount?.[0]?.count || 0;
 
         return res.status(200).json({
             success: true,
