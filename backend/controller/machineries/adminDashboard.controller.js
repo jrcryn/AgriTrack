@@ -503,7 +503,7 @@ export const addMachineryUnit = async (req, res) => {
     } = req.body;
 
     if (!machineryTypeId || !plateNumber || !engineHorsepower || 
-        !modeOfAcquisition || !costOfAcquisition || !yearAcquired || !condition || 
+        !modeOfAcquisition || !yearAcquired || !condition || 
         !location || !status) {
         return res.status(400).json({ success: false, message: "Please provide all required fields." });
     }

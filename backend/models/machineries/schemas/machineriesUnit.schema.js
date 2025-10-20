@@ -10,7 +10,7 @@ export const MachineriesUnitSchema = new mongoose.Schema({
     engineBrand: {type: String},
     engineHorsepower: {type: String, required: true},
     modeOfAcquisition: {type: String, required: true},
-    costOfAcquisition: {type: String, required: true},
+    costOfAcquisition: {type: String},
     yearAcquired: { type: String, required: true},
     condition: { type: String, required: true, enum: ['Functional', 'Non-Functional'], default: 'Functional' },
     location: { type: String, required: true, default: 'Office/The Plaza'},
