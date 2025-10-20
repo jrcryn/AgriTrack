@@ -22,6 +22,7 @@ import {
   TableContainer,
   Select,
   useDisclosure,
+  Checkbox
 } from '@chakra-ui/react';
 import { FiSearch, FiInbox } from 'react-icons/fi';
 import { LuLogs } from "react-icons/lu";
@@ -29,8 +30,7 @@ import { FaEye } from 'react-icons/fa';
 import { TbFileShredder } from "react-icons/tb";
 
 import { useAdminDashboard } from '../store/adminDashboard.store.js';
-import DocumentLifeCycleModal from '../../components/docLifeCyclePanel.jsx';
-import { set } from 'lodash';
+import TicketRequestPanel from '../../components/ticketRequestPanel.jsx';
 
 const TicketRequests = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -39,10 +39,6 @@ const TicketRequests = () => {
   const [ongoingPage, setOngoingPage] = useState(1);
   const [scheduledPage, setScheduledPage] = useState(1);
   const [declinedPage, setDeclinedPage] = useState(1);
-
-  const [isArchived, setIsArchived] = useState(false);
-  const [isForDisposal, setIsForDisposal] = useState(false);
-  const [isDisposalPage, setIsForDisposalPage] = useState(false);
   
 
   const [pageType, setPageType] = useState('pending'); // 'pending', 'ongoing', 'scheduled', 'declined'
@@ -75,7 +71,14 @@ const TicketRequests = () => {
   }, [ searchQuery ]);
 
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const [selectedDoc, setSelectedDoc] = useState(null);
+  const [selectedTickets, setSelectedTickets] = useState([]);
+  console.log(selectedTickets);
+
+  const handleSelectTickets = (ticket) => {
+    setSelectedTickets(prev =>
+      prev.includes(ticket) ? prev.filter(t => t !== ticket) : [...prev, ticket]
+    );
+  };
 
   const pendingTickets = pendingTicketRequests?.data?.relevantTickets || [];
   const pendingTotalPages = pendingTicketRequests?.data?.totalPages || 1;
@@ -97,13 +100,6 @@ const TicketRequests = () => {
   const declinedCurrentPage = declinedTicketRequests?.data?.currentPage || 1;
   const declinedTotalItems = declinedTicketRequests?.data?.totalCount || 0;
 
-  const handleOpenDetails = (doc, { archived = false, disposal = false, isDisposalPage = false } = {}) => {
-    setSelectedDoc(doc);
-    setIsArchived(archived);
-    setIsForDisposal(disposal);
-    setIsForDisposalPage(isDisposalPage);
-    onOpen();
-  };
 
   const PaginationControls = ({ currentPage, setCurrentPage, totalPages, totalItems, colorScheme }) => (
     <Flex
@@ -200,6 +196,15 @@ const TicketRequests = () => {
             <Heading as="h2" size="md" display="flex" alignItems="center">
               <Icon as={LuLogs} mr={2} color={'orange.500'} /> PENDING TICKETS
             </Heading>
+            {selectedTickets.length > 0 && (
+              <Button
+                colorScheme='orange'
+                onClick={onOpen}
+                size={"sm"}
+              >
+                Manage Selected Tickets
+              </Button>
+            )}
           </Flex>
 
           {isLoadingPendingTicketRequests ? (
@@ -212,23 +217,13 @@ const TicketRequests = () => {
                 <Table variant="simple" size="md">
                   <Thead bg="gray.50">
                     <Tr>
+                      <Th></Th>
                       <Th>Reference #</Th>
                       <Th>Requestor Farmer</Th>
                       <Th>Farm Location</Th>
                       <Th>Requested Machine</Th>
                       <Th>Estimated Area</Th>
                       <Th>Date Requested</Th>
-                      <Th
-                        position={{ base: 'static', md: 'sticky' }}
-                        right={0}
-                        bg="gray.50"
-                        zIndex={{ base: 0, md: 1 }}
-                        textAlign="center"
-                        width="120px"
-                      >
-                        <Box display={{ base: 'none', md: 'block' }}>Scroll →</Box>
-                        <Box display={{ base: 'block', md: 'none' }}>Actions</Box>
-                      </Th>
                     </Tr>
                   </Thead>
                   <Tbody>
@@ -237,28 +232,18 @@ const TicketRequests = () => {
                       const by = `${ticket?.requestorFarmer?.first_name || ''} ${ticket?.requestorFarmer?.surname || ''}`.trim() || '—';
                       return (   
                         <Tr key={ticket._id} fontSize="sm">
+                          <Td>
+                            <Checkbox
+                              isChecked={selectedTickets.includes(ticket)}
+                              onChange={() => handleSelectTickets(ticket)}
+                            />
+                          </Td>
                           <Td fontWeight={'semibold'}>{ticket.refNumber || '—'}</Td>
                           <Td>{by || '-'}</Td>
                           <Td>{ticket?.barangay || '-'}</Td>
                           <Td>{ticket?.requestedMachineType?.equipmentType || '-'}</Td>
                           <Td>{ticket?.estimatedArea || '-'}</Td>
                           <Td>{date}</Td>
-                          <Td
-                            isNumeric
-                            position={{ base: 'static', md: 'sticky' }}
-                            right={0}
-                            zIndex={1}
-                            bg="white"
-                          >
-                            <Button
-                              size="sm"
-                              colorScheme='orange'
-                              leftIcon={<FaEye />}
-                              onClick={() => handleOpenDetails(doc, { archived: true, disposal: false })}
-                            >
-                              Details
-                            </Button>
-                          </Td>
                         </Tr>
                       );
                     })}
@@ -361,7 +346,6 @@ const TicketRequests = () => {
                               size="sm"
                               colorScheme='green'
                               leftIcon={<FaEye />}
-                              onClick={() => handleOpenDetails(doc, { archived: true, disposal: false })}
                             >
                               Details
                             </Button>
@@ -468,7 +452,6 @@ const TicketRequests = () => {
                               size="sm"
                               colorScheme='purple'
                               leftIcon={<FaEye />}
-                              onClick={() => handleOpenDetails(doc, { archived: true, disposal: false })}
                             >
                               Details
                             </Button>
@@ -575,7 +558,6 @@ const TicketRequests = () => {
                               size="sm"
                               colorScheme='red'
                               leftIcon={<FaEye />}
-                              onClick={() => handleOpenDetails(doc, { archived: true, disposal: false })}
                             >
                               Details
                             </Button>
@@ -619,6 +601,16 @@ const TicketRequests = () => {
         </Box>
         </>
       )}
+
+      <TicketRequestPanel
+        isOpen={isOpen}
+        onClose={onClose}
+        selectedTickets={selectedTickets}
+        isPendingPage={true}
+        isDeclinedPage={false}
+        isScheduledPage={false}
+        isOngoingPage={false}
+      />
     </Box>
   );
 };

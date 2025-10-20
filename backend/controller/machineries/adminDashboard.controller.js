@@ -316,11 +316,6 @@ const getNextCounterSeq = async (counterId) => {
     return doc.seq;
 };
 
-// Replaces previous random-based generator; uses Counter for O(1) uniqueness
-export const generateUniqueTicketRef = async () => {
-    
-};
-
 export const createTicketRequestForm = async (req, res) => {
     const {
         requestorFarmer,
@@ -1192,6 +1187,20 @@ export const getMachineryUnits = async (req, res) => {
     }
 };
 
+export const getMachineryUnitsForDropDown = async (req, res) => {
+    try {
+        const projection = {
+            _id: 1,
+            plateNumber: 1,
+        };
+        const units = await global.machineriesModels.MachineriesUnit.find({status: "Available"}, projection).populate({path: 'machineryTypeId', select: 'equipmentType ownerName'});
+        return res.status(200).json({success: true,message: "Machinery units for dropdown retrieved successfully.",data: units });
+    } catch (error) {
+        console.error("Error fetching machinery units for dropdown:", error);
+        return res.status(500).json({ success: false, message: "Error fetching machinery units for dropdown.", error: error.message });
+    }
+};
+
 
 
 // Helper to build $match for free-text and numeric search (adds estimatedArea equality when a term is numeric)
@@ -1213,6 +1222,8 @@ const buildTicketSearchMatch = (searchQuery) => {
                 { 'requestorFarmer.middle_name': { $regex: word, $options: 'i' } },
                 { 'requestorFarmer.surname': { $regex: word, $options: 'i' } },
                 { 'requestorFarmer.farmerId': { $regex: word, $options: 'i' } },
+
+                { 'requestedMachineType.equipmentType': { $regex: word, $options: 'i' }},
 
                 { 'assignedOperator.first_name': { $regex: word, $options: 'i' } },
                 { 'assignedOperator.middle_name': { $regex: word, $options: 'i' } },
@@ -1426,7 +1437,27 @@ export const getDeclinedTicketRequests = async (req, res) => {
     }
 };
 
+export const getOperatorsList = async (req, res) => {
+    try {
+        const projection = {
+            first_name: 1,
+            last_name: 1,
+            middle_name: 1,
+            suffix: 1,
+            email: 1,
+            phone: 1
+        }
+        const operators = await global.globalModels.EmployeeAccount.find({ roles: 'MIS' }, projection).lean();
 
+        return res.status(200).json({
+            success: true,
+            message: "Operators list retrieved successfully.",
+            data: operators
+        });
 
-
+    } catch (error) {
+        console.error("Error fetching operators list:", error);
+        return res.status(500).json({ success: false, message: "Error fetching operators list.", error: error.message });
+    }
+};
 

@@ -85,6 +85,26 @@ const useAvailableMachineryTypesQuery = () =>
         enabled: true,
     });
 
+const useOperatorsListQuery = () =>
+    useQuery({
+        queryKey: ['operatorsList'],
+        queryFn: async () => {
+            const res = await axios.get(`${API_URL}/api/machineries/get-operators-list`);
+            return res.data;
+        },
+        enabled: true, // Enable for all roles since we need this data in the TicketRequestPanel
+    });
+
+const useMachineryUnitsForDropDownQuery = (role) =>
+    useQuery({
+        queryKey: ['machineryUnitsForDropDown'],
+        queryFn: async () => {
+            const res = await axios.get(`${API_URL}/api/machineries/get-machinery-units-for-dropdown`);
+            return res.data;
+        },
+        enabled: role === 'MIM',
+    });
+
 // Exported store
 export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
     const { user } = useAuthStore();
@@ -118,6 +138,12 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
 
     const { data: availableMachineryTypes = [], isLoading: isLoadingAvailableMachineryTypes, error: availableMachineryTypesError } =
         useAvailableMachineryTypesQuery();
+
+    const { data: operatorsList = [], isLoading: isLoadingOperatorsList, error: operatorsListError } =
+        useOperatorsListQuery(role);
+
+    const { data: machineryUnitsForDropDown = [], isLoading: isLoadingMachineryUnitsForDropDown, error: machineryUnitsForDropDownError } = 
+        useMachineryUnitsForDropDownQuery(role);
 
     // Action flags
     const [isCreatingMachineryType, setIsCreatingMachineryType] = useState(false);
@@ -234,6 +260,8 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         scheduledTicketRequests,
         declinedTicketRequests,
         availableMachineryTypes,
+        operatorsList,
+        machineryUnitsForDropDown,
 
         // actions
         createMachineryType,
@@ -254,6 +282,8 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         isLoadingScheduledTicketRequests,
         isLoadingDeclinedTicketRequests,
         isLoadingAvailableMachineryTypes,
+        isLoadingOperatorsList,
+        isLoadingMachineryUnitsForDropDown,
 
         // action flags
         isCreatingMachineryType,
@@ -274,5 +304,7 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         scheduledTicketRequestsError,
         declinedTicketRequestsError,
         availableMachineryTypesError,
+        operatorsListError,
+        machineryUnitsForDropDownError,
     };
 };
