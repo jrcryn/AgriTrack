@@ -173,7 +173,9 @@ const TicketRequestForm = ({ onNext, onBack }) => {
     setIsFormValid(isValid);
   }, [localFormData]);
   
-  const handleSubmit = async () => {
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
     // Persist latest inputs to store before submit
     updateFarmerInput(localFormData);
 
@@ -186,7 +188,8 @@ const TicketRequestForm = ({ onNext, onBack }) => {
         duration: 3000,
         isClosable: true,
       });
-      onNext && onNext();
+      // Pass state to indicate this is a form submission
+      onNext({ state: { fromSubmission: true } });
     } else {
       toast({
         title: 'Submission failed',

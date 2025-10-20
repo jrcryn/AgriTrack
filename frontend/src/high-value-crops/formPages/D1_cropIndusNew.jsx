@@ -56,7 +56,9 @@ const CropIndusNew = ({ onNext, onBack }) => {
     }));
   };
 
-  const handleSubmit = async () => {
+  // In your form submission handler function
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     // Combine harvest_month and harvest_year into a date value
     const harvestDate = new Date(`${localFormData.harvest_year}-${localFormData.harvest_month}-01`);
     const formattedHarvestDate = harvestDate.toISOString().split('T')[0]; // Format as YYYY-MM-DD
@@ -67,9 +69,14 @@ const CropIndusNew = ({ onNext, onBack }) => {
     };
     updateCropIndusNew(data);
     
-    const success = await submitFarmerForm();
-    if (success) {
-      onNext('/success');
+    try {
+      const success = await submitFarmerForm();
+      if (success) {
+        // Pass state to indicate this is a form submission
+        onNext('/success', null, { state: { fromSubmission: true } });
+      }
+    } catch (error) {
+      console.error("Submission error:", error);
     }
   };
 

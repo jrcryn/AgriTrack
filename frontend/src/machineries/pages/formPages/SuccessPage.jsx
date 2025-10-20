@@ -1,10 +1,56 @@
-import React from 'react';
-import { Box, Heading, Text, Button, VStack, Icon } from '@chakra-ui/react';
+import React, { useEffect, useLayoutEffect } from 'react';
+import { Box, Heading, Text, VStack, Icon, useToast } from '@chakra-ui/react';
 import { FiCheckCircle } from 'react-icons/fi';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useTicketRequestFormStore } from '../../store/ticketRequestForm.store.js';
 
 const SuccessPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const toast = useToast();
+  const { resetForm } = useTicketRequestFormStore();
+  
+  // Flag to store in sessionStorage to indicate form completion
+  const FORM_COMPLETION_KEY = 'machinery_form_completed';
+
+  // On mount, mark the form as completed in session storage and reset form data
+  useEffect(() => {
+    // Reset the form data in the store
+    resetForm();
+    
+    // Set completion flag
+    sessionStorage.setItem(FORM_COMPLETION_KEY, 'true');
+    
+    // Block back button behavior
+    const blockBackNavigation = (e) => {
+      // Cancel the default navigation behavior
+      e.preventDefault();
+      
+      // Force redirect to the start with a full page reload to clear any lingering state
+      window.location.href = '/machineries/form/istcns';
+    };
+
+    window.history.pushState(null, "", window.location.pathname);
+    window.addEventListener('popstate', blockBackNavigation);
+
+    return () => {
+      window.removeEventListener('popstate', blockBackNavigation);
+    };
+  }, [toast, resetForm]);
+  
+  // Detect if user tries to access this page directly or through browser back button
+  useLayoutEffect(() => {
+    // Check if we got here from the form submission
+    const directAccess = !location.state?.fromSubmission;
+    
+    // If direct access and not from form submission, redirect to start
+    if (directAccess) {
+      // Reset the form data
+      resetForm();
+      // Redirect with page reload to ensure clean state
+      window.location.href = '/machineries/form/istcns';
+    }
+  }, [location, navigate, resetForm]);
 
   const cardBg = 'white';
   const accentColor = 'blue.600';

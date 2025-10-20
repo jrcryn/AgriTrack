@@ -3,24 +3,26 @@ import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-export const useTicketRequestFormStore = create((set, get) => ({
-    // store form data temporarily using Zustand
-    formData: {
-        privacyConsent: '',
-        farmerInput: {
+// Define the initial state so we can reference it in the resetForm function
+const initialFormState = {
+    privacyConsent: '',
+    farmerInput: {
         _id: '',
-        farmerId: '', // unique farmer ID
+        farmerId: '',
         surname: '',
         first_name: '',
         middle_name: '',
         suffix: '',
-        farmer_location: '', 
-
+        farmer_location: '',
         farm_location: '',
         estimated_area: '',
         machine_type: '',
-        }
-    },
+    }
+};
+
+export const useTicketRequestFormStore = create((set, get) => ({
+    // store form data temporarily using Zustand
+    formData: { ...initialFormState },
 
     // Available machine types state
     availableMachineTypes: [],
@@ -98,22 +100,13 @@ export const useTicketRequestFormStore = create((set, get) => ({
     },
 
     resetForm: () => set({
-        formData: {
-            privacyConsent: '',
-            farmerInput: {
-                _id: '',
-                farmerId: '',
-                surname: '',
-                first_name: '',
-                middle_name: '',
-                suffix: '',
-                farmer_location: '',
-                farm_location: '',
-                estimated_area: '',
-                machine_type: '',
-            },
-            ticketRequest: null,
-        },
+        formData: { ...initialFormState },
+        availableMachineTypes: [],
+        availableMachineTypesLoading: false,
+        availableMachineTypesError: null,
+        isLoading: false,
+        success: false,
+        error: null
     }),
 
 }));

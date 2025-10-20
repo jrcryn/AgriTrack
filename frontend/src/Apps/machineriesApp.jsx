@@ -73,6 +73,16 @@ const machineriesApp = () => {
         const isFormPath        = location.pathname.startsWith('/machineries/form/dpa') || location.pathname.startsWith('/machineries/form/farmer-input') || location.pathname.startsWith('/machineries/form/ticket-request') || location.pathname.startsWith('/machineries/form/success');
         const isInitialFormPath = location.pathname === '/machineries/form/istcns'
         
+        // Check if we're coming from the success page
+        const isComingFromSuccess = sessionStorage.getItem('machinery_form_completed');
+        
+        // If we're coming from success, force a full page reload to reset all state
+        if (isComingFromSuccess && (isFormPath && !location.pathname.startsWith('/machineries/form/success'))) {
+            sessionStorage.removeItem('machinery_form_completed');
+            window.location.reload();
+            return;
+        }
+        
         // only on a true browser POP (refresh/direct URL) AND if we've never clicked Next/Back yet, redirect home
         if (
           navigationType === 'POP' &&
@@ -84,10 +94,10 @@ const machineriesApp = () => {
         }
     }, [location.pathname, navigationType, navigate]);
 
-    const handleNext = (path) => {
+    const handleNext = (path, state = {}) => {
         hasInteractedRef.current = true; // Set the ref to true when navigating forward
         window.scrollTo(0, 0); // Scroll to top
-        navigate('/machineries/form' + path);
+        navigate('/machineries/form' + path, state);
     };
 
     const handleBack = () => {
@@ -117,7 +127,7 @@ const machineriesApp = () => {
 
                  <Route path="form">
                   <Route path="dpa" element={<DataPrivacyAct onNext={() => handleNext('/ticket-request')} onBack={handleBack} />} />
-                  <Route path="ticket-request" element={<TicketRequestForm onNext={() => handleNext('/success')} onBack={handleBack} />} />
+                  <Route path="ticket-request" element={<TicketRequestForm onNext={(state) => handleNext('/success', state)} onBack={handleBack} />} />
                   <Route path="success" element={<SuccessPage />} />
                  </Route>
             </Routes>

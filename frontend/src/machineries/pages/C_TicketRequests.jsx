@@ -610,6 +610,7 @@ const TicketRequests = () => {
         isDeclinedPage={false}
         isScheduledPage={false}
         isOngoingPage={false}
+        selectedTicketsSetter={setSelectedTickets}
       />
     </Box>
   );

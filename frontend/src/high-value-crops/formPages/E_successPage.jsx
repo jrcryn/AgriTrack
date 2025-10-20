@@ -1,19 +1,58 @@
-import React from 'react';
-import { Box, Heading, Text, Button, VStack, Icon } from '@chakra-ui/react';
+import React, { useEffect, useLayoutEffect } from 'react';
+import { Box, Heading, Text, Button, VStack, Icon, useToast } from '@chakra-ui/react';
 import { FiCheckCircle } from 'react-icons/fi';
 import { useFarmerFormStore } from '../store/farmerForm.store.js';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const SuccessPage = () => {
   const { resetForm, continueAnswering } = useFarmerFormStore();
   const navigate = useNavigate();
+  const location = useLocation();
+  const toast = useToast();
+  
+  // Flag to store in sessionStorage to indicate form completion
+  const FORM_COMPLETION_KEY = 'hvc_form_completed';
+
+  // On mount, mark the form as completed in session storage
+  useEffect(() => {
+    // Set completion flag
+    sessionStorage.setItem(FORM_COMPLETION_KEY, 'true');
+    
+    // Block back button behavior
+    const blockBackNavigation = (e) => {
+      // Cancel the default navigation behavior
+      e.preventDefault();
+    };
+
+    window.history.pushState(null, "", window.location.pathname);
+    window.addEventListener('popstate', blockBackNavigation);
+
+    return () => {
+      window.removeEventListener('popstate', blockBackNavigation);
+    };
+  }, [toast]);
+  
+  // Detect if user tries to access this page directly
+  useLayoutEffect(() => {
+    // Check if we got here from the form submission
+    const directAccess = !location.state?.fromSubmission;
+    
+    // If direct access and not from form submission, redirect to start
+    if (directAccess) {
+      navigate('/hvc/form/istcns', { replace: true });
+    }
+  }, [location, navigate]);
 
   const handleNewForm = () => {
+    // Clear completion flag before navigating
+    sessionStorage.removeItem(FORM_COMPLETION_KEY);
     resetForm();
     navigate('/hvc/form/istcns');
   };
 
   const handleContinueAnswering = () => {
+    // Clear completion flag before navigating
+    sessionStorage.removeItem(FORM_COMPLETION_KEY);
     continueAnswering();
     navigate('/hvc/form/a_fi');
   };

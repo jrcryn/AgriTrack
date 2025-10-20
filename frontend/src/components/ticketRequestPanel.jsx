@@ -30,7 +30,9 @@ const TicketRequestPanel = ({
   isPendingPage,
   isScheduledPage,
   isOngoingPage,
-  isDeclinedPage
+  isDeclinedPage,
+
+  selectedTicketsSetter
 }) => {
   const toast = useToast();
   const queryClient = useQueryClient();
@@ -540,6 +542,7 @@ const TicketRequestPanel = ({
               weekEnd: '',
               tickets: []
             })
+            selectedTicketsSetter([]);
           }} size="md">
             Close
           </Button>
