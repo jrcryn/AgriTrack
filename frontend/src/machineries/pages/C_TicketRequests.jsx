@@ -22,7 +22,10 @@ import {
   TableContainer,
   Select,
   useDisclosure,
-  Checkbox
+  Checkbox,
+  useToast, // Add import for toast
+  Badge, // Add import for badge
+  Tooltip
 } from '@chakra-ui/react';
 import { FiSearch, FiInbox } from 'react-icons/fi';
 import { LuLogs } from "react-icons/lu";
@@ -34,6 +37,8 @@ import TicketRequestPanel from '../../components/ticketRequestPanel.jsx';
 
 const TicketRequests = () => {
   const [searchQuery, setSearchQuery] = useState('');
+  const toast = useToast(); // Initialize toast
+  const MAX_SELECTIONS = 5; // Set maximum number of ticket selections
 
   const [pendingPage, setPendingPage] = useState(1);
   const [ongoingPage, setOngoingPage] = useState(1);
@@ -75,10 +80,30 @@ const TicketRequests = () => {
   console.log(selectedTickets);
 
   const handleSelectTickets = (ticket) => {
-    setSelectedTickets(prev =>
-      prev.includes(ticket) ? prev.filter(t => t !== ticket) : [...prev, ticket]
-    );
+    setSelectedTickets(prev => {
+      // If ticket is already selected, remove it
+      if (prev.includes(ticket)) {
+        return prev.filter(t => t !== ticket);
+      }
+      
+      // If adding would exceed the limit, show toast and don't add
+      if (prev.length >= MAX_SELECTIONS) {
+        toast({
+          title: "Selection limit reached",
+          description: `You can only select up to ${MAX_SELECTIONS} tickets at once.`,
+          status: "warning",
+          duration: 3000,
+          isClosable: true,
+        });
+        return prev;
+      }
+      
+      // Otherwise, add the ticket
+      return [...prev, ticket];
+    });
   };
+
+  const [isPendingPage, setIsPendingPage] = useState(true);
 
   const pendingTickets = pendingTicketRequests?.data?.relevantTickets || [];
   const pendingTotalPages = pendingTicketRequests?.data?.totalPages || 1;
@@ -190,7 +215,7 @@ const TicketRequests = () => {
 
       {pageType === 'pending' && (
         <>
-        {/* Archived DOcument Section */}
+        {/* Archived Document Section */}
         <Box mb={8}>
           <Flex justify="space-between" align="center" mb={4} bg={'orange.50'} p={3} borderRadius="md" borderLeftWidth="4px" borderLeftColor={'orange.500'}>
             <Heading as="h2" size="md" display="flex" alignItems="center">
@@ -199,10 +224,13 @@ const TicketRequests = () => {
             {selectedTickets.length > 0 && (
               <Button
                 colorScheme='orange'
-                onClick={onOpen}
+                onClick={() => {
+                  onOpen()
+                  setIsPendingPage(true);
+                }}
                 size={"sm"}
               >
-                Manage Selected Tickets
+                Manage Selected Tickets ({selectedTickets.length})
               </Button>
             )}
           </Flex>
@@ -217,13 +245,32 @@ const TicketRequests = () => {
                 <Table variant="simple" size="md">
                   <Thead bg="gray.50">
                     <Tr>
-                      <Th></Th>
+                      <Th>
+                        <Tooltip 
+                          label={`Select up to ${MAX_SELECTIONS} tickets`}
+                          placement="top"
+                          hasArrow
+                        >
+                          Select
+                        </Tooltip>
+                      </Th>
                       <Th>Reference #</Th>
                       <Th>Requestor Farmer</Th>
                       <Th>Farm Location</Th>
                       <Th>Requested Machine</Th>
                       <Th>Estimated Area</Th>
                       <Th>Date Requested</Th>
+                      <Th
+                        position={{ base: 'static', md: 'sticky' }}
+                        right={0}
+                        bg="gray.50"
+                        zIndex={{ base: 0, md: 1 }}
+                        textAlign="center"
+                        width="120px"
+                      >
+                        <Box display={{ base: 'none', md: 'block' }}>Scroll →</Box>
+                        <Box display={{ base: 'block', md: 'none' }}>Actions</Box>
+                      </Th>
                     </Tr>
                   </Thead>
                   <Tbody>
@@ -236,6 +283,7 @@ const TicketRequests = () => {
                             <Checkbox
                               isChecked={selectedTickets.includes(ticket)}
                               onChange={() => handleSelectTickets(ticket)}
+                              isDisabled={!selectedTickets.includes(ticket) && selectedTickets.length >= MAX_SELECTIONS}
                             />
                           </Td>
                           <Td fontWeight={'semibold'}>{ticket.refNumber || '—'}</Td>
@@ -244,6 +292,26 @@ const TicketRequests = () => {
                           <Td>{ticket?.requestedMachineType?.equipmentType || '-'}</Td>
                           <Td>{ticket?.estimatedArea || '-'}</Td>
                           <Td>{date}</Td>
+                          <Td
+                            isNumeric
+                            position={{ base: 'static', md: 'sticky' }}
+                            right={0}
+                            zIndex={1}
+                            bg="white"
+                          >
+                            <Button
+                              size="xs"
+                              colorScheme='orange'
+                              leftIcon={<FaEye />}
+                              onClick={() => {
+                                onOpen();
+                                setSelectedTickets([ticket]);
+                                setIsPendingPage(false);
+                              }}
+                            >
+                              Details
+                            </Button>
+                          </Td>
                         </Tr>
                       );
                     })}
@@ -343,7 +411,7 @@ const TicketRequests = () => {
                             bg="white"
                           >
                             <Button
-                              size="sm"
+                              size="xs"
                               colorScheme='green'
                               leftIcon={<FaEye />}
                             >
@@ -606,7 +674,7 @@ const TicketRequests = () => {
         isOpen={isOpen}
         onClose={onClose}
         selectedTickets={selectedTickets}
-        isPendingPage={true}
+        isPendingPage={isPendingPage}
         isDeclinedPage={false}
         isScheduledPage={false}
         isOngoingPage={false}

@@ -210,11 +210,30 @@ const TicketRequestPanel = ({
     });
   };
 
+  const [size, setSize] = useState('');
+
+  useEffect(() => {
+    if (isPendingPage || isScheduledPage || isOngoingPage || isDeclinedPage) {
+      setSize('6xl');
+    } else {
+      setSize('2xl');
+    }
+  }, [isPendingPage, isScheduledPage, isOngoingPage, isDeclinedPage]);
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="6xl" closeOnOverlayClick={false} scrollBehavior="inside">
+    <Modal isOpen={isOpen} onClose={onClose} size={size} closeOnOverlayClick={false} scrollBehavior="inside" isCentered>
       <ModalOverlay />
       <ModalContent borderRadius="md" overflow="hidden">
         {/* Header styling based on page context */}
+
+        { !isPendingPage && !isScheduledPage && !isOngoingPage && !isDeclinedPage && (
+          <ModalHeader bg="yellow.50" borderBottomWidth="1px" borderColor="gray.200" display="flex" alignItems="center">
+            <GiFarmTractor style={{ marginRight: 12, color: '#eab308' }} />
+            Ticket Request Detail
+          </ModalHeader>
+        )}
+        
+
         {isPendingPage && (
           <ModalHeader bg="yellow.50" borderBottomWidth="1px" borderColor="gray.200" display="flex" alignItems="center">
             <GiFarmTractor style={{ marginRight: 12, color: '#eab308' }} />

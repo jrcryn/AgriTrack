@@ -1264,7 +1264,7 @@ export const getPendingTicketRequests = async (req, res) => {
         pipeline.push({
             $facet: {
                 paginatedResults: [
-                    { $sort: { dateRequested: -1 } },
+                    { $sort: { dateRequested: 1 } },
                     { $skip: skip },
                     { $limit: limit }
                 ],
