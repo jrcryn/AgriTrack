@@ -17,7 +17,9 @@ import {
     getScheduledTicketRequests,
     getDeclinedTicketRequests,
     getOperatorsList,
-    getMachineryUnitsForDropDown
+    getMachineryUnitsForDropDown,
+    archiveTicketRequest,
+    declineTicketRequest
 } from '../controller/machineries/adminDashboard.controller.js';
 
 import { generateMachineryExcelReport } from '../controller/machineries/genReports.controller.js';
@@ -45,6 +47,9 @@ router.get('/get-scheduled-ticket-requests', getScheduledTicketRequests);
 router.get('/get-declined-ticket-requests', getDeclinedTicketRequests);
 router.get('/get-operators-list', getOperatorsList);
 router.get('/get-machinery-units-for-dropdown', getMachineryUnitsForDropDown);
+
+router.post('/archive-ticket-request', archiveTicketRequest);
+router.post('/decline-ticket-requests', declineTicketRequest);
 
 router.post('/create-weekly-schedule', createWeeklySchedule); //working
 router.post('/remove-from-schedule/:ticketRequestId', removeTicketRequestFromSchedule); //working

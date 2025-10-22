@@ -1,314 +1,6 @@
-export const createMachineriesUnit = async (req, res) => {
-    const { unit_name, remarks, barangay_allocations } = req.body;
-
-    if (!unit_name  || !barangay_allocations) {
-        return res.status(400).json({ message: "Please provide all the required fields." });
-    };
-
-
-    const existingUnit = await global.machineriesModels.MachineriesUnit.findOne({ unit_name });
-    if (existingUnit) {
-        return res.status(400).json({ message: "Machinery unit already exists." });
-    };
-
-
-    try {
-        const newMachineriesUnit = await global.machineriesModels.MachineriesUnit.create({
-            unit_name,
-            remarks,
-            barangay_allocations
-        });
-        return res.status(200).json({ 
-            message: "Machinery unit added successfully.",
-            data: newMachineriesUnit
-         });
-    } catch (error) {
-        console.error("Error adding machinery unit:", error);
-        return res.status(500).json({ message: "Error adding machinery unit." });
-    }
-};
-
-export const addMachineryUnits = async (req, res) => { //solely for adding units to barangay
-    const { machineryId, barangay, functionalUnits = 0, nonFunctionalUnits = 0 } = req.body;
-
-    // Validate required fields
-    if (!machineryId || !barangay) {
-        return res.status(400).json({ message: "Machinery ID and barangay are required." });
-    }
-
-    // Validate unit counts
-    if (isNaN(functionalUnits) || functionalUnits < 0 || isNaN(nonFunctionalUnits) || nonFunctionalUnits < 0) {
-        return res.status(400).json({ message: "Unit counts must be non-negative numbers." });
-    }
-
-    // Ensure at least one type of unit is being added
-    if (functionalUnits === 0 && nonFunctionalUnits === 0) {
-        return res.status(400).json({ message: "At least one functional or non-functional unit must be added." });
-    }
-
-    try {
-        // Find the machinery unit by ID
-        const machinery = await global.machineriesModels.MachineriesUnit.findById(machineryId);
-        
-        if (!machinery) {
-            return res.status(404).json({ message: "Machinery unit not found." });
-        }
-
-        // Check if barangay already exists in allocations
-        const existingAllocationIndex = machinery.barangay_allocations.findIndex(
-            allocation => allocation.barangay === barangay
-        );
-        
-        if (existingAllocationIndex !== -1) {
-            // Update existing allocation
-            machinery.barangay_allocations[existingAllocationIndex].functional_units += functionalUnits;
-            machinery.barangay_allocations[existingAllocationIndex].non_functional_units += nonFunctionalUnits;
-        } else {
-            // Create new allocation
-            machinery.barangay_allocations.push({
-                barangay,
-                functional_units: functionalUnits,
-                non_functional_units: nonFunctionalUnits
-            });
-        }
-
-        // Save the updated machinery
-        await machinery.save();
-
-        return res.status(200).json({
-            message: `Successfully added ${functionalUnits} functional and ${nonFunctionalUnits} non-functional units to ${barangay}.`,
-            data: machinery
-        });
-    } catch (error) {
-        console.error("Error adding machinery units:", error);
-        return res.status(500).json({
-            message: "Error adding machinery units.", 
-            error: error.message
-        });
-    }
-};
-
-export const deleteMachinery = async (req, res) => { //pang delete ng machine talaga
-    const { machineryId } = req.body;
-    if (!machineryId) {
-        return res.status(400).json({ message: "Machinery ID is required." });
-    }
-    try {
-        const deletedMachinery = await global.machineriesModels.MachineriesUnit.findByIdAndDelete(machineryId);
-        if (!deletedMachinery) {
-            return res.status(404).json({ message: "Machinery unit not found." });
-        }
-        return res.status(200).json({
-            message: "Machinery has been permanently deleted.",
-            data: deletedMachinery
-        });
-    } catch (error) {
-        console.error("Error deleting machinery unit:", error);
-        return res.status(500).json({ message: "Error deleting machinery unit." });
-    }
-};
-
-// export const updateMachineryUnit = async (req, res) => { //update for name and remarks lang
-//     const { machineryId, unit_name, remarks } = req.body;
-
-//     if (!machineryId) {
-//         return res.status(400).json({ message: "Please provide all the required fields." });
-//     }
-    
-//     const findMachinery = await global.machineriesModels.MachineriesUnit.findById(machineryId);
-//     if (!findMachinery) {
-//         return res.status(404).json({ message: "Machinery unit not found." });
-//     }
-
-//     try {
-//         const updatedMachinery = await global.machineriesModels.MachineriesUnit.findByIdAndUpdate(
-//             machineryId,
-//             { unit_name, remarks },
-//             { new: true } // Return the updated document
-//         );
-//         return res.status(200).json({
-//             message: "Machinery unit updated successfully.",
-//             data: updatedMachinery
-//         });
-//     } catch (error) {
-//         console.error("Error updating machinery unit:", error);
-//         return res.status(500).json({ message: "Error updating machinery unit." });
-//     }
-// };
-
-export const deleteMachineryUnits = async (req, res) => {
-    const { machineryId, barangay, unitType, unitCount } = req.body;
-
-    // Validate required fields
-    if (!machineryId || !barangay || !unitType || !unitCount) {
-        return res.status(400).json({ message: "Please provide all required fields: machineryId, barangay, unitType, and unitCount." });
-    }
-
-    // Validate unit type
-    if (unitType !== 'functional_units' && unitType !== 'non_functional_units') {
-        return res.status(400).json({ message: "Unit type must be either 'functional_units' or 'non_functional_units'." });
-    }
-
-    // Validate unit count
-    if (isNaN(unitCount) || unitCount <= 0) {
-        return res.status(400).json({ message: "Unit count must be a positive number." });
-    }
-
-    try {
-        // Find the machinery unit by ID
-        const machinery = await global.machineriesModels.MachineriesUnit.findById(machineryId);
-        
-        if (!machinery) {
-            return res.status(404).json({ message: "Machinery unit not found." });
-        }
-
-        // Find the barangay allocation
-        const allocationIndex = machinery.barangay_allocations.findIndex(
-            allocation => allocation.barangay === barangay
-        );
-        
-        if (allocationIndex === -1) {
-            return res.status(404).json({ message: `Barangay '${barangay}' not found in machinery allocations.` });
-        }
-
-        // Check if there are enough units to delete
-        const allocation = machinery.barangay_allocations[allocationIndex];
-        if (!allocation[unitType] || allocation[unitType] < unitCount) {
-            return res.status(400).json({ 
-                message: `Not enough ${unitType === 'functional_units' ? 'functional' : 'non-functional'} units to delete in ${barangay}.` 
-            });
-        }
-
-        // Update the allocation by subtracting the units
-        machinery.barangay_allocations[allocationIndex][unitType] -= unitCount;
-        
-        // If both functional and non-functional units become zero, remove the entire allocation
-        const updatedAllocation = machinery.barangay_allocations[allocationIndex];
-        if ((updatedAllocation.functional_units || 0) <= 0 && (updatedAllocation.non_functional_units || 0) <= 0) {
-            machinery.barangay_allocations.splice(allocationIndex, 1);
-        }
-
-        // Save the updated machinery
-        await machinery.save();
-
-        return res.status(200).json({
-            message: `Successfully deleted ${unitCount} ${unitType === 'functional_units' ? 'functional' : 'non-functional'} units from ${barangay}.`,
-            data: machinery
-        });
-    } catch (error) {
-        console.error("Error deleting machinery units:", error);
-        return res.status(500).json({
-            message: "Error deleting machinery units.", 
-            error: error.message
-        });
-    }
-};
-
-export const getMachineriesUnits = async (req, res) => {
-    try {
-        const machineryUnits = await global.machineriesModels.MachineriesUnit.find().lean();
-        res.json(machineryUnits);
-    } catch (error) {
-        console.error("Error fetching machinery units:", error);
-        res.status(500).json({ message: "Error fetching machinery units.", error: error.message });
-    }
-};
-
-
-export const transferMachineriesUnit = async (req, res) => {
-    const {machineryId, transferFrom, transferTo, unitCount, unitType} = req.body;
-
-    if (!machineryId || !transferFrom || !transferTo || !unitCount || !unitType) {
-        return res.status(400).json({message: "Please provide all the required data."});
-    };
-
-    const findMachinery = await global.machineriesModels.MachineriesUnit.findById(machineryId);
-    if (!findMachinery) {
-        return res.status(404).json({message: "Machinery unit not found."});
-    }
-    
-    // Validate unitType
-    if (unitType !== 'functional_units' && unitType !== 'non_functional_units') {
-        return res.status(400).json({message: "Unit type must be a functional unit or non functional unit'."});
-    }
-
-    // Validate unitCount
-    if (isNaN(unitCount) || unitCount <= 0) {
-        return res.status(400).json({message: "Unit count must be a positive number."});
-    }
-
-    try {
-        // Find the machinery unit by ID
-        const machinery = await global.machineriesModels.MachineriesUnit.findById(machineryId);
-        
-        if (!machinery) {
-            return res.status(404).json({message: "Machinery unit not found."});
-        }
-
-        // Find source barangay in allocations
-        const sourceIndex = machinery.barangay_allocations.findIndex(
-            allocation => allocation.barangay === transferFrom
-        );
-        
-        if (sourceIndex === -1) {
-            return res.status(404).json({message: `Source barangay '${transferFrom}' not found in machinery allocations.`});
-        }
-
-        // Check if source has enough units to transfer
-        if (machinery.barangay_allocations[sourceIndex][unitType] < unitCount) {
-            return res.status(400).json({
-                message: `Not enough ${unitType === 'functional_units' ? 'functional' : 'non-functional'} units available in ${transferFrom}.`
-            });
-        }
-
-        // Find destination barangay in allocations
-        let destIndex = machinery.barangay_allocations.findIndex(
-            allocation => allocation.barangay === transferTo
-        );
-        
-        // If destination barangay doesn't exist, add it
-        if (destIndex === -1) {
-            machinery.barangay_allocations.push({
-                barangay: transferTo,
-                total_units: 0,
-                functional_units: 0,
-                non_functional_units: 0
-            });
-            destIndex = machinery.barangay_allocations.length - 1;
-        }
-
-        // Update source barangay allocation
-        machinery.barangay_allocations[sourceIndex][unitType] -= unitCount;
-        machinery.barangay_allocations[sourceIndex].total_units -= unitCount;
-
-        // Update destination barangay allocation
-        machinery.barangay_allocations[destIndex][unitType] += unitCount;
-        machinery.barangay_allocations[destIndex].total_units += unitCount;
-
-        // Save the updated machinery
-        await machinery.save();
-
-        return res.status(200).json({
-            message: `Successfully transferred ${unitCount} ${unitType === 'functional_units' ? 'functional' : 'non-functional'} units from ${transferFrom} to ${transferTo}.`,
-            data: machinery
-        });
-    } catch (error) {
-        console.error("Error transferring machinery units:", error);
-        return res.status(500).json({
-            message: "Error transferring machinery units.", 
-            error: error.message
-        });
-    }
-};
-
-
-
-
-//process controllers
-
 // Helper: atomic daily counter via Counter collection to generate unique TR-YYYYMMDD-#### refs
 const getNextCounterSeq = async (counterId) => {
-    const doc = await global.machineriesModels.Counter.findOneAndUpdate(
+    const doc = await global.machineriesModels.TRCounter.findOneAndUpdate(
         { _id: counterId },
         { $inc: { seq: 1 } },
         { new: true, upsert: true }
@@ -316,6 +8,16 @@ const getNextCounterSeq = async (counterId) => {
     return doc.seq;
 };
 
+const getNextScheduleCounterSeq = async (counterId) => {
+    const doc = await global.machineriesModels.SCounter.findOneAndUpdate(
+        { _id: counterId },
+        { $inc: { seq: 1 } },
+        { new: true, upsert: true }
+    );
+    return doc.seq;
+};
+
+//PROCESS CONTROLLERS
 export const createTicketRequestForm = async (req, res) => {
     const {
         requestorFarmer,
@@ -385,6 +87,172 @@ export const createTicketRequestForm = async (req, res) => {
         return res.status(500).json({ success: false, message: "Error submitting ticket request.", error: error.message });
     }
 };
+
+export const declineTicketRequest = async (req, res) => {
+    const { employeeId, tickets, reason } = req.body;
+
+    if (!employeeId || !Array.isArray(tickets) || tickets.length === 0) {
+        return res.status(400).json({
+            success: false,
+            message: "Please provide all of the required fields."
+        });
+    }
+
+    try {
+        const employee = await global.globalModels.EmployeeAccount.findById(employeeId).lean();
+        if (!employee) {
+            return res.status(404).json({ success: false, message: "We cannot find your account. If this error persists please contact IT." });
+        }
+
+        const ticketIds = tickets.map(t => t._id);
+
+        const foundTickets = await global.machineriesModels.TicketRequest.find(
+            { _id: { $in: ticketIds } },
+            { _id: 1 }
+        );
+
+        if (foundTickets.length !== ticketIds.length) {
+            return res.status(404).json({ success: false, message: "One or more tickets not found. All operations aborted." });
+        }
+
+        // First check if ANY ticket is referenced in a schedule (do this outside the loop)
+        const scheduleRef = await global.machineriesModels.WeeklySchedule.findOne({
+            'ticketRequests.ticketRequestId': { $in: ticketIds }
+        });
+
+        if (scheduleRef) {
+            return res.status(400).json({
+                success: false,
+                message: "Cannot decline a ticket that is still referenced in a weekly schedule."
+            });
+        }
+
+        const updateOperations = [];
+
+        for (const ticket of tickets) {
+            updateOperations.push(
+                global.machineriesModels.TicketRequest.findOneAndUpdate(
+                {_id: ticket._id },
+                {
+                    status: 'Declined',
+                    declinedBy: {
+                        employeeId: employee._id,
+                        last_name: employee.last_name,
+                        middle_name: employee.middle_name,
+                        suffix: employee.suffix,
+                        email: employee.email,
+                        phone: employee.phone
+                    },
+                    declineReason: reason
+                }
+            ));
+        }
+
+        await Promise.all(updateOperations);
+
+        return res.status(200).json({ success: true, message: "Selected tickets has been declined successfully." });
+
+    } catch (error) {
+        console.error("Error declining ticket requests:", error);
+        return res.status(500).json({ success: false, message: "Error declining ticket requests.", error: error.message });
+    }
+};
+
+export const archiveTicketRequest = async (req, res) => {
+    const { ticketRequestId, employeeId } = req.body;
+
+    if (!ticketRequestId || !employeeId) {
+        return res.status(400).json({ 
+            success: false, 
+            message: "Please provide the ticket request ID and employee ID." 
+        });
+    }
+
+    try {
+        const ticket = await global.machineriesModels.TicketRequest.findById(ticketRequestId);
+        if (!ticket) {
+            return res.status(404).json({ success: false, message: "Ticket request not found." });
+        }
+
+        if (ticket.scheduleId || ['Scheduled', 'Ongoing'].includes(ticket.status)) {
+            return res.status(400).json({
+                success: false,
+                message: "Cannot archive a ticket that is Scheduled or Ongoing, or already assigned to a schedule."
+            });
+        }
+
+        const employee = await global.globalModels.EmployeeAccount.findById(employeeId).lean();
+        if (!employee) {
+            return res.status(404).json({ success: false, message: "We cannot find your account. If this error persists please contact IT." });
+        }
+
+        // Defensive check in weekly schedules (supports both shapes stored historically)
+        const scheduleRef = await global.machineriesModels.WeeklySchedule.findOne({
+            $or: [
+                { 'ticketRequests.ticketRequestId': { $in: [ticketRequestId] } }
+            ]
+        }).lean();
+
+        if (scheduleRef) {
+            return res.status(400).json({
+                success: false,
+                message: "Cannot archive a ticket that is still referenced in a weekly schedule."
+            });
+        }
+
+        const archiveTicketRequest = await global.machineriesModels.TicketRequest.create(
+            {
+                requestorFarmer: {
+                    requestorFarmerId: ticket.requestorFarmer.requestorFarmerId,
+                    farmerId: ticket.requestorFarmer.farmerId,
+                    surname: ticket.requestorFarmer.surname,
+                    first_name: ticket.requestorFarmer.first_name,
+                    middle_name: ticket.requestorFarmer.middle_name,
+                    suffix: ticket.requestorFarmer.suffix,
+                },
+                requestedMachineType: {
+                    requestedMachineTypeId: ticket.requestedMachineType.requestedMachineTypeId,
+                    ownerName: ticket.requestedMachineType.ownerName,
+                    ownerType: ticket.requestedMachineType.ownerType,
+                    equipmentType: ticket.requestedMachineType.equipmentType,
+                    ratedCapacity: ticket.requestedMachineType.ratedCapacity
+                },
+                
+                refNumber: ticket.refNumber,
+                barangay: ticket.barangay,
+                estimatedArea: ticket.estimatedArea,
+                dateRequested: ticket.dateRequested,
+
+                declinedBy: { 
+                    employeeId: ticket.declinedBy.employeeId,
+                    last_name: ticket.declinedBy.last_name,
+                    middle_name: ticket.declinedBy.middle_name,
+                    suffix: ticket.declinedBy.suffix,
+                    email: ticket.declinedBy.email,
+                    phone: ticket.declinedBy.phone
+                },
+
+                archivedBy: {
+                    employeeId: employee._id,
+                    first_name: employee.first_name,
+                    last_name: employee.last_name,
+                    middle_name: employee.middle_name,
+                    suffix: employee.suffix,
+                    email: employee.email,
+                    phone: employee.phone
+                },
+            }
+        );
+
+        await global.machineriesModels.TicketRequest.findByIdAndDelete(ticketRequestId);
+        
+        return res.status(200).json({ success: true, message: "Ticket request archived successfully.", data: archiveTicketRequest });
+
+    } catch (error) {
+        console.error("Error archiving ticket request:", error);
+        return res.status(500).json({ success: false, message: "Error archiving ticket request.", error: error.message });
+    }
+};  
 
 export const createMachineriesType = async (req, res) => {
     const { ownerName, ownerType, equipmentType, ratedCapacity } = req.body;
@@ -655,13 +523,24 @@ export const createWeeklySchedule = async (req, res) => {
         });
         
         if (foundTickets.length !== ticketIds.length) {
-            return res.status(404).json({ success: false, message: "One or more tickets not found." });
+            return res.status(404).json({ success: false, message: "One or more tickets not found. All operations aborted." });
         }
 
-        // Create new weekly schedule
+        // Build schedule ref number SC-YYYYMMDD-####
+        const now = new Date();
+        const yyyy = now.getFullYear();
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        const dd = String(now.getDate()).padStart(2, '0');
+        const datePart = `${yyyy}${mm}${dd}`;
+        const sSeq = await getNextScheduleCounterSeq(`SC-${datePart}`);
+        const scheduleRefNumber = `SC-${datePart}-${String(sSeq).padStart(4, '0')}`;
+
+        // Create new weekly schedule (status aligned to schema: Planned/In Progress/Completed)
         const newSchedule = await global.machineriesModels.WeeklySchedule.create({
             weekStart: startDate,
             weekEnd: endDate,
+            refNumber: scheduleRefNumber,
+            status: 'Planned'
         });
 
         // Update each ticket with its assigned date and schedule reference
@@ -673,7 +552,7 @@ export const createWeeklySchedule = async (req, res) => {
             
             if (isNaN(assignedDate.getTime()) || assignedDate < startDate || assignedDate > endDate) {
                 await global.machineriesModels.WeeklySchedule.findByIdAndDelete(newSchedule._id);
-                return res.status(400).json({ success: false, message: `Invalid assigned date for ticket ${ticket.ticketId}. Date must be within the week range. All operations aborted.`});
+                return res.status(400).json({ success: false, message: `Invalid assigned date for ticket ${ticket.refNumber}. Date must be within the week range. All operations aborted.`});
             }
 
             const operatorCheck = await global.globalModels.EmployeeAccount.findById(ticket.assignedOperatorId);
@@ -688,11 +567,11 @@ export const createWeeklySchedule = async (req, res) => {
                 return res.status(404).json({ success: false, message: `Machine unit not found.` });
             };
 
-            //validate if a tciket already belongs to another schedule
+            // validate if a ticket already belongs to another schedule
             const checkExistingSchedule = await global.machineriesModels.TicketRequest.findById(ticket.ticketId);
             if (checkExistingSchedule.scheduleId) {
                 await global.machineriesModels.WeeklySchedule.findByIdAndDelete(newSchedule._id);
-                return res.status(400).json({ success: false, message: `Ticket ${ticket.ticketId} is already assigned to another schedule. All operations aborted.` });
+                return res.status(400).json({ success: false, message: `Ticket ${ticket.refNumber} is already assigned to another schedule. All operations aborted.` });
             }
 
             // Build nested assignment details per schema
@@ -721,7 +600,7 @@ export const createWeeklySchedule = async (req, res) => {
                 status: 'Scheduled'
             };
 
-            const updateData1 = {
+            const updateScheduleData = {
                 $push: {
                     ticketRequests: {
                         ticketRequestId: ticket.ticketId,
@@ -736,23 +615,15 @@ export const createWeeklySchedule = async (req, res) => {
                     updateData,
                     { new: true }
                 ),
-                global.machineriesModels.WeeklySchedule.findOneAndUpdate(
+                // FIX: use findByIdAndUpdate instead of passing _id directly as filter
+                global.machineriesModels.WeeklySchedule.findByIdAndUpdate(
                     newSchedule._id,
-                    updateData1,
+                    updateScheduleData,
                     { new: true }
                 )
             );
         }
 
-        updateOperations.push(
-            global.machineriesModels.WeeklySchedule.findOneAndUpdate(
-                newSchedule._id,
-                { status: 'Scheduled' },
-                { new: true }
-            )
-        );
-        
-        // Execute all updates in parallel
         const updatedTickets = await Promise.all(updateOperations);
 
         return res.status(201).json({ success: true, message: "Weekly schedule created successfully.",
@@ -1040,7 +911,7 @@ export const moveTicketRequestToASchedule = async (req, res) => {
     }
 };
 
-//fetch controllers
+//FETCH CONTROLLERS
 export const formGetAvailableMachineryTypes = async (req, res) => {
     try {
         const filter = {status: "Available"}
@@ -1189,19 +1060,32 @@ export const getMachineryUnits = async (req, res) => {
 
 export const getMachineryUnitsForDropDown = async (req, res) => {
     try {
+        const { machineryTypeId } = req.query;
+
         const projection = {
             _id: 1,
             plateNumber: 1,
         };
-        const units = await global.machineriesModels.MachineriesUnit.find({status: "Available"}, projection).populate({path: 'machineryTypeId', select: 'equipmentType ownerName'});
-        return res.status(200).json({success: true,message: "Machinery units for dropdown retrieved successfully.",data: units });
+
+        const filter = { status: "Available" };
+        if (machineryTypeId) {
+            filter.machineryTypeId = machineryTypeId; // mongoose will cast string to ObjectId
+        }
+
+        const units = await global.machineriesModels.MachineriesUnit
+            .find(filter, projection)
+            .populate({ path: 'machineryTypeId', select: 'equipmentType ownerName' });
+
+        return res.status(200).json({
+            success: true,
+            message: "Machinery units for dropdown retrieved successfully.",
+            data: units
+        });
     } catch (error) {
         console.error("Error fetching machinery units for dropdown:", error);
         return res.status(500).json({ success: false, message: "Error fetching machinery units for dropdown.", error: error.message });
     }
 };
-
-
 
 // Helper to build $match for free-text and numeric search (adds estimatedArea equality when a term is numeric)
 const buildTicketSearchMatch = (searchQuery) => {
@@ -1243,7 +1127,6 @@ const buildTicketSearchMatch = (searchQuery) => {
 
     return { $and: andClauses };
 };
-
 
 export const getPendingTicketRequests = async (req, res) => {
     const { searchQuery } = req.query;

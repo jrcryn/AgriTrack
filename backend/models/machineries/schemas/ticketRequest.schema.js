@@ -32,6 +32,18 @@ export const ticketRequestSchema = new mongoose.Schema({
     dateRequested: {type: Date, required: true},
     status: { type: String, enum: ['Pending', 'Scheduled', 'Ongoing' ,'Declined'] },
 
+    declinedBy: {
+        employeeId: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee_Account', required: true },
+        first_name: String,
+        last_name: String,
+        middle_name: String,
+        suffix: String,
+        email: String,
+        phone: String
+    },
+
+    declineReason: { type: String },
+
     // to be filled in when a schedule is created
     scheduleId: {
         type: mongoose.Schema.Types.ObjectId,

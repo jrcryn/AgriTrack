@@ -142,9 +142,6 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
     const { data: operatorsList = [], isLoading: isLoadingOperatorsList, error: operatorsListError } =
         useOperatorsListQuery(role);
 
-    const { data: machineryUnitsForDropDown = [], isLoading: isLoadingMachineryUnitsForDropDown, error: machineryUnitsForDropDownError } = 
-        useMachineryUnitsForDropDownQuery(role);
-
     // Action flags
     const [isCreatingMachineryType, setIsCreatingMachineryType] = useState(false);
     const [isUpdatingMachineryType, setIsUpdatingMachineryType] = useState(false);
@@ -155,13 +152,16 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
     const [isRemovingFromSchedule, setIsRemovingFromSchedule] = useState(false);
     const [isMovingToSchedule, setIsMovingToSchedule] = useState(false);
     const [isSubmittingTicketRequest, setIsSubmittingTicketRequest] = useState(false);
-
+    const [isArchivingTicketRequest, setIsArchivingTicketRequest] = useState(false);
+    const [isDecliningTicketRequests, setIsDecliningTicketRequests] = useState(false); 
     // Actions
     const createMachineryType = async (data) => {
         setIsCreatingMachineryType(true);
         try {
             const res = await axios.post(`${API_URL}/api/machineries/create-machinery-type`, data);
             return res.data;
+        } catch (error) {
+            throw error;
         } finally {
             setIsCreatingMachineryType(false);
         }
@@ -172,6 +172,8 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         try {
             const res = await axios.put(`${API_URL}/api/machineries/update-machinery-type`, data);
             return res.data;
+        } catch (error) {
+            throw error;
         } finally {
             setIsUpdatingMachineryType(false);
         }
@@ -182,6 +184,8 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         try {
             const res = await axios.post(`${API_URL}/api/machineries/create-machinery-unit`, data);
             return res.data;
+        } catch (error) {
+            throw error;
         } finally {
             setIsCreatingMachineryUnit(false);
         }
@@ -193,6 +197,8 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
             // Route is POST in backend for update
             const res = await axios.post(`${API_URL}/api/machineries/update-machinery-unit`, data);
             return res.data;
+        } catch (error) {
+            throw error;
         } finally {
             setIsUpdatingMachineryUnit(false);
         }
@@ -206,6 +212,8 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
                 responseType: 'blob',
             });
             return res.data;
+        } catch (error) {
+            throw error;
         } finally {
             setIsGeneratingReport(false);
         }
@@ -216,6 +224,8 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         try {
             const res = await axios.post(`${API_URL}/api/machineries/create-weekly-schedule`, data);
             return res.data;
+        } catch (error) {
+            throw error;
         } finally {
             setIsCreatingWeeklySchedule(false);
         }
@@ -226,6 +236,8 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         try {
             const res = await axios.post(`${API_URL}/api/machineries/remove-from-schedule/${ticketRequestId}`);
             return res.data;
+        } catch (error) {
+            throw error;
         } finally {
             setIsRemovingFromSchedule(false);
         }
@@ -236,6 +248,8 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         try {
             const res = await axios.post(`${API_URL}/api/machineries/move-to-schedule`, data);
             return res.data;
+        } catch (error) {
+            throw error;
         } finally {
             setIsMovingToSchedule(false);
         }
@@ -246,8 +260,47 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         try {
             const res = await axios.post(`${API_URL}/api/machineries/submit-ticket-request`, data);
             return res.data;
+        } catch (error) {
+            throw error;
         } finally {
             setIsSubmittingTicketRequest(false);
+        }
+    };
+
+    const archiveTicketRequest = async (data) => {
+        setIsArchivingTicketRequest(true);
+        try {
+            const res = await axios.post(
+                `${API_URL}/api/machineries/archive-ticket-request`, data);
+            return res.data;
+        } catch (error) {
+            throw error;
+        } finally {
+            setIsArchivingTicketRequest(false);
+        }
+    };
+
+    const declineTicketRequests = async (data) => {
+        setIsDecliningTicketRequests(true);
+        try {
+            const res = await axios.post(`${API_URL}/api/machineries/decline-ticket-requests`, data);
+            return res.data;
+        } catch (error) {
+            throw error;
+        } finally {
+            setIsDecliningTicketRequests(false);
+        }
+    };
+
+    // Fetch units for dropdown filtered by machineryTypeId (new)
+    const getMachineryUnitsForDropDownByType = async (machineryTypeId) => {
+        try {
+            const res = await axios.get(`${API_URL}/api/machineries/get-machinery-units-for-dropdown`, {
+                params: { machineryTypeId }
+            });
+            return res.data;
+        } catch (error) {
+            throw error;
         }
     };
 
@@ -261,7 +314,6 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         declinedTicketRequests,
         availableMachineryTypes,
         operatorsList,
-        machineryUnitsForDropDown,
 
         // actions
         createMachineryType,
@@ -273,6 +325,9 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         removeFromSchedule,
         moveToSchedule,
         submitTicketRequest,
+        archiveTicketRequest,
+        declineTicketRequests, 
+        getMachineryUnitsForDropDownByType,
 
         // loading states (queries)
         isLoadingMachineryTypes,
@@ -283,7 +338,6 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         isLoadingDeclinedTicketRequests,
         isLoadingAvailableMachineryTypes,
         isLoadingOperatorsList,
-        isLoadingMachineryUnitsForDropDown,
 
         // action flags
         isCreatingMachineryType,
@@ -295,6 +349,8 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         isRemovingFromSchedule,
         isMovingToSchedule,
         isSubmittingTicketRequest,
+        isArchivingTicketRequest,
+        isDecliningTicketRequests, // added
 
         // error states
         machineryTypesError,
@@ -305,6 +361,5 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         declinedTicketRequestsError,
         availableMachineryTypesError,
         operatorsListError,
-        machineryUnitsForDropDownError,
     };
 };

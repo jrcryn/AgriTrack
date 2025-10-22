@@ -6,7 +6,9 @@ import { ticketRequestSchema } from "./schemas/ticketRequest.schema.js"
 import { WeeklyScheduleSchema } from "./schemas/weeklySchedule.schema.js";
 import { tripTicketSchema } from "./schemas/tripTicket.schema.js";
 import { FormStatus } from "./schemas/formStatus.js";
-import { CounterSchema } from "./schemas/counter.schema.js";
+import { trCounterSchema } from "./schemas/trCounter.schema.js";
+import { sCounterSchema } from "./schemas/sCounter.schema.js";
+import { ArchivedTicketRequestSchema } from "./schemas/archivedTickets.schema.js";
 
 export const initializeMachineriesModels = () => {
     const db = getMachineriesDB();
@@ -18,6 +20,8 @@ export const initializeMachineriesModels = () => {
         WeeklySchedule: db.model("Weekly_Schedule", WeeklyScheduleSchema),
         TripTicket: db.model("Trip_Ticket", tripTicketSchema),
         FormStatus: db.model('FormStatus', FormStatus),
-        Counter: db.model('Counter', CounterSchema)
+        TRCounter: db.model('trCounter', trCounterSchema),
+        SCounter: db.model('sCounter', sCounterSchema),
+        ArchivedTicketRequest: db.model('Archived_Ticket_Request', ArchivedTicketRequestSchema)
     }
 };

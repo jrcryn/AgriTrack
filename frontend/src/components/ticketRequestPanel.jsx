@@ -37,7 +37,7 @@ const TicketRequestPanel = ({
   const toast = useToast();
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
-  const [activeTab, setActiveTab] = useState(0);
+  const [size, setSize] = useState('');
 
   // Schedule creation state
   const [scheduleData, setScheduleData] = useState({
@@ -46,13 +46,8 @@ const TicketRequestPanel = ({
     tickets: []
   });
 
-  console.log(scheduleData)
 
   const {
-    machineryUnitsForDropDown,
-    isLoadingMachineryUnitsForDropDown,
-    machineryUnitsForDropDownError,
-    
     operatorsList,
     isLoadingOperatorsList,
     operatorsListError,
@@ -67,7 +62,14 @@ const TicketRequestPanel = ({
     isRemovingFromSchedule,
     
     moveToSchedule,
-    isMovingToSchedule
+    isMovingToSchedule,
+
+    // new action
+    getMachineryUnitsForDropDownByType,
+
+    // added decline actions
+    declineTicketRequests,
+    isDecliningTicketRequests
   } = useAdminDashboard();
 
   // Initialize tickets for scheduling
@@ -199,6 +201,60 @@ const TicketRequestPanel = ({
     }
   };
 
+  // Decline state
+  const [declineReason, setDeclineReason] = useState('');
+
+  const handleDeclineTickets = async () => {
+    if (!selectedTickets?.length) {
+      toast({
+        title: "No tickets selected",
+        description: "Select at least one ticket to decline.",
+        status: "warning",
+        duration: 4000,
+        isClosable: true
+      });
+      return;
+    }
+    if (!declineReason.trim()) {
+      toast({
+        title: "Missing reason",
+        description: "Provide a reason for declining the selected tickets.",
+        status: "warning",
+        duration: 4000,
+        isClosable: true
+      });
+      return;
+    }
+    try {
+      await declineTicketRequests({
+        tickets: selectedTickets,
+        reason: declineReason.trim(),
+        employeeId: user?.id
+      });
+      toast({
+        title: "Success",
+        description: `${selectedTickets.length} ticket(s) declined successfully.`,
+        status: "success",
+        duration: 5000,
+        isClosable: true
+      });
+      setDeclineReason('');
+      onClose();
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['pendingTicketRequests'] }),
+        queryClient.invalidateQueries({ queryKey: ['declinedTicketRequests'] })
+      ]);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error?.response?.data?.message || "Failed to decline selected tickets.",
+        status: "error",
+        duration: 5000,
+        isClosable: true
+      });
+    }
+  };
+
   // Format date for display
   const formatDate = (dateString) => {
     if (!dateString) return 'Not assigned';
@@ -210,8 +266,6 @@ const TicketRequestPanel = ({
     });
   };
 
-  const [size, setSize] = useState('');
-
   useEffect(() => {
     if (isPendingPage || isScheduledPage || isOngoingPage || isDeclinedPage) {
       setSize('6xl');
@@ -219,6 +273,112 @@ const TicketRequestPanel = ({
       setSize('2xl');
     }
   }, [isPendingPage, isScheduledPage, isOngoingPage, isDeclinedPage]);
+
+  // Map of units per machineryTypeId
+  const [unitsByType, setUnitsByType] = useState({});
+
+  // Fetch units for each unique requestedMachineType when selection changes
+  useEffect(() => {
+    if (!isOpen || selectedTickets.length === 0) return;
+
+    const uniqueTypeIds = Array.from(
+      new Set(
+        selectedTickets
+          .map(t => t?.requestedMachineType?.requestedMachineTypeId)
+          .filter(Boolean)
+      )
+    );
+
+    uniqueTypeIds.forEach(async (typeId) => {
+      if (unitsByType[typeId]) return;
+      try {
+        const res = await getMachineryUnitsForDropDownByType(typeId);
+        setUnitsByType(prev => ({ ...prev, [typeId]: res?.data || [] }));
+      } catch (e) {
+        // optional: handle error per type
+        // console.error('Failed to load units for type', typeId, e);
+      }
+    });
+  }, [selectedTickets, isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Reusable Ticket Details section
+  const ticketDetailsSection = (
+    <Box>
+      {selectedTickets.length > 0 ? (
+        <VStack spacing={3} align="stretch">
+          {selectedTickets.map((ticket, index) => (
+            <Box key={ticket._id}>
+              {index > 0 && <Divider my={2} borderWidth="1px" borderColor="gray.200" />}
+              
+              <Heading size="sm" mb={1} mt={2} fontSize="sm">
+                <Badge colorScheme={statusStyles[ticket.status]?.color || "gray"} mr={1}>
+                  {ticket.status}
+                </Badge>
+                Ticket #{index + 1}: {ticket.refNumber}
+              </Heading>
+              
+              <Box bg="gray.50" p={2} mb={-2} borderRadius="md">
+                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={1}>
+                  <Box>
+                    <Text fontWeight="bold" fontSize="sm" color="gray.600">Farmer</Text>
+                    <Text fontSize="sm">{`${ticket.requestorFarmer?.first_name || ''} ${ticket.requestorFarmer?.middle_name || ''} ${ticket.requestorFarmer?.surname || ''}`}</Text>
+                  </Box>
+                  <Box>
+                    <Text fontWeight="bold" fontSize="sm" color="gray.600">Farmer ID</Text>
+                    <Text fontSize="sm">{ticket.requestorFarmer?.farmerId || 'N/A'}</Text>
+                  </Box>
+                  <Box>
+                    <Text fontWeight="bold" fontSize="sm" color="gray.600">Requested Machine</Text>
+                    <Text fontSize="sm">{ticket.requestedMachineType?.equipmentType || 'N/A'}</Text>
+                  </Box>
+                  <Box>
+                    <Text fontWeight="bold" fontSize="sm" color="gray.600">Barangay</Text>
+                    <Text fontSize="sm">{ticket.barangay}</Text>
+                  </Box>
+                  <Box>
+                    <Text fontWeight="bold" fontSize="sm" color="gray.600">Estimated Area</Text>
+                    <Text fontSize="sm">{ticket.estimatedArea} hectares</Text>
+                  </Box>
+                  <Box>
+                    <Text fontWeight="bold" fontSize="sm" color="gray.600">Date Requested</Text>
+                    <Text fontSize="sm">{formatDate(ticket.dateRequested)}</Text>
+                  </Box>
+                </SimpleGrid>
+              </Box>
+              
+              {(ticket.status === 'Scheduled' || ticket.status === 'Ongoing') && (
+                <Box bg="blue.50" p={2} borderRadius="md" mt={1}>
+                  <Heading size="sm" mb={1} fontSize="sm">Schedule Details</Heading>
+                  <SimpleGrid columns={{ base: 1, md: 2 }} spacing={1}>
+                    <Box>
+                      <Text fontWeight="bold" fontSize="sm" color="gray.600">Assigned Date</Text>
+                      <Text fontSize="sm">{formatDate(ticket.assignedDate)}</Text>
+                    </Box>
+                    <Box>
+                      <Text fontWeight="bold" fontSize="sm" color="gray.600">Operator</Text>
+                      <Text fontSize="sm">{ticket.assignedOperator ? 
+                        `${ticket.assignedOperator.first_name} ${ticket.assignedOperator.last_name}` : 
+                        'Not assigned'}</Text>
+                    </Box>
+                    <Box>
+                      <Text fontWeight="bold" fontSize="sm" color="gray.600">Machine Unit</Text>
+                      <Text fontSize="sm">{ticket.assignedMachineUnit ? 
+                        `${ticket.assignedMachineUnit.plateNumber} - ${ticket.assignedMachineUnit.engineBrand}` : 
+                        'Not assigned'}</Text>
+                    </Box>
+                  </SimpleGrid>
+                </Box>
+              )}
+            </Box>
+          ))}
+        </VStack>
+      ) : (
+        <VStack spacing={4} align="center" py={4}>
+          <Text color="gray.600" fontSize="sm">No tickets selected to view detailed information.</Text>
+        </VStack>
+      )}
+    </Box>
+  );
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size={size} closeOnOverlayClick={false} scrollBehavior="inside" isCentered>
@@ -268,288 +428,252 @@ const TicketRequestPanel = ({
               <Text color="gray.600">No tickets selected. Please select tickets to manage.</Text>
             </VStack>
           ) : (
-            <Tabs 
-              index={activeTab} 
-              onChange={setActiveTab} 
-              colorScheme={
-                isPendingPage ? "yellow" : 
-                isScheduledPage ? "blue" : 
-                isOngoingPage ? "green" : 
-                "red"
-              }
-              variant="enclosed"
-            >
-              <TabList>
-                {isPendingPage && <Tab>Create Weekly Schedule</Tab>}
-                {isScheduledPage && <Tab>Manage Schedule</Tab>}
-                <Tab>Ticket Details</Tab>
-              </TabList>
-              
-              <TabPanels>
-                {/* Tab Panel for Creating Weekly Schedule */}
-                {isPendingPage && (
-                  <TabPanel px={0} pt={4} pb={0}>
-                    <VStack spacing={4} align="stretch">
-                      <Box bg="blue.50" p={3} borderRadius="md" mb={2}>
-                        <Text fontSize="sm" color="blue.700">
-                          Create a weekly schedule for the selected ticket requests.
-                        </Text>
-                      </Box>
-                      
-                      <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-                        <FormControl isRequired>
-                          <FormLabel>Week Start</FormLabel>
-                          <Input
-                            type="date"
-                            value={scheduleData.weekStart}
-                            onChange={(e) => setScheduleData({...scheduleData, weekStart: e.target.value})}
-                          />
-                        </FormControl>
-                        
-                        <FormControl isRequired>
-                          <FormLabel>Week End</FormLabel>
-                          <Input
-                            type="date"
-                            value={scheduleData.weekEnd}
-                            onChange={(e) => setScheduleData({...scheduleData, weekEnd: e.target.value})}
-                          />
-                        </FormControl>
-                      </SimpleGrid>
-                      
-                      <Divider my={3} />
-                      
-                      <Heading size="sm">Selected Tickets</Heading>
-                      <Box overflowX="auto">
-                        <Table variant="simple" size="sm">
-                          <Thead>
-                            <Tr>
-                              <Th>Reference #</Th>
-                              <Th>Farmer</Th>
-                              <Th>Machine Type</Th>
-                              <Th>Assigned Date</Th>
-                              <Th>Operator</Th>
-                              <Th>Machine Unit</Th>
-                            </Tr>
-                          </Thead>
-                          <Tbody>
-                            {scheduleData.tickets.map((ticketData) => {
-                              const ticket = selectedTickets.find(t => t._id === ticketData.ticketId);
-                              return (
-                                <Tr key={ticketData.ticketId}>
-                                  <Td fontWeight={'semibold'}>{ticket?.refNumber}</Td>
-                                  <Td>{`${ticket?.requestorFarmer?.first_name} ${ticket?.requestorFarmer?.surname}`}</Td>
-                                  <Td>{ticket?.requestedMachineType?.equipmentType}</Td>
-                                  <Td>
-                                    <Input
-                                      type="date"
-                                      size="sm"
-                                      value={ticketData.assignedDate}
-                                      onChange={(e) => updateTicketInSchedule(
-                                        ticketData.ticketId, 
-                                        'assignedDate', 
-                                        e.target.value
-                                      )}  
-                                      min={scheduleData.weekStart || undefined}
-                                      max={scheduleData.weekEnd || undefined}
-                                    />
-                                  </Td>
-                                  <Td>
-                                    <Select
-                                      size="sm"
-                                      placeholder="Select operator"
-                                      value={ticketData.assignedOperatorId}
-                                      onChange={(e) => updateTicketInSchedule(
-                                        ticketData.ticketId,
-                                        'assignedOperatorId',
-                                        e.target.value
-                                      )}
-                                      isDisabled={isLoadingOperatorsList}
-                                    >
-                                      {operatorsList?.data?.map(op => (
-                                        <option key={op._id} value={op._id}>
-                                          {`${op.first_name} ${op.last_name}`}
-                                        </option>
-                                      ))}
-                                    </Select>
-                                  </Td>
-                                  <Td>
-                                    <Select
-                                      size="sm"
-                                      placeholder="Select machine"
-                                      value={ticketData.assignedMachineUnitId}
-                                      onChange={(e) => updateTicketInSchedule(
-                                        ticketData.ticketId,
-                                        'assignedMachineUnitId',
-                                        e.target.value
-                                      )}
-                                      isDisabled={isLoadingMachineryUnitsForDropDown}
-                                    >
-                                      {machineryUnitsForDropDown?.data?.map(unit => (
-                                        <option key={unit._id} value={unit._id}> 
-                                          {unit.plateNumber} - {unit.machineryTypeId?.equipmentType}
-                                        </option>
-                                      ))}
-                                    </Select>
-                                  </Td>
-                                </Tr>
-                              );
-                            })}
-                          </Tbody>
-                        </Table>
-                      </Box>
-                      
-                      <Flex justify="flex-end" mt={3}>
-                        <Button
-                          colorScheme="blue"
-                          leftIcon={<FaCalendarAlt />}
-                          onClick={handleCreateSchedule}
-                          isLoading={isCreatingWeeklySchedule}
-                          isDisabled={
-                            !scheduleData.weekStart || 
-                            !scheduleData.weekEnd || 
-                            scheduleData.tickets.some(t => 
-                              !t.assignedDate || 
-                              !t.assignedOperatorId || 
-                              !t.assignedMachineUnitId
-                            )
-                          }
-                        >
-                          Create Weekly Schedule
-                        </Button>
-                      </Flex>
-                    </VStack>
-                  </TabPanel>
-                )}
-                
-                {/* Tab Panel for Managing Scheduled Tickets */}
-                {isScheduledPage && (
-                  <TabPanel px={0} pt={4} pb={0}>
-                    <VStack spacing={4} align="stretch">
-                      <Box bg="blue.50" p={3} borderRadius="md" mb={2}>
-                        <Text fontSize="sm" color="blue.700">
-                          Manage scheduled tickets. You can remove tickets from the schedule.
-                        </Text>
-                      </Box>
-                      
-                      <Box overflowX="auto">
-                        <Table variant="simple" size="sm">
-                          <Thead>
-                            <Tr>
-                              <Th>Reference</Th>
-                              <Th>Farmer</Th>
-                              <Th>Machine Type</Th>
-                              <Th>Assigned Date</Th>
-                              <Th>Operator</Th>
-                              <Th>Actions</Th>
-                            </Tr>
-                          </Thead>
-                          <Tbody>
-                            {selectedTickets.map((ticket) => (
-                              <Tr key={ticket._id}>
-                                <Td>{ticket.refNumber}</Td>
-                                <Td>{`${ticket?.requestorFarmer?.first_name} ${ticket?.requestorFarmer?.surname}`}</Td>
-                                <Td>{ticket?.requestedMachineType?.equipmentType}</Td>
-                                <Td>{formatDate(ticket.assignedDate)}</Td>
-                                <Td>{`${ticket?.assignedOperator?.first_name || ''} ${ticket?.assignedOperator?.last_name || ''}`}</Td>
-                                <Td>
-                                  <Button
-                                    colorScheme="red"
-                                    size="xs"
-                                    onClick={() => handleRemoveFromSchedule(ticket._id)}
-                                    isLoading={isRemovingFromSchedule}
-                                  >
-                                    Remove
-                                  </Button>
-                                </Td>
-                              </Tr>
-                            ))}
-                          </Tbody>
-                        </Table>
-                      </Box>
-                    </VStack>
-                  </TabPanel>
-                )}
-                
-                {/* Tab Panel for Ticket Details */}
-                <TabPanel px={0} pt={2} pb={0}>
-                  {selectedTickets.length > 0 ? (
-                    <VStack spacing={3} align="stretch">
-                      {selectedTickets.map((ticket, index) => (
-                        <Box key={ticket._id}>
-                          {index > 0 && <Divider my={2} borderWidth="1px" borderColor="gray.200" />}
-                          
-                          <Heading size="sm" mb={1} mt={2} fontSize="sm">
-                            <Badge colorScheme={statusStyles[ticket.status]?.color || "gray"} mr={1}>
-                              {ticket.status}
-                            </Badge>
-                            Ticket #{index + 1}: {ticket.refNumber}
-                          </Heading>
-                          
-                          <Box bg="gray.50" p={2} mb={-2} borderRadius="md">
-                            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={1}>
-                              <Box>
-                                <Text fontWeight="bold" fontSize="sm" color="gray.600">Farmer</Text>
-                                <Text fontSize="sm">{`${ticket.requestorFarmer?.first_name || ''} ${ticket.requestorFarmer?.middle_name || ''} ${ticket.requestorFarmer?.surname || ''}`}</Text>
-                              </Box>
-                              <Box>
-                                <Text fontWeight="bold" fontSize="sm" color="gray.600">Farmer ID</Text>
-                                <Text fontSize="sm">{ticket.requestorFarmer?.farmerId || 'N/A'}</Text>
-                              </Box>
-                              <Box>
-                                <Text fontWeight="bold" fontSize="sm" color="gray.600">Requested Machine</Text>
-                                <Text fontSize="sm">{ticket.requestedMachineType?.equipmentType || 'N/A'}</Text>
-                              </Box>
-                              <Box>
-                                <Text fontWeight="bold" fontSize="sm" color="gray.600">Barangay</Text>
-                                <Text fontSize="sm">{ticket.barangay}</Text>
-                              </Box>
-                              <Box>
-                                <Text fontWeight="bold" fontSize="sm" color="gray.600">Estimated Area</Text>
-                                <Text fontSize="sm">{ticket.estimatedArea} hectares</Text>
-                              </Box>
-                              <Box>
-                                <Text fontWeight="bold" fontSize="sm" color="gray.600">Date Requested</Text>
-                                <Text fontSize="sm">{formatDate(ticket.dateRequested)}</Text>
-                              </Box>
-                            </SimpleGrid>
+            <>
+              {isPendingPage && (
+                <>
+                  <Tabs colorScheme="yellow" variant="enclosed">
+                    <TabList>
+                      <Tab>Create Weekly Schedule</Tab>
+                      <Tab>Decline Tickets</Tab>
+                      <Tab>Ticket Details</Tab>
+                    </TabList>
+                    <TabPanels>
+                      <TabPanel px={0} pt={4} pb={0}>
+                        <VStack spacing={4} align="stretch">
+                          <Box bg="blue.50" p={3} borderRadius="md" mb={2}>
+                            <Text fontSize="sm" color="blue.700">
+                              Create a weekly schedule for the selected ticket requests.
+                            </Text>
                           </Box>
                           
-                          {(ticket.status === 'Scheduled' || ticket.status === 'Ongoing') && (
-                            <>
-                              <Box bg="blue.50" p={2} borderRadius="md" mt={1}>
-                                <Heading size="sm" mb={1} fontSize="sm">Schedule Details</Heading>
-                                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={1}>
-                                  <Box>
-                                    <Text fontWeight="bold" fontSize="sm" color="gray.600">Assigned Date</Text>
-                                    <Text fontSize="sm">{formatDate(ticket.assignedDate)}</Text>
-                                  </Box>
-                                  <Box>
-                                    <Text fontWeight="bold" fontSize="sm" color="gray.600">Operator</Text>
-                                    <Text fontSize="sm">{ticket.assignedOperator ? 
-                                      `${ticket.assignedOperator.first_name} ${ticket.assignedOperator.last_name}` : 
-                                      'Not assigned'}</Text>
-                                  </Box>
-                                  <Box>
-                                    <Text fontWeight="bold" fontSize="sm" color="gray.600">Machine Unit</Text>
-                                    <Text fontSize="sm">{ticket.assignedMachineUnit ? 
-                                      `${ticket.assignedMachineUnit.plateNumber} - ${ticket.assignedMachineUnit.engineBrand}` : 
-                                      'Not assigned'}</Text>
-                                  </Box>
-                                </SimpleGrid>
-                              </Box>
-                            </>
-                          )}
+                          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+                            <FormControl isRequired>
+                              <FormLabel>Week Start</FormLabel>
+                              <Input
+                                type="date"
+                                value={scheduleData.weekStart}
+                                onChange={(e) => setScheduleData({...scheduleData, weekStart: e.target.value})}
+                              />
+                            </FormControl>
+                            
+                            <FormControl isRequired>
+                              <FormLabel>Week End</FormLabel>
+                              <Input
+                                type="date"
+                                value={scheduleData.weekEnd}
+                                onChange={(e) => setScheduleData({...scheduleData, weekEnd: e.target.value})}
+                              />
+                            </FormControl>
+                          </SimpleGrid>
+                          
+                          <Divider my={3} />
+                          
+                          <Heading size="sm">Selected Tickets</Heading>
+                          <Box overflowX="auto">
+                            <Table variant="simple" size="sm">
+                              <Thead>
+                                <Tr>
+                                  <Th>Reference #</Th>
+                                  <Th>Farmer</Th>
+                                  <Th>Machine Type</Th>
+                                  <Th>Assigned Date</Th>
+                                  <Th>Operator</Th>
+                                  <Th>Machine Unit</Th>
+                                </Tr>
+                              </Thead>
+                              <Tbody>
+                                {scheduleData.tickets.map((ticketData) => {
+                                  const ticket = selectedTickets.find(t => t._id === ticketData.ticketId);
+                                  const typeId = ticket?.requestedMachineType?.requestedMachineTypeId;
+                                  const unitsForType = (typeId && unitsByType[typeId]) ? unitsByType[typeId] : [];
+                                  return (
+                                    <Tr key={ticketData.ticketId}>
+                                      <Td fontWeight={'semibold'}>{ticket?.refNumber}</Td>
+                                      <Td>{`${ticket?.requestorFarmer?.first_name} ${ticket?.requestorFarmer?.surname}`}</Td>
+                                      <Td>{ticket?.requestedMachineType?.equipmentType}</Td>
+                                      <Td>
+                                        <Input
+                                          type="date"
+                                          size="sm"
+                                          value={ticketData.assignedDate}
+                                          onChange={(e) => updateTicketInSchedule(
+                                            ticketData.ticketId, 
+                                            'assignedDate', 
+                                            e.target.value
+                                          )}  
+                                          min={scheduleData.weekStart || undefined}
+                                          max={scheduleData.weekEnd || undefined}
+                                        />
+                                      </Td>
+                                      <Td>
+                                        <Select
+                                          size="sm"
+                                          placeholder="Select operator"
+                                          value={ticketData.assignedOperatorId}
+                                          onChange={(e) => updateTicketInSchedule(
+                                            ticketData.ticketId,
+                                            'assignedOperatorId',
+                                            e.target.value
+                                          )}
+                                          isDisabled={isLoadingOperatorsList}
+                                        >
+                                          {operatorsList?.data?.map(op => (
+                                            <option key={op._id} value={op._id}>
+                                              {`${op.first_name} ${op.last_name}`}
+                                            </option>
+                                          ))}
+                                        </Select>
+                                      </Td>
+                                      <Td>
+                                        <Select
+                                          size="sm"
+                                          placeholder="Select machine"
+                                          value={ticketData.assignedMachineUnitId}
+                                          onChange={(e) => updateTicketInSchedule(
+                                            ticketData.ticketId,
+                                            'assignedMachineUnitId',
+                                            e.target.value
+                                          )}
+                                          isDisabled={!typeId || !unitsByType[typeId]}
+                                        >
+                                          {unitsForType.map(unit => (
+                                            <option key={unit._id} value={unit._id}>
+                                              {unit.plateNumber} - {unit.machineryTypeId?.equipmentType}
+                                            </option>
+                                          ))}
+                                        </Select>
+                                      </Td>
+                                    </Tr>
+                                  );
+                                })}
+                              </Tbody>
+                            </Table>
+                          </Box>
+                          
+                          <Flex justify="flex-end" mt={3}>
+                            <Button
+                              colorScheme="blue"
+                              leftIcon={<FaCalendarAlt />}
+                              onClick={handleCreateSchedule}
+                              isLoading={isCreatingWeeklySchedule}
+                              isDisabled={
+                                !scheduleData.weekStart || 
+                                !scheduleData.weekEnd || 
+                                scheduleData.tickets.some(t => 
+                                  !t.assignedDate || 
+                                  !t.assignedOperatorId || 
+                                  !t.assignedMachineUnitId
+                                )
+                              }
+                            >
+                              Create Weekly Schedule
+                            </Button>
+                          </Flex>
+                        </VStack>
+                      </TabPanel>
+
+                      <TabPanel px={0} pt={4} pb={0}>
+                        <Box bg="red.50" p={3} borderRadius="md" mb={3} borderLeft="4px solid" borderLeftColor="red.400">
+                          <Text fontSize="sm" color="red.600">
+                            Declining will move the selected tickets to Declined. This action will notify the requester.
+                          </Text>
                         </Box>
-                      ))}
-                    </VStack>
-                  ) : (
-                    <VStack spacing={4} align="center" py={4}>
-                      <Text color="gray.600" fontSize="sm">No tickets selected to view detailed information.</Text>
-                    </VStack>
-                  )}
-                </TabPanel>
-              </TabPanels>
-            </Tabs>
+                        <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+                          <FormControl isRequired gridColumn={{ md: 'span 2' }}>
+                            <FormLabel>Reason for Decline</FormLabel>
+                            <Input
+                              placeholder="Provide a clear reason for declining"
+                              value={declineReason}
+                              onChange={(e) => setDeclineReason(e.target.value)}
+                            />
+                          </FormControl>
+                        </SimpleGrid>
+                        <Flex justify="space-between" align="center" mt={4}>
+                          <Text fontSize="sm" color="gray.600">
+                            Selected tickets: {selectedTickets.length}
+                          </Text>
+                          <Button
+                            colorScheme="red"
+                            onClick={handleDeclineTickets}
+                            isLoading={isDecliningTicketRequests}
+                            isDisabled={!declineReason.trim() || selectedTickets.length === 0}
+                          >
+                            Decline Selected Tickets
+                          </Button>
+                        </Flex>
+                      </TabPanel>
+                      
+                      <TabPanel px={0} pt={4} pb={0}>
+                        {ticketDetailsSection}
+                      </TabPanel>
+                    </TabPanels>
+                  </Tabs>
+                  <Divider my={2} />
+                </>
+              )}
+
+              {/* Scheduled Page Tabs */}
+              {isScheduledPage && (
+                <>
+                  <Tabs colorScheme="blue" variant="enclosed">
+                    <TabList>
+                      <Tab>Manage Schedule</Tab>
+                    </TabList>
+                    <TabPanels>
+                      <TabPanel px={0} pt={4} pb={0}>
+                        <VStack spacing={4} align="stretch">
+                          <Box bg="blue.50" p={3} borderRadius="md" mb={2}>
+                            <Text fontSize="sm" color="blue.700">
+                              Manage scheduled tickets. You can remove tickets from the schedule.
+                            </Text>
+                          </Box>
+                          
+                          <Box overflowX="auto">
+                            <Table variant="simple" size="sm">
+                              <Thead>
+                                <Tr>
+                                  <Th>Reference</Th>
+                                  <Th>Farmer</Th>
+                                  <Th>Machine Type</Th>
+                                  <Th>Assigned Date</Th>
+                                  <Th>Operator</Th>
+                                  <Th>Actions</Th>
+                                </Tr>
+                              </Thead>
+                              <Tbody>
+                                {selectedTickets.map((ticket) => (
+                                  <Tr key={ticket._id}>
+                                    <Td>{ticket.refNumber}</Td>
+                                    <Td>{`${ticket?.requestorFarmer?.first_name} ${ticket?.requestorFarmer?.surname}`}</Td>
+                                    <Td>{ticket?.requestedMachineType?.equipmentType}</Td>
+                                    <Td>{formatDate(ticket.assignedDate)}</Td>
+                                    <Td>{`${ticket?.assignedOperator?.first_name || ''} ${ticket?.assignedOperator?.last_name || ''}`}</Td>
+                                    <Td>
+                                      <Button
+                                        colorScheme="red"
+                                        size="xs"
+                                        onClick={() => handleRemoveFromSchedule(ticket._id)}
+                                        isLoading={isRemovingFromSchedule}
+                                      >
+                                        Remove
+                                      </Button>
+                                    </Td>
+                                  </Tr>
+                                ))}
+                              </Tbody>
+                            </Table>
+                          </Box>
+                        </VStack>
+                      </TabPanel>
+                    </TabPanels>
+                  </Tabs>
+                  <Divider my={2} />
+                </>
+              )}
+
+              {/* Ticket Details section (reused) */}
+              {!isPendingPage && ticketDetailsSection}
+            </>
           )}
         </ModalBody>
 

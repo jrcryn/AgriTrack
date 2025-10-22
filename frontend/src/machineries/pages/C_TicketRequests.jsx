@@ -221,7 +221,7 @@ const TicketRequests = () => {
             <Heading as="h2" size="md" display="flex" alignItems="center">
               <Icon as={LuLogs} mr={2} color={'orange.500'} /> PENDING TICKETS
             </Heading>
-            {selectedTickets.length > 0 && (
+            {selectedTickets.length > 1 && (
               <Button
                 colorScheme='orange'
                 onClick={() => {

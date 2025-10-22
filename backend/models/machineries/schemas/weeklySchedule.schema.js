@@ -13,6 +13,7 @@ export const WeeklyScheduleSchema = new mongoose.Schema({
     weekStart: {type: Date, required: true},
     weekEnd: {type: Date, required: true},
     ticketRequests: [tr],
+    refNumber: {type: String, required: true, unique: true},
 
     status: {type: String, enum: ['Planned', 'In Progress', 'Completed']},
 
