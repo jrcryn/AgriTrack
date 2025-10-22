@@ -95,14 +95,16 @@ const useOperatorsListQuery = () =>
         enabled: true, // Enable for all roles since we need this data in the TicketRequestPanel
     });
 
-const useMachineryUnitsForDropDownQuery = (role) =>
+const useWeeklySchedulesQuery = (page = 1, searchQuery = {}, role) =>
     useQuery({
-        queryKey: ['machineryUnitsForDropDown'],
+        queryKey: ['weeklySchedules', page, searchQuery],
         queryFn: async () => {
-            const res = await axios.get(`${API_URL}/api/machineries/get-machinery-units-for-dropdown`);
+            const res = await axios.get(`${API_URL}/api/machineries/get-weekly-schedules`, {
+                params: { page, limit: 10, ...searchQuery },
+            });
             return res.data;
         },
-        enabled: role === 'MIM',
+        enabled: role === 'MIM' || role === 'MIS',
     });
 
 // Exported store
@@ -115,6 +117,7 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         ongoingPage = 1,
         scheduledPage = 1,
         declinedPage = 1,
+        schedulesPage = 1,
     } = pages;
 
     // Queries
@@ -141,6 +144,9 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
 
     const { data: operatorsList = [], isLoading: isLoadingOperatorsList, error: operatorsListError } =
         useOperatorsListQuery(role);
+
+    const { data: weeklySchedules = [], isLoading: isLoadingWeeklySchedules, error: weeklySchedulesError } =
+        useWeeklySchedulesQuery(schedulesPage, searchQuery, role);
 
     // Action flags
     const [isCreatingMachineryType, setIsCreatingMachineryType] = useState(false);
@@ -314,6 +320,7 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         declinedTicketRequests,
         availableMachineryTypes,
         operatorsList,
+        weeklySchedules, // Add this to expose the weekly schedules
 
         // actions
         createMachineryType,
@@ -338,6 +345,7 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         isLoadingDeclinedTicketRequests,
         isLoadingAvailableMachineryTypes,
         isLoadingOperatorsList,
+        isLoadingWeeklySchedules, // Add this loading state
 
         // action flags
         isCreatingMachineryType,
@@ -361,5 +369,6 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         declinedTicketRequestsError,
         availableMachineryTypesError,
         operatorsListError,
+        weeklySchedulesError, // Add this error state
     };
 };

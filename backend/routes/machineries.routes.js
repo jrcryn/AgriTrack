@@ -19,7 +19,8 @@ import {
     getOperatorsList,
     getMachineryUnitsForDropDown,
     archiveTicketRequest,
-    declineTicketRequest
+    declineTicketRequest,
+    getWeeklySchedules
 } from '../controller/machineries/adminDashboard.controller.js';
 
 import { generateMachineryExcelReport } from '../controller/machineries/genReports.controller.js';
@@ -41,12 +42,13 @@ router.post('/create-machinery-unit', addMachineryUnit); //working
 router.post('/update-machinery-unit', updateMachineryUnit);
 router.post('/get-machinery-unit', getMachineryUnits);
 
-router.get('/get-pending-ticket-requests', getPendingTicketRequests);
+router.get('/get-pending-ticket-requests', getPendingTicketRequests); //working frontend
 router.get('/get-ongoing-ticket-requests', getOngoingTicketRequests);
 router.get('/get-scheduled-ticket-requests', getScheduledTicketRequests);
-router.get('/get-declined-ticket-requests', getDeclinedTicketRequests);
-router.get('/get-operators-list', getOperatorsList);
-router.get('/get-machinery-units-for-dropdown', getMachineryUnitsForDropDown);
+router.get('/get-declined-ticket-requests', getDeclinedTicketRequests); 
+router.get('/get-operators-list', getOperatorsList); //working frontend
+router.get('/get-machinery-units-for-dropdown', getMachineryUnitsForDropDown); //working frontend
+router.get('/get-weekly-schedules', getWeeklySchedules); 
 
 router.post('/archive-ticket-request', archiveTicketRequest);
 router.post('/decline-ticket-requests', declineTicketRequest);

@@ -380,10 +380,12 @@ const TicketRequestPanel = ({
     </Box>
   );
 
+  const minH = isPendingPage || isScheduledPage || isOngoingPage || isDeclinedPage ? '835px' : '300px';
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} size={size} closeOnOverlayClick={false} scrollBehavior="inside" isCentered>
       <ModalOverlay />
-      <ModalContent borderRadius="md" overflow="hidden">
+      <ModalContent borderRadius="md" overflow="hidden" minHeight={minH}>
         {/* Header styling based on page context */}
 
         { !isPendingPage && !isScheduledPage && !isOngoingPage && !isDeclinedPage && (
@@ -608,7 +610,7 @@ const TicketRequestPanel = ({
                       </TabPanel>
                     </TabPanels>
                   </Tabs>
-                  <Divider my={2} />
+                  
                 </>
               )}
 

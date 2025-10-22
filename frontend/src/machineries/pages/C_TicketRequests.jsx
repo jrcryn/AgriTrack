@@ -62,7 +62,11 @@ const TicketRequests = () => {
     ongoingTicketRequestsError,
     scheduledTicketRequestsError,
     declinedTicketRequestsError,
-    pendingTicketRequestsError
+    pendingTicketRequestsError,
+
+    weeklySchedules,
+    isLoadingWeeklySchedules,
+    weeklySchedulesError
   } = useAdminDashboard(
     { pendingPage, ongoingPage, scheduledPage, declinedPage },
     { searchQuery }
@@ -124,6 +128,11 @@ const TicketRequests = () => {
   const declinedTotalPages = declinedTicketRequests?.data?.totalPages || 1;
   const declinedCurrentPage = declinedTicketRequests?.data?.currentPage || 1;
   const declinedTotalItems = declinedTicketRequests?.data?.totalCount || 0;
+
+  const weeklySchedulesList = weeklySchedules?.data?.relevantSchedules || [];
+  const schedulesTotalPages = weeklySchedules?.data?.totalPages || 1;
+  const schedulesCurrentPage = weeklySchedules?.data?.currentPage || 1;
+  const schedulesTotalItems = weeklySchedules?.data?.totalCount || 0;
 
 
   const PaginationControls = ({ currentPage, setCurrentPage, totalPages, totalItems, colorScheme }) => (
@@ -362,22 +371,23 @@ const TicketRequests = () => {
             </Heading>
           </Flex>
 
-          {isLoadingScheduledTicketRequests ? (
+          {isLoadingWeeklySchedules ? (
             <Center p={10}>
               <Spinner size="lg" color={'green.500'} />
             </Center>
-          ) : scheduledTickets.length > 0 ? (
+          ) : weeklySchedulesList.length > 0 ? (
             <Box overflowX="auto">
               <TableContainer>
                 <Table variant="simple" size="md">
                   <Thead bg="gray.50">
                     <Tr>
                       <Th>Reference #</Th>
-                      <Th>Requestor Farmer</Th>
-                      <Th>Farm Location</Th>
-                      <Th>Requested Machine</Th>
-                      <Th>Estimated Area</Th>
-                      <Th>Date Requested</Th>
+                      <Th>Scheduled Tickets</Th>
+                      <Th>Date Range</Th>
+                      <Th>Dates</Th>
+                      <Th>Assigned Machine Units</Th>
+                      <Th>Assigned Operators</Th>
+                      <Th>Date Created</Th>
                       <Th
                         position={{ base: 'static', md: 'sticky' }}
                         right={0}
@@ -392,16 +402,98 @@ const TicketRequests = () => {
                     </Tr>
                   </Thead>
                   <Tbody>
-                    {scheduledTickets.map((ticket) => {
-                      const date = ticket?.dateRequested ? new Date(ticket.dateRequested).toLocaleString() : '—';
-                      const by = `${ticket?.requestorFarmer?.first_name || ''} ${ticket?.requestorFarmer?.surname || ''}`.trim() || '—';
-                      return (   
-                        <Tr key={ticket._id} fontSize="sm">
-                          <Td fontWeight={'semibold'}>{ticket.refNumber || '—'}</Td>
-                          <Td>{by || '-'}</Td>
-                          <Td>{ticket?.barangay || '-'}</Td>
-                          <Td>{ticket?.requestedMachineType?.equipmentType || '-'}</Td>
-                          <Td>{ticket?.estimatedArea || '-'}</Td>
+                    {weeklySchedulesList.map((schedule) => {
+                      const date = schedule?.createdAt ? new Date(schedule.createdAt).toLocaleString() : '—';
+                      const sDate = schedule?.weekStart ? new Date(schedule.weekStart).toLocaleDateString(
+                        'en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                        }
+                      ) : '—';
+                      const eDate = schedule?.weekEnd ? new Date(schedule.weekEnd).toLocaleDateString(
+                        'en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                        }
+                      ) : '—';
+
+                      return (
+                        <Tr key={schedule._id} fontSize="sm">
+                          <Td fontWeight={'semibold'}>{schedule.refNumber || '—'}</Td>
+
+                          <Td>
+                            {schedule.ticketRequests.length === 0 ? (
+                              <Text color="gray.500">No scheduled tickets</Text>
+                            ) : (
+                              <Flex direction="column" gap={2}>
+                                {schedule.ticketRequests.map((ticket) => (
+                                  <Flex key={ticket._id} align='center' justify="space-between" gap={2}>
+                                    <Flex direction='column'>
+                                      <Text fontWeight='medium'>{ticket.ticketDetails.refNumber}</Text>
+                                    </Flex>
+                                  </Flex>
+                                ))}
+                              </Flex>
+                            )}
+                          </Td>
+                            
+                          <Td>
+                            <Text>
+                              From <Text as="span" fontWeight="semibold">{sDate}</Text> to{" "} <br></br>
+                              <Text as="span" fontWeight="semibold">{eDate}</Text>
+                            </Text>
+                          </Td>
+
+                          <Td>
+                            {schedule.ticketRequests.length === 0 ? (
+                              <Text color="gray.500">No scheduled dates</Text>
+                            ) : (
+                              <Flex direction="column" gap={2}>
+                                {schedule.ticketRequests.map((ticket) => (
+                                  <Flex key={ticket._id} align='center' justify="space-between" gap={2}>
+                                    <Flex direction='column'>
+                                      <Text>{ticket?.ticketDetails?.assignedDate ? new Date(ticket.ticketDetails.assignedDate).toLocaleDateString() : '-'}</Text>
+                                    </Flex>
+                                  </Flex>
+                                ))}
+                              </Flex>
+                            )}
+                          </Td>
+
+                          <Td>
+                            {schedule.ticketRequests.length === 0 ? (
+                              <Text color="gray.500">No assigned machine units</Text>
+                            ) : (
+                              <Flex direction="column" gap={2}>
+                                {schedule.ticketRequests.map((ticket) => (
+                                  <Flex key={ticket._id} align='center' justify="space-between" gap={2}>
+                                    <Flex direction='column'>
+                                      <Text>{ticket?.ticketDetails?.assignedMachineUnit?.plateNumber} - {ticket?.ticketDetails?.requestedMachineType?.equipmentType}</Text>
+                                    </Flex>
+                                  </Flex>
+                                ))}
+                              </Flex>
+                            )}
+                          </Td>
+
+                          <Td>
+                            {schedule.ticketRequests.length === 0 ? (
+                              <Text color="gray.500">No assigned machine units</Text>
+                            ) : (
+                              <Flex direction="column" gap={2}>
+                                {schedule.ticketRequests.map((ticket) => (
+                                  <Flex key={ticket._id} align='center' justify="space-between" gap={2}>
+                                    <Flex direction='column'>
+                                      <Text>{ticket?.ticketDetails?.assignedOperator?.first_name} {ticket?.ticketDetails?.assignedOperator?.last_name}</Text>
+                                    </Flex>
+                                  </Flex>
+                                ))}
+                              </Flex>
+                            )}
+                          </Td>
+
                           <Td>{date}</Td>
                           <Td
                             isNumeric
