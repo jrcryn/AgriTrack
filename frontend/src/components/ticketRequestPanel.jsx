@@ -27,17 +27,23 @@ const TicketRequestPanel = ({
   isOpen,
   onClose,
   selectedTickets = [],
-  isPendingPage,
-  isScheduledPage,
-  isOngoingPage,
-  isDeclinedPage,
-
-  selectedTicketsSetter
+  selectedWeeklySchedule = null,
+  pageType, 
+  isViewingDetails,
+  selectedTicketsSetter,
+  width,
+  height,
+  setIsViewingDetails
 }) => {
   const toast = useToast();
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
-  const [size, setSize] = useState('');
+
+  // Derive boolean flags from pageType
+  const isPendingPage = pageType === 'pending';
+  const isScheduledPage = pageType === 'scheduled';
+  const isOngoingPage = pageType === 'ongoing';
+  const isDeclinedPage = pageType === 'declined';
 
   // Schedule creation state
   const [scheduleData, setScheduleData] = useState({
@@ -52,9 +58,6 @@ const TicketRequestPanel = ({
     isLoadingOperatorsList,
     operatorsListError,
     
-    submitTicketRequest,
-    isSubmittingTicketRequest,
-    
     createWeeklySchedule,
     isCreatingWeeklySchedule,
 
@@ -64,10 +67,8 @@ const TicketRequestPanel = ({
     moveToSchedule,
     isMovingToSchedule,
 
-    // new action
     getMachineryUnitsForDropDownByType,
 
-    // added decline actions
     declineTicketRequests,
     isDecliningTicketRequests
   } = useAdminDashboard();
@@ -227,7 +228,7 @@ const TicketRequestPanel = ({
     }
     try {
       await declineTicketRequests({
-        tickets: selectedTickets,
+        tickets: selectedTickets.map(t => t._id),
         reason: declineReason.trim(),
         employeeId: user?.id
       });
@@ -266,14 +267,6 @@ const TicketRequestPanel = ({
     });
   };
 
-  useEffect(() => {
-    if (isPendingPage || isScheduledPage || isOngoingPage || isDeclinedPage) {
-      setSize('6xl');
-    } else {
-      setSize('2xl');
-    }
-  }, [isPendingPage, isScheduledPage, isOngoingPage, isDeclinedPage]);
-
   // Map of units per machineryTypeId
   const [unitsByType, setUnitsByType] = useState({});
 
@@ -299,9 +292,9 @@ const TicketRequestPanel = ({
         // console.error('Failed to load units for type', typeId, e);
       }
     });
-  }, [selectedTickets, isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedTickets, isOpen]); 
 
-  // Reusable Ticket Details section
+
   const ticketDetailsSection = (
     <Box>
       {selectedTickets.length > 0 ? (
@@ -380,12 +373,10 @@ const TicketRequestPanel = ({
     </Box>
   );
 
-  const minH = isPendingPage || isScheduledPage || isOngoingPage || isDeclinedPage ? '835px' : '300px';
-
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size={size} closeOnOverlayClick={false} scrollBehavior="inside" isCentered>
+    <Modal isOpen={isOpen} onClose={onClose} size={width} closeOnOverlayClick={false} scrollBehavior="inside" isCentered>
       <ModalOverlay />
-      <ModalContent borderRadius="md" overflow="hidden" minHeight={minH}>
+      <ModalContent borderRadius="md" overflow="hidden" minHeight={height}>
         {/* Header styling based on page context */}
 
         { !isPendingPage && !isScheduledPage && !isOngoingPage && !isDeclinedPage && (
@@ -429,6 +420,8 @@ const TicketRequestPanel = ({
             <VStack spacing={4} align="center" py={6}>
               <Text color="gray.600">No tickets selected. Please select tickets to manage.</Text>
             </VStack>
+          ) : isViewingDetails ? (
+            <>{ticketDetailsSection}</>
           ) : (
             <>
               {isPendingPage && (
@@ -610,7 +603,7 @@ const TicketRequestPanel = ({
                       </TabPanel>
                     </TabPanels>
                   </Tabs>
-                  
+                  <Divider my={2} />
                 </>
               )}
 
@@ -622,59 +615,88 @@ const TicketRequestPanel = ({
                       <Tab>Manage Schedule</Tab>
                     </TabList>
                     <TabPanels>
+
                       <TabPanel px={0} pt={4} pb={0}>
-                        <VStack spacing={4} align="stretch">
-                          <Box bg="blue.50" p={3} borderRadius="md" mb={2}>
-                            <Text fontSize="sm" color="blue.700">
-                              Manage scheduled tickets. You can remove tickets from the schedule.
-                            </Text>
+                        {/* <Box>
+                          <Box bg="blue.50" p={4} borderRadius="md" mb={4}>
+                            <Heading size="sm" mb={3}>Weekly Schedule Details</Heading>
+                            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={3}>
+                              <Box>
+                                <Text fontWeight="bold" fontSize="sm" color="gray.600">Reference Number</Text>
+                                <Text fontSize="md">{selectedWeeklySchedule?.refNumber || 'N/A'}</Text>
+                              </Box>
+                              <Box>
+                                <Text fontWeight="bold" fontSize="sm" color="gray.600">Status</Text>
+                                <Badge colorScheme={selectedWeeklySchedule?.status === "Planned" ? "blue" : 
+                                                selectedWeeklySchedule?.status === "In Progress" ? "orange" : "green"}>
+                                  {selectedWeeklySchedule?.status}
+                                </Badge>
+                              </Box>
+                              <Box>
+                                <Text fontWeight="bold" fontSize="sm" color="gray.600">Week Start</Text>
+                                <Text fontSize="md">{formatDate(selectedWeeklySchedule?.weekStart)}</Text>
+                              </Box>
+                              <Box>
+                                <Text fontWeight="bold" fontSize="sm" color="gray.600">Week End</Text>
+                                <Text fontSize="md">{formatDate(selectedWeeklySchedule?.weekEnd)}</Text>
+                              </Box>
+                              {selectedWeeklySchedule.createdAt && (
+                                <Box>
+                                  <Text fontWeight="bold" fontSize="sm" color="gray.600">Created On</Text>
+                                  <Text fontSize="md">{formatDate(selectedWeeklySchedule?.createdAt)}</Text>
+                                </Box>
+                              )}
+                              <Box>
+                                <Text fontWeight="bold" fontSize="sm" color="gray.600">Total Scheduled Tickets</Text>
+                                <Text fontSize="md">{selectedWeeklySchedule?.ticketRequests.length}</Text>
+                              </Box>
+                            </SimpleGrid>
                           </Box>
                           
-                          <Box overflowX="auto">
-                            <Table variant="simple" size="sm">
-                              <Thead>
-                                <Tr>
-                                  <Th>Reference</Th>
-                                  <Th>Farmer</Th>
-                                  <Th>Machine Type</Th>
-                                  <Th>Assigned Date</Th>
-                                  <Th>Operator</Th>
-                                  <Th>Actions</Th>
-                                </Tr>
-                              </Thead>
-                              <Tbody>
-                                {selectedTickets.map((ticket) => (
-                                  <Tr key={ticket._id}>
-                                    <Td>{ticket.refNumber}</Td>
-                                    <Td>{`${ticket?.requestorFarmer?.first_name} ${ticket?.requestorFarmer?.surname}`}</Td>
-                                    <Td>{ticket?.requestedMachineType?.equipmentType}</Td>
-                                    <Td>{formatDate(ticket.assignedDate)}</Td>
-                                    <Td>{`${ticket?.assignedOperator?.first_name || ''} ${ticket?.assignedOperator?.last_name || ''}`}</Td>
-                                    <Td>
-                                      <Button
-                                        colorScheme="red"
-                                        size="xs"
-                                        onClick={() => handleRemoveFromSchedule(ticket._id)}
-                                        isLoading={isRemovingFromSchedule}
-                                      >
-                                        Remove
-                                      </Button>
-                                    </Td>
+                          <Divider my={3} />
+                          
+                          <Heading size="sm" mb={3}>Scheduled Tickets</Heading>
+                          <Table variant="simple" size="sm">
+                            <Thead bg="gray.50">
+                              <Tr>
+                                <Th>Ref #</Th>
+                                <Th>Farmer</Th>
+                                <Th>Barangay</Th>
+                                <Th>Machine</Th>
+                                <Th>Area (ha)</Th>
+                                <Th>Assigned Date</Th>
+                                <Th>Machine Unit</Th>
+                                <Th>Operator</Th>
+                              </Tr>
+                            </Thead>
+                            <Tbody>
+                              {selectedWeeklySchedule.ticketRequests.map(tr => {
+                                const ticket = tr.ticketDetails;
+                                if (!ticket) return null;
+                                
+                                return (
+                                  <Tr key={tr.ticketRequestId}>
+                                    <Td fontWeight="semibold">{ticket.refNumber}</Td>
+                                    <Td>{`${ticket.requestorFarmer?.first_name} ${ticket.requestorFarmer?.surname}`}</Td>
+                                    <Td>{ticket.barangay}</Td>
+                                    <Td>{ticket.requestedMachineType?.equipmentType}</Td>
+                                    <Td isNumeric>{ticket.estimatedArea}</Td>
+                                    <Td>{formatDate(tr.assignedDate)}</Td>
+                                    <Td>{ticket.assignedMachineUnit?.plateNumber}</Td>
+                                    <Td>{`${ticket.assignedOperator?.first_name} ${ticket.assignedOperator?.last_name}`}</Td>
                                   </Tr>
-                                ))}
-                              </Tbody>
-                            </Table>
-                          </Box>
-                        </VStack>
+                                );
+                              })}
+                            </Tbody>
+                          </Table>
+                        </Box> */}
                       </TabPanel>
+
                     </TabPanels>
                   </Tabs>
                   <Divider my={2} />
                 </>
               )}
-
-              {/* Ticket Details section (reused) */}
-              {!isPendingPage && ticketDetailsSection}
             </>
           )}
         </ModalBody>
@@ -687,6 +709,7 @@ const TicketRequestPanel = ({
               weekEnd: '',
               tickets: []
             })
+
             selectedTicketsSetter([]);
           }} size="md">
             Close

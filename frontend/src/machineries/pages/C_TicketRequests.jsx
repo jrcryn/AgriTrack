@@ -42,11 +42,11 @@ const TicketRequests = () => {
 
   const [pendingPage, setPendingPage] = useState(1);
   const [ongoingPage, setOngoingPage] = useState(1);
-  const [scheduledPage, setScheduledPage] = useState(1);
+  const [schedulesPage, setSchedulesPage] = useState(1);
   const [declinedPage, setDeclinedPage] = useState(1);
   
-
   const [pageType, setPageType] = useState('pending'); // 'pending', 'ongoing', 'scheduled', 'declined'
+  const [isViewingDetails, setIsViewingDetails] = useState(false)
 
   const {
     pendingTicketRequests,
@@ -68,19 +68,20 @@ const TicketRequests = () => {
     isLoadingWeeklySchedules,
     weeklySchedulesError
   } = useAdminDashboard(
-    { pendingPage, ongoingPage, scheduledPage, declinedPage },
+    { pendingPage, ongoingPage, schedulesPage, declinedPage },
     { searchQuery }
   );
 
   useEffect(() => {
     setPendingPage(1);
-    setScheduledPage(1);
+    setSchedulesPage(1);
     setDeclinedPage(1);
     setOngoingPage(1);
   }, [ searchQuery ]);
 
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [selectedTickets, setSelectedTickets] = useState([]);
+  const [selectedWeeklySchedule, setSelectedWeeklySchedule] = useState(null);
   console.log(selectedTickets);
 
   const handleSelectTickets = (ticket) => {
@@ -107,8 +108,6 @@ const TicketRequests = () => {
     });
   };
 
-  const [isPendingPage, setIsPendingPage] = useState(true);
-
   const pendingTickets = pendingTicketRequests?.data?.relevantTickets || [];
   const pendingTotalPages = pendingTicketRequests?.data?.totalPages || 1;
   const pendingCurrentPage = pendingTicketRequests?.data?.currentPage || 1;
@@ -133,6 +132,9 @@ const TicketRequests = () => {
   const schedulesTotalPages = weeklySchedules?.data?.totalPages || 1;
   const schedulesCurrentPage = weeklySchedules?.data?.currentPage || 1;
   const schedulesTotalItems = weeklySchedules?.data?.totalCount || 0;
+
+  const width = (!isViewingDetails) ? '6xl' : '2xl';
+  const height = (!isViewingDetails) ? '835px' : '300px';
 
 
   const PaginationControls = ({ currentPage, setCurrentPage, totalPages, totalItems, colorScheme }) => (
@@ -234,8 +236,8 @@ const TicketRequests = () => {
               <Button
                 colorScheme='orange'
                 onClick={() => {
-                  onOpen()
-                  setIsPendingPage(true);
+                  onOpen();
+                  setIsViewingDetails(false);
                 }}
                 size={"sm"}
               >
@@ -315,7 +317,7 @@ const TicketRequests = () => {
                               onClick={() => {
                                 onOpen();
                                 setSelectedTickets([ticket]);
-                                setIsPendingPage(false);
+                                setIsViewingDetails(true);
                               }}
                             >
                               Details
@@ -423,7 +425,7 @@ const TicketRequests = () => {
                         <Tr key={schedule._id} fontSize="sm">
                           <Td fontWeight={'semibold'}>{schedule.refNumber || '—'}</Td>
 
-                          <Td>
+                          <Td> 
                             {schedule.ticketRequests.length === 0 ? (
                               <Text color="gray.500">No scheduled tickets</Text>
                             ) : (
@@ -506,6 +508,10 @@ const TicketRequests = () => {
                               size="xs"
                               colorScheme='green'
                               leftIcon={<FaEye />}
+                              onClick={() => {
+                                onOpen()
+                                setIsViewingDetails(false)
+                              }}
                             >
                               Details
                             </Button>
@@ -539,10 +545,10 @@ const TicketRequests = () => {
 
           <Flex justifyContent="space-between" alignItems="center" mt={4}>
             <PaginationControls
-              currentPage={scheduledCurrentPage}
-              setCurrentPage={setScheduledPage}
-              totalPages={scheduledTotalPages}
-              totalItems={scheduledTotalItems}
+              currentPage={schedulesCurrentPage}
+              setCurrentPage={setSchedulesPage}
+              totalPages={schedulesTotalPages}
+              totalItems={schedulesTotalItems}
               colorScheme='green'
             />
           </Flex>
@@ -764,13 +770,19 @@ const TicketRequests = () => {
 
       <TicketRequestPanel
         isOpen={isOpen}
-        onClose={onClose}
+        onClose={() => {
+          onClose();
+          setSelectedTickets([]);
+          setSelectedWeeklySchedule(null);
+        }}
         selectedTickets={selectedTickets}
-        isPendingPage={isPendingPage}
-        isDeclinedPage={false}
-        isScheduledPage={false}
-        isOngoingPage={false}
+        selectedWeeklySchedule={selectedWeeklySchedule}
+        pageType={pageType}
         selectedTicketsSetter={setSelectedTickets}
+        selectedWeeklyScheduleSetter={setSelectedWeeklySchedule}
+        width={width}
+        height={height}
+        isViewingDetails={isViewingDetails}
       />
     </Box>
   );

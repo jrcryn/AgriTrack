@@ -654,7 +654,7 @@ export const removeTicketRequestFromSchedule = async (req, res) => {
         }
 
         if (!ticketRequest.scheduleId) {
-            return res.status(400).json({ success: false, message: "This ticket request is not assigned to any schedule."});
+            return res.status(400).json({ success: false, message: "This ticket request already is not assigned to any schedule."});
         }
 
         const scheduleId = ticketRequest.scheduleId;
@@ -1069,10 +1069,10 @@ export const getMachineryUnitsForDropDown = async (req, res) => {
 
         const filter = { status: "Available" };
         if (machineryTypeId) {
-            filter.machineryTypeId = machineryTypeId; // mongoose will cast string to ObjectId
+            filter.machineryTypeId = machineryTypeId; // add the machinery type filter if provided
         }
 
-        const units = await global.machineriesModels.MachineriesUnit
+        const units = await global.machineriesModels.MachineriesUnit //get all machineries units with the provided machinery type id
             .find(filter, projection)
             .populate({ path: 'machineryTypeId', select: 'equipmentType ownerName' });
 
