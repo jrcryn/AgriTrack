@@ -421,7 +421,6 @@ const DocumentLifeCycleModal = ({
             <VStack spacing={4} align="stretch">
               {isPendingPage && (
                 <>
-                {/* Action Tabs */}
                 <Tabs colorScheme="yellow" variant="enclosed">
                   <TabList>
                     <Tab>Forward</Tab>

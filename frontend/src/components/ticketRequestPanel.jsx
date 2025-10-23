@@ -9,6 +9,7 @@ import {
 
 import { CalendarIcon, CheckCircleIcon, CloseIcon, InfoIcon, WarningIcon } from "@chakra-ui/icons";
 import { FaCog, FaTools, FaUser, FaCalendarAlt } from "react-icons/fa";
+import { IoIosRemoveCircle } from "react-icons/io";
 import { GiFarmTractor } from "react-icons/gi";
 
 import { useAdminDashboard } from '../machineries/store/adminDashboard.store.js';
@@ -153,7 +154,7 @@ const TicketRequestPanel = ({
       // Invalidate queries to refresh data
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['pendingTicketRequests'] }),
-        queryClient.invalidateQueries({ queryKey: ['scheduledTicketRequests'] })
+        queryClient.invalidateQueries({ queryKey: ['weeklySchedules'] })
       ]);
       
     } catch (error) {
@@ -324,7 +325,7 @@ const TicketRequestPanel = ({
                     <Text fontSize="sm">{ticket.requestedMachineType?.equipmentType || 'N/A'}</Text>
                   </Box>
                   <Box>
-                    <Text fontWeight="bold" fontSize="sm" color="gray.600">Barangay</Text>
+                    <Text fontWeight="bold" fontSize="sm" color="gray.600">Farm Location</Text>
                     <Text fontSize="sm">{ticket.barangay}</Text>
                   </Box>
                   <Box>
@@ -375,7 +376,7 @@ const TicketRequestPanel = ({
   return (
     <Modal isOpen={isOpen} onClose={onClose} size={width} closeOnOverlayClick={false} scrollBehavior="inside" isCentered>
       <ModalOverlay />
-      <ModalContent borderRadius="md" overflow="hidden" minHeight={height}>
+      <ModalContent borderRadius="md" overflow="hidden" minHeight={{ base: 'auto', md: height }}>
         {/* Header styling based on page context */}
 
         {isViewingDetails && (
@@ -606,7 +607,7 @@ const TicketRequestPanel = ({
                     <TabPanels>
 
                       <TabPanel px={0} pt={4} pb={0}>
-                        <Box>
+                        <Box overflowX="auto">
                           <Box bg="blue.50" p={4} borderRadius="md" mb={4}>
                             <Heading size="sm" mb={3}>Weekly Schedule Details</Heading>
                             <SimpleGrid columns={{ base: 1, md: 2 }} spacing={3}>
@@ -644,6 +645,7 @@ const TicketRequestPanel = ({
                           <Divider my={3} />
                           
                           <Heading size="sm" mb={3}>Scheduled Tickets</Heading>
+                          <Box overflowX="auto">
                           <Table variant="simple" size="sm">
                             <Thead bg="gray.50">
                               <Tr>
@@ -655,6 +657,7 @@ const TicketRequestPanel = ({
                                 <Th>Assigned Date</Th>
                                 <Th>Machine Unit</Th>
                                 <Th>Operator</Th>
+                                <Th></Th>
                               </Tr>
                             </Thead>
                             <Tbody>
@@ -672,11 +675,21 @@ const TicketRequestPanel = ({
                                     <Td>{formatDate(tr.assignedDate)}</Td>
                                     <Td>{ticket.assignedMachineUnit?.plateNumber}</Td>
                                     <Td>{`${ticket.assignedOperator?.first_name} ${ticket.assignedOperator?.last_name}`}</Td>
+                                    <Td>
+                                      <Button
+                                        colorScheme='red'
+                                        size={'xs'}
+                                        mr={5}
+                                      >
+                                        <IoIosRemoveCircle  />
+                                      </Button>
+                                    </Td>
                                   </Tr>
                                 );
                               })}
                             </Tbody>
                           </Table>
+                          </Box>
                         </Box>
                         {selectedWeeklySchedule?.ticketRequests?.length === 4 && (
                           <Flex justify="flex-end" mt={7}>

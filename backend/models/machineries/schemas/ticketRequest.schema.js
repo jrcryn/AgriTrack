@@ -33,7 +33,7 @@ export const ticketRequestSchema = new mongoose.Schema({
     status: { type: String, enum: ['Pending', 'Scheduled', 'Ongoing' ,'Declined'] },
 
     declinedBy: {
-        employeeId: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee_Account', required: true },
+        employeeId: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee_Account' },
         first_name: String,
         last_name: String,
         middle_name: String,
