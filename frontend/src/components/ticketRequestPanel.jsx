@@ -378,7 +378,7 @@ const TicketRequestPanel = ({
       <ModalContent borderRadius="md" overflow="hidden" minHeight={height}>
         {/* Header styling based on page context */}
 
-        { !isPendingPage && !isScheduledPage && !isOngoingPage && !isDeclinedPage && (
+        {isViewingDetails && (
           <ModalHeader bg="yellow.50" borderBottomWidth="1px" borderColor="gray.200" display="flex" alignItems="center">
             <GiFarmTractor style={{ marginRight: 12, color: '#eab308' }} />
             Ticket Request Detail
@@ -386,28 +386,28 @@ const TicketRequestPanel = ({
         )}
         
 
-        {isPendingPage && (
+        {isPendingPage && !isViewingDetails && (
           <ModalHeader bg="yellow.50" borderBottomWidth="1px" borderColor="gray.200" display="flex" alignItems="center">
             <GiFarmTractor style={{ marginRight: 12, color: '#eab308' }} />
             Manage Pending Ticket Requests
           </ModalHeader>
         )}
         
-        {isScheduledPage && (
+        {isScheduledPage && !isViewingDetails && (
           <ModalHeader bg="blue.50" borderBottomWidth="1px" borderColor="gray.200" display="flex" alignItems="center">
             <FaCalendarAlt style={{ marginRight: 12, color: '#3182ce' }} />
             Manage Scheduled Tickets
           </ModalHeader>
         )}
         
-        {isOngoingPage && (
+        {isOngoingPage && !isViewingDetails && (
           <ModalHeader bg="green.50" borderBottomWidth="1px" borderColor="gray.200" display="flex" alignItems="center">
             <FaTools style={{ marginRight: 12, color: '#38a169' }} />
             Ongoing Ticket Details
           </ModalHeader>
         )}
         
-        {isDeclinedPage && (
+        {isDeclinedPage && !isViewingDetails && (
           <ModalHeader bg="red.50" borderBottomWidth="1px" borderColor="gray.200" display="flex" alignItems="center">
             <CloseIcon style={{ marginRight: 12, color: '#e53e3e' }} />
             Declined Ticket Details
@@ -415,17 +415,11 @@ const TicketRequestPanel = ({
         )}
 
         <ModalBody py={6}>
-          {(selectedTickets.length === 0 && !selectedWeeklySchedule) ? (
-            <VStack spacing={4} align="center" py={6}>
-              <Text color="gray.600">No ticket/s or weekly schedule selected. Please select ticket/s or weekly schedule to manage.</Text>
-            </VStack>
-          ) : isViewingDetails ? (
+          {isViewingDetails ? (
             <>{ticketDetailsSection}</>
-          ) : (
+          ) : isPendingPage && selectedTickets.length > 0 ? (
             <>
-              {isPendingPage && (
-                <>
-                  <Tabs colorScheme="yellow" variant="enclosed">
+              <Tabs colorScheme="yellow" variant="enclosed">
                     <TabList>
                       <Tab>Create Weekly Schedule</Tab>
                       <Tab>Decline Tickets</Tab>
@@ -601,18 +595,13 @@ const TicketRequestPanel = ({
                         {ticketDetailsSection}
                       </TabPanel>
                     </TabPanels>
-                  </Tabs>
-                </>
-              )}
-
-              {/* Scheduled Page Tabs */}
-              {isScheduledPage && (
-                <>
-                  <Tabs colorScheme="blue" variant="enclosed">
+              </Tabs>
+            </>
+          ) : isScheduledPage && selectedWeeklySchedule ? (
+            <>
+              <Tabs colorScheme="blue" variant="enclosed">
                     <TabList>
                       <Tab>Manage Schedule</Tab>
-                      <Tab>Add Ticket</Tab>
-                      <Tab>Remove Ticket</Tab>
                     </TabList>
                     <TabPanels>
 
@@ -689,21 +678,25 @@ const TicketRequestPanel = ({
                             </Tbody>
                           </Table>
                         </Box>
-
-                        <Flex justify="flex-end" mt={7}>
-                          <Button
-                            colorScheme="blue"
-                          >
-                            Add Ticket Request/s
-                          </Button>
-                        </Flex>
+                        {selectedWeeklySchedule?.ticketRequests?.length === 4 && (
+                          <Flex justify="flex-end" mt={7}>
+                            <Button
+                              colorScheme="blue"
+                            >
+                              Add Ticket Request/s
+                            </Button>
+                          </Flex>
+                        )}
+                        
                       </TabPanel>
 
                     </TabPanels>
-                  </Tabs>
-                </>
-              )}
+              </Tabs>
             </>
+          ) : (
+            <VStack spacing={4} align="center" py={4}>
+              <Text color="gray.600" fontSize="sm">No ticket/s or weekly schedule selected to manage.</Text>
+            </VStack>
           )}
         </ModalBody>
 

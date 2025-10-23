@@ -290,11 +290,11 @@ const TicketRequests = () => {
                       const date = ticket?.dateRequested ? new Date(ticket.dateRequested).toLocaleString() : '—';
                       const by = `${ticket?.requestorFarmer?.first_name || ''} ${ticket?.requestorFarmer?.surname || ''}`.trim() || '—';
                       return (   
-                        <Tr key={ticket._id} fontSize="sm">
+                        <Tr key={ticket._id} fontSize="sm" onClick={() => handleSelectTickets(ticket)} cursor="pointer" >
                           <Td>
                             <Checkbox
                               isChecked={selectedTickets.includes(ticket)}
-                              onChange={() => handleSelectTickets(ticket)}
+                              onChange={(e) => {e.stopPropagation();  handleSelectTickets(ticket);}}
                               isDisabled={!selectedTickets.includes(ticket) && selectedTickets.length >= MAX_SELECTIONS}
                             />
                           </Td>
@@ -315,10 +315,11 @@ const TicketRequests = () => {
                               size="xs"
                               colorScheme='orange'
                               leftIcon={<FaEye />}
-                              onClick={() => {
-                                onOpen();
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 setSelectedTickets([ticket]);
                                 setIsViewingDetails(true);
+                                onOpen();
                               }}
                             >
                               Details
