@@ -11,6 +11,7 @@ import { CalendarIcon, CheckCircleIcon, CloseIcon, InfoIcon, WarningIcon } from 
 import { FaCog, FaTools, FaUser, FaCalendarAlt } from "react-icons/fa";
 import { IoIosRemoveCircle } from "react-icons/io";
 import { GiFarmTractor } from "react-icons/gi";
+import { GoAlertFill } from "react-icons/go";
 
 import { useAdminDashboard } from '../machineries/store/adminDashboard.store.js';
 import { useAuthStore } from '../auth/store/authStore.js';
@@ -34,6 +35,7 @@ const TicketRequestPanel = ({
   selectedTicketsSetter,
   width,
   height,
+  onRequestReopenSchedule
 }) => {
   const toast = useToast();
   const queryClient = useQueryClient();
@@ -72,6 +74,9 @@ const TicketRequestPanel = ({
     declineTicketRequests,
     isDecliningTicketRequests
   } = useAdminDashboard();
+
+  const [selectedTicketForRemoval, setSelectedTicketForRemoval] = useState(null);
+  const { isOpen: isOpenRemoveModal, onOpen: onOpenRemoveModal, onClose: onCloseRemoveModal } = useDisclosure();
 
   // Initialize tickets for scheduling
   useEffect(() => {
@@ -181,17 +186,27 @@ const TicketRequestPanel = ({
         duration: 5000,
         isClosable: true
       });
-      
+
+      const scheduleId = selectedWeeklySchedule?._id;
+
       // Close modal and refresh data
+      setSelectedTicketForRemoval(null);
+      onCloseRemoveModal();
       onClose();
       
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['pendingTicketRequests'] }),
-        queryClient.invalidateQueries({ queryKey: ['scheduledTicketRequests'] })
+        queryClient.invalidateQueries({ queryKey: ['weeklySchedules'] })
       ]);
+
+      // Ask parent to reopen with fresh data
+      onRequestReopenSchedule?.(scheduleId);
+      
       
     } catch (error) {
       console.error('Error removing ticket from schedule:', error);
+      setSelectedTicketForRemoval(null);
+      onCloseRemoveModal();
       toast({
         title: "Error",
         description: error.response?.data?.message || "Failed to remove ticket from schedule",
@@ -374,7 +389,8 @@ const TicketRequestPanel = ({
   );
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size={width} closeOnOverlayClick={false} scrollBehavior="inside" isCentered>
+    <>
+    <Modal isOpen={isOpen} onClose={onClose} size={width} closeOnOverlayClick={false} scrollBehavior="inside" isCentered motionPreset='none'>
       <ModalOverlay />
       <ModalContent borderRadius="md" overflow="hidden" minHeight={{ base: 'auto', md: height }}>
         {/* Header styling based on page context */}
@@ -680,6 +696,7 @@ const TicketRequestPanel = ({
                                         colorScheme='red'
                                         size={'xs'}
                                         mr={5}
+                                        onClick={() => {onOpenRemoveModal(); setSelectedTicketForRemoval(tr.ticketRequestId)}}
                                       >
                                         <IoIosRemoveCircle  />
                                       </Button>
@@ -691,7 +708,7 @@ const TicketRequestPanel = ({
                           </Table>
                           </Box>
                         </Box>
-                        {selectedWeeklySchedule?.ticketRequests?.length === 4 && (
+                        {selectedWeeklySchedule?.ticketRequests?.length < 5 && (
                           <Flex justify="flex-end" mt={7}>
                             <Button
                               colorScheme="blue"
@@ -729,6 +746,45 @@ const TicketRequestPanel = ({
         </ModalFooter>
       </ModalContent>
     </Modal>
+
+    <Modal isOpen={isOpenRemoveModal} size="xs" onClose={onCloseRemoveModal} closeOnOverlayClick={false} scrollBehavior="inside" isCentered  motionPreset="none">
+        <ModalOverlay/>
+        <ModalContent borderRadius="lg" overflow="hidden">
+          <ModalHeader
+            bg="yellow.50" 
+            borderBottomWidth="1px"
+            borderColor="gray.200"
+            py={4}
+            display="flex" 
+            alignItems="center"
+          >
+            <Icon as={GoAlertFill} mr={2} color="yellow.500" />
+            Confirm Removal
+          </ModalHeader>
+
+          <ModalFooter bg="gray.50" borderTopWidth="1px" borderColor="gray.200">
+            <Button 
+              variant="outline" 
+              mr={3} 
+              onClick={() => {setSelectedTicketForRemoval(null); onCloseRemoveModal()}}
+              size="md"
+              _hover={{ bg: "gray.100" }}
+            >
+              Cancel
+            </Button>
+            <Button 
+                colorScheme="red"
+                onClick={() => handleRemoveFromSchedule(selectedTicketForRemoval)}
+                isLoading={isRemovingFromSchedule}
+                size="md"
+                _hover={{ boxShadow: "md", bg: "red.600" }}
+            >
+              Remove
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+    </>
   );
 };
 
