@@ -154,13 +154,13 @@ const Verify2FA = () => {
             <FormControl>
               <FormLabel htmlFor="token" srOnly>Verification Code</FormLabel>
               <HStack justify="center">
-                <PinInput id="token" otp value={token} onChange={setToken}>
-                  <PinInputField boxShadow={"lg"}/>
-                  <PinInputField boxShadow={"lg"}/>
-                  <PinInputField boxShadow={"lg"}/>
-                  <PinInputField boxShadow={"lg"}/>
-                  <PinInputField boxShadow={"lg"}/>
-                  <PinInputField boxShadow={"lg"}/>
+                <PinInput id="token" otp value={token} onChange={setToken} type='number'>
+                  <PinInputField boxShadow={"lg"} inputMode='numeric' pattern="[0-9]*"/>
+                  <PinInputField boxShadow={"lg"} inputMode='numeric' pattern="[0-9]*"/>
+                  <PinInputField boxShadow={"lg"} inputMode='numeric' pattern="[0-9]*"/>
+                  <PinInputField boxShadow={"lg"} inputMode='numeric' pattern="[0-9]*"/>
+                  <PinInputField boxShadow={"lg"} inputMode='numeric' pattern="[0-9]*"/>
+                  <PinInputField boxShadow={"lg"} inputMode='numeric' pattern="[0-9]*"/>
                 </PinInput>
               </HStack>
             </FormControl>

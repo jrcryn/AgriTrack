@@ -497,7 +497,7 @@ const TicketRequests = () => {
                           <Td>{date}</Td>
                           <Td
                             isNumeric
-                            position={{ base: 'static', md: 'sticky' }}
+                            position={{ base: 'static', md: 'sticky' }} 
                             right={0}
                             zIndex={1}
                             bg="white"
