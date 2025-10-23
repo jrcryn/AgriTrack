@@ -33,7 +33,6 @@ const TicketRequestPanel = ({
   selectedTicketsSetter,
   width,
   height,
-  setIsViewingDetails
 }) => {
   const toast = useToast();
   const queryClient = useQueryClient();
@@ -44,6 +43,7 @@ const TicketRequestPanel = ({
   const isScheduledPage = pageType === 'scheduled';
   const isOngoingPage = pageType === 'ongoing';
   const isDeclinedPage = pageType === 'declined';
+  console.log(pageType)
 
   // Schedule creation state
   const [scheduleData, setScheduleData] = useState({
@@ -51,7 +51,6 @@ const TicketRequestPanel = ({
     weekEnd: '',
     tickets: []
   });
-
 
   const {
     operatorsList,
@@ -416,9 +415,9 @@ const TicketRequestPanel = ({
         )}
 
         <ModalBody py={6}>
-          {selectedTickets.length === 0 ? (
+          {(selectedTickets.length === 0 && !selectedWeeklySchedule) ? (
             <VStack spacing={4} align="center" py={6}>
-              <Text color="gray.600">No tickets selected. Please select tickets to manage.</Text>
+              <Text color="gray.600">No ticket/s or weekly schedule selected. Please select ticket/s or weekly schedule to manage.</Text>
             </VStack>
           ) : isViewingDetails ? (
             <>{ticketDetailsSection}</>
@@ -603,7 +602,6 @@ const TicketRequestPanel = ({
                       </TabPanel>
                     </TabPanels>
                   </Tabs>
-                  <Divider my={2} />
                 </>
               )}
 
@@ -613,11 +611,13 @@ const TicketRequestPanel = ({
                   <Tabs colorScheme="blue" variant="enclosed">
                     <TabList>
                       <Tab>Manage Schedule</Tab>
+                      <Tab>Add Ticket</Tab>
+                      <Tab>Remove Ticket</Tab>
                     </TabList>
                     <TabPanels>
 
                       <TabPanel px={0} pt={4} pb={0}>
-                        {/* <Box>
+                        <Box>
                           <Box bg="blue.50" p={4} borderRadius="md" mb={4}>
                             <Heading size="sm" mb={3}>Weekly Schedule Details</Heading>
                             <SimpleGrid columns={{ base: 1, md: 2 }} spacing={3}>
@@ -627,8 +627,7 @@ const TicketRequestPanel = ({
                               </Box>
                               <Box>
                                 <Text fontWeight="bold" fontSize="sm" color="gray.600">Status</Text>
-                                <Badge colorScheme={selectedWeeklySchedule?.status === "Planned" ? "blue" : 
-                                                selectedWeeklySchedule?.status === "In Progress" ? "orange" : "green"}>
+                                <Badge colorScheme={'green'}>
                                   {selectedWeeklySchedule?.status}
                                 </Badge>
                               </Box>
@@ -642,13 +641,13 @@ const TicketRequestPanel = ({
                               </Box>
                               {selectedWeeklySchedule.createdAt && (
                                 <Box>
-                                  <Text fontWeight="bold" fontSize="sm" color="gray.600">Created On</Text>
+                                  <Text fontWeight="bold" fontSize="sm" color="gray.600">Date Created</Text>
                                   <Text fontSize="md">{formatDate(selectedWeeklySchedule?.createdAt)}</Text>
                                 </Box>
                               )}
                               <Box>
                                 <Text fontWeight="bold" fontSize="sm" color="gray.600">Total Scheduled Tickets</Text>
-                                <Text fontSize="md">{selectedWeeklySchedule?.ticketRequests.length}</Text>
+                                <Text fontSize="md">{selectedWeeklySchedule?.ticketRequests?.length}</Text>
                               </Box>
                             </SimpleGrid>
                           </Box>
@@ -659,11 +658,11 @@ const TicketRequestPanel = ({
                           <Table variant="simple" size="sm">
                             <Thead bg="gray.50">
                               <Tr>
-                                <Th>Ref #</Th>
+                                <Th>Reference #</Th>
                                 <Th>Farmer</Th>
                                 <Th>Barangay</Th>
                                 <Th>Machine</Th>
-                                <Th>Area (ha)</Th>
+                                <Th>Estimated Area (ha)</Th>
                                 <Th>Assigned Date</Th>
                                 <Th>Machine Unit</Th>
                                 <Th>Operator</Th>
@@ -680,7 +679,7 @@ const TicketRequestPanel = ({
                                     <Td>{`${ticket.requestorFarmer?.first_name} ${ticket.requestorFarmer?.surname}`}</Td>
                                     <Td>{ticket.barangay}</Td>
                                     <Td>{ticket.requestedMachineType?.equipmentType}</Td>
-                                    <Td isNumeric>{ticket.estimatedArea}</Td>
+                                    <Td>{ticket.estimatedArea}</Td>
                                     <Td>{formatDate(tr.assignedDate)}</Td>
                                     <Td>{ticket.assignedMachineUnit?.plateNumber}</Td>
                                     <Td>{`${ticket.assignedOperator?.first_name} ${ticket.assignedOperator?.last_name}`}</Td>
@@ -689,12 +688,19 @@ const TicketRequestPanel = ({
                               })}
                             </Tbody>
                           </Table>
-                        </Box> */}
+                        </Box>
+
+                        <Flex justify="flex-end" mt={7}>
+                          <Button
+                            colorScheme="blue"
+                          >
+                            Add Ticket Request/s
+                          </Button>
+                        </Flex>
                       </TabPanel>
 
                     </TabPanels>
                   </Tabs>
-                  <Divider my={2} />
                 </>
               )}
             </>

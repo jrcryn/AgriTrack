@@ -172,6 +172,7 @@ const TicketRequests = () => {
       </Flex>
     </Flex>
   );
+  console.log(weeklySchedules)
 
   return (
     <Box overflow="hidden" bg="white" p={5} minH="100vh">
@@ -509,8 +510,9 @@ const TicketRequests = () => {
                               colorScheme='green'
                               leftIcon={<FaEye />}
                               onClick={() => {
-                                onOpen()
-                                setIsViewingDetails(false)
+                                setSelectedWeeklySchedule(schedule); 
+                                setIsViewingDetails(false);
+                                onOpen();
                               }}
                             >
                               Details
@@ -784,6 +786,7 @@ const TicketRequests = () => {
         height={height}
         isViewingDetails={isViewingDetails}
       />
+      
     </Box>
   );
 };
