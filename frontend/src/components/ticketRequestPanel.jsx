@@ -55,6 +55,9 @@ const TicketRequestPanel = ({
     tickets: []
   });
 
+  // NEW: pagination for Add Ticket modal
+  const [addModalPendingPage, setAddModalPendingPage] = useState(1);
+
   const {
     operatorsList,
     isLoadingOperatorsList,
@@ -72,11 +75,29 @@ const TicketRequestPanel = ({
     getMachineryUnitsForDropDownByType,
 
     declineTicketRequests,
-    isDecliningTicketRequests
-  } = useAdminDashboard();
+    isDecliningTicketRequests,
+
+    // pending tickets used in Add Ticket Request/s modal
+    pendingTicketRequests,
+    isLoadingPendingTicketRequests
+  } = useAdminDashboard(
+    // NEW: drive pending tickets with modal pagination
+    { pendingPage: addModalPendingPage },
+    {}
+  );
 
   const [selectedTicketForRemoval, setSelectedTicketForRemoval] = useState(null);
+  const [declineReason, setDeclineReason] = useState('');
+  const [unitsByType, setUnitsByType] = useState({}); // Map of units per machineryTypeId
+
+
   const { isOpen: isOpenRemoveModal, onOpen: onOpenRemoveModal, onClose: onCloseRemoveModal } = useDisclosure();
+
+  // NEW: add tickets modal disclosure
+  const { isOpen: isOpenAddModal, onOpen: onOpenAddModal, onClose: onCloseAddModal } = useDisclosure();
+
+  // NEW: selection state for tickets being added to an existing schedule
+  const [addTicketsData, setAddTicketsData] = useState([]); // [{ ticketId, assignedDate, assignedOperatorId, assignedMachineUnitId }]
 
   // Initialize tickets for scheduling
   useEffect(() => {
@@ -96,7 +117,59 @@ const TicketRequestPanel = ({
     }
   }, [selectedTickets, isOpen]);
 
-  // Update a specific ticket in the schedule
+  // Fetch units for each unique requestedMachineType when selection changes
+  useEffect(() => {
+    if (!isOpen || selectedTickets.length === 0) return;
+
+    const uniqueTypeIds = Array.from(
+      new Set(
+        selectedTickets
+          .map(t => t?.requestedMachineType?.requestedMachineTypeId)
+          .filter(Boolean)
+      )
+    );
+
+    uniqueTypeIds.forEach(async (typeId) => {
+      if (unitsByType[typeId]) return;
+      try {
+        const res = await getMachineryUnitsForDropDownByType(typeId);
+        setUnitsByType(prev => ({ ...prev, [typeId]: res?.data || [] }));
+      } catch (e) {
+        // optional: handle error per type
+        // console.error('Failed to load units for type', typeId, e);
+      }
+    });
+  }, [selectedTickets, isOpen]); 
+
+  // NEW: Fetch units for selected tickets in Add modal as their types appear
+  useEffect(() => {
+    if (!isOpenAddModal || addTicketsData.length === 0) return;
+
+    const scheduledIds = new Set((selectedWeeklySchedule?.ticketRequests || []).map(tr => tr.ticketRequestId));
+    const allPending = pendingTicketRequests?.data?.relevantTickets || [];
+    const filteredPending = allPending.filter(t => !scheduledIds.has(t._id));
+    const ticketMap = new Map(filteredPending.map(t => [t._id, t]));
+
+    const uniqueTypeIds = Array.from(
+      new Set(
+        addTicketsData
+          .map(sel => ticketMap.get(sel.ticketId)?.requestedMachineType?.requestedMachineTypeId)
+          .filter(Boolean)
+      )
+    );
+
+    uniqueTypeIds.forEach(async (typeId) => {
+      if (unitsByType[typeId]) return;
+      try {
+        const res = await getMachineryUnitsForDropDownByType(typeId);
+        setUnitsByType(prev => ({ ...prev, [typeId]: res?.data || [] }));
+      } catch (e) {
+        // silent
+      }
+    });
+  }, [isOpenAddModal, addTicketsData, pendingTicketRequests, selectedWeeklySchedule]);
+
+  // Update a specific ticket in the schedule, pag gagawa ng schedule yung
   const updateTicketInSchedule = (ticketId, field, value) => {
     setScheduleData(prev => ({
       ...prev,
@@ -106,7 +179,6 @@ const TicketRequestPanel = ({
     }));
   };
 
-  // Handle submit for creating a weekly schedule
   const handleCreateSchedule = async () => {
     // Validate required fields
     if (!scheduleData.weekStart || !scheduleData.weekEnd) {
@@ -174,7 +246,6 @@ const TicketRequestPanel = ({
     }
   };
 
-  // Handle removing a ticket from schedule
   const handleRemoveFromSchedule = async (ticketRequestId) => {
     try {
       const response = await removeFromSchedule(ticketRequestId);
@@ -216,9 +287,6 @@ const TicketRequestPanel = ({
       });
     }
   };
-
-  // Decline state
-  const [declineReason, setDeclineReason] = useState('');
 
   const handleDeclineTickets = async () => {
     if (!selectedTickets?.length) {
@@ -271,6 +339,143 @@ const TicketRequestPanel = ({
     }
   };
 
+  const handleMoveTicketToSchedule = (targetScheduleId, ticket) => {
+
+  };
+
+  // NEW: helpers for Add modal
+  const scheduleCapacity = 5;
+  const currentScheduledCount = selectedWeeklySchedule?.ticketRequests?.length || 0;
+  const remainingQuota = Math.max(0, scheduleCapacity - currentScheduledCount);
+
+  const allPending = pendingTicketRequests?.data?.relevantTickets || [];
+  const alreadyScheduledIds = new Set((selectedWeeklySchedule?.ticketRequests || []).map(tr => tr.ticketRequestId));
+  const selectablePending = allPending.filter(t => !alreadyScheduledIds.has(t._id));
+
+  // NEW: modal pagination meta
+  const modalPendingCurrentPage = pendingTicketRequests?.data?.currentPage || 1;
+  const modalPendingTotalPages = pendingTicketRequests?.data?.totalPages || 1;
+  const modalPendingTotalItems = pendingTicketRequests?.data?.totalCount || 0;
+
+  const isSelectedForAdd = (ticketId) => addTicketsData.some(t => t.ticketId === ticketId);
+
+  const toggleAddSelection = (ticket) => {
+    setAddTicketsData(prev => {
+      const exists = prev.some(t => t.ticketId === ticket._id);
+      if (exists) {
+        return prev.filter(t => t.ticketId !== ticket._id);
+      }
+      if (prev.length >= remainingQuota) {
+        toast({
+          title: "Selection limit reached",
+          description: `You can only add up to ${remainingQuota} more ticket(s) to this schedule.`,
+          status: "warning",
+          duration: 3000,
+          isClosable: true
+        });
+        return prev;
+      }
+      return [
+        ...prev,
+        { ticketId: ticket._id, assignedDate: '', assignedOperatorId: '', assignedMachineUnitId: '' }
+      ];
+    });
+  };
+
+  const updateAddTicket = (ticketId, field, value) => {
+    setAddTicketsData(prev =>
+      prev.map(t => (t.ticketId === ticketId ? { ...t, [field]: value } : t))
+    );
+  };
+
+  const handleAddTicketsToSchedule = async () => {
+    if (!selectedWeeklySchedule?._id) return;
+
+    if (addTicketsData.length === 0) {
+      toast({
+        title: "No tickets selected",
+        description: "Select at least one pending ticket to add.",
+        status: "warning",
+        duration: 3000,
+        isClosable: true
+      });
+      return;
+    }
+
+    // Validate fields and date within schedule range
+    const ws = selectedWeeklySchedule?.weekStart ? new Date(selectedWeeklySchedule.weekStart) : null;
+    const we = selectedWeeklySchedule?.weekEnd ? new Date(selectedWeeklySchedule.weekEnd) : null;
+
+    const incomplete = addTicketsData.filter(
+      t => !t.assignedDate || !t.assignedOperatorId || !t.assignedMachineUnitId
+    );
+
+    if (incomplete.length > 0) {
+      toast({
+        title: "Incomplete assignments",
+        description: "Please assign date, operator and machine unit for all selected tickets.",
+        status: "warning",
+        duration: 4000,
+        isClosable: true
+      });
+      return;
+    }
+
+    const outOfRange = addTicketsData.filter(t => {
+      if (!ws || !we) return false;
+      const d = new Date(t.assignedDate);
+      return d < ws || d > we;
+    });
+
+    if (outOfRange.length > 0) {
+      toast({
+        title: "Date out of range",
+        description: "Assigned dates must be within this schedule's start and end dates.",
+        status: "warning",
+        duration: 4000,
+        isClosable: true
+      });
+      return;
+    }
+
+    try {
+      // Attempt batch move
+      await moveToSchedule({
+        weeklyScheduleId: selectedWeeklySchedule._id,
+        tickets: addTicketsData
+      });
+
+      toast({
+        title: "Tickets added",
+        description: `${addTicketsData.length} ticket(s) added to the schedule.`,
+        status: "success",
+        duration: 5000,
+        isClosable: true
+      });
+
+      const scheduleId = selectedWeeklySchedule._id;
+
+      setAddTicketsData([]);
+      onCloseAddModal();
+      onClose();
+
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['pendingTicketRequests'] }),
+        queryClient.invalidateQueries({ queryKey: ['weeklySchedules'] })
+      ]);
+
+      onRequestReopenSchedule?.(scheduleId);
+    } catch (error) {
+      toast({
+        title: "Failed to add tickets",
+        description: error?.response?.data?.message || "Unable to add tickets to the schedule.",
+        status: "error",
+        duration: 5000,
+        isClosable: true
+      });
+    }
+  };
+
   // Format date for display
   const formatDate = (dateString) => {
     if (!dateString) return 'Not assigned';
@@ -281,34 +486,6 @@ const TicketRequestPanel = ({
       day: 'numeric'
     });
   };
-
-  // Map of units per machineryTypeId
-  const [unitsByType, setUnitsByType] = useState({});
-
-  // Fetch units for each unique requestedMachineType when selection changes
-  useEffect(() => {
-    if (!isOpen || selectedTickets.length === 0) return;
-
-    const uniqueTypeIds = Array.from(
-      new Set(
-        selectedTickets
-          .map(t => t?.requestedMachineType?.requestedMachineTypeId)
-          .filter(Boolean)
-      )
-    );
-
-    uniqueTypeIds.forEach(async (typeId) => {
-      if (unitsByType[typeId]) return;
-      try {
-        const res = await getMachineryUnitsForDropDownByType(typeId);
-        setUnitsByType(prev => ({ ...prev, [typeId]: res?.data || [] }));
-      } catch (e) {
-        // optional: handle error per type
-        // console.error('Failed to load units for type', typeId, e);
-      }
-    });
-  }, [selectedTickets, isOpen]); 
-
 
   const ticketDetailsSection = (
     <Box>
@@ -712,6 +889,7 @@ const TicketRequestPanel = ({
                           <Flex justify="flex-end" mt={7}>
                             <Button
                               colorScheme="blue"
+                              onClick={() => { setAddModalPendingPage(1); onOpenAddModal(); }} // NEW: reset page on open
                             >
                               Add Ticket Request/s
                             </Button>
@@ -747,6 +925,187 @@ const TicketRequestPanel = ({
       </ModalContent>
     </Modal>
 
+    {/* Add Ticket Request/s Modal */}
+    <Modal
+      isOpen={isOpenAddModal}
+      onClose={() => { setAddTicketsData([]); setAddModalPendingPage(1); onCloseAddModal(); }} // NEW: reset page on close
+      size="6xl"
+      closeOnOverlayClick={false}
+      scrollBehavior="inside"
+      isCentered
+      motionPreset="none"
+    >
+      <ModalOverlay />
+      <ModalContent borderRadius="lg" overflow="hidden">
+        <ModalHeader
+          bg="blue.50"
+          borderBottomWidth="1px"
+          borderColor="gray.200"
+          py={4}
+          display="flex"
+          alignItems="center"
+        >
+          <Icon as={FaCalendarAlt} mr={2} color="blue.600" />
+          Add Ticket Request/s to Schedule
+        </ModalHeader>
+        <ModalBody>
+          <Box bg="blue.50" p={3} borderRadius="md" mb={4}>
+            <Text fontSize="sm" color="blue.700">
+              Select up to {remainingQuota} pending ticket(s) to add to this weekly schedule. Assign date, operator, and machine unit for each.
+            </Text>
+          </Box>
+
+          <Box overflowX="auto">
+            <Table variant="simple" size="sm">
+              <Thead bg="gray.50">
+                <Tr>
+                  <Th>Select</Th>
+                  <Th>Reference #</Th>
+                  <Th>Farmer</Th>
+                  <Th>Machine Type</Th>
+                  <Th>Assigned Date</Th>
+                  <Th>Operator</Th>
+                  <Th>Machine Unit</Th>
+                </Tr>
+              </Thead>
+              <Tbody>
+                {isLoadingPendingTicketRequests ? (
+                  <Tr>
+                    <Td colSpan={7}>
+                      <Flex align="center" justify="center" py={6}>
+                        <Text color="gray.600">Loading pending tickets...</Text>
+                      </Flex>
+                    </Td>
+                  </Tr>
+                ) : selectablePending.length === 0 ? (
+                  <Tr>
+                    <Td colSpan={7}>
+                      <Flex align="center" justify="center" py={6}>
+                        <Text color="gray.600">No pending tickets available to add.</Text>
+                      </Flex>
+                    </Td>
+                  </Tr>
+                ) : (
+                  selectablePending.map((ticket) => {
+                    const selected = isSelectedForAdd(ticket._id);
+                    const selectedRow = addTicketsData.find(t => t.ticketId === ticket._id);
+                    const typeId = ticket?.requestedMachineType?.requestedMachineTypeId;
+                    const unitsForType = (typeId && unitsByType[typeId]) ? unitsByType[typeId] : [];
+                    return (
+                      <Tr key={ticket._id}>
+                        <Td>
+                          <Checkbox
+                            isChecked={selected}
+                            onChange={() => toggleAddSelection(ticket)}
+                            isDisabled={!selected && addTicketsData.length >= remainingQuota}
+                          />
+                        </Td>
+                        <Td fontWeight="semibold">{ticket.refNumber}</Td>
+                        <Td>{`${ticket?.requestorFarmer?.first_name || ''} ${ticket?.requestorFarmer?.surname || ''}`}</Td>
+                        <Td>{ticket?.requestedMachineType?.equipmentType || '-'}</Td>
+                        <Td>
+                          <Input
+                            type="date"
+                            size="sm"
+                            value={selectedRow?.assignedDate || ''}
+                            onChange={(e) => updateAddTicket(ticket._id, 'assignedDate', e.target.value)}
+                            min={selectedWeeklySchedule?.weekStart || undefined}
+                            max={selectedWeeklySchedule?.weekEnd || undefined}
+                            isDisabled={!selected}
+                          />
+                        </Td>
+                        <Td>
+                          <Select
+                            size="sm"
+                            placeholder="Select operator"
+                            value={selectedRow?.assignedOperatorId || ''}
+                            onChange={(e) => updateAddTicket(ticket._id, 'assignedOperatorId', e.target.value)}
+                            isDisabled={!selected || isLoadingOperatorsList}
+                          >
+                            {operatorsList?.data?.map(op => (
+                              <option key={op._id} value={op._id}>
+                                {`${op.first_name} ${op.last_name}`}
+                              </option>
+                            ))}
+                          </Select>
+                        </Td>
+                        <Td>
+                          <Select
+                            size="sm"
+                            placeholder="Select machine"
+                            value={selectedRow?.assignedMachineUnitId || ''}
+                            onChange={(e) => updateAddTicket(ticket._id, 'assignedMachineUnitId', e.target.value)}
+                            isDisabled={!selected || !typeId}
+                          >
+                            {unitsForType.map(unit => (
+                              <option key={unit._id} value={unit._id}>
+                                {unit.plateNumber} - {unit.machineryTypeId?.equipmentType}
+                              </option>
+                            ))}
+                          </Select>
+                        </Td>
+                      </Tr>
+                    );
+                  })
+                )}
+              </Tbody>
+            </Table>
+          </Box>
+
+          {/* NEW: Pagination controls (copied style from ticket page) */}
+          <Flex justifyContent="space-between" alignItems="center" mt={4}>
+            <Text color="gray.600" fontSize="sm">
+              Page {modalPendingCurrentPage} of {modalPendingTotalPages || 1} ({modalPendingTotalItems} total)
+            </Text>
+            <Flex>
+              <Button
+                size="sm"
+                onClick={() => setAddModalPendingPage(Math.max(1, addModalPendingPage - 1))}
+                isDisabled={addModalPendingPage === 1}
+                colorScheme="blue"
+                variant="outline"
+                mr={2}
+              >
+                Previous
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => setAddModalPendingPage(Math.min(modalPendingTotalPages, addModalPendingPage + 1))}
+                isDisabled={addModalPendingPage >= modalPendingTotalPages}
+                colorScheme="blue"
+                variant="outline"
+              >
+                Next
+              </Button>
+            </Flex>
+          </Flex>
+        </ModalBody>
+        <ModalFooter bg="gray.50" borderTopWidth="1px" borderColor="gray.200">
+          <Button
+            variant="outline"
+            mr={3}
+            onClick={() => { setAddTicketsData([]); setAddModalPendingPage(1); onCloseAddModal(); }}
+            size="md"
+          >
+            Cancel
+          </Button>
+          <Button
+            colorScheme="blue"
+            onClick={handleAddTicketsToSchedule}
+            isLoading={isMovingToSchedule}
+            size="md"
+            isDisabled={
+              addTicketsData.length === 0 ||
+              addTicketsData.some(t => !t.assignedDate || !t.assignedOperatorId || !t.assignedMachineUnitId)
+            }
+          >
+            Add to Schedule
+          </Button>
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
+
+    {/* Remove Confirmation Modal */}
     <Modal isOpen={isOpenRemoveModal} size="xs" onClose={onCloseRemoveModal} closeOnOverlayClick={false} scrollBehavior="inside" isCentered  motionPreset="none">
         <ModalOverlay/>
         <ModalContent borderRadius="lg" overflow="hidden">
@@ -783,7 +1142,7 @@ const TicketRequestPanel = ({
             </Button>
           </ModalFooter>
         </ModalContent>
-      </Modal>
+    </Modal>
     </>
   );
 };

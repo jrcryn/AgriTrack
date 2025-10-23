@@ -74,7 +74,7 @@ const allLinkItems = [
   { name: 'Dashboard', icon: FiGrid, path: '/machineries/metrics', roles: ['MIS', 'MIM'] },
   { name: 'Machinery Management', icon: FiBox, path: '/machineries/machine-inventory', roles: ['MIS', 'MIM'] },
   { name: 'Ticket Requests', icon: Ticket, path: '/machineries/ticket-requests', roles: ['MIS', 'MIM'] },
-  { name: 'Weekly Schedules', icon: FiCalendar, path: '/machineries/weekly-schedules', roles: ['MIS', 'MIM'] },
+  { name: 'Calendar', icon: FiCalendar, path: '/machineries/weekly-schedules', roles: ['MIS', 'MIM'] },
   { name: 'Returns', icon: CornerDownLeft, path: '/machineries/trip-ticket-returns', roles: ['MIS', 'MIM'] },
   { name: 'Usage Report', icon: FiDownload, path: '/machineries/gen-reports', roles: ['MIM'] },
   { name: 'Operators', icon: FiUsers, path: '/machineries/operators', roles: ['MIM'] },
