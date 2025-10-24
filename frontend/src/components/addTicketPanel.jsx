@@ -203,6 +203,9 @@ const AddTicketPanel = ({
     }
   };
 
+  const takenDates = selectedWeeklySchedule?.ticketRequests?.map(td => new Date(td.assignedDate).toISOString().split('T')[0]);
+
+  console.log('Taken Dates in Schedule:', takenDates);
   return (
     <Modal
       isOpen={isOpen}
@@ -288,9 +291,33 @@ const AddTicketPanel = ({
                             type="date"
                             size="sm"
                             value={selectedRow?.assignedDate || ''}
-                            onChange={(e) => updateAddTicket(ticket._id, 'assignedDate', e.target.value)}
-                            min={selectedWeeklySchedule?.weekStart || undefined}
-                            max={selectedWeeklySchedule?.weekEnd || undefined}
+                            onChange={(e) => {
+      const selectedDate = e.target.value;
+      if (takenDates.includes(selectedDate)) {
+        // Date is taken: show warning, clear the input, and don't update state
+        toast({
+          title: 'Date unavailable',
+          description: 'This date is already assigned in the schedule. Please choose another date.',
+          status: 'warning',
+          duration: 3000,
+          isClosable: true
+        });
+        updateAddTicket(ticket._id, 'assignedDate', ''); // Clear the field
+      } else {
+        // Date is available: proceed with update
+        updateAddTicket(ticket._id, 'assignedDate', selectedDate);
+      }
+    }}
+                            min={
+                              selectedWeeklySchedule?.weekStart
+                                ? new Date(selectedWeeklySchedule.weekStart).toISOString().split('T')[0]
+                                : undefined
+                            }
+                            max={
+                              selectedWeeklySchedule?.weekEnd
+                                ? new Date(selectedWeeklySchedule.weekEnd).toISOString().split('T')[0]
+                                : undefined
+                            }
                             isDisabled={!selected}
                             onClick={(e) => {e.stopPropagation();}}
                           />
