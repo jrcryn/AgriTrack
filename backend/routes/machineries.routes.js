@@ -52,11 +52,11 @@ router.get('/get-machinery-units-for-dropdown', getMachineryUnitsForDropDown); /
 router.get('/get-weekly-schedules', getWeeklySchedules); 
 
 router.post('/archive-ticket-request', archiveTicketRequest);
-router.post('/decline-ticket-requests', declineTicketRequest);
-router.post('/create-weekly-schedule', createWeeklySchedule); //working
-router.post('/remove-from-schedule/:ticketRequestId', removeTicketRequestFromSchedule); //working
-router.post('/move-to-schedule', moveTicketRequestToASchedule);  // FOR REVIEW
-router.post('/update-weekly-schedule', updateWeeklySchedule); // new route
+router.post('/decline-ticket-requests', declineTicketRequest); //working frontend
+router.post('/create-weekly-schedule', createWeeklySchedule); //working frontend
+router.post('/remove-from-schedule/:ticketRequestId', removeTicketRequestFromSchedule); //working frontend
+router.post('/move-to-schedule', moveTicketRequestToASchedule);  // working frontend
+router.post('/update-weekly-schedule', updateWeeklySchedule); // for review
 
 
 // Public API routes

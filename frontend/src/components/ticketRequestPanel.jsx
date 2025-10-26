@@ -58,7 +58,7 @@ const TicketRequestPanel = ({
   });
 
   const [ticketUpdateData, setTicketUpdateData] = useState({
-    scheduleId: selectedWeeklySchedule ? selectedWeeklySchedule._id : null,
+    scheduleId: null,
     tickets: []
   });
 
@@ -146,14 +146,14 @@ const TicketRequestPanel = ({
       const initializedTickets = selectedWeeklySchedule.ticketRequests.map(ticket => ({
         ticketId: ticket.ticketRequestId,
         assignedDate: ticket.assignedDate ? new Date(ticket.assignedDate).toISOString().split('T')[0] : '', // Format to YYYY-MM-DD for date input
-        assignedOperatorId: ticket.ticketDetails?.assignedOperator?._id || '', 
-        assignedMachineUnitId: ticket.ticketDetails?.assignedMachineUnit?._id || ''
+        assignedOperatorId: ticket.ticketDetails?.assignedOperator?.assignedOperatorId || '', 
+        assignedMachineUnitId: ticket.ticketDetails?.assignedMachineUnit?.assignedMachineUnitId || ''
       }));
       
-      setTicketUpdateData(prev => ({
-        ...prev,
+      setTicketUpdateData({
+        scheduleId: selectedWeeklySchedule._id,
         tickets: initializedTickets
-      }));
+      });
 
       // Set initial data for change detection
       setInitialTicketData(initializedTickets);
@@ -282,8 +282,6 @@ const TicketRequestPanel = ({
         isClosable: true
       });
 
-      const scheduleId = selectedWeeklySchedule?._id;
-
       // Close modal and refresh data
       setSelectedTicketForRemoval(null);
       onCloseRemoveModal();
@@ -295,7 +293,7 @@ const TicketRequestPanel = ({
       ]);
 
       // Ask parent to reopen with fresh data
-      onRequestReopenSchedule?.(scheduleId);
+      onRequestReopenSchedule?.(selectedWeeklySchedule?._id);
       
       
     } catch (error) {
@@ -367,15 +365,27 @@ const TicketRequestPanel = ({
     // Filter to only changed tickets
     const changedTickets = ticketUpdateData.tickets.filter((current, index) => {
       const initial = initialTicketData[index];
+      if (!initial) return true; // If no initial data, consider it changed
+      
       return (
-        current.ticketId !== initial.ticketId ||
         current.assignedDate !== initial.assignedDate ||
         current.assignedOperatorId !== initial.assignedOperatorId ||
         current.assignedMachineUnitId !== initial.assignedMachineUnitId
       );
     });
 
-    // Validate only changed tickets
+    if (changedTickets.length === 0) {
+      toast({
+        title: "No changes detected",
+        description: "Please make changes before updating.",
+        status: "info",
+        duration: 4000,
+        isClosable: true
+      });
+      return;
+    }
+
+    // Validate only changed tickets - all fields must be filled
     const incompleteTickets = changedTickets.filter(
       ticket => !ticket.assignedDate || !ticket.assignedOperatorId || !ticket.assignedMachineUnitId
     );
@@ -383,7 +393,7 @@ const TicketRequestPanel = ({
     if (incompleteTickets.length > 0) {
       toast({
         title: "Incomplete ticket assignments",
-        description: `${incompleteTickets.length} ticket(s) are missing date, operator, or machinery assignments`,
+        description: `${incompleteTickets.length} ticket(s) are missing date, operator, or machinery assignments.`,
         status: "warning",
         duration: 4000,
         isClosable: true
@@ -412,7 +422,9 @@ const TicketRequestPanel = ({
         queryClient.invalidateQueries({ queryKey: ['weeklySchedules'] }),
         queryClient.invalidateQueries({ queryKey: ['scheduledTicketRequests'] })
       ]);
-      
+
+      onRequestReopenSchedule?.(selectedWeeklySchedule?._id);
+
     } catch (error) {
       console.error('Error updating weekly schedule:', error);
       toast({

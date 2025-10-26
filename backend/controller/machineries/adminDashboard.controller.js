@@ -673,70 +673,78 @@ export const updateWeeklySchedule = async (req, res) => {
         const weekStart = new Date(schedule.weekStart);
         const weekEnd = new Date(schedule.weekEnd);
 
-        // Normalize helper: date -> startOfDay/endOfDay
-        const startOfDay = (d) => {
-            const x = new Date(d);
-            x.setHours(0, 0, 0, 0);
-            return x;
-        };
-        const endOfDay = (d) => {
-            const x = new Date(d);
-            x.setHours(0, 0, 0, 0);
-            x.setDate(x.getDate() + 1);
-            return x;
-        };
+        // Helper to normalize dates (same as createWeeklySchedule)
         const toDateKey = (d) => new Date(d).toISOString().split('T')[0];
 
-        // Build a map of current schedule dates to enforce "one ticket per date" rule (as in UI)
-        const currentDatesByTicketId = new Map(
-            (schedule.ticketRequests || []).map(tr => [tr.ticketRequestId.toString(), toDateKey(tr.assignedDate)])
+        // Build a map of ticketId -> current assigned date in schedule
+        const currentScheduleDates = new Map(
+            (schedule.ticketRequests || []).map(tr => [
+                tr.ticketRequestId.toString(), 
+                toDateKey(tr.assignedDate)
+            ])
         );
 
-        // Prepare a simulated post-update date map to detect duplicate dates within the same schedule
-        const simulatedDates = new Map(currentDatesByTicketId);
-        for (const t of tickets) {
-            //check for valid date format
-            const assignedDate = new Date(t.assignedDate);
-            if (isNaN(assignedDate.getTime())) {
-                return res.status(400).json({ success: false, message: `Invalid assignedDate for ticket ${t.ticketId}.` });
-            }
-            // check if within range
-            if (assignedDate < weekStart || assignedDate > weekEnd) {
+        // Validate tickets being updated
+        const ticketIds = tickets.map(t => t.ticketId);
+        
+        // Check if all tickets belong to this schedule
+        for (const tid of ticketIds) {
+            if (!currentScheduleDates.has(tid)) {
                 return res.status(400).json({
                     success: false,
-                    message: `Assigned date for ticket ${t.ticketId} must be within the schedule date range.`
-                });
-            }
-            // Must belong to this schedule
-            if (!currentDatesByTicketId.has(t.ticketId)) {
-                return res.status(400).json({
-                    success: false,
-                    message: `Ticket ${t.ticketId} is not part of this schedule.`
-                });
-            }
-
-            // Simulate replacement and check duplicates
-            const key = toDateKey(assignedDate);
-            // Count occurrences of key in the simulated map
-            const existingKey = simulatedDates.get(t.ticketId);
-            // remove old date then set new
-            if (existingKey) {
-                simulatedDates.delete(t.ticketId);
-            }
-            simulatedDates.set(t.ticketId, key);
-            // After setting, check if duplicates exist in simulated state
-            const dupCount = Array.from(simulatedDates.values()).filter(v => v === key).length;
-            if (dupCount > 1) {
-                return res.status(400).json({
-                    success: false,
-                    message: `Only one ticket per date is allowed in a schedule. Duplicate date ${key} detected.`
+                    message: `Ticket ${tid} is not part of this schedule.`
                 });
             }
         }
 
-        // Validate operators and machines, and check conflicts (same day uniqueness for operator/machine)
+        // Build simulated state after update to check for duplicate dates
+        const simulatedDates = new Map(currentScheduleDates);
+        
         for (const t of tickets) {
-            // Fetch and validate operator
+            const assignedDate = new Date(t.assignedDate);
+            
+            // Validate date format
+            if (isNaN(assignedDate.getTime())) {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: `Invalid assignedDate for ticket ${t.ticketId}.` 
+                });
+            }
+            
+            // Validate within range
+            if (assignedDate < weekStart || assignedDate > weekEnd) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Assigned date for ticket ${t.ticketId} must be within the schedule date range (${toDateKey(weekStart)} to ${toDateKey(weekEnd)}).`
+                });
+            }
+
+            // Update simulated dates map
+            const dateKey = toDateKey(assignedDate);
+            simulatedDates.set(t.ticketId, dateKey);
+        }
+
+        // Check for duplicate dates in the simulated final state (same logic as createWeeklySchedule)
+        const allDates = Array.from(simulatedDates.values());
+        const uniqueDates = new Set(allDates);
+        
+        if (allDates.length !== uniqueDates.size) {
+            // Find which date is duplicated
+            const dateCount = {};
+            allDates.forEach(d => {
+                dateCount[d] = (dateCount[d] || 0) + 1;
+            });
+            const duplicateDate = Object.keys(dateCount).find(d => dateCount[d] > 1);
+            
+            return res.status(400).json({
+                success: false,
+                message: `Only one ticket per date is allowed in a schedule. Duplicate date ${duplicateDate} detected.`
+            });
+        }
+
+        // Validate operators and machines exist (but no conflict checking). Operators and machine units, can be used at multiple dates or even all of the dates, its just that, a ticket request cannot have a same day.
+        for (const t of tickets) {
+            // Validate operator exists and has correct role
             const operatorDoc = await global.globalModels.EmployeeAccount.findById(t.assignedOperatorId);
             if (!operatorDoc || !Array.isArray(operatorDoc.roles) || !operatorDoc.roles.includes('MIS')) {
                 return res.status(404).json({
@@ -745,7 +753,7 @@ export const updateWeeklySchedule = async (req, res) => {
                 });
             }
 
-            // Fetch and validate machine
+            // Validate machine exists
             const machineDoc = await global.machineriesModels.MachineriesUnit.findById(t.assignedMachineUnitId);
             if (!machineDoc) {
                 return res.status(404).json({
@@ -753,69 +761,15 @@ export const updateWeeklySchedule = async (req, res) => {
                     message: `Machine unit ${t.assignedMachineUnitId} not found.`
                 });
             }
-
-            // Load the ticket and ensure it belongs to this schedule
-            const ticketDoc = await global.machineriesModels.TicketRequest.findById(t.ticketId);
-            if (!ticketDoc) {
-                return res.status(404).json({ success: false, message: `Ticket ${t.ticketId} not found.` });
-            }
-            if (!ticketDoc.scheduleId || ticketDoc.scheduleId.toString() !== scheduleId.toString()) {
-                return res.status(400).json({
-                    success: false,
-                    message: `Ticket ${t.ticketId} is not assigned to the target schedule.`
-                });
-            }
-
-            const assignedDate = new Date(t.assignedDate);
-            const dayStart = startOfDay(assignedDate);
-            const dayEnd = endOfDay(assignedDate);
-
-            // Conflict: machine already scheduled same day on another ticket
-            const machineConflict = await global.machineriesModels.TicketRequest.findOne({
-                _id: { $ne: ticketDoc._id },
-                status: 'Scheduled',
-                assignedDate: { $gte: dayStart, $lt: dayEnd },
-                $or: [
-                    { 'assignedMachineUnit.assignedMachineUnitId': machineDoc._id }, // object shape
-                    { assignedMachineUnitId: machineDoc._id } // legacy shape
-                ]
-            }).lean();
-
-            if (machineConflict) {
-                return res.status(409).json({
-                    success: false,
-                    message: `Machine unit conflict: unit is already scheduled on ${toDateKey(assignedDate)}.`,
-                    conflictingTicket: machineConflict._id
-                });
-            }
-
-            // Conflict: operator already scheduled same day on another ticket
-            const operatorConflict = await global.machineriesModels.TicketRequest.findOne({
-                _id: { $ne: ticketDoc._id },
-                status: 'Scheduled',
-                assignedDate: { $gte: dayStart, $lt: dayEnd },
-                $or: [
-                    { 'assignedOperator.assignedOperatorId': operatorDoc._id }, // object shape
-                    { assignedOperatorId: operatorDoc._id } // legacy shape
-                ]
-            }).lean();
-
-            if (operatorConflict) {
-                return res.status(409).json({
-                    success: false,
-                    message: `Operator conflict: operator is already scheduled on ${toDateKey(assignedDate)}.`,
-                    conflictingTicket: operatorConflict._id
-                });
-            }
         }
 
-        // All validations passed; build update operations for only the provided tickets
+        // All validations passed - perform updates
         const updateOps = [];
 
         for (const t of tickets) {
             const assignedDate = new Date(t.assignedDate);
 
-            // Re-fetch operator and machine to embed denormalized details
+            // Fetch operator and machine to embed denormalized details
             const operator = await global.globalModels.EmployeeAccount.findById(t.assignedOperatorId).lean();
             const machine = await global.machineriesModels.MachineriesUnit.findById(t.assignedMachineUnitId).lean();
 
@@ -836,7 +790,7 @@ export const updateWeeklySchedule = async (req, res) => {
                 phone: operator.phone
             };
 
-            // Update the TicketRequest document with nested objects (to match list display expectations)
+            // Update TicketRequest document
             updateOps.push(
                 global.machineriesModels.TicketRequest.findByIdAndUpdate(
                     t.ticketId,
@@ -850,7 +804,7 @@ export const updateWeeklySchedule = async (req, res) => {
                 )
             );
 
-            // Update the assignedDate inside the WeeklySchedule.ticketRequests array
+            // Update assignedDate in WeeklySchedule.ticketRequests array
             updateOps.push(
                 global.machineriesModels.WeeklySchedule.updateOne(
                     { _id: scheduleId, 'ticketRequests.ticketRequestId': t.ticketId },
@@ -865,7 +819,7 @@ export const updateWeeklySchedule = async (req, res) => {
             success: true,
             message: "Weekly schedule updated successfully.",
             data: {
-                updatedCount: results.length
+                updatedTickets: tickets.length
             }
         });
     } catch (error) {
