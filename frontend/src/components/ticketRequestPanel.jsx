@@ -927,25 +927,15 @@ const TicketRequestPanel = ({
                                 </Tbody>
                               </Table>
                             </Box>
-                            <Flex justify="flex-end" mt={4}>
-                              {hasChanges && (
-                                <Button
-                                  colorScheme="blue"
-                                  onClick={handleUpdateSchedule}
-                                  isLoading={isUpdatingWeeklySchedule}
-                                >
-                                  Update Schedule
-                                </Button>
-                              )}
-                            </Flex>
                         </Box>
                         {selectedWeeklySchedule?.ticketRequests?.length < 5 && (
                           <Flex justify="flex-end" mt={7}>
                             <Button
                               colorScheme="blue"
                               onClick={onOpenAddModal}
+                              size={'md'}
                             >
-                              Add Ticket Request/s
+                              Add Ticket/s
                             </Button>
                           </Flex>
                         )}
@@ -963,6 +953,7 @@ const TicketRequestPanel = ({
         </ModalBody>
 
         <ModalFooter bg="gray.50" borderTopWidth="1px" borderColor="gray.200">
+          
           <Button variant="outline" onClick={() => {
             onClose()
             setScheduleData({
@@ -975,6 +966,18 @@ const TicketRequestPanel = ({
           }} size="md">
             Close
           </Button>
+
+          {hasChanges && (
+            <Button
+              colorScheme="blue"
+              onClick={handleUpdateSchedule}
+              isLoading={isUpdatingWeeklySchedule}
+              ml={3}
+              >
+                Update Schedule
+            </Button>
+          )}
+
         </ModalFooter>
       </ModalContent>
     </Modal>

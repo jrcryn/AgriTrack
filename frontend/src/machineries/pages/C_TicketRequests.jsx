@@ -435,7 +435,7 @@ const TicketRequests = () => {
                       <Th>Reference #</Th>
                       <Th>Scheduled Tickets</Th>
                       <Th>Date Range</Th>
-                      <Th>Dates</Th>
+                      <Th>Scheduled Dates</Th>
                       <Th>Assigned Machine Units</Th>
                       <Th>Assigned Operators</Th>
                       <Th>Date Created</Th>
@@ -474,7 +474,7 @@ const TicketRequests = () => {
                             )}
                           </Td>
                             
-                          <Td>
+                          <Td fontSize={'xs'}>
                             <Text>
                               From <Text as="span" fontWeight="semibold">{formatDate(schedule?.weekStart)}</Text> to{" "} <br></br>
                               <Text as="span" fontWeight="semibold">{formatDate(schedule?.weekEnd)}</Text>
@@ -489,7 +489,7 @@ const TicketRequests = () => {
                                 {schedule.ticketRequests.map((ticket) => (
                                   <Flex key={ticket._id} align='center' justify="space-between" gap={2}>
                                     <Flex direction='column'>
-                                      <Text>{ticket?.ticketDetails?.assignedDate ? new Date(ticket.ticketDetails.assignedDate).toLocaleDateString() : '-'}</Text>
+                                      {formatDate(ticket?.ticketDetails?.assignedDate)}
                                     </Flex>
                                   </Flex>
                                 ))}

@@ -510,7 +510,7 @@ export const createWeeklySchedule = async (req, res) => {
     if (isNaN(startDate.getTime()) || isNaN(endDate.getTime()) || startDate > endDate) {
         return res.status(400).json({ 
             success: false, 
-            message: "Invalid date range. weekStart must be before weekEnd." 
+            message: "Invalid date range. Start date must be before end date." 
         });
     }
 
@@ -524,6 +524,30 @@ export const createWeeklySchedule = async (req, res) => {
         
         if (foundTickets.length !== ticketIds.length) {
             return res.status(404).json({ success: false, message: "One or more tickets not found. All operations aborted." });
+        }
+
+        // NEW: Pre-validate assigned dates and enforce one ticket per date
+        const toDateKey = (d) => new Date(d).toISOString().split('T')[0];
+        const seenDates = new Set();
+        for (const ticket of tickets) {
+            const assignedDate = new Date(ticket.assignedDate);
+            //check for valid date format
+            if (isNaN(assignedDate.getTime())) {
+                return res.status(400).json({ success: false, message: `Invalid assigned date for ticket ${ticket.ticketId}.` });
+            }
+            //check if within range
+            if (assignedDate < startDate || assignedDate > endDate) {
+                return res.status(400).json({ success: false, message: `Assigned date for ticket ${ticket.ticketId} must be within the schedule date range.` });
+            }
+            //check for duplicate dates
+            const key = toDateKey(assignedDate);
+            if (seenDates.has(key)) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Only one ticket per date is allowed in a schedule. Duplicate date ${key} detected.`
+                });
+            }
+            seenDates.add(key);
         }
 
         // Build schedule ref number SC-YYYYMMDD-####
@@ -547,24 +571,17 @@ export const createWeeklySchedule = async (req, res) => {
         const updateOperations = [];
         
         for (const ticket of tickets) {
-            // Validate that the assigned date is within the week range
-            const assignedDate = new Date(ticket.assignedDate);
-            
-            if (isNaN(assignedDate.getTime()) || assignedDate < startDate || assignedDate > endDate) {
-                await global.machineriesModels.WeeklySchedule.findByIdAndDelete(newSchedule._id);
-                return res.status(400).json({ success: false, message: `Invalid assigned date for ticket ${ticket.refNumber}. Date must be within the week range. All operations aborted.`});
-            }
 
             const operatorCheck = await global.globalModels.EmployeeAccount.findById(ticket.assignedOperatorId);
             if (!operatorCheck || !operatorCheck.roles.includes('MIS')) {
                 await global.machineriesModels.WeeklySchedule.findByIdAndDelete(newSchedule._id);
-                return res.status(404).json({ success: false, message: `Operator not found or does not have a valid role.` });
+                return res.status(404).json({ success: false, message: `Operator not found or does not have a valid role. All operations aborted.` });
             };
 
             const machineUnitCheck = await global.machineriesModels.MachineriesUnit.findById(ticket.assignedMachineUnitId);
             if (!machineUnitCheck) {
                 await global.machineriesModels.WeeklySchedule.findByIdAndDelete(newSchedule._id);
-                return res.status(404).json({ success: false, message: `Machine unit not found.` });
+                return res.status(404).json({ success: false, message: `Machine unit not found. All operations aborted.` });
             };
 
             // validate if a ticket already belongs to another schedule
@@ -593,7 +610,7 @@ export const createWeeklySchedule = async (req, res) => {
             };
 
             const updateData = {
-                assignedDate: assignedDate,
+                assignedDate: ticket.assignedDate,
                 scheduleId: newSchedule._id,
                 assignedMachineUnit,
                 assignedOperator,
@@ -604,7 +621,7 @@ export const createWeeklySchedule = async (req, res) => {
                 $push: {
                     ticketRequests: {
                         ticketRequestId: ticket.ticketId,
-                        assignedDate: assignedDate
+                        assignedDate: ticket.assignedDate
                     }
                 }
             };
@@ -615,7 +632,6 @@ export const createWeeklySchedule = async (req, res) => {
                     updateData,
                     { new: true }
                 ),
-                // FIX: use findByIdAndUpdate instead of passing _id directly as filter
                 global.machineriesModels.WeeklySchedule.findByIdAndUpdate(
                     newSchedule._id,
                     updateScheduleData,
@@ -679,11 +695,12 @@ export const updateWeeklySchedule = async (req, res) => {
         // Prepare a simulated post-update date map to detect duplicate dates within the same schedule
         const simulatedDates = new Map(currentDatesByTicketId);
         for (const t of tickets) {
+            //check for valid date format
             const assignedDate = new Date(t.assignedDate);
             if (isNaN(assignedDate.getTime())) {
                 return res.status(400).json({ success: false, message: `Invalid assignedDate for ticket ${t.ticketId}.` });
             }
-            // Range check
+            // check if within range
             if (assignedDate < weekStart || assignedDate > weekEnd) {
                 return res.status(400).json({
                     success: false,
@@ -697,11 +714,12 @@ export const updateWeeklySchedule = async (req, res) => {
                     message: `Ticket ${t.ticketId} is not part of this schedule.`
                 });
             }
+
             // Simulate replacement and check duplicates
             const key = toDateKey(assignedDate);
             // Count occurrences of key in the simulated map
             const existingKey = simulatedDates.get(t.ticketId);
-            // Adjust: remove old date then set new
+            // remove old date then set new
             if (existingKey) {
                 simulatedDates.delete(t.ticketId);
             }
@@ -928,16 +946,19 @@ export const moveTicketRequestToASchedule = async (req, res) => {
     if (!targetScheduleId || !tickets || !Array.isArray(tickets) || tickets.length === 0) {
         return res.status(400).json({ 
             success: false, 
-            message: "Please provide target schedule and a valid array of tickets." 
+            message: "Please provide the target schedule and a valid array of tickets." 
         });
     }
 
     try {
         // Check if the target schedule exists
-        const targetSchedule = await global.machineriesModels.WeeklySchedule.findById(targetScheduleId);
+        const targetSchedule = await global.machineriesModels.WeeklySchedule.findById(targetScheduleId).lean();
         if (!targetSchedule) {
             return res.status(404).json({ success: false, message: "Target schedule not found."});
         }
+
+        const weekStart = new Date(targetSchedule.weekStart);
+        const weekEnd = new Date(targetSchedule.weekEnd);
 
         const ticketIds = tickets.map(t => t.ticketId);
         
@@ -950,68 +971,77 @@ export const moveTicketRequestToASchedule = async (req, res) => {
             return res.status(404).json({  success: false, message: "One or more tickets not found." });
         }
 
-        // Validate all assigned dates are within schedule range
+        // Helper to normalize dates to YYYY-MM-DD
+        const toDateKey = (d) => new Date(d).toISOString().split('T')[0];
+
+        // Build map of existing dates in target schedule (excluding tickets being moved)
+        const existingDatesInSchedule = new Set(
+            (targetSchedule.ticketRequests || [])
+                .filter(tr => !ticketIds.includes(tr.ticketRequestId.toString()))
+                .map(tr => toDateKey(tr.assignedDate))
+        );
+
+        // Validate new tickets and check for duplicate dates
+        const newTicketDates = new Set();
+        
         for (const ticket of tickets) {
             const assignedDate = new Date(ticket.assignedDate);
             
-            if (isNaN(assignedDate.getTime()) || 
-                assignedDate < targetSchedule.weekStart || 
-                assignedDate > targetSchedule.weekEnd) {
+            // Check for valid date format
+            if (isNaN(assignedDate.getTime())) {
                 return res.status(400).json({
                     success: false,
-                    message: 'Please check the ticket assigned dates. It must be within the target schedule range.'
+                    message: `Invalid assigned date for ticket ${ticket.ticketId}.`
                 });
             }
-            
-            // Check for machine unit and operator conflicts
-            if (ticket.assignedMachineUnitId || ticket.assignedOperatorId) {
-                // Format assigned date to compare only the date part (not time)
-                const dateToCheck = new Date(ticket.assignedDate);
-                dateToCheck.setHours(0, 0, 0, 0);
-                
-                const nextDay = new Date(dateToCheck);
-                nextDay.setDate(nextDay.getDate() + 1);
-                
-                // Build the conflict query
-                const conflictQuery = {
-                    _id: { $ne: ticket.ticketId }, // Exclude the current ticket
-                    assignedDate: {
-                        $gte: dateToCheck,
-                        $lt: nextDay
-                    },
-                    status: 'Scheduled'
-                };
-                
-                // Check for machine unit conflicts
-                if (ticket.assignedMachineUnitId) {
-                    const machineConflict = await global.machineriesModels.TicketRequest.findOne({
-                        ...conflictQuery,
-                        assignedMachineUnitId: ticket.assignedMachineUnitId
+
+            // Check if within schedule range
+            if (assignedDate < weekStart || assignedDate > weekEnd) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Assigned date for ticket ${ticket.ticketId} must be within the target schedule range.`
+                });
+            }
+
+            const dateKey = toDateKey(assignedDate);
+
+            // Check if date is already used in the schedule
+            if (existingDatesInSchedule.has(dateKey)) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Date ${dateKey} is already assigned to another ticket in this schedule.`
+                });
+            }
+
+            // Check for duplicate dates within the tickets being added
+            if (newTicketDates.has(dateKey)) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Only one ticket per date is allowed in a schedule. Duplicate date ${dateKey} detected.`
+                });
+            }
+
+            newTicketDates.add(dateKey);
+
+            // Validate operator exists and has correct role
+            if (ticket.assignedOperatorId) {
+                const operatorCheck = await global.globalModels.EmployeeAccount.findById(ticket.assignedOperatorId);
+                if (!operatorCheck || !operatorCheck.roles.includes('MIS')) {
+                    return res.status(404).json({ 
+                        success: false, 
+                        message: `Operator not found or does not have a valid role for ticket ${ticket.ticketId}.` 
                     });
-                    
-                    if (machineConflict) {
-                        return res.status(409).json({
-                            success: false,
-                            message: `Machine unit conflict: The machine unit assigned to ticket ${ticket.ticketId} is already scheduled for another ticket on the same date.`,
-                            conflictingTicket: machineConflict._id
-                        });
-                    }
                 }
-                
-                // Check for operator conflicts
-                if (ticket.assignedOperatorId) {
-                    const operatorConflict = await global.machineriesModels.TicketRequest.findOne({
-                        ...conflictQuery,
-                        assignedOperatorId: ticket.assignedOperatorId
+            }
+
+            // Validate machine unit exists
+            if (ticket.assignedMachineUnitId) {
+                const machineUnitCheck = await global.machineriesModels.MachineriesUnit.findById(ticket.assignedMachineUnitId);
+                if (!machineUnitCheck) {
+                    return res.status(404).json({ 
+                        success: false, 
+                        message: `Machine unit not found for ticket ${ticket.ticketId}.` 
                     });
-                    
-                    if (operatorConflict) {
-                        return res.status(409).json({
-                            success: false,
-                            message: `Operator conflict: The operator assigned to ticket ${ticket.ticketId} is already scheduled for another ticket on the same date.`,
-                            conflictingTicket: operatorConflict._id
-                        });
-                    }
                 }
             }
         }
@@ -1027,36 +1057,47 @@ export const moveTicketRequestToASchedule = async (req, res) => {
             if (ticketRequest.scheduleId && 
                 ticketRequest.scheduleId.toString() !== targetScheduleId) {
                 
-                // Remove from previous schedule
                 scheduleUpdates.push(
                     global.machineriesModels.WeeklySchedule.findByIdAndUpdate(
                         ticketRequest.scheduleId,
                         {
                             $pull: {
-                                ticketRequests: { 
-                                    "tr.trId": ticket.ticketId 
-                                }
+                                ticketRequests: { ticketRequestId: ticket.ticketId }
                             }
                         }
                     )
                 );
             }
 
+            // Fetch operator and machine to build nested objects
+            const operator = await global.globalModels.EmployeeAccount.findById(ticket.assignedOperatorId).lean();
+            const machine = await global.machineriesModels.MachineriesUnit.findById(ticket.assignedMachineUnitId).lean();
+
+            const assignedMachineUnit = {
+                assignedMachineUnitId: machine._id,
+                plateNumber: machine.plateNumber,
+                engineBrand: machine.engineBrand,
+                engineHorsepower: machine.engineHorsepower
+            };
+
+            const assignedOperator = {
+                assignedOperatorId: operator._id,
+                first_name: operator.first_name,
+                last_name: operator.last_name,
+                middle_name: operator.middle_name,
+                suffix: operator.suffix,
+                email: operator.email,
+                phone: operator.phone
+            };
+
             // Update the ticket with new schedule information
             const updateData = {
                 scheduleId: targetScheduleId,
                 assignedDate: new Date(ticket.assignedDate),
+                assignedMachineUnit,
+                assignedOperator,
                 status: 'Scheduled'
             };
-            
-            // Add optional fields if provided
-            if (ticket.assignedMachineUnitId) {
-                updateData.assignedMachineUnitId = ticket.assignedMachineUnitId;
-            }
-            
-            if (ticket.assignedOperatorId) {
-                updateData.assignedOperatorId = ticket.assignedOperatorId;
-            }
             
             updateOperations.push(
                 global.machineriesModels.TicketRequest.findByIdAndUpdate(
@@ -1067,10 +1108,9 @@ export const moveTicketRequestToASchedule = async (req, res) => {
             );
 
             // Check if the ticket is already in the target schedule
-            const ticketInSchedule = await global.machineriesModels.WeeklySchedule.findOne({
-                _id: targetScheduleId,
-                'ticketRequests.tr.trId': ticket.ticketId
-            });
+            const ticketInSchedule = targetSchedule.ticketRequests?.some(
+                tr => tr.ticketRequestId.toString() === ticket.ticketId
+            );
 
             if (!ticketInSchedule) {
                 // Add to the target schedule's ticketRequests array
@@ -1080,10 +1120,8 @@ export const moveTicketRequestToASchedule = async (req, res) => {
                         {
                             $push: {
                                 ticketRequests: {
-                                    tr: {
-                                        trId: ticket.ticketId,
-                                        assignedDate: new Date(ticket.assignedDate)
-                                    }
+                                    ticketRequestId: ticket.ticketId,
+                                    assignedDate: new Date(ticket.assignedDate)
                                 }
                             }
                         },
@@ -1096,11 +1134,11 @@ export const moveTicketRequestToASchedule = async (req, res) => {
                     global.machineriesModels.WeeklySchedule.findOneAndUpdate(
                         {
                             _id: targetScheduleId,
-                            'ticketRequests.tr.trId': ticket.ticketId
+                            'ticketRequests.ticketRequestId': ticket.ticketId
                         },
                         {
                             $set: {
-                                'ticketRequests.$.tr.assignedDate': new Date(ticket.assignedDate)
+                                'ticketRequests.$.assignedDate': new Date(ticket.assignedDate)
                             }
                         },
                         { new: true }

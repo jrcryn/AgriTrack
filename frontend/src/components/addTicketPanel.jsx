@@ -38,7 +38,7 @@ const AddTicketPanel = ({
   // Local selection state
   const [addTicketsData, setAddTicketsData] = useState([]); // [{ ticketId, assignedDate, assignedOperatorId, assignedMachineUnitId }]
   const [unitsByType, setUnitsByType] = useState({}); // typeId -> units
-
+  console.log('Add Tickets Data:', addTicketsData);
   // Reset state when modal opens/closes
   useEffect(() => {
     if (!isOpen) {
@@ -168,7 +168,7 @@ const AddTicketPanel = ({
 
     try {
       await moveToSchedule({
-        weeklyScheduleId: selectedWeeklySchedule._id,
+        targetScheduleId: selectedWeeklySchedule._id,
         tickets: addTicketsData
       });
 
@@ -239,16 +239,16 @@ const AddTicketPanel = ({
           <Box overflowX="auto">
             <Table variant="simple" size="sm">
               <Thead bg="gray.50">
-                <Tr>
+                <Tr fontSize={'xs'}>
                   <Th width={'10px'}>Select</Th>
-                  <Th width={'150px'}>Reference #</Th>
-                  <Th width={'150px'}>Requestor Farmer</Th>
-                  <Th width={'120px'}>Farm Location</Th>
-                  <Th width={'250px'}>Machine Type</Th>
+                  <Th width={'120px'}>Reference #</Th>
+                  <Th>Requestor Farmer</Th>
+                  <Th>Farm Location</Th>
+                  <Th width={'150px'}>Machine Type</Th>
                   <Th width={'100px'}>Estimated Area (ha)</Th>
-                  <Th width={'150px'}>Assigned Date</Th>
-                  <Th width={'150px'}>Operator</Th>
-                  <Th width={'150px'}>Machine Unit</Th>
+                  <Th>Assigned Date</Th>
+                  <Th width={'170px'}>Assigned Operator</Th>
+                  <Th width={'120px'}>Machine Unit</Th>
                 </Tr>
               </Thead>
               <Tbody>
@@ -283,15 +283,15 @@ const AddTicketPanel = ({
                             isDisabled={!selected && addTicketsData.length >= remainingQuota}
                           />
                         </Td>
-                        <Td fontWeight="semibold">{ticket.refNumber}</Td>
-                        <Td>{`${ticket?.requestorFarmer?.first_name || '-'} ${ticket?.requestorFarmer?.surname || '-'}`}</Td>
-                        <Td>{ticket?.barangay || '-'}</Td>
-                        <Td>{ticket?.requestedMachineType?.equipmentType || '-'}</Td>
-                        <Td>{ticket?.estimatedArea || '-'}</Td>
-                        <Td>
+                        <Td fontWeight="semibold" fontSize={'xs'}>{ticket.refNumber}</Td>
+                        <Td fontSize={'xs'}>{`${ticket?.requestorFarmer?.first_name || '-'} ${ticket?.requestorFarmer?.surname || '-'}`}</Td>
+                        <Td fontSize={'xs'}>{ticket?.barangay || '-'}</Td>
+                        <Td fontSize={'xs'}>{ticket?.requestedMachineType?.equipmentType || '-'}</Td>
+                        <Td fontSize={'xs'}>{ticket?.estimatedArea || '-'}</Td>
+                        <Td onClick={(e) => {e.stopPropagation();}}>
                           <Input
                             type="date"
-                            size="sm"
+                            size="xs"
                             value={selectedRow?.assignedDate || ''}
                             onChange={(e) => {
                               const selectedDate = e.target.value;
@@ -324,9 +324,9 @@ const AddTicketPanel = ({
                             onClick={(e) => {e.stopPropagation();}}
                           />
                         </Td>
-                        <Td>
+                        <Td onClick={(e) => {e.stopPropagation();}}>
                           <Select
-                            size="sm"
+                            size="xs"
                             placeholder="Select operator"
                             value={selectedRow?.assignedOperatorId || ''}
                             onChange={(e) => updateAddTicket(ticket._id, 'assignedOperatorId', e.target.value)}
@@ -340,9 +340,9 @@ const AddTicketPanel = ({
                             ))}
                           </Select>
                         </Td>
-                        <Td>
+                        <Td onClick={(e) => {e.stopPropagation();}}>
                           <Select
-                            size="sm"
+                            size="xs"
                             placeholder="Select machine"
                             value={selectedRow?.assignedMachineUnitId || ''}
                             onChange={(e) => updateAddTicket(ticket._id, 'assignedMachineUnitId', e.target.value)}
