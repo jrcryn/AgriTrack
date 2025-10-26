@@ -30,7 +30,6 @@ import {
 import { FiSearch, FiInbox } from 'react-icons/fi';
 import { LuLogs } from "react-icons/lu";
 import { FaEye } from 'react-icons/fa';
-import { TbFileShredder } from "react-icons/tb";
 
 import { useAdminDashboard } from '../store/adminDashboard.store.js';
 import TicketRequestPanel from '../../components/ticketRequestPanel.jsx';
@@ -201,6 +200,28 @@ const TicketRequests = () => {
   );
   console.log(weeklySchedules)
 
+  const formatDate = (dateString) => {
+    if (!dateString) return 'Not assigned';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  const formatDateWithTime = (dateString) => {
+    if (!dateString) return 'Not assigned';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
   return (
     <Box overflow="hidden" bg="white" p={5} minH="100vh">
       <Heading as="h1" size="xl" mb={2}>
@@ -314,7 +335,6 @@ const TicketRequests = () => {
                   </Thead>
                   <Tbody>
                     {pendingTickets.map((ticket) => {
-                      const date = ticket?.dateRequested ? new Date(ticket.dateRequested).toLocaleString() : '—';
                       const by = `${ticket?.requestorFarmer?.first_name || ''} ${ticket?.requestorFarmer?.surname || ''}`.trim() || '—';
                       return (   
                         <Tr key={ticket._id} fontSize="sm" onClick={() => handleSelectTickets(ticket)} cursor="pointer" >
@@ -325,12 +345,12 @@ const TicketRequests = () => {
                               isDisabled={!selectedTickets.includes(ticket) && selectedTickets.length >= MAX_SELECTIONS}
                             />
                           </Td>
-                          <Td fontWeight={'semibold'}>{ticket.refNumber || '—'}</Td>
+                          <Td fontWeight={'semibold'} >{ticket.refNumber || '—'}</Td>
                           <Td>{by || '-'}</Td>
                           <Td>{ticket?.barangay || '-'}</Td>
                           <Td>{ticket?.requestedMachineType?.equipmentType || '-'}</Td>
                           <Td>{ticket?.estimatedArea || '-'}</Td>
-                          <Td>{date}</Td>
+                          <Td>{formatDateWithTime(ticket?.dateRequested) || '-'}</Td>
                           <Td
                             isNumeric
                             position={{ base: 'static', md: 'sticky' }}
@@ -434,22 +454,6 @@ const TicketRequests = () => {
                   </Thead>
                   <Tbody>
                     {weeklySchedulesList.map((schedule) => {
-                      const date = schedule?.createdAt ? new Date(schedule.createdAt).toLocaleString() : '—';
-                      const sDate = schedule?.weekStart ? new Date(schedule.weekStart).toLocaleDateString(
-                        'en-US', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric',
-                        }
-                      ) : '—';
-                      const eDate = schedule?.weekEnd ? new Date(schedule.weekEnd).toLocaleDateString(
-                        'en-US', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric',
-                        }
-                      ) : '—';
-
                       return (
                         <Tr key={schedule._id} fontSize="sm">
                           <Td fontWeight={'semibold'}>{schedule.refNumber || '—'}</Td>
@@ -472,8 +476,8 @@ const TicketRequests = () => {
                             
                           <Td>
                             <Text>
-                              From <Text as="span" fontWeight="semibold">{sDate}</Text> to{" "} <br></br>
-                              <Text as="span" fontWeight="semibold">{eDate}</Text>
+                              From <Text as="span" fontWeight="semibold">{formatDate(schedule?.weekStart)}</Text> to{" "} <br></br>
+                              <Text as="span" fontWeight="semibold">{formatDate(schedule?.weekEnd)}</Text>
                             </Text>
                           </Td>
 
@@ -493,7 +497,7 @@ const TicketRequests = () => {
                             )}
                           </Td>
 
-                          <Td>
+                          <Td fontSize={'xs'}>
                             {schedule.ticketRequests.length === 0 ? (
                               <Text color="gray.500">No assigned machine units</Text>
                             ) : (
@@ -525,7 +529,7 @@ const TicketRequests = () => {
                             )}
                           </Td>
 
-                          <Td>{date}</Td>
+                          <Td>{formatDateWithTime(schedule?.createdAt)}</Td>
                           <Td
                             isNumeric
                             position={{ base: 'static', md: 'sticky' }} 

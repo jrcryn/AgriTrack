@@ -240,11 +240,12 @@ const AddTicketPanel = ({
             <Table variant="simple" size="sm">
               <Thead bg="gray.50">
                 <Tr>
-                  <Th>Select</Th>
+                  <Th width={'10px'}>Select</Th>
                   <Th width={'150px'}>Reference #</Th>
                   <Th width={'150px'}>Requestor Farmer</Th>
                   <Th width={'120px'}>Farm Location</Th>
-                  <Th width={'170px'}>Machine Type</Th>
+                  <Th width={'250px'}>Machine Type</Th>
+                  <Th width={'100px'}>Estimated Area (ha)</Th>
                   <Th width={'150px'}>Assigned Date</Th>
                   <Th width={'150px'}>Operator</Th>
                   <Th width={'150px'}>Machine Unit</Th>
@@ -286,28 +287,29 @@ const AddTicketPanel = ({
                         <Td>{`${ticket?.requestorFarmer?.first_name || '-'} ${ticket?.requestorFarmer?.surname || '-'}`}</Td>
                         <Td>{ticket?.barangay || '-'}</Td>
                         <Td>{ticket?.requestedMachineType?.equipmentType || '-'}</Td>
+                        <Td>{ticket?.estimatedArea || '-'}</Td>
                         <Td>
                           <Input
                             type="date"
                             size="sm"
                             value={selectedRow?.assignedDate || ''}
                             onChange={(e) => {
-      const selectedDate = e.target.value;
-      if (takenDates.includes(selectedDate)) {
-        // Date is taken: show warning, clear the input, and don't update state
-        toast({
-          title: 'Date unavailable',
-          description: 'This date is already assigned in the schedule. Please choose another date.',
-          status: 'warning',
-          duration: 3000,
-          isClosable: true
-        });
-        updateAddTicket(ticket._id, 'assignedDate', ''); // Clear the field
-      } else {
-        // Date is available: proceed with update
-        updateAddTicket(ticket._id, 'assignedDate', selectedDate);
-      }
-    }}
+                              const selectedDate = e.target.value;
+                              if (takenDates.includes(selectedDate)) {
+                                // Date is taken: show warning, clear the input, and don't update state
+                                toast({
+                                  title: 'Date unavailable',
+                                  description: 'This date is already assigned in the schedule. Please choose another.',
+                                  status: 'warning',
+                                  duration: 5000,
+                                  isClosable: true
+                                });
+                                updateAddTicket(ticket._id, 'assignedDate', ''); // Clear the field
+                              } else {
+                                // Date is available: proceed with update
+                                updateAddTicket(ticket._id, 'assignedDate', selectedDate);
+                              }
+                            }}
                             min={
                               selectedWeeklySchedule?.weekStart
                                 ? new Date(selectedWeeklySchedule.weekStart).toISOString().split('T')[0]

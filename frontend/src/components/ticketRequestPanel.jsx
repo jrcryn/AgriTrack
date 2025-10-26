@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter,
   Box, VStack, Text, Heading, Divider, SimpleGrid, Badge, Flex, Button, Tabs, TabList, TabPanels, Tab, TabPanel,
@@ -17,6 +17,7 @@ import { useAdminDashboard } from '../machineries/store/adminDashboard.store.js'
 import { useAuthStore } from '../auth/store/authStore.js';
 import { useQueryClient } from '@tanstack/react-query';
 import AddTicketPanel from './addTicketPanel.jsx';
+import { assign } from 'lodash';
 
 // Status badge styles
 const statusStyles = {
@@ -47,7 +48,7 @@ const TicketRequestPanel = ({
   const isScheduledPage = pageType === 'scheduled';
   const isOngoingPage = pageType === 'ongoing';
   const isDeclinedPage = pageType === 'declined';
-  console.log(pageType)
+  console.log('selectedWeeklySchedule:', selectedWeeklySchedule);
 
   // Schedule creation state
   const [scheduleData, setScheduleData] = useState({
@@ -55,6 +56,14 @@ const TicketRequestPanel = ({
     weekEnd: '',
     tickets: []
   });
+
+  const [ticketUpdateData, setTicketUpdateData] = useState({
+    scheduleId: selectedWeeklySchedule ? selectedWeeklySchedule._id : null,
+    tickets: []
+  });
+
+  // Add state for initial ticket data to detect changes
+  const [initialTicketData, setInitialTicketData] = useState([]);
 
   const {
     operatorsList,
@@ -75,9 +84,8 @@ const TicketRequestPanel = ({
     declineTicketRequests,
     isDecliningTicketRequests,
 
-    // pending tickets used in Add Ticket Request/s modal
-    pendingTicketRequests,
-    isLoadingPendingTicketRequests
+    updateWeeklySchedule,
+    isUpdatingWeeklySchedule,
   } = useAdminDashboard();
 
   const [selectedTicketForRemoval, setSelectedTicketForRemoval] = useState(null);
@@ -108,6 +116,50 @@ const TicketRequestPanel = ({
     }
   }, [selectedTickets, isOpen]);
 
+  // Fetch units for each unique requestedMachineType in scheduled tickets
+  useEffect(() => {
+    if (!isOpen || !selectedWeeklySchedule?.ticketRequests) return;
+
+    const uniqueTypeIds = Array.from(
+      new Set(
+        selectedWeeklySchedule.ticketRequests
+          .map(tr => tr.ticketDetails?.requestedMachineType?.requestedMachineTypeId)
+          .filter(Boolean)
+      )
+    );
+
+    uniqueTypeIds.forEach(async (typeId) => {
+      if (unitsByType[typeId]) return;
+      try {
+        const res = await getMachineryUnitsForDropDownByType(typeId);
+        setUnitsByType(prev => ({ ...prev, [typeId]: res?.data || [] }));
+      } catch (e) {
+        // Optional: handle error per type (e.g., console.error('Failed to load units for type', typeId, e));
+      }
+    });
+  }, [selectedWeeklySchedule, isOpen]);
+
+  //initialize scheduled tickets for updating 
+  useEffect(() => {
+    if (selectedWeeklySchedule && isOpen) {
+      // Initialize the schedule update data with the selected schedule's tickets
+      const initializedTickets = selectedWeeklySchedule.ticketRequests.map(ticket => ({
+        ticketId: ticket.ticketRequestId,
+        assignedDate: ticket.assignedDate ? new Date(ticket.assignedDate).toISOString().split('T')[0] : '', // Format to YYYY-MM-DD for date input
+        assignedOperatorId: ticket.ticketDetails?.assignedOperator?._id || '', 
+        assignedMachineUnitId: ticket.ticketDetails?.assignedMachineUnit?._id || ''
+      }));
+      
+      setTicketUpdateData(prev => ({
+        ...prev,
+        tickets: initializedTickets
+      }));
+
+      // Set initial data for change detection
+      setInitialTicketData(initializedTickets);
+    }
+  }, [selectedWeeklySchedule, isOpen]);
+
   // Fetch units for each unique requestedMachineType when selection changes
   useEffect(() => {
     if (!isOpen || selectedTickets.length === 0) return;
@@ -135,6 +187,15 @@ const TicketRequestPanel = ({
   // Update a specific ticket in the schedule, pag gagawa ng schedule yung
   const updateTicketInSchedule = (ticketId, field, value) => {
     setScheduleData(prev => ({
+      ...prev,
+      tickets: prev.tickets.map(ticket => 
+        ticket.ticketId === ticketId ? { ...ticket, [field]: value } : ticket
+      )
+    }));
+  };
+
+  const updateTicketInUpdateData = (ticketId, field, value) => {
+    setTicketUpdateData(prev => ({
       ...prev,
       tickets: prev.tickets.map(ticket => 
         ticket.ticketId === ticketId ? { ...ticket, [field]: value } : ticket
@@ -301,7 +362,69 @@ const TicketRequestPanel = ({
       });
     }
   };
-  
+
+  const handleUpdateSchedule = async () => {
+    // Filter to only changed tickets
+    const changedTickets = ticketUpdateData.tickets.filter((current, index) => {
+      const initial = initialTicketData[index];
+      return (
+        current.ticketId !== initial.ticketId ||
+        current.assignedDate !== initial.assignedDate ||
+        current.assignedOperatorId !== initial.assignedOperatorId ||
+        current.assignedMachineUnitId !== initial.assignedMachineUnitId
+      );
+    });
+
+    // Validate only changed tickets
+    const incompleteTickets = changedTickets.filter(
+      ticket => !ticket.assignedDate || !ticket.assignedOperatorId || !ticket.assignedMachineUnitId
+    );
+    
+    if (incompleteTickets.length > 0) {
+      toast({
+        title: "Incomplete ticket assignments",
+        description: `${incompleteTickets.length} ticket(s) are missing date, operator, or machinery assignments`,
+        status: "warning",
+        duration: 4000,
+        isClosable: true
+      });
+      return;
+    }
+
+    try {
+      const response = await updateWeeklySchedule({
+        scheduleId: ticketUpdateData.scheduleId,
+        tickets: changedTickets
+      });
+      
+      toast({
+        title: "Success",
+        description: response.message || "Weekly schedule updated successfully",
+        status: "success",
+        duration: 5000,
+        isClosable: true
+      });
+      
+      onClose();
+      
+      // Invalidate queries to refresh data
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['weeklySchedules'] }),
+        queryClient.invalidateQueries({ queryKey: ['scheduledTicketRequests'] })
+      ]);
+      
+    } catch (error) {
+      console.error('Error updating weekly schedule:', error);
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Failed to update weekly schedule",
+        status: "error",
+        duration: 5000,
+        isClosable: true
+      });
+    }
+  };
+
   // Format date for display
   const formatDate = (dateString) => {
     if (!dateString) return 'Not assigned';
@@ -310,6 +433,18 @@ const TicketRequestPanel = ({
       year: 'numeric',
       month: 'short',
       day: 'numeric'
+    });
+  };
+
+  const formatDateWithTime = (dateString) => {
+    if (!dateString) return 'Not assigned';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
     });
   };
 
@@ -390,6 +525,20 @@ const TicketRequestPanel = ({
       )}
     </Box>
   );
+
+  // Compute if there are changes
+  const hasChanges = useMemo(() => {
+    if (ticketUpdateData.tickets.length !== initialTicketData.length) return false;
+    return ticketUpdateData.tickets.some((current, index) => {
+      const initial = initialTicketData[index];
+      return (
+        current.ticketId !== initial.ticketId ||
+        current.assignedDate !== initial.assignedDate ||
+        current.assignedOperatorId !== initial.assignedOperatorId ||
+        current.assignedMachineUnitId !== initial.assignedMachineUnitId
+      );
+    });
+  }, [ticketUpdateData.tickets, initialTicketData]);
 
   return (
     <>
@@ -479,15 +628,17 @@ const TicketRequestPanel = ({
                           <Heading size="sm">Selected Tickets</Heading>
                           <Box overflowX="auto">
                             <Table variant="simple" size="sm">
-                              <Thead>
-                                <Tr>
-                                  <Th>Reference #</Th>
-                                  <Th>Farmer</Th>
-                                  <Th>Machine Type</Th>
-                                  <Th>Assigned Date</Th>
-                                  <Th>Operator</Th>
-                                  <Th>Machine Unit</Th>
-                                </Tr>
+                              <Thead bg="gray.50">
+                                <Tr fontSize={'xs'}>
+                                    <Th width={'120px'}>Reference #</Th>
+                                    <Th>Requestor Farmer</Th>
+                                    <Th>Farm Location</Th>
+                                    <Th width={'150px'}>Machine Type</Th>
+                                    <Th width={'100px'}>Estimated Area (ha)</Th>
+                                    <Th>Assigned Date</Th>
+                                    <Th width={'170px'}>Assigned Operator</Th>
+                                    <Th width={'120px'}>Machine Unit</Th>
+                                  </Tr>
                               </Thead>
                               <Tbody>
                                 {scheduleData.tickets.map((ticketData) => {
@@ -496,13 +647,14 @@ const TicketRequestPanel = ({
                                   const unitsForType = (typeId && unitsByType[typeId]) ? unitsByType[typeId] : [];
                                   return (
                                     <Tr key={ticketData.ticketId}>
-                                      <Td fontWeight={'semibold'}>{ticket?.refNumber}</Td>
-                                      <Td>{`${ticket?.requestorFarmer?.first_name} ${ticket?.requestorFarmer?.surname}`}</Td>
-                                      <Td>{ticket?.requestedMachineType?.equipmentType}</Td>
-                                      <Td>
+                                      <Td fontWeight={'semibold'} fontSize={'xs'}>{ticket?.refNumber}</Td>
+                                      <Td fontSize={'xs'}>{`${ticket?.requestorFarmer?.first_name} ${ticket?.requestorFarmer?.surname}`}</Td>
+                                      <Td fontSize={'xs'}>{ticket?.barangay}</Td>
+                                      <Td fontSize={'xs'}>{ticket?.requestedMachineType?.equipmentType}</Td>
+                                      <Td fontSize={'xs'}>{ticket?.estimatedArea}</Td>
+                                      <Td fontSize={'xs'}>
                                         <Input
                                           type="date"
-                                          size="sm"
                                           value={ticketData.assignedDate}
                                           onChange={(e) => updateTicketInSchedule(
                                             ticketData.ticketId, 
@@ -511,11 +663,11 @@ const TicketRequestPanel = ({
                                           )}  
                                           min={scheduleData.weekStart || undefined}
                                           max={scheduleData.weekEnd || undefined}
+                                          size={'xs'}
                                         />
                                       </Td>
                                       <Td>
                                         <Select
-                                          size="sm"
                                           placeholder="Select operator"
                                           value={ticketData.assignedOperatorId}
                                           onChange={(e) => updateTicketInSchedule(
@@ -524,6 +676,7 @@ const TicketRequestPanel = ({
                                             e.target.value
                                           )}
                                           isDisabled={isLoadingOperatorsList}
+                                          size={'xs'}
                                         >
                                           {operatorsList?.data?.map(op => (
                                             <option key={op._id} value={op._id}>
@@ -534,7 +687,6 @@ const TicketRequestPanel = ({
                                       </Td>
                                       <Td>
                                         <Select
-                                          size="sm"
                                           placeholder="Select machine"
                                           value={ticketData.assignedMachineUnitId}
                                           onChange={(e) => updateTicketInSchedule(
@@ -543,6 +695,7 @@ const TicketRequestPanel = ({
                                             e.target.value
                                           )}
                                           isDisabled={!typeId || !unitsByType[typeId]}
+                                          size={'xs'}
                                         >
                                           {unitsForType.map(unit => (
                                             <option key={unit._id} value={unit._id}>
@@ -641,12 +794,9 @@ const TicketRequestPanel = ({
                                 </Badge>
                               </Box>
                               <Box>
-                                <Text fontWeight="bold" fontSize="sm" color="gray.600">Week Start</Text>
-                                <Text fontSize="md">{formatDate(selectedWeeklySchedule?.weekStart)}</Text>
-                              </Box>
-                              <Box>
-                                <Text fontWeight="bold" fontSize="sm" color="gray.600">Week End</Text>
-                                <Text fontSize="md">{formatDate(selectedWeeklySchedule?.weekEnd)}</Text>
+                                <Text fontWeight="bold" fontSize="sm" color="gray.600">Date Range</Text>
+                                  <Text as="span" fontWeight="semibold">{formatDate(selectedWeeklySchedule?.weekStart)}</Text> to{" "}
+                                  <Text as="span" fontWeight="semibold">{formatDate(selectedWeeklySchedule?.weekEnd)}</Text>
                               </Box>
                               {selectedWeeklySchedule.createdAt && (
                                 <Box>
@@ -664,52 +814,130 @@ const TicketRequestPanel = ({
                           <Divider my={3} />
                           
                           <Heading size="sm" mb={3}>Scheduled Tickets</Heading>
-                          <Box overflowX="auto">
-                          <Table variant="simple" size="sm">
-                            <Thead bg="gray.50">
-                              <Tr>
-                                <Th>Reference #</Th>
-                                <Th>Farmer</Th>
-                                <Th>Barangay</Th>
-                                <Th>Machine</Th>
-                                <Th>Estimated Area (ha)</Th>
-                                <Th>Assigned Date</Th>
-                                <Th>Machine Unit</Th>
-                                <Th>Operator</Th>
-                                <Th></Th>
-                              </Tr>
-                            </Thead>
-                            <Tbody>
-                              {selectedWeeklySchedule.ticketRequests.map(tr => {
-                                const ticket = tr.ticketDetails;
-                                if (!ticket) return null;
-                                
-                                return (
-                                  <Tr key={tr.ticketRequestId}>
-                                    <Td fontWeight="semibold">{ticket.refNumber}</Td>
-                                    <Td>{`${ticket.requestorFarmer?.first_name} ${ticket.requestorFarmer?.surname}`}</Td>
-                                    <Td>{ticket.barangay}</Td>
-                                    <Td>{ticket.requestedMachineType?.equipmentType}</Td>
-                                    <Td>{ticket.estimatedArea}</Td>
-                                    <Td>{formatDate(tr.assignedDate)}</Td>
-                                    <Td>{ticket.assignedMachineUnit?.plateNumber}</Td>
-                                    <Td>{`${ticket.assignedOperator?.first_name} ${ticket.assignedOperator?.last_name}`}</Td>
-                                    <Td>
-                                      <Button
-                                        colorScheme='red'
-                                        size={'xs'}
-                                        mr={5}
-                                        onClick={() => {onOpenRemoveModal(); setSelectedTicketForRemoval(tr.ticketRequestId)}}
-                                      >
-                                        <IoIosRemoveCircle  />
-                                      </Button>
-                                    </Td>
+                            <Box overflowX="auto">
+                              <Table variant="simple" size="sm">
+                                <Thead bg="gray.50">
+                                  <Tr fontSize={'xs'}>
+                                    <Th width={'120px'}>Reference #</Th>
+                                    <Th>Requestor Farmer</Th>
+                                    <Th>Farm Location</Th>
+                                    <Th width={'150px'}>Machine Type</Th>
+                                    <Th width={'100px'}>Estimated Area (ha)</Th>
+                                    <Th>Assigned Date</Th>
+                                    <Th width={'170px'}>Assigned Operator</Th>
+                                    <Th width={'120px'}>Machine Unit</Th>
+                                    <Th></Th>
                                   </Tr>
-                                );
-                              })}
-                            </Tbody>
-                          </Table>
-                          </Box>
+                                </Thead>
+                                <Tbody>
+                                  {selectedWeeklySchedule.ticketRequests.map((tr, index) => {
+                                    const ticket = tr.ticketDetails;
+                                    if (!ticket) return null;
+                                    
+                                    const updateTicket = ticketUpdateData.tickets.find(t => t.ticketId === tr.ticketRequestId);
+                                    const typeId = ticket?.requestedMachineType?.requestedMachineTypeId;
+                                    const unitsForType = (typeId && unitsByType[typeId]) ? unitsByType[typeId] : [];
+                                    
+                                    // Sort operators: current first
+                                    const sortedOperators = [...(operatorsList?.data || [])].sort((a, b) => {
+                                      if (a._id === updateTicket?.assignedOperatorId) return -1;
+                                      if (b._id === updateTicket?.assignedOperatorId) return 1;
+                                      return 0;
+                                    });
+
+                                    // Sort machines: current first
+                                    const sortedUnits = [...unitsForType].sort((a, b) => {
+                                      if (a._id === updateTicket?.assignedMachineUnitId) return -1;
+                                      if (b._id === updateTicket?.assignedMachineUnitId) return 1;
+                                      return 0;
+                                    });
+                                    
+                                    return (
+                                      <Tr key={tr.ticketRequestId}>
+                                        <Td fontWeight="semibold" fontSize={'xs'}>{ticket.refNumber}</Td>
+                                        <Td fontSize={'xs'}>{`${ticket.requestorFarmer?.first_name} ${ticket.requestorFarmer?.surname}`}</Td>
+                                        <Td fontSize={'xs'}>{ticket.barangay}</Td>
+                                        <Td fontSize={'xs'}>{ticket.requestedMachineType?.equipmentType}</Td>
+                                        <Td fontSize={'xs'}>{ticket.estimatedArea}</Td>
+                                        <Td>
+                                          <Input
+                                            type="date"
+                                            size="xs"
+                                            value={updateTicket?.assignedDate || ''}
+                                            onChange={(e) => updateTicketInUpdateData(
+                                              tr.ticketRequestId, 
+                                              'assignedDate', 
+                                              e.target.value
+                                            )}  
+                                            min={selectedWeeklySchedule.weekStart || undefined}
+                                            max={selectedWeeklySchedule.weekEnd || undefined}
+                                          />
+                                        </Td>
+                                        <Td>
+                                          <Select
+                                            size="xs"
+                                            placeholder={tr.assignedOperator} //needs changing !!!!
+                                            value={updateTicket?.assignedOperatorId || ''}
+                                            onChange={(e) => updateTicketInUpdateData(
+                                              tr.ticketRequestId,
+                                              'assignedOperatorId',
+                                              e.target.value
+                                            )}
+                                            isDisabled={isLoadingOperatorsList}
+                                          >
+                                            {sortedOperators.map(op => (
+                                              <option key={op._id} value={op._id}>
+                                                {`${op.first_name} ${op.last_name}`}
+                                              </option>
+                                            ))}
+                                          </Select>
+                                        </Td>
+                                        <Td>
+                                          <Select
+                                            size="xs"
+                                            placeholder={tr.assignedMachineUnit} 
+                                            value={updateTicket?.assignedMachineUnitId || ''}
+                                            onChange={(e) => updateTicketInUpdateData(
+                                              tr.ticketRequestId,
+                                              'assignedMachineUnitId',
+                                              e.target.value
+                                            )}
+                                            isDisabled={!typeId || !unitsForType.length}
+                                          >
+                                            {sortedUnits.map(unit => (
+                                              <option key={unit._id} value={unit._id}>
+                                                {unit.plateNumber} - {unit.machineryTypeId?.equipmentType}
+                                              </option>
+                                            ))}
+                                          </Select>
+                                        </Td>
+                                        <Td>
+                                          <Button
+                                            colorScheme='red'
+                                            size={'xs'}
+                                            mr={5}
+                                            onClick={() => {onOpenRemoveModal(); setSelectedTicketForRemoval(tr.ticketRequestId)}}
+                                          >
+                                            <IoIosRemoveCircle />
+                                          </Button>
+                                        </Td>
+                                      </Tr>
+                                    );
+                                  })}
+                                </Tbody>
+                              </Table>
+                            </Box>
+                            <Flex justify="flex-end" mt={4}>
+                              {hasChanges && (
+                                <Button
+                                  colorScheme="blue"
+                                  onClick={handleUpdateSchedule}
+                                  isLoading={isUpdatingWeeklySchedule}
+                                >
+                                  Update Schedule
+                                </Button>
+                              )}
+                            </Flex>
                         </Box>
                         {selectedWeeklySchedule?.ticketRequests?.length < 5 && (
                           <Flex justify="flex-end" mt={7}>

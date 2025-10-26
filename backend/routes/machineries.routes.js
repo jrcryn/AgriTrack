@@ -20,7 +20,8 @@ import {
     getMachineryUnitsForDropDown,
     archiveTicketRequest,
     declineTicketRequest,
-    getWeeklySchedules
+    getWeeklySchedules,
+    updateWeeklySchedule
 } from '../controller/machineries/adminDashboard.controller.js';
 
 import { generateMachineryExcelReport } from '../controller/machineries/genReports.controller.js';
@@ -52,10 +53,10 @@ router.get('/get-weekly-schedules', getWeeklySchedules);
 
 router.post('/archive-ticket-request', archiveTicketRequest);
 router.post('/decline-ticket-requests', declineTicketRequest);
-
 router.post('/create-weekly-schedule', createWeeklySchedule); //working
 router.post('/remove-from-schedule/:ticketRequestId', removeTicketRequestFromSchedule); //working
 router.post('/move-to-schedule', moveTicketRequestToASchedule);  // FOR REVIEW
+router.post('/update-weekly-schedule', updateWeeklySchedule); // new route
 
 
 // Public API routes

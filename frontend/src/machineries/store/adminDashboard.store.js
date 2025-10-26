@@ -160,6 +160,8 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
     const [isSubmittingTicketRequest, setIsSubmittingTicketRequest] = useState(false);
     const [isArchivingTicketRequest, setIsArchivingTicketRequest] = useState(false);
     const [isDecliningTicketRequests, setIsDecliningTicketRequests] = useState(false); 
+    const [isUpdatingWeeklySchedule, setIsUpdatingWeeklySchedule] = useState(false); // new flag
+
     // Actions
     const createMachineryType = async (data) => {
         setIsCreatingMachineryType(true);
@@ -298,6 +300,19 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         }
     };
 
+    // Add: update weekly schedule action
+    const updateWeeklySchedule = async (data) => {
+        setIsUpdatingWeeklySchedule(true);
+        try {
+            const res = await axios.post(`${API_URL}/api/machineries/update-weekly-schedule`, data);
+            return res.data;
+        } catch (error) {
+            throw error;
+        } finally {
+            setIsUpdatingWeeklySchedule(false);
+        }
+    };
+
     // Fetch units for dropdown filtered by machineryTypeId (new)
     const getMachineryUnitsForDropDownByType = async (machineryTypeId) => {
         try {
@@ -335,6 +350,7 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         archiveTicketRequest,
         declineTicketRequests, 
         getMachineryUnitsForDropDownByType,
+        updateWeeklySchedule, // expose action
 
         // loading states (queries)
         isLoadingMachineryTypes,
@@ -359,6 +375,7 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         isSubmittingTicketRequest,
         isArchivingTicketRequest,
         isDecliningTicketRequests, // added
+        isUpdatingWeeklySchedule,  // expose flag
 
         // error states
         machineryTypesError,
