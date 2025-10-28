@@ -1,4 +1,3 @@
-import { stat } from 'fs';
 import mongoose from 'mongoose';
 
 export const ticketRequestSchema = new mongoose.Schema({
@@ -47,7 +46,7 @@ export const ticketRequestSchema = new mongoose.Schema({
     // to be filled in when a schedule is created
     scheduleId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Request_Schedule',
+        ref: 'Weekly_Schedule',
     },
     assignedDate: Date,
     assignedMachineUnit: {
@@ -71,4 +70,4 @@ export const ticketRequestSchema = new mongoose.Schema({
         email: String,
         phone: String
     }
-}, { versionKey: false }, { timestamps: true });
+}, { versionKey: false, timestamps: true });

@@ -20,7 +20,7 @@ import {
     getMachineryUnitsForDropDown,
     archiveTicketRequest,
     declineTicketRequest,
-    getWeeklySchedules,
+    getPlannedWeeklySchedules,
     updateWeeklySchedule
 } from '../controller/machineries/adminDashboard.controller.js';
 
@@ -49,7 +49,7 @@ router.get('/get-scheduled-ticket-requests', getScheduledTicketRequests);
 router.get('/get-declined-ticket-requests', getDeclinedTicketRequests); 
 router.get('/get-operators-list', getOperatorsList); //working frontend
 router.get('/get-machinery-units-for-dropdown', getMachineryUnitsForDropDown); //working frontend
-router.get('/get-weekly-schedules', getWeeklySchedules); 
+router.get('/get-planned-weekly-schedules', getPlannedWeeklySchedules); 
 
 router.post('/archive-ticket-request', archiveTicketRequest);
 router.post('/decline-ticket-requests', declineTicketRequest); //working frontend
@@ -62,5 +62,4 @@ router.post('/update-weekly-schedule', updateWeeklySchedule); // for review
 // Public API routes
 router.get('/get-available-machinery-types', formGetAvailableMachineryTypes); //working
 router.post('/submit-ticket-request', createTicketRequestForm); //working
-
 export default router;

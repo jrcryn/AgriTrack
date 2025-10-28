@@ -66,9 +66,9 @@ const TicketRequests = () => {
     declinedTicketRequestsError,
     pendingTicketRequestsError,
 
-    weeklySchedules,
-    isLoadingWeeklySchedules,
-    weeklySchedulesError
+    plannedWeeklySchedules,
+    isLoadingPlannedWeeklySchedules,
+    plannedWeeklySchedulesError
   } = useAdminDashboard(
     { pendingPage, ongoingPage, schedulesPage, declinedPage },
     { searchQuery }
@@ -117,9 +117,9 @@ const TicketRequests = () => {
   useEffect(() => {
     if (!reopenScheduleId) return;
     // Wait until refetch done
-    if (isLoadingWeeklySchedules) return;
+    if (isLoadingPendingTicketRequests) return;
 
-    const list = weeklySchedules?.data?.relevantSchedules || [];
+    const list = plannedWeeklySchedules?.data?.relevantSchedules || [];
     const refreshed = list.find(s => s._id === reopenScheduleId);
     if (refreshed) {
       // Ensure we’re on the scheduled page and not in details mode
@@ -131,7 +131,7 @@ const TicketRequests = () => {
       onOpen();
       setReopenScheduleId(null);
     }
-  }, [reopenScheduleId, isLoadingWeeklySchedules, weeklySchedules , pageType]);
+  }, [reopenScheduleId, isLoadingPlannedWeeklySchedules, plannedWeeklySchedules , pageType]);
 
 
   const pendingTickets = pendingTicketRequests?.data?.relevantTickets || [];
@@ -154,10 +154,10 @@ const TicketRequests = () => {
   const declinedCurrentPage = declinedTicketRequests?.data?.currentPage || 1;
   const declinedTotalItems = declinedTicketRequests?.data?.totalCount || 0;
 
-  const weeklySchedulesList = weeklySchedules?.data?.relevantSchedules || [];
-  const schedulesTotalPages = weeklySchedules?.data?.totalPages || 1;
-  const schedulesCurrentPage = weeklySchedules?.data?.currentPage || 1;
-  const schedulesTotalItems = weeklySchedules?.data?.totalCount || 0;
+  const plannedWeeklySchedulesList = plannedWeeklySchedules?.data?.relevantSchedules || [];
+  const plannedSchedulesTotalPages = plannedWeeklySchedules?.data?.totalPages || 1;
+  const plannedSchedulesCurrentPage = plannedWeeklySchedules?.data?.currentPage || 1;
+  const plannedSchedulesTotalItems = plannedWeeklySchedules?.data?.totalCount || 0;
 
   const width = (!isViewingDetails) ? '6xl' : '2xl';
   const height = (!isViewingDetails) ? '835px' : '300px';
@@ -198,7 +198,6 @@ const TicketRequests = () => {
       </Flex>
     </Flex>
   );
-  console.log(weeklySchedules)
 
   const formatDate = (dateString) => {
     if (!dateString) return 'Not assigned';
@@ -422,11 +421,11 @@ const TicketRequests = () => {
             </Heading>
           </Flex>
 
-          {isLoadingWeeklySchedules ? (
+          {isLoadingPlannedWeeklySchedules ? (
             <Center p={10}>
               <Spinner size="lg" color={'green.500'} />
             </Center>
-          ) : weeklySchedulesList.length > 0 ? (
+          ) : plannedWeeklySchedulesList.length > 0 ? (
             <Box overflowX="auto">
               <TableContainer>
                 <Table variant="simple" size="md">
@@ -453,10 +452,10 @@ const TicketRequests = () => {
                     </Tr>
                   </Thead>
                   <Tbody>
-                    {weeklySchedulesList.map((schedule) => {
+                    {plannedWeeklySchedulesList.map((schedule) => {
                       return (
                         <Tr key={schedule._id} fontSize="sm">
-                          <Td fontWeight={'semibold'}>{schedule.refNumber || '—'}</Td>
+                          <Td fontWeight={'semibold'}>{schedule?.refNumber || '—'}</Td>
 
                           <Td> 
                             {schedule.ticketRequests.length === 0 ? (
@@ -466,7 +465,7 @@ const TicketRequests = () => {
                                 {schedule.ticketRequests.map((ticket) => (
                                   <Flex key={ticket._id} align='center' justify="space-between" gap={2}>
                                     <Flex direction='column'>
-                                      <Text fontWeight='medium'>{ticket.ticketDetails.refNumber}</Text>
+                                      <Text fontWeight='medium'>{ticket.ticketDetails?.refNumber}</Text>
                                     </Flex>
                                   </Flex>
                                 ))}
@@ -579,10 +578,10 @@ const TicketRequests = () => {
 
           <Flex justifyContent="space-between" alignItems="center" mt={4}>
             <PaginationControls
-              currentPage={schedulesCurrentPage}
+              currentPage={plannedSchedulesCurrentPage}
               setCurrentPage={setSchedulesPage}
-              totalPages={schedulesTotalPages}
-              totalItems={schedulesTotalItems}
+              totalPages={plannedSchedulesTotalPages}
+              totalItems={plannedSchedulesTotalItems}
               colorScheme='green'
             />
           </Flex>

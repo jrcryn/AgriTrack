@@ -95,11 +95,11 @@ const useOperatorsListQuery = () =>
         enabled: true, // Enable for all roles since we need this data in the TicketRequestPanel
     });
 
-const useWeeklySchedulesQuery = (page = 1, searchQuery = {}, role) =>
+const usePlannedWeeklySchedulesQuery = (page = 1, searchQuery = {}, role) =>
     useQuery({
-        queryKey: ['weeklySchedules', page, searchQuery],
+        queryKey: ['plannedWeeklySchedules', page, searchQuery],
         queryFn: async () => {
-            const res = await axios.get(`${API_URL}/api/machineries/get-weekly-schedules`, {
+            const res = await axios.get(`${API_URL}/api/machineries/get-planned-weekly-schedules`, {
                 params: { page, limit: 10, ...searchQuery },
             });
             return res.data;
@@ -145,8 +145,8 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
     const { data: operatorsList = [], isLoading: isLoadingOperatorsList, error: operatorsListError } =
         useOperatorsListQuery(role);
 
-    const { data: weeklySchedules = [], isLoading: isLoadingWeeklySchedules, error: weeklySchedulesError } =
-        useWeeklySchedulesQuery(schedulesPage, searchQuery, role);
+    const { data: plannedWeeklySchedules = [], isLoading: isLoadingPlannedWeeklySchedules, error: plannedWeeklySchedulesError } =
+        usePlannedWeeklySchedulesQuery(schedulesPage, searchQuery, role);
 
     // Action flags
     const [isCreatingMachineryType, setIsCreatingMachineryType] = useState(false);
@@ -300,7 +300,6 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         }
     };
 
-    // Add: update weekly schedule action
     const updateWeeklySchedule = async (data) => {
         setIsUpdatingWeeklySchedule(true);
         try {
@@ -335,7 +334,7 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         declinedTicketRequests,
         availableMachineryTypes,
         operatorsList,
-        weeklySchedules, // Add this to expose the weekly schedules
+        plannedWeeklySchedules, // Add this to expose the weekly schedules
 
         // actions
         createMachineryType,
@@ -361,7 +360,7 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         isLoadingDeclinedTicketRequests,
         isLoadingAvailableMachineryTypes,
         isLoadingOperatorsList,
-        isLoadingWeeklySchedules, // Add this loading state
+        isLoadingPlannedWeeklySchedules, // Add this loading state
 
         // action flags
         isCreatingMachineryType,
@@ -386,6 +385,6 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         declinedTicketRequestsError,
         availableMachineryTypesError,
         operatorsListError,
-        weeklySchedulesError, // Add this error state
+        plannedWeeklySchedulesError, // Add this error state
     };
 };

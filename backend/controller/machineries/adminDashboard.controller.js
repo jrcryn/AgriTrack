@@ -1558,7 +1558,7 @@ export const getOperatorsList = async (req, res) => {
     }
 };
 
-export const getWeeklySchedules = async (req, res) => {
+export const getPlannedWeeklySchedules = async (req, res) => { //planned or scheduled weekly schedules
     const { searchQuery } = req.query;
     try {
         const page = parseInt(req.query.page) || 1;
@@ -1566,7 +1566,8 @@ export const getWeeklySchedules = async (req, res) => {
         const skip = (page - 1) * limit;
 
         // Build match criteria for search
-        let matchCriteria = {};
+        let matchCriteria = { status: 'Planned' };
+        
         if (searchQuery && searchQuery.trim() !== '') {
             const words = searchQuery.trim().split(/\s+/);
             const searchConditions = words.map((word) => ({
@@ -1575,7 +1576,7 @@ export const getWeeklySchedules = async (req, res) => {
                     { status: { $regex: word, $options: 'i' } }
                 ],
             }));
-            matchCriteria = { $and: searchConditions };
+            matchCriteria = { $and: [ { status: 'Planned' }, ...searchConditions ] };
         }
 
         // Find schedules with pagination
@@ -1635,10 +1636,10 @@ export const getWeeklySchedules = async (req, res) => {
             }
         });
     } catch (error) {
-        console.error("Error fetching weekly schedules:", error);
+        console.error("Error fetching planned weekly schedules:", error);
         return res.status(500).json({ 
             success: false, 
-            message: "Error fetching weekly schedules.", 
+            message: "Error fetching planned weekly schedules.", 
             error: error.message 
         });
     }

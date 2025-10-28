@@ -35,7 +35,10 @@ import machineriesRoutes from './routes/machineries.routes.js';
 import docTrackRoutes from './routes/doc-track.routes.js';
 import authRoutes from './routes/auth.routes.js';
 import globalRoutes from './routes/global.routes.js';
-import userSettingsRoutes from './routes/userSettings.route.js';     
+import userSettingsRoutes from './routes/userSettings.route.js';  
+
+import { updateScheduleStatus } from './utils/scheduleUpdater.js'; 
+import { startScheduleStatusCron } from './utils/cronScheduleUpdater.js';
 
 async function startServer() {
     // Wait for all initializers to finish
@@ -45,6 +48,16 @@ async function startServer() {
         initDocTrack(),
         initGlobal(),
     ]);
+
+    try {
+        await updateScheduleStatus();
+        console.log('Schedule status update completed at startup.');
+    } catch (err) {
+        console.error('Schedule updater failed at startup:', err);
+    }
+
+    // Start daily cron updater
+    startScheduleStatusCron();
 
     // Now that globals are set, add routes
     app.use("/api/hvc", highValueCropsRoutes);
