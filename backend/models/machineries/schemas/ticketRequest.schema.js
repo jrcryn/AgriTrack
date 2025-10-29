@@ -30,6 +30,7 @@ export const ticketRequestSchema = new mongoose.Schema({
     estimatedArea: { type: Number, required: true},
     dateRequested: {type: Date, required: true},
     status: { type: String, enum: ['Pending', 'Scheduled', 'Ongoing' ,'Declined'] },
+    disabledForEditing: Boolean,
 
     declinedBy: {
         employeeId: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee_Account' },

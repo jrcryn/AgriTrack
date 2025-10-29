@@ -107,6 +107,18 @@ const usePlannedWeeklySchedulesQuery = (page = 1, searchQuery = {}, role) =>
         enabled: role === 'MIM' || role === 'MIS',
     });
 
+const useInProgressWeeklySchedulesQuery = (page = 1, searchQuery = {}, role) =>
+    useQuery({
+        queryKey: ['inProgressWeeklySchedules', page, searchQuery],
+        queryFn: async () => {
+            const res = await axios.get(`${API_URL}/api/machineries/get-in-progress-weekly-schedules`, {
+                params: { page, limit: 10, ...searchQuery },
+            });
+            return res.data;
+        },
+        enabled: role === 'MIM' || role === 'MIS',
+    });
+
 // Exported store
 export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
     const { user } = useAuthStore();
@@ -147,6 +159,9 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
 
     const { data: plannedWeeklySchedules = [], isLoading: isLoadingPlannedWeeklySchedules, error: plannedWeeklySchedulesError } =
         usePlannedWeeklySchedulesQuery(schedulesPage, searchQuery, role);
+
+    const { data: inProgressWeeklySchedules = [], isLoading: isLoadingInProgressWeeklySchedules, error: inProgressWeeklySchedulesError } =
+        useInProgressWeeklySchedulesQuery(schedulesPage, searchQuery, role);
 
     // Action flags
     const [isCreatingMachineryType, setIsCreatingMachineryType] = useState(false);
@@ -335,6 +350,7 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         availableMachineryTypes,
         operatorsList,
         plannedWeeklySchedules, // Add this to expose the weekly schedules
+        inProgressWeeklySchedules,
 
         // actions
         createMachineryType,
@@ -361,6 +377,7 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         isLoadingAvailableMachineryTypes,
         isLoadingOperatorsList,
         isLoadingPlannedWeeklySchedules, // Add this loading state
+        isLoadingInProgressWeeklySchedules,
 
         // action flags
         isCreatingMachineryType,
@@ -386,5 +403,6 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         availableMachineryTypesError,
         operatorsListError,
         plannedWeeklySchedulesError, // Add this error state
+        inProgressWeeklySchedulesError,
     };
 };

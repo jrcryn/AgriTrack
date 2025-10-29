@@ -742,7 +742,7 @@ export const updateWeeklySchedule = async (req, res) => {
             });
         }
 
-        // Validate operators and machines exist (but no conflict checking). Operators and machine units, can be used at multiple dates or even all of the dates, its just that, a ticket request cannot have a same day.
+        // Validate operators and machines exist (but no conflict checking), also kung naka true yung disabledForEditing. Operators and machine units, can be used at multiple dates or even all of the dates, its just that, a ticket request cannot have a same day.
         for (const t of tickets) {
             // Validate operator exists and has correct role
             const operatorDoc = await global.globalModels.EmployeeAccount.findById(t.assignedOperatorId);
@@ -761,6 +761,14 @@ export const updateWeeklySchedule = async (req, res) => {
                     message: `Machine unit ${t.assignedMachineUnitId} not found.`
                 });
             }
+            const ticketDoc = await global.machineriesModels.TicketRequest.findById(t.ticketId).lean();
+            if (ticketDoc.disabledForEditing === true) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Ticket ${ticketDoc.refNumber} is disabled for editing and cannot be updated in this schedule.`
+                });
+            }
+
         }
 
         // All validations passed - perform updates
@@ -813,7 +821,7 @@ export const updateWeeklySchedule = async (req, res) => {
             );
         }
 
-        const results = await Promise.all(updateOps);
+        await Promise.all(updateOps);
 
         return res.status(200).json({
             success: true,
@@ -1640,6 +1648,93 @@ export const getPlannedWeeklySchedules = async (req, res) => { //planned or sche
         return res.status(500).json({ 
             success: false, 
             message: "Error fetching planned weekly schedules.", 
+            error: error.message 
+        });
+    }
+};
+
+export const getInProgressWeeklySchedules = async (req, res) => { //in progress or ongoing weekly schedules
+    const { searchQuery } = req.query;
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+
+        // Build match criteria for search
+        let matchCriteria = { status: 'In Progress' };
+
+        if (searchQuery && searchQuery.trim() !== '') {
+            const words = searchQuery.trim().split(/\s+/);
+            const searchConditions = words.map((word) => ({
+                $or: [
+                    { refNumber: { $regex: word, $options: 'i' } },
+                    { status: { $regex: word, $options: 'i' } }
+                ],
+            }));
+            matchCriteria = { $and: [ { status: 'In Progress' }, ...searchConditions ] };
+        }
+
+        // Find schedules with pagination
+        const schedules = await global.machineriesModels.WeeklySchedule
+            .find(matchCriteria)
+            .sort({ weekStart: -1 })
+            .skip(skip)
+            .limit(limit)
+            .lean();
+
+        const totalCount = await global.machineriesModels.WeeklySchedule
+            .countDocuments(matchCriteria);
+
+        // Extract all ticket IDs from the schedules
+        const ticketIds = [];
+        schedules.forEach(schedule => {
+            schedule.ticketRequests.forEach(tr => {
+                if (tr.ticketRequestId) {
+                    ticketIds.push(tr.ticketRequestId);
+                }
+            });
+        });
+
+        // Fetch all ticket requests with populated data
+        const ticketRequests = await global.machineriesModels.TicketRequest
+            .find({ _id: { $in: ticketIds } })
+            .lean();
+
+        // Enhance schedules with ticket details
+        const enhancedSchedules = schedules.map(schedule => {
+            // Map ticket requests to include their details
+            const enhancedTickets = schedule.ticketRequests.map(tr => {
+                const fullTicket = ticketRequests.find(
+                    t => t._id.toString() === tr.ticketRequestId.toString()
+                );
+                
+                return {
+                    ...tr,
+                    ticketDetails: fullTicket || null
+                };
+            });
+
+            return {
+                ...schedule,
+                ticketRequests: enhancedTickets
+            };
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: "Weekly schedules retrieved successfully.",
+            data: {
+                relevantSchedules: enhancedSchedules,
+                totalCount,
+                totalPages: Math.ceil(totalCount / limit),
+                currentPage: page
+            }
+        });
+    } catch (error) {
+        console.error("Error fetching in progress weekly schedules:", error);
+        return res.status(500).json({ 
+            success: false, 
+            message: "Error fetching in progress weekly schedules.", 
             error: error.message 
         });
     }

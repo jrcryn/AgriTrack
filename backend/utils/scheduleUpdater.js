@@ -1,4 +1,3 @@
-
 //only ran once when the backend server starts, fallback sya for cron job kung sakaling mamatay yung backend service
 export const updateScheduleStatus = async () => {
     try {
@@ -29,6 +28,41 @@ export const updateScheduleStatus = async () => {
         }
     } catch (error) {
         console.error('Error updating schedule status:', error);
+        return;
+    }
+};
+
+// Disable editing for tickets with assigned date today or in the past
+export const disableEditingForTodayTickets = async () => {
+    try {
+        const now = new Date();
+        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+        // Find all ongoing tickets with assignedDate <= today and disabledForEditing = false
+        const tickets = await global.machineriesModels.TicketRequest.find({
+            status: 'Ongoing',
+            assignedDate: {
+                $lte: startOfDay
+            },
+            disabledForEditing: { $ne: true }
+        });
+
+        if (tickets.length === 0) {
+            console.log('No ongoing tickets found with today\'s or past assigned dates');
+            return;
+        }
+
+        // Update all matching tickets
+        const updatePromises = tickets.map(ticket => {
+            ticket.disabledForEditing = true;
+            return ticket.save();
+        });
+
+        await Promise.all(updatePromises);
+        console.log(`Successfully disabled editing for ${tickets.length} ticket(s) with today's or past assigned dates`);
+
+    } catch (error) {
+        console.error('Error disabling editing for today\'s tickets:', error);
         return;
     }
 };

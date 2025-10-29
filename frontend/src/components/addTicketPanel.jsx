@@ -254,7 +254,7 @@ const AddTicketPanel = ({
               <Tbody>
                 {isLoadingPendingTicketRequests ? (
                   <Tr>
-                    <Td colSpan={7}>
+                    <Td colSpan={9}>
                       <Center p={10}>
                         <Spinner size="lg" color="blue.500" />
                       </Center>
@@ -262,7 +262,7 @@ const AddTicketPanel = ({
                   </Tr>
                 ) : selectablePending.length === 0 ? (
                   <Tr>
-                    <Td colSpan={7}>
+                    <Td colSpan={9}>
                       <Flex align="center" justify="center" py={6}>
                         <Text color="gray.600">No pending tickets available to add.</Text>
                       </Flex>

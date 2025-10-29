@@ -37,7 +37,7 @@ import authRoutes from './routes/auth.routes.js';
 import globalRoutes from './routes/global.routes.js';
 import userSettingsRoutes from './routes/userSettings.route.js';  
 
-import { updateScheduleStatus } from './utils/scheduleUpdater.js'; 
+import { updateScheduleStatus, disableEditingForTodayTickets } from './utils/scheduleUpdater.js'; 
 import { startScheduleStatusCron } from './utils/cronScheduleUpdater.js';
 
 async function startServer() {
@@ -51,6 +51,7 @@ async function startServer() {
 
     try {
         await updateScheduleStatus();
+        await disableEditingForTodayTickets();
         console.log('Schedule status update completed at startup.');
     } catch (err) {
         console.error('Schedule updater failed at startup:', err);

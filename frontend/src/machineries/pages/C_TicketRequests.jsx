@@ -68,7 +68,11 @@ const TicketRequests = () => {
 
     plannedWeeklySchedules,
     isLoadingPlannedWeeklySchedules,
-    plannedWeeklySchedulesError
+    plannedWeeklySchedulesError,
+
+    inProgressWeeklySchedules,
+    isLoadingInProgressWeeklySchedules,
+    inProgressWeeklySchedulesError,
   } = useAdminDashboard(
     { pendingPage, ongoingPage, schedulesPage, declinedPage },
     { searchQuery }
@@ -139,6 +143,7 @@ const TicketRequests = () => {
   const pendingCurrentPage = pendingTicketRequests?.data?.currentPage || 1;
   const pendingTotalItems = pendingTicketRequests?.data?.totalCount || 0;
 
+  //individual tickets query data
   const scheduledTickets = scheduledTicketRequests?.data?.relevantTickets || [];
   const scheduledTotalPages = scheduledTicketRequests?.data?.totalPages || 1;
   const scheduledCurrentPage = scheduledTicketRequests?.data?.currentPage || 1;
@@ -158,6 +163,11 @@ const TicketRequests = () => {
   const plannedSchedulesTotalPages = plannedWeeklySchedules?.data?.totalPages || 1;
   const plannedSchedulesCurrentPage = plannedWeeklySchedules?.data?.currentPage || 1;
   const plannedSchedulesTotalItems = plannedWeeklySchedules?.data?.totalCount || 0;
+
+  const inProgressWeeklySchedulesList = inProgressWeeklySchedules?.data?.relevantSchedules || [];
+  const inProgressSchedulesTotalPages = inProgressWeeklySchedules?.data?.totalPages || 1;
+  const inProgressSchedulesCurrentPage = inProgressWeeklySchedules?.data?.currentPage || 1;
+  const inProgressSchedulesTotalItems = inProgressWeeklySchedules?.data?.totalCount || 0;
 
   const width = (!isViewingDetails) ? '6xl' : '2xl';
   const height = (!isViewingDetails) ? '835px' : '300px';
@@ -599,22 +609,23 @@ const TicketRequests = () => {
             </Heading>
           </Flex>
 
-          {isLoadingOngoingTicketRequests ? (
+          {isLoadingInProgressWeeklySchedules ? (
             <Center p={10}>
               <Spinner size="lg" color={'purple.500'} />
             </Center>
-          ) : ongoingTickets.length > 0 ? (
+          ) : inProgressWeeklySchedulesList.length > 0 ? (
             <Box overflowX="auto">
               <TableContainer>
                 <Table variant="simple" size="md">
                   <Thead bg="gray.50">
                     <Tr>
                       <Th>Reference #</Th>
-                      <Th>Requestor Farmer</Th>
-                      <Th>Farm Location</Th>
-                      <Th>Requested Machine</Th>
-                      <Th>Estimated Area</Th>
-                      <Th>Date Requested</Th>
+                      <Th>Scheduled Tickets</Th>
+                      <Th>Date Range</Th>
+                      <Th>Scheduled Dates</Th>
+                      <Th>Assigned Machine Units</Th>
+                      <Th>Assigned Operators</Th>
+                      <Th>Date Created</Th>
                       <Th
                         position={{ base: 'static', md: 'sticky' }}
                         right={0}
@@ -629,28 +640,99 @@ const TicketRequests = () => {
                     </Tr>
                   </Thead>
                   <Tbody>
-                    {ongoingTickets.map((ticket) => {
-                      const date = ticket?.dateRequested ? new Date(ticket.dateRequested).toLocaleString() : '—';
-                      const by = `${ticket?.requestorFarmer?.first_name || ''} ${ticket?.requestorFarmer?.surname || ''}`.trim() || '—';
+                    {inProgressWeeklySchedulesList.map((schedule) => {
                       return (
-                        <Tr key={ticket._id} fontSize="sm">
-                          <Td fontWeight={'semibold'}>{ticket.refNumber || '—'}</Td>
-                          <Td>{by || '-'}</Td>
-                          <Td>{ticket?.barangay || '-'}</Td>
-                          <Td>{ticket?.requestedMachineType?.equipmentType || '-'}</Td>
-                          <Td>{ticket?.estimatedArea || '-'}</Td>
-                          <Td>{date}</Td>
+                        <Tr key={schedule._id} fontSize="sm">
+                          <Td fontWeight={'semibold'}>{schedule?.refNumber || '—'}</Td>
+
+                          <Td> 
+                            {schedule.ticketRequests.length === 0 ? (
+                              <Text color="gray.500">No scheduled tickets</Text>
+                            ) : (
+                              <Flex direction="column" gap={2}>
+                                {schedule.ticketRequests.map((ticket) => (
+                                  <Flex key={ticket._id} align='center' justify="space-between" gap={2}>
+                                    <Flex direction='column'>
+                                      <Text fontWeight='medium'>{ticket.ticketDetails?.refNumber}</Text>
+                                    </Flex>
+                                  </Flex>
+                                ))}
+                              </Flex>
+                            )}
+                          </Td>
+                            
+                          <Td fontSize={'xs'}>
+                            <Text>
+                              From <Text as="span" fontWeight="semibold">{formatDate(schedule?.weekStart)}</Text> to{" "} <br></br>
+                              <Text as="span" fontWeight="semibold">{formatDate(schedule?.weekEnd)}</Text>
+                            </Text>
+                          </Td>
+
+                          <Td>
+                            {schedule.ticketRequests.length === 0 ? (
+                              <Text color="gray.500">No scheduled dates</Text>
+                            ) : (
+                              <Flex direction="column" gap={2}>
+                                {schedule.ticketRequests.map((ticket) => (
+                                  <Flex key={ticket._id} align='center' justify="space-between" gap={2}>
+                                    <Flex direction='column'>
+                                      {formatDate(ticket?.ticketDetails?.assignedDate)}
+                                    </Flex>
+                                  </Flex>
+                                ))}
+                              </Flex>
+                            )}
+                          </Td>
+
+                          <Td fontSize={'xs'}>
+                            {schedule.ticketRequests.length === 0 ? (
+                              <Text color="gray.500">No assigned machine units</Text>
+                            ) : (
+                              <Flex direction="column" gap={2}>
+                                {schedule.ticketRequests.map((ticket) => (
+                                  <Flex key={ticket._id} align='center' justify="space-between" gap={2}>
+                                    <Flex direction='column'>
+                                      <Text>{ticket?.ticketDetails?.assignedMachineUnit?.plateNumber} - {ticket?.ticketDetails?.requestedMachineType?.equipmentType}</Text>
+                                    </Flex>
+                                  </Flex>
+                                ))}
+                              </Flex>
+                            )}
+                          </Td>
+
+                          <Td>
+                            {schedule.ticketRequests.length === 0 ? (
+                              <Text color="gray.500">No assigned machine units</Text>
+                            ) : (
+                              <Flex direction="column" gap={2}>
+                                {schedule.ticketRequests.map((ticket) => (
+                                  <Flex key={ticket._id} align='center' justify="space-between" gap={2}>
+                                    <Flex direction='column'>
+                                      <Text>{ticket?.ticketDetails?.assignedOperator?.first_name} {ticket?.ticketDetails?.assignedOperator?.last_name}</Text>
+                                    </Flex>
+                                  </Flex>
+                                ))}
+                              </Flex>
+                            )}
+                          </Td>
+
+                          <Td>{formatDateWithTime(schedule?.createdAt)}</Td>
                           <Td
                             isNumeric
-                            position={{ base: 'static', md: 'sticky' }}
+                            position={{ base: 'static', md: 'sticky' }} 
                             right={0}
                             zIndex={1}
                             bg="white"
                           >
                             <Button
-                              size="sm"
+                              size="xs"
                               colorScheme='purple'
                               leftIcon={<FaEye />}
+                              onClick={() => {
+                                setSelectedWeeklySchedule(schedule); 
+                                setIsViewingDetails(false);
+                                onOpen();
+                              }}
                             >
                               Details
                             </Button>
@@ -684,10 +766,10 @@ const TicketRequests = () => {
 
           <Flex justifyContent="space-between" alignItems="center" mt={4}>
             <PaginationControls
-              currentPage={ongoingCurrentPage}
+              currentPage={inProgressSchedulesCurrentPage}
               setCurrentPage={setOngoingPage}
-              totalPages={ongoingTotalPages}
-              totalItems={ongoingTotalItems}
+              totalPages={inProgressSchedulesTotalPages}
+              totalItems={inProgressSchedulesTotalItems}
               colorScheme='purple'
             />
           </Flex>
