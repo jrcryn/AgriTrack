@@ -120,22 +120,33 @@ const TicketRequests = () => {
 
   useEffect(() => {
     if (!reopenScheduleId) return;
-    // Wait until refetch done
-    if (isLoadingPendingTicketRequests) return;
 
-    const list = plannedWeeklySchedules?.data?.relevantSchedules || [];
-    const refreshed = list.find(s => s._id === reopenScheduleId);
-    if (refreshed) {
-      // Ensure we’re on the scheduled page and not in details mode
-      if (pageType !== 'scheduled') {
-        setPageType('scheduled');
-      }
-      setSelectedWeeklySchedule(refreshed);
+    // Wait until either list finishes refetching
+    if (isLoadingPlannedWeeklySchedules || isLoadingInProgressWeeklySchedules) return;
+
+    const plannedList = plannedWeeklySchedules?.data?.relevantSchedules || [];
+    const inProgressList = inProgressWeeklySchedules?.data?.relevantSchedules || [];
+
+    const refreshedPlanned = plannedList.find(s => s._id === reopenScheduleId);
+    const refreshedInProgress = inProgressList.find(s => s._id === reopenScheduleId);
+
+    if (refreshedPlanned) {
+      if (pageType !== 'scheduled') setPageType('scheduled');
+      setSelectedWeeklySchedule(refreshedPlanned);
+      setIsViewingDetails(false);
+      onOpen();
+      setReopenScheduleId(null);
+      return;
+    }
+
+    if (refreshedInProgress) {
+      if (pageType !== 'ongoing') setPageType('ongoing');
+      setSelectedWeeklySchedule(refreshedInProgress);
       setIsViewingDetails(false);
       onOpen();
       setReopenScheduleId(null);
     }
-  }, [reopenScheduleId, isLoadingPlannedWeeklySchedules, plannedWeeklySchedules , pageType]);
+  }, [ reopenScheduleId, isLoadingPlannedWeeklySchedules, isLoadingInProgressWeeklySchedules, plannedWeeklySchedules, inProgressWeeklySchedules, pageType ]);
 
 
   const pendingTickets = pendingTicketRequests?.data?.relevantTickets || [];

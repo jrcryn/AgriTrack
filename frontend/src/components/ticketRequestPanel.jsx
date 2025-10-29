@@ -288,8 +288,8 @@ const TicketRequestPanel = ({
       onClose();
       
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['pendingTicketRequests'] }),
-        queryClient.invalidateQueries({ queryKey: ['weeklySchedules'] })
+        queryClient.invalidateQueries({ queryKey: ['plannedWeeklySchedules'] }),
+        queryClient.invalidateQueries({ queryKey: ['inProgressWeeklySchedules'] }),
       ]);
 
       // Ask parent to reopen with fresh data
@@ -419,8 +419,8 @@ const TicketRequestPanel = ({
       
       // Invalidate queries to refresh data
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['weeklySchedules'] }),
-        queryClient.invalidateQueries({ queryKey: ['scheduledTicketRequests'] })
+        queryClient.invalidateQueries({ queryKey: ['plannedWeeklySchedules'] }),
+        queryClient.invalidateQueries({ queryKey: ['inProgressWeeklySchedules'] }),
       ]);
 
       onRequestReopenSchedule?.(selectedWeeklySchedule?._id);
