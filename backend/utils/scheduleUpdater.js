@@ -26,6 +26,7 @@ export const updateScheduleStatus = async () => {
                 }
             }
         }
+        console.log('Schedule status update completed.');
     } catch (error) {
         console.error('Error updating schedule status:', error);
         return;

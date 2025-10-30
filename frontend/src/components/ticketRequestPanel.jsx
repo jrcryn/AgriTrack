@@ -48,8 +48,7 @@ const TicketRequestPanel = ({
   const isScheduledPage = pageType === 'scheduled';
   const isOngoingPage = pageType === 'ongoing';
   const isDeclinedPage = pageType === 'declined';
-  console.log('selectedWeeklySchedule:', selectedWeeklySchedule);
-
+  console.log('selectedTickets:', selectedTickets);
   // Schedule creation state
   const [scheduleData, setScheduleData] = useState({
     weekStart: '',
@@ -86,6 +85,8 @@ const TicketRequestPanel = ({
 
     updateWeeklySchedule,
     isUpdatingWeeklySchedule,
+    undeclineTicketRequest,           
+    isUndecliningTicketRequest       
   } = useAdminDashboard();
 
   const [selectedTicketForRemoval, setSelectedTicketForRemoval] = useState(null);
@@ -333,7 +334,7 @@ const TicketRequestPanel = ({
     }
     try {
       await declineTicketRequests({
-        tickets: selectedTickets.map(t => t._id),
+        tickets: selectedTickets.map(t => ({ _id: t._id })),
         reason: declineReason.trim(),
         employeeId: user?.id
       });
@@ -504,25 +505,19 @@ const TicketRequestPanel = ({
                 </SimpleGrid>
               </Box>
               
-              {(ticket.status === 'Scheduled' || ticket.status === 'Ongoing') && (
-                <Box bg="blue.50" p={2} borderRadius="md" mt={1}>
-                  <Heading size="sm" mb={1} fontSize="sm">Schedule Details</Heading>
+              {ticket.status === 'Declined' && (
+                <Box bg="red.50" p={2} borderRadius="md" mt={5}>
+                  <Heading size="sm" mb={1} fontSize="sm">Decline Details</Heading>
                   <SimpleGrid columns={{ base: 1, md: 2 }} spacing={1}>
                     <Box>
-                      <Text fontWeight="bold" fontSize="sm" color="gray.600">Assigned Date</Text>
-                      <Text fontSize="sm">{formatDate(ticket.assignedDate)}</Text>
+                      <Text fontWeight="bold" fontSize="sm" color="gray.600">Decline Reason</Text>
+                      <Text fontSize="sm">{ticket.declineReason || 'N/A'}</Text>
                     </Box>
                     <Box>
-                      <Text fontWeight="bold" fontSize="sm" color="gray.600">Operator</Text>
-                      <Text fontSize="sm">{ticket.assignedOperator ? 
-                        `${ticket.assignedOperator.first_name} ${ticket.assignedOperator.last_name}` : 
-                        'Not assigned'}</Text>
-                    </Box>
-                    <Box>
-                      <Text fontWeight="bold" fontSize="sm" color="gray.600">Machine Unit</Text>
-                      <Text fontSize="sm">{ticket.assignedMachineUnit ? 
-                        `${ticket.assignedMachineUnit.plateNumber} - ${ticket.assignedMachineUnit.engineBrand}` : 
-                        'Not assigned'}</Text>
+                      <Text fontWeight="bold" fontSize="sm" color="gray.600">Declined By</Text>
+                      <Text fontSize="sm">
+                        {ticket.declinedBy.first_name} {ticket.declinedBy.last_name} {ticket.declinedBy.suffix || ''}
+                      </Text>
                     </Box>
                   </SimpleGrid>
                 </Box>
@@ -552,6 +547,34 @@ const TicketRequestPanel = ({
     });
   }, [ticketUpdateData.tickets, initialTicketData]);
 
+  const handleUndeclineTicket = async () => {
+    const ticket = selectedTickets?.[0];
+    if (!ticket?._id) return;
+    try {
+      const res = await undeclineTicketRequest({ ticketRequestId: ticket._id });
+      toast({
+        title: "Success",
+        description: res?.message || "Ticket has been set back to Pending.",
+        status: "success",
+        duration: 5000,
+        isClosable: true
+      });
+      onClose();
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['declinedTicketRequests'] }),
+        queryClient.invalidateQueries({ queryKey: ['pendingTicketRequests'] })
+      ]);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error?.response?.data?.message || "Failed to undecline the ticket.",
+        status: "error",
+        duration: 5000,
+        isClosable: true
+      });
+    }
+  };
+
   return (
     <>
     <Modal isOpen={isOpen} onClose={onClose} size={width} closeOnOverlayClick={false} scrollBehavior="inside" isCentered motionPreset='none'>
@@ -575,8 +598,8 @@ const TicketRequestPanel = ({
         )}
         
         {isScheduledPage && !isViewingDetails && (
-          <ModalHeader bg="blue.50" borderBottomWidth="1px" borderColor="gray.200" display="flex" alignItems="center">
-            <FaCalendarAlt style={{ marginRight: 12, color: '#3182ce' }} />
+          <ModalHeader bg="green.50" borderBottomWidth="1px" borderColor="gray.200" display="flex" alignItems="center">
+            <FaCalendarAlt style={{ marginRight: 12, color: 'green' }} />
             Manage Scheduled Tickets
           </ModalHeader>
         )}
@@ -596,8 +619,47 @@ const TicketRequestPanel = ({
         )}
 
         <ModalBody py={6}>
-          {isViewingDetails ? (
-            <>{ticketDetailsSection}</>
+          {isPendingPage && isViewingDetails && selectedTickets.length === 1 ? (
+            <>
+              <Tabs colorScheme="red" variant="enclosed">
+                <TabList>
+                  <Tab>Ticket Details</Tab>
+                  <Tab>Decline Ticket</Tab>
+                </TabList>
+                <TabPanels>
+                  <TabPanel px={0} pt={4} pb={0}>
+                    {ticketDetailsSection}
+                  </TabPanel>
+                  <TabPanel px={0} pt={4} pb={0}>
+                    <Box bg="red.50" p={3} borderRadius="md" mb={3} borderLeft="4px solid" borderLeftColor="red.400">
+                      <Text fontSize="sm" color="red.600">
+                        Declining will move this ticket to Declined. This action will notify the requester.
+                      </Text>
+                    </Box>
+                    <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+                      <FormControl isRequired gridColumn={{ md: 'span 2' }}>
+                        <FormLabel>Reason for Decline</FormLabel>
+                        <Input
+                          placeholder="Provide a clear reason for declining"
+                          value={declineReason}
+                          onChange={(e) => setDeclineReason(e.target.value)}
+                        />
+                      </FormControl>
+                    </SimpleGrid>
+                    <Flex justify='flex-end' align="center" mt={4}>
+                      <Button
+                        colorScheme="red"
+                        onClick={handleDeclineTickets}
+                        isLoading={isDecliningTicketRequests}
+                        isDisabled={!declineReason.trim() || selectedTickets.length !== 1}
+                      >
+                        Decline Ticket
+                      </Button>
+                    </Flex>
+                  </TabPanel>
+                </TabPanels>
+              </Tabs>
+            </>
           ) : isPendingPage && selectedTickets.length > 0 ? (
             <>
               <Tabs colorScheme="yellow" variant="enclosed">
@@ -784,7 +846,7 @@ const TicketRequestPanel = ({
             </>
           ) : isScheduledPage && selectedWeeklySchedule ? (
             <>
-              <Tabs colorScheme="blue" variant="enclosed">
+              <Tabs colorScheme="green" variant="enclosed">
                     <TabList>
                       <Tab>Manage Schedule</Tab>
                     </TabList>
@@ -1045,82 +1107,57 @@ const TicketRequestPanel = ({
                                   <Td fontSize={'xs'}>{ticket.barangay}</Td>
                                   <Td fontSize={'xs'}>{ticket.requestedMachineType?.equipmentType}</Td>
                                   <Td fontSize={'xs'}>{ticket.estimatedArea}</Td>
-                                  <Td fontSize={'xs'}>
-                                    {ticket.disabledForEditing ? (
-                                      <>
-                                        {formatDate(tr.assignedDate) || '-'}
-                                      </>
-                                    ) : (
-                                      <>
-                                        <Input
-                                          type="date"
-                                          size="xs"
-                                          value={updateTicket?.assignedDate || ''}
-                                          onChange={(e) => updateTicketInUpdateData(
-                                            tr.ticketRequestId, 
-                                            'assignedDate', 
-                                            e.target.value
-                                          )}  
-                                          min={selectedWeeklySchedule.weekStart || undefined}
-                                          max={selectedWeeklySchedule.weekEnd || undefined}
-                                        />
-                                      </>
-                                    )}
+                                  <Td>
+                                    <Input
+                                      type="date"
+                                      size="xs"
+                                      value={updateTicket?.assignedDate || ''}
+                                      onChange={(e) => updateTicketInUpdateData(
+                                        tr.ticketRequestId, 
+                                        'assignedDate', 
+                                        e.target.value
+                                      )}  
+                                      min={selectedWeeklySchedule.weekStart || undefined}
+                                      max={selectedWeeklySchedule.weekEnd || undefined}
+                                    />
                                   </Td>
-                                  <Td fontSize={'xs'}>
-                                    {ticket.disabledForEditing ? (
-                                      <>
-                                      {ticket.assignedOperator.first_name} {ticket.assignedOperator.last_name}
-                                      </>
-                                    ) : (
-                                      <>
-                                        <Select
-                                          size="xs"
-                                          placeholder={tr.assignedOperator}
-                                          value={updateTicket?.assignedOperatorId || ''}
-                                          onChange={(e) => updateTicketInUpdateData(
-                                            tr.ticketRequestId,
-                                            'assignedOperatorId',
-                                            e.target.value
-                                          )}
-                                          isDisabled={isLoadingOperatorsList}
-                                        >
-                                          {sortedOperators.map(op => (
-                                            <option key={op._id} value={op._id}>
-                                              {`${op.first_name} ${op.last_name}`}
-                                            </option>
-                                          ))}
-                                        </Select>
-                                      </>
-                                    )}
+                                  <Td>
+                                    <Select
+                                      size="xs"
+                                      placeholder={tr.assignedOperator} //needs changing !!!!
+                                      value={updateTicket?.assignedOperatorId || ''}
+                                      onChange={(e) => updateTicketInUpdateData(
+                                        tr.ticketRequestId,
+                                        'assignedOperatorId',
+                                        e.target.value
+                                      )}
+                                      isDisabled={isLoadingOperatorsList}
+                                    >
+                                      {sortedOperators.map(op => (
+                                        <option key={op._id} value={op._id}>
+                                          {`${op.first_name} ${op.last_name}`}
+                                        </option>
+                                      ))}
+                                    </Select>
                                   </Td>
-                                  <Td fontSize={'xs'}>
-                                    {ticket.disabledForEditing ? (
-                                      <>
-                                        {ticket.assignedMachineUnit?.plateNumber || '-'}
-                                      </>
-                                    ) : (
-                                      <>
-                                        <Select
-                                          size="xs"
-                                          placeholder={tr.assignedMachineUnit}
-                                          value={updateTicket?.assignedMachineUnitId || ''}
-                                          onChange={(e) => updateTicketInUpdateData(
-                                            tr.ticketRequestId,
-                                            'assignedMachineUnitId',
-                                            e.target.value
-                                          )}
-                                          isDisabled={!typeId || !unitsForType.length}
-                                        >
-                                          {sortedUnits.map(unit => (
-                                            <option key={unit._id} value={unit._id}>
-                                              {unit.plateNumber} - {unit.machineryTypeId?.equipmentType}
-                                            </option>
-                                          ))}
-                                        </Select>
-                                      </>
-                                    )}
-
+                                  <Td>
+                                    <Select
+                                      size="xs"
+                                      placeholder={tr.assignedMachineUnit} 
+                                      value={updateTicket?.assignedMachineUnitId || ''}
+                                      onChange={(e) => updateTicketInUpdateData(
+                                        tr.ticketRequestId,
+                                        'assignedMachineUnitId',
+                                        e.target.value
+                                      )}
+                                      isDisabled={!typeId || !unitsForType.length}
+                                    >
+                                      {sortedUnits.map(unit => (
+                                        <option key={unit._id} value={unit._id}>
+                                          {unit.plateNumber} - {unit.machineryTypeId?.equipmentType}
+                                        </option>
+                                      ))}
+                                    </Select>
                                   </Td>
                                   <Td>
                                     <Button
@@ -1128,7 +1165,6 @@ const TicketRequestPanel = ({
                                       size={'xs'}
                                       mr={5}
                                       onClick={() => {onOpenRemoveModal(); setSelectedTicketForRemoval(tr.ticketRequestId)}}
-                                      isDisabled={ticket.disabledForEditing}
                                     >
                                       <IoIosRemoveCircle />
                                     </Button>
@@ -1143,7 +1179,7 @@ const TicketRequestPanel = ({
                     {selectedWeeklySchedule?.ticketRequests?.length < 5 && (
                       <Flex justify="flex-end" mt={7}>
                         <Button
-                          colorScheme="purple"
+                          colorScheme="blue"
                           onClick={onOpenAddModal}
                           size={'md'}
                         >
@@ -1155,10 +1191,40 @@ const TicketRequestPanel = ({
                 </TabPanels>
               </Tabs>
             </>
+          ) : isDeclinedPage && selectedTickets.length === 1 ? (
+            <>
+              <Tabs colorScheme="red" variant="enclosed">
+                <TabList>
+                  <Tab>Ticket Details</Tab>
+                  <Tab>Undecline Ticket</Tab>
+                </TabList>
+                <TabPanels>
+                  <TabPanel px={0} pt={4} pb={0}>
+                    {ticketDetailsSection}
+                  </TabPanel>
+                  <TabPanel px={0} pt={4} pb={0}>
+                    <Box bg="yellow.50" p={3} borderRadius="md" mb={3} borderLeft="4px solid" borderLeftColor="yellow.400">
+                      <Text fontSize="sm" color="yellow.700">
+                        This will set the ticket’s status back to Pending.
+                      </Text>
+                    </Box>
+                    <Flex justify="flex-end" mt={4}>
+                      <Button
+                        colorScheme="green"
+                        onClick={handleUndeclineTicket}
+                        isLoading={isUndecliningTicketRequest}
+                      >
+                        Set Back to Pending
+                      </Button>
+                    </Flex>
+                  </TabPanel>
+                </TabPanels>
+              </Tabs>
+            </>
           ) : (
-            <VStack spacing={4} align="center" py={4}>
-              <Text color="gray.600" fontSize="sm">No ticket/s or weekly schedule selected to manage.</Text>
-            </VStack>
+              <VStack spacing={4} align="center" py={4}>
+                <Text color="gray.600" fontSize="sm">No ticket/s or weekly schedule selected to manage.</Text>
+              </VStack>
           )}
         </ModalBody>
 

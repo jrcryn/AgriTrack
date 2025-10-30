@@ -137,6 +137,7 @@ export const declineTicketRequest = async (req, res) => {
                     status: 'Declined',
                     declinedBy: {
                         employeeId: employee._id,
+                        first_name: employee.first_name,
                         last_name: employee.last_name,
                         middle_name: employee.middle_name,
                         suffix: employee.suffix,
@@ -1129,6 +1130,60 @@ export const moveTicketRequestToASchedule = async (req, res) => {
             success: false, 
             message: "Error moving ticket requests to schedule.", 
             error: error.message 
+        });
+    }
+};
+
+export const undeclineTicketRequest = async (req, res) => {
+    try {
+        const { ticketRequestId } = req.body;
+
+        if (!ticketRequestId) {
+            return res.status(400).json({
+                success: false,
+                message: "Please provide the request ticket."
+            });
+        }
+
+        const ticket = await global.machineriesModels.TicketRequest.findById(ticketRequestId);
+        if (!ticket) {
+            return res.status(404).json({
+                success: false,
+                message: "Ticket request not found."
+            });
+        }
+
+        if (ticket.status !== 'Declined') {
+            return res.status(400).json({
+                success: false,
+                message: "The ticket request is already not declined."
+            });
+        }
+
+        // Revert to pending and clear decline metadata
+        const updated = await global.machineriesModels.TicketRequest.findByIdAndUpdate(
+            ticketRequestId,
+            {
+                status: 'Pending',
+                $unset: {
+                    declinedBy: "",
+                    declineReason: ""
+                }
+            },
+            { new: true }
+        );
+
+        return res.status(200).json({
+            success: true,
+            message: "Ticket request has been reverted to Pending.",
+            data: updated
+        });
+    } catch (error) {
+        console.error("Error undeclining ticket request:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Error undeclining ticket request.",
+            error: error.message
         });
     }
 };

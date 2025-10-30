@@ -22,7 +22,8 @@ import {
     declineTicketRequest,
     getPlannedWeeklySchedules,
     updateWeeklySchedule,
-    getInProgressWeeklySchedules
+    getInProgressWeeklySchedules,
+    undeclineTicketRequest // added
 } from '../controller/machineries/adminDashboard.controller.js';
 
 import { generateMachineryExcelReport } from '../controller/machineries/genReports.controller.js';
@@ -59,6 +60,7 @@ router.post('/create-weekly-schedule', createWeeklySchedule); //working frontend
 router.post('/remove-from-schedule/:ticketRequestId', removeTicketRequestFromSchedule); //working frontend
 router.post('/move-to-schedule', moveTicketRequestToASchedule);  // working frontend
 router.post('/update-weekly-schedule', updateWeeklySchedule); // for review
+router.post('/undecline-ticket-request', undeclineTicketRequest); // new route
 
 
 // Public API routes

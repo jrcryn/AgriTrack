@@ -175,7 +175,8 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
     const [isSubmittingTicketRequest, setIsSubmittingTicketRequest] = useState(false);
     const [isArchivingTicketRequest, setIsArchivingTicketRequest] = useState(false);
     const [isDecliningTicketRequests, setIsDecliningTicketRequests] = useState(false); 
-    const [isUpdatingWeeklySchedule, setIsUpdatingWeeklySchedule] = useState(false); // new flag
+    const [isUpdatingWeeklySchedule, setIsUpdatingWeeklySchedule] = useState(false); 
+    const [isUndecliningTicketRequest, setIsUndecliningTicketRequest] = useState(false); 
 
     // Actions
     const createMachineryType = async (data) => {
@@ -315,6 +316,18 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         }
     };
 
+    const undeclineTicketRequest = async (data) => {
+        setIsUndecliningTicketRequest(true);
+        try {
+            const res = await axios.post(`${API_URL}/api/machineries/undecline-ticket-request`, data);
+            return res.data;
+        } catch (error) {
+            throw error;
+        } finally {
+            setIsUndecliningTicketRequest(false);
+        }
+    };
+
     const updateWeeklySchedule = async (data) => {
         setIsUpdatingWeeklySchedule(true);
         try {
@@ -349,7 +362,7 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         declinedTicketRequests,
         availableMachineryTypes,
         operatorsList,
-        plannedWeeklySchedules, // Add this to expose the weekly schedules
+        plannedWeeklySchedules, 
         inProgressWeeklySchedules,
 
         // actions
@@ -364,8 +377,9 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         submitTicketRequest,
         archiveTicketRequest,
         declineTicketRequests, 
+        undeclineTicketRequest, 
         getMachineryUnitsForDropDownByType,
-        updateWeeklySchedule, // expose action
+        updateWeeklySchedule, 
 
         // loading states (queries)
         isLoadingMachineryTypes,
@@ -376,7 +390,7 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         isLoadingDeclinedTicketRequests,
         isLoadingAvailableMachineryTypes,
         isLoadingOperatorsList,
-        isLoadingPlannedWeeklySchedules, // Add this loading state
+        isLoadingPlannedWeeklySchedules, 
         isLoadingInProgressWeeklySchedules,
 
         // action flags
@@ -390,8 +404,9 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         isMovingToSchedule,
         isSubmittingTicketRequest,
         isArchivingTicketRequest,
-        isDecliningTicketRequests, // added
-        isUpdatingWeeklySchedule,  // expose flag
+        isDecliningTicketRequests, 
+        isUpdatingWeeklySchedule,  
+        isUndecliningTicketRequest, 
 
         // error states
         machineryTypesError,
@@ -402,7 +417,7 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         declinedTicketRequestsError,
         availableMachineryTypesError,
         operatorsListError,
-        plannedWeeklySchedulesError, // Add this error state
+        plannedWeeklySchedulesError, 
         inProgressWeeklySchedulesError,
     };
 };

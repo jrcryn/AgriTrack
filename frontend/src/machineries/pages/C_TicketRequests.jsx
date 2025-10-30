@@ -180,9 +180,9 @@ const TicketRequests = () => {
   const inProgressSchedulesCurrentPage = inProgressWeeklySchedules?.data?.currentPage || 1;
   const inProgressSchedulesTotalItems = inProgressWeeklySchedules?.data?.totalCount || 0;
 
-  const width = (!isViewingDetails) ? '6xl' : '2xl';
-  const height = (!isViewingDetails) ? '835px' : '300px';
-
+  let isCompact = isViewingDetails || pageType === 'declined';
+  let width = isCompact ? '2xl' : '6xl';
+  let height = isCompact ? '300px' : '835px';
 
   const PaginationControls = ({ currentPage, setCurrentPage, totalPages, totalItems, colorScheme }) => (
     <Flex
@@ -790,7 +790,6 @@ const TicketRequests = () => {
 
       {pageType === 'declined' && (
         <>
-        {/* Declined Tickets */}
         <Box mb={8}>
           <Flex justify="space-between" align="center" mb={4} bg={'red.50'} p={3} borderRadius="md" borderLeftWidth="4px" borderLeftColor={'red.500'}>
             <Heading as="h2" size="md" display="flex" alignItems="center">
@@ -847,9 +846,14 @@ const TicketRequests = () => {
                             bg="white"
                           >
                             <Button
-                              size="sm"
+                              size="xs"
                               colorScheme='red'
                               leftIcon={<FaEye />}
+                              onClick={() => {
+                                setSelectedTickets([ticket]);
+                                setIsViewingDetails(false);
+                                onOpen();
+                              }}
                             >
                               Details
                             </Button>
