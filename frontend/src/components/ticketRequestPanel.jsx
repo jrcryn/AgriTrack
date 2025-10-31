@@ -1190,6 +1190,7 @@ const TicketRequestPanel = ({
                                       size={'xs'}
                                       mr={5}
                                       onClick={() => {onOpenRemoveModal(); setSelectedTicketForRemoval(tr.ticketRequestId)}}
+                                      isDisabled={ticket.disabledForEditing}
                                     >
                                       <IoIosRemoveCircle />
                                     </Button>
