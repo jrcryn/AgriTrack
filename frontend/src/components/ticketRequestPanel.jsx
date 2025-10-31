@@ -362,6 +362,34 @@ const TicketRequestPanel = ({
     }
   };
 
+  const handleUndeclineTicket = async () => {
+    const ticket = selectedTickets?.[0];
+    if (!ticket?._id) return;
+    try {
+      const res = await undeclineTicketRequest({ ticketRequestId: ticket._id });
+      toast({
+        title: "Success",
+        description: res?.message || "Ticket has been set back to Pending.",
+        status: "success",
+        duration: 5000,
+        isClosable: true
+      });
+      onClose();
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['declinedTicketRequests'] }),
+        queryClient.invalidateQueries({ queryKey: ['pendingTicketRequests'] })
+      ]);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error?.response?.data?.message || "Failed to undecline the ticket.",
+        status: "error",
+        duration: 5000,
+        isClosable: true
+      });
+    }
+  };
+  
   const handleUpdateSchedule = async () => {
     // Filter to only changed tickets
     const changedTickets = ticketUpdateData.tickets.filter((current, index) => {
@@ -547,33 +575,6 @@ const TicketRequestPanel = ({
     });
   }, [ticketUpdateData.tickets, initialTicketData]);
 
-  const handleUndeclineTicket = async () => {
-    const ticket = selectedTickets?.[0];
-    if (!ticket?._id) return;
-    try {
-      const res = await undeclineTicketRequest({ ticketRequestId: ticket._id });
-      toast({
-        title: "Success",
-        description: res?.message || "Ticket has been set back to Pending.",
-        status: "success",
-        duration: 5000,
-        isClosable: true
-      });
-      onClose();
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['declinedTicketRequests'] }),
-        queryClient.invalidateQueries({ queryKey: ['pendingTicketRequests'] })
-      ]);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: error?.response?.data?.message || "Failed to undecline the ticket.",
-        status: "error",
-        duration: 5000,
-        isClosable: true
-      });
-    }
-  };
 
   return (
     <>
@@ -1107,57 +1108,81 @@ const TicketRequestPanel = ({
                                   <Td fontSize={'xs'}>{ticket.barangay}</Td>
                                   <Td fontSize={'xs'}>{ticket.requestedMachineType?.equipmentType}</Td>
                                   <Td fontSize={'xs'}>{ticket.estimatedArea}</Td>
-                                  <Td>
-                                    <Input
-                                      type="date"
-                                      size="xs"
-                                      value={updateTicket?.assignedDate || ''}
-                                      onChange={(e) => updateTicketInUpdateData(
-                                        tr.ticketRequestId, 
-                                        'assignedDate', 
-                                        e.target.value
-                                      )}  
-                                      min={selectedWeeklySchedule.weekStart || undefined}
-                                      max={selectedWeeklySchedule.weekEnd || undefined}
-                                    />
+                                  <Td fontSize={'xs'}>
+                                    {ticket.disabledForEditing === true ? (
+                                      <>
+                                        {formatDate(ticket.assignedDate) || '-'}
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Input
+                                          type="date"
+                                          size="xs"
+                                          value={updateTicket?.assignedDate || ''}
+                                          onChange={(e) => updateTicketInUpdateData(
+                                            tr.ticketRequestId, 
+                                            'assignedDate', 
+                                            e.target.value
+                                          )}  
+                                          min={selectedWeeklySchedule.weekStart || undefined}
+                                          max={selectedWeeklySchedule.weekEnd || undefined}
+                                        />
+                                      </>
+                                    )}
+                                  </Td>
+                                  <Td fontSize={'xs'}>
+                                    {ticket.disabledForEditing === true ? (
+                                      <>
+                                        {ticket.assignedOperator.first_name || '-'} {ticket.assignedOperator.last_name}
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Select
+                                          size="xs"
+                                          placeholder={tr.assignedOperator} //needs changing !!!!
+                                          value={updateTicket?.assignedOperatorId || ''}
+                                          onChange={(e) => updateTicketInUpdateData(
+                                            tr.ticketRequestId,
+                                            'assignedOperatorId',
+                                            e.target.value
+                                          )}
+                                          isDisabled={isLoadingOperatorsList}
+                                        >
+                                          {sortedOperators.map(op => (
+                                            <option key={op._id} value={op._id}>
+                                              {`${op.first_name} ${op.last_name}`}
+                                            </option>
+                                          ))}
+                                        </Select>
+                                      </>
+                                    )}
                                   </Td>
                                   <Td>
-                                    <Select
-                                      size="xs"
-                                      placeholder={tr.assignedOperator} //needs changing !!!!
-                                      value={updateTicket?.assignedOperatorId || ''}
-                                      onChange={(e) => updateTicketInUpdateData(
-                                        tr.ticketRequestId,
-                                        'assignedOperatorId',
-                                        e.target.value
-                                      )}
-                                      isDisabled={isLoadingOperatorsList}
-                                    >
-                                      {sortedOperators.map(op => (
-                                        <option key={op._id} value={op._id}>
-                                          {`${op.first_name} ${op.last_name}`}
-                                        </option>
-                                      ))}
-                                    </Select>
-                                  </Td>
-                                  <Td>
-                                    <Select
-                                      size="xs"
-                                      placeholder={tr.assignedMachineUnit} 
-                                      value={updateTicket?.assignedMachineUnitId || ''}
-                                      onChange={(e) => updateTicketInUpdateData(
-                                        tr.ticketRequestId,
-                                        'assignedMachineUnitId',
-                                        e.target.value
-                                      )}
-                                      isDisabled={!typeId || !unitsForType.length}
-                                    >
-                                      {sortedUnits.map(unit => (
-                                        <option key={unit._id} value={unit._id}>
-                                          {unit.plateNumber} - {unit.machineryTypeId?.equipmentType}
-                                        </option>
-                                      ))}
-                                    </Select>
+                                    {ticket.disabledForEditing === true ? (
+                                      <>
+                                        {ticket.assignedMachineUnit.plateNumber}
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Select
+                                          size="xs"
+                                          placeholder={tr.assignedMachineUnit} 
+                                          value={updateTicket?.assignedMachineUnitId || ''}
+                                          onChange={(e) => updateTicketInUpdateData(
+                                            tr.ticketRequestId,
+                                            'assignedMachineUnitId',
+                                            e.target.value
+                                          )}
+                                          isDisabled={!typeId || !unitsForType.length}
+                                        >
+                                          {sortedUnits.map(unit => (
+                                            <option key={unit._id} value={unit._id}>
+                                              {unit.plateNumber} - {unit.machineryTypeId?.equipmentType}
+                                            </option>
+                                          ))}
+                                        </Select>
+                                      </>
+                                    )}
                                   </Td>
                                   <Td>
                                     <Button

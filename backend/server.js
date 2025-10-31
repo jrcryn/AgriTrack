@@ -35,7 +35,9 @@ import machineriesRoutes from './routes/machineries.routes.js';
 import docTrackRoutes from './routes/doc-track.routes.js';
 import authRoutes from './routes/auth.routes.js';
 import globalRoutes from './routes/global.routes.js';
-import userSettingsRoutes from './routes/userSettings.route.js';  
+import userSettingsRoutes from './routes/userSettings.route.js';
+
+import googleDriveRoutes from './routes/googleDrive.routes.js';
 
 import { updateScheduleStatus, disableEditingForTodayTickets } from './utils/scheduleUpdater.js'; 
 import { startScheduleStatusCron } from './utils/cronScheduleUpdater.js';
@@ -67,6 +69,8 @@ async function startServer() {
     app.use("/api/auth",authRoutes);
     app.use("/api/global", globalRoutes);
     app.use("/api/user-settings", userSettingsRoutes);
+
+    app.use("/api/google", googleDriveRoutes);
 
     app.listen(process.env.PORT, () => {
         console.log(`Server running on port ${process.env.PORT}`);
