@@ -1157,7 +1157,7 @@ const TicketRequestPanel = ({
                                       </>
                                     )}
                                   </Td>
-                                  <Td>
+                                  <Td fontSize={'xs'}>
                                     {ticket.disabledForEditing === true ? (
                                       <>
                                         {ticket.assignedMachineUnit.plateNumber}

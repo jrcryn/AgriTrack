@@ -20,79 +20,40 @@ import {
   Center,
   Spinner,
   TableContainer,
-  Select,
   useDisclosure,
 } from '@chakra-ui/react';
 import { FiSearch, FiInbox } from 'react-icons/fi';
 import { LuLogs } from "react-icons/lu";
 import { FaEye } from 'react-icons/fa';
-import { TbFileShredder } from "react-icons/tb";
 
 import { useAdminDashboard } from '../store/adminDashboard.store.js';
-import DocumentLifeCycleModal from '../../components/docLifeCyclePanel.jsx';
+import OngoingTicketPanel from '../../components/ongoingTicketPanel.jsx';
 
-const TicketRequests = () => {
+const TripTicketReturns = () => {
   const [searchQuery, setSearchQuery] = useState('');
-
-  const [archivedPage, setArchivedPage] = useState(1);
-  const [expiredPage, setExpiredPage] = useState(1);
-  const [disposalPage, setDisposedPage] = useState(1);
-
-  const [isArchived, setIsArchived] = useState(false);
-  const [isForDisposal, setIsForDisposal] = useState(false);
-  const [isDisposalPage, setIsForDisposalPage] = useState(false);
-  
-
-  const [logType, setLogType] = useState('archived');
+  const [ongoingPage, setOngoingPage] = useState(1);
+  const [reopenScheduleId, setReopenScheduleId] = useState(null);
 
   const {
-    archivedDocuments,
-    isLoadingArchivedDocuments,
-    archivedDocumentsError,
-
-    expiredDocuments,
-    isLoadingExpiredDocuments,
-    expiredDocumentsError,
-
-    disposedDocuments,
-    isLoadingDisposedDocuments,
-    disposedDocumentError
+    inProgressWeeklySchedules,
+    isLoadingInProgressWeeklySchedules,
+    inProgressWeeklySchedulesError,
   } = useAdminDashboard(
-    { archivedPage, expiredPage },
+    { ongoingPage },
     { searchQuery }
   );
 
   useEffect(() => {
-    setArchivedPage(1);
-    setExpiredPage(1);
-    setDisposedPage(1);
+    setOngoingPage(1);
   }, [searchQuery]);
 
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const [selectedDoc, setSelectedDoc] = useState(null);
+  const [selectedWeeklySchedule, setSelectedWeeklySchedule] = useState(null);
 
-  const documents = archivedDocuments?.data?.relevantDocs || [];
-  const totalPages = archivedDocuments?.data?.totalPages || 1;
-  const currentPage = archivedDocuments?.data?.currentPage || 1;
-  const totalItems = archivedDocuments?.data?.totalCount || 0;
-
-  const expiredDocs = expiredDocuments?.data?.relevantDocs || [];
-  const expiredTotalPages = expiredDocuments?.data?.totalPages || 1;
-  const expiredCurrentPage = expiredDocuments?.data?.currentPage || 1;
-  const expiredTotalItems = expiredDocuments?.data?.totalCount || 0;
-
-  const disposedDocs = disposedDocuments?.data?.relevantDocs || [];
-  const disposedTotalPages = disposedDocuments?.data?.totalPages || 1;
-  const disposedCurrentPage = disposedDocuments?.data?.currentPage || 1;
-  const disposedTotalItems = disposedDocuments?.data?.totalCount || 0;
-
-  const handleOpenDetails = (doc, { archived = false, disposal = false, isDisposalPage = false } = {}) => {
-    setSelectedDoc(doc);
-    setIsArchived(archived);
-    setIsForDisposal(disposal);
-    setIsForDisposalPage(isDisposalPage);
-    onOpen();
-  };
+  const inProgressWeeklySchedulesList = inProgressWeeklySchedules?.data?.relevantSchedules || [];
+  const inProgressSchedulesTotalPages = inProgressWeeklySchedules?.data?.totalPages || 1;
+  const inProgressSchedulesCurrentPage = inProgressWeeklySchedules?.data?.currentPage || 1;
+  const inProgressSchedulesTotalItems = inProgressWeeklySchedules?.data?.totalCount || 0;
 
   const PaginationControls = ({ currentPage, setCurrentPage, totalPages, totalItems, colorScheme }) => (
     <Flex
@@ -130,13 +91,54 @@ const TicketRequests = () => {
     </Flex>
   );
 
+  const formatDate = (dateString) => {
+    if (!dateString) return 'Not assigned';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  const formatDateWithTime = (dateString) => {
+    if (!dateString) return 'Not assigned';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const handleRequestReopenSchedule = (id) => {
+    setReopenScheduleId(id);
+  };
+
+  useEffect(() => {
+    if (!reopenScheduleId) return;
+
+    if (isLoadingInProgressWeeklySchedules) return;
+
+    const inProgressList = inProgressWeeklySchedules?.data?.relevantSchedules || [];
+    const refreshedInProgress = inProgressList.find(s => s._id === reopenScheduleId);
+
+    if (refreshedInProgress) {
+      setSelectedWeeklySchedule(refreshedInProgress);
+      onOpen();
+      setReopenScheduleId(null);
+    }
+  }, [reopenScheduleId, isLoadingInProgressWeeklySchedules, inProgressWeeklySchedules]);
+
   return (
     <Box overflow="hidden" bg="white" p={5} minH="100vh">
       <Heading as="h1" size="xl" mb={2}>
-        Document Logs
+        Trip Ticket Returns
       </Heading>
       <Text color="gray.600" mb={5}>
-        View and manage archived, expired and disposed documents.
+        View ongoing schedules and create trip/return tickets for finished job orders.
       </Text>
 
       {/* Filter Section */}
@@ -161,354 +163,193 @@ const TicketRequests = () => {
               </InputRightElement>
             </InputGroup>
           </FormControl>
-
-          {/* Type Select */}
-          <FormControl maxW={{ md: '260px' }}>
-            <FormLabel fontSize="sm" fontWeight="medium">Document Type</FormLabel>
-            <Select
-              bg="white"
-              value={logType}
-              onChange={(e) => setLogType(e.target.value)}
-            >
-              <option value="archived">Archived Documents</option>
-              <option value="disposed">Disposed Documents</option>
-            </Select>
-          </FormControl>
         </Flex>
       </Flex>
 
-      {/* Documents Section */}
+      {/* Ongoing Schedules Section */}
+      <Box mb={8}>
+        <Flex justify="space-between" align="center" mb={4} bg={'purple.50'} p={3} borderRadius="md" borderLeftWidth="4px" borderLeftColor={'purple.500'}>
+          <Heading as="h2" size="md" display="flex" alignItems="center">
+            <Icon as={LuLogs} mr={2} color={'purple.500'} /> ONGOING SCHEDULES
+          </Heading>
+        </Flex>
 
-      {logType === 'archived' && (
-        <>
-        {/* Archived DOcument Section */}
-        <Box mb={8}>
-          <Flex justify="space-between" align="center" mb={4} bg={'orange.50'} p={3} borderRadius="md" borderLeftWidth="4px" borderLeftColor={'orange.500'}>
-            <Heading as="h2" size="md" display="flex" alignItems="center">
-              <Icon as={LuLogs} mr={2} color={'orange.500'} /> ARCHIVED DOCUMENTS
-            </Heading>
-          </Flex>
+        {isLoadingInProgressWeeklySchedules ? (
+          <Center p={10}>
+            <Spinner size="lg" color={'purple.500'} />
+          </Center>
+        ) : inProgressWeeklySchedulesList.length > 0 ? (
+          <Box overflowX="auto">
+            <TableContainer>
+              <Table variant="simple" size="md">
+                <Thead bg="gray.50">
+                  <Tr>
+                    <Th>Reference #</Th>
+                    <Th>Scheduled Tickets</Th>
+                    <Th>Date Range</Th>
+                    <Th>Scheduled Dates</Th>
+                    <Th>Assigned Machine Units</Th>
+                    <Th>Assigned Operators</Th>
+                    <Th>Date Created</Th>
+                    <Th
+                      position={{ base: 'static', md: 'sticky' }}
+                      right={0}
+                      bg="gray.50"
+                      zIndex={{ base: 0, md: 1 }}
+                      textAlign="center"
+                      width="120px"
+                    >
+                      <Box display={{ base: 'none', md: 'block' }}>Scroll →</Box>
+                      <Box display={{ base: 'block', md: 'none' }}>Actions</Box>
+                    </Th>
+                  </Tr>
+                </Thead>
+                <Tbody>
+                  {inProgressWeeklySchedulesList.map((schedule) => {
+                    return (
+                      <Tr key={schedule._id} fontSize="sm">
+                        <Td fontWeight={'semibold'}>{schedule?.refNumber || '—'}</Td>
 
-          {isLoadingArchivedDocuments ? (
-            <Center p={10}>
-              <Spinner size="lg" color={'orange.500'} />
-            </Center>
-          ) : documents.length > 0 ? (
-            <Box overflowX="auto">
-              <TableContainer>
-                <Table variant="simple" size="md">
-                  <Thead bg="gray.50">
-                    <Tr>
-                      <Th>Reference #</Th>
-                      <Th>Title</Th>
-                      <Th>Date Archived</Th>
-                      <Th>Archived By</Th>
-                      <Th
-                        position={{ base: 'static', md: 'sticky' }}
-                        right={0}
-                        bg="gray.50"
-                        zIndex={{ base: 0, md: 1 }}
-                        textAlign="center"
-                        width="120px"
-                      >
-                        <Box display={{ base: 'none', md: 'block' }}>Scroll →</Box>
-                        <Box display={{ base: 'block', md: 'none' }}>Actions</Box>
-                      </Th>
-                    </Tr>
-                  </Thead>
-                  <Tbody>
-                    {documents.map((doc) => {
-                      const lastAction = doc.lastAction || (doc.lifeCycle?.[doc.lifeCycle.length - 1] ?? {});
-                      const date = lastAction?.timeStamp ? new Date(lastAction.timeStamp).toLocaleString() : '—';
-                      const by = `${lastAction?.performedBy?.first_name || ''} ${lastAction?.performedBy?.last_name || ''}`.trim() || '—';
-                      return (
-                        <Tr key={doc._id} fontSize="sm">
-                          <Td fontWeight="semibold">{doc.refNumber || '—'}</Td>
-                          <Td>{doc.documentName === 'N/A' ? doc.documentNameText : doc.documentName || '-'}</Td>
-                          <Td>{date}</Td>
-                          <Td>{by}</Td>
-                          <Td
-                            isNumeric
-                            position={{ base: 'static', md: 'sticky' }}
-                            right={0}
-                            zIndex={1}
-                            bg="white"
+                        <Td> 
+                          {schedule.ticketRequests.length === 0 ? (
+                            <Text color="gray.500">No scheduled tickets</Text>
+                          ) : (
+                            <Flex direction="column" gap={2}>
+                              {schedule.ticketRequests.map((ticket) => (
+                                <Flex key={ticket._id} align='center' justify="space-between" gap={2}>
+                                  <Flex direction='column'>
+                                    <Text fontWeight='medium'>{ticket.ticketDetails?.refNumber}</Text>
+                                  </Flex>
+                                </Flex>
+                              ))}
+                            </Flex>
+                          )}
+                        </Td>
+                          
+                        <Td fontSize={'xs'}>
+                          <Text>
+                            From <Text as="span" fontWeight="semibold">{formatDate(schedule?.weekStart)}</Text> to{" "} <br></br>
+                            <Text as="span" fontWeight="semibold">{formatDate(schedule?.weekEnd)}</Text>
+                          </Text>
+                        </Td>
+
+                        <Td>
+                          {schedule.ticketRequests.length === 0 ? (
+                            <Text color="gray.500">No scheduled dates</Text>
+                          ) : (
+                            <Flex direction="column" gap={2}>
+                              {schedule.ticketRequests.map((ticket) => (
+                                <Flex key={ticket._id} align='center' justify="space-between" gap={2}>
+                                  <Flex direction='column'>
+                                    {formatDate(ticket?.ticketDetails?.assignedDate)}
+                                  </Flex>
+                                </Flex>
+                              ))}
+                            </Flex>
+                          )}
+                        </Td>
+
+                        <Td fontSize={'xs'}>
+                          {schedule.ticketRequests.length === 0 ? (
+                            <Text color="gray.500">No assigned machine units</Text>
+                          ) : (
+                            <Flex direction="column" gap={2}>
+                              {schedule.ticketRequests.map((ticket) => (
+                                <Flex key={ticket._id} align='center' justify="space-between" gap={2}>
+                                  <Flex direction='column'>
+                                    <Text>{ticket?.ticketDetails?.assignedMachineUnit?.plateNumber} - {ticket?.ticketDetails?.requestedMachineType?.equipmentType}</Text>
+                                  </Flex>
+                                </Flex>
+                              ))}
+                            </Flex>
+                          )}
+                        </Td>
+
+                        <Td>
+                          {schedule.ticketRequests.length === 0 ? (
+                            <Text color="gray.500">No assigned operators</Text>
+                          ) : (
+                            <Flex direction="column" gap={2}>
+                              {schedule.ticketRequests.map((ticket) => (
+                                <Flex key={ticket._id} align='center' justify="space-between" gap={2}>
+                                  <Flex direction='column'>
+                                    <Text>{ticket?.ticketDetails?.assignedOperator?.first_name} {ticket?.ticketDetails?.assignedOperator?.last_name}</Text>
+                                  </Flex>
+                                </Flex>
+                              ))}
+                            </Flex>
+                          )}
+                        </Td>
+
+                        <Td>{formatDateWithTime(schedule?.createdAt)}</Td>
+                        <Td
+                          isNumeric
+                          position={{ base: 'static', md: 'sticky' }} 
+                          right={0}
+                          zIndex={1}
+                          bg="white"
+                        >
+                          <Button
+                            size="xs"
+                            colorScheme='purple'
+                            leftIcon={<FaEye />}
+                            onClick={() => {
+                              setSelectedWeeklySchedule(schedule); 
+                              onOpen();
+                            }}
                           >
-                            <Button
-                              size="sm"
-                              colorScheme='orange'
-                              leftIcon={<FaEye />}
-                              onClick={() => handleOpenDetails(doc, { archived: true, disposal: false })}
-                            >
-                              Details
-                            </Button>
-                          </Td>
-                        </Tr>
-                      );
-                    })}
-                  </Tbody>
-                </Table>
-              </TableContainer>
-            </Box>
-          ) : (
-            <Center
-              p={10}
-              borderWidth="1px"
-              borderRadius="md"
-              borderStyle="dashed"
-              borderColor="gray.300"
-              flexDirection="column"
-              gap={3}
-            >
-              <Icon as={FiInbox} boxSize={10} color="gray.400" />
-              <Text color="gray.500" fontWeight="medium">
-                No archived documents found
-              </Text>
-              <Text fontSize="sm" color="gray.400">
-                Try adjusting your search.
-              </Text>
-            </Center>
-          )}
+                            Details
+                          </Button>
+                        </Td>
+                      </Tr>
+                    );
+                  })}
+                </Tbody>
+              </Table>
+            </TableContainer>
+          </Box>
+        ) : (
+          <Center
+            p={10}
+            borderWidth="1px"
+            borderRadius="md"
+            borderStyle="dashed"
+            borderColor="gray.300"
+            flexDirection="column"
+            gap={3}
+          >
+            <Icon as={FiInbox} boxSize={10} color="gray.400" />
+            <Text color="gray.500" fontWeight="medium">
+              No ongoing schedules found
+            </Text>
+            <Text fontSize="sm" color="gray.400">
+              Try adjusting your search.
+            </Text>
+          </Center>
+        )};
 
-          <Flex justifyContent="space-between" alignItems="center" mt={4}>
-            <PaginationControls
-              currentPage={currentPage}
-              setCurrentPage={setArchivedPage}
-              totalPages={totalPages}
-              totalItems={totalItems}
-              colorScheme='orange'
-            />
-          </Flex>
-        </Box>
+        <Flex justifyContent="space-between" alignItems="center" mt={4}>
+          <PaginationControls
+            currentPage={inProgressSchedulesCurrentPage}
+            setCurrentPage={setOngoingPage}
+            totalPages={inProgressSchedulesTotalPages}
+            totalItems={inProgressSchedulesTotalItems}
+            colorScheme='purple'
+          />
+        </Flex>
+      </Box>
 
-        {/* Expired Document Section */}
-        <Box mb={8}>
-          <Flex justify="space-between" align="center" mb={4} bg={'orange.50'} p={3} borderRadius="md" borderLeftWidth="4px" borderLeftColor={'orange.500'}>
-            <Heading as="h2" size="md" display="flex" alignItems="center">
-              <Icon as={TbFileShredder} mr={2} color={'orange.500'} /> EXPIRED DOCUMENTS
-            </Heading>
-          </Flex>
-
-          {isLoadingExpiredDocuments ? (
-            <Center p={10}>
-              <Spinner size="lg" color={'orange.500'} />
-            </Center>
-          ) : expiredDocs.length > 0 ? (
-            <Box overflowX="auto">
-              <TableContainer>
-                <Table variant="simple" size="md">
-                  <Thead bg="gray.50">
-                    <Tr>
-                      <Th>Reference #</Th>
-                      <Th>Title</Th>
-                      <Th>Retention Until</Th>
-                      <Th>Archived By</Th>
-                      <Th
-                        position={{ base: 'static', md: 'sticky' }}
-                        right={0}
-                        bg="gray.50"
-                        zIndex={{ base: 0, md: 1 }}
-                        textAlign="center"
-                        width="120px"
-                      >
-                        <Box display={{ base: 'none', md: 'block' }}>Scroll →</Box>
-                        <Box display={{ base: 'block', md: 'none' }}>Actions</Box>
-                      </Th>
-                    </Tr>
-                  </Thead>
-                  <Tbody>
-                    {expiredDocs.map((doc) => {
-                      
-                      const archiveEvt = (doc.lifeCycle || []).find(ev => ev.action === 'Archived');
-                      const retentionUntil = archiveEvt?.archivalDetails?.retentionUntil
-                        ? new Date(archiveEvt.archivalDetails.retentionUntil).toLocaleDateString()
-                        : '—';
-                      const by = archiveEvt?.performedBy
-                        ? `${archiveEvt.performedBy.first_name || ''} ${archiveEvt.performedBy.last_name || ''}`.trim()
-                        : '—';
-
-                      return (
-                        <Tr key={doc._id} fontSize="sm">
-                          <Td fontWeight="semibold">{doc.refNumber || '—'}</Td>
-                          <Td>{doc.documentName === 'N/A' ? doc.documentNameText : doc.documentName || '-'}</Td>
-                          <Td>{retentionUntil}</Td>
-                          <Td>{by || '—'}</Td>
-                          <Td
-                            isNumeric
-                            position={{ base: 'static', md: 'sticky' }}
-                            right={0}
-                            zIndex={1}
-                            bg="white"
-                          >
-                            <Button
-                              size="sm"
-                              colorScheme='orange'
-                              leftIcon={<FaEye />}
-                              onClick={() => handleOpenDetails(doc, { archived: false, disposal: true })}
-                            >
-                              Details
-                            </Button>
-                          </Td>
-                        </Tr>
-                      );
-                    })}
-                  </Tbody>
-                </Table>
-              </TableContainer>
-            </Box>
-          ) : (
-            <Center
-              p={10}
-              borderWidth="1px"
-              borderRadius="md"
-              borderStyle="dashed"
-              borderColor="gray.300"
-              flexDirection="column"
-              gap={3}
-            >
-              <Icon as={FiInbox} boxSize={10} color="gray.400" />
-              <Text color="gray.500" fontWeight="medium">
-                No expired documents found
-              </Text>
-              <Text fontSize="sm" color="gray.400">
-                Try adjusting your search.
-              </Text>
-            </Center>
-          )}
-
-          <Flex justifyContent="space-between" alignItems="center" mt={4}>
-            <PaginationControls
-              currentPage={expiredCurrentPage}
-              setCurrentPage={setExpiredPage}
-              totalPages={expiredTotalPages}
-              totalItems={expiredTotalItems}
-              colorScheme='orange'
-            />
-          </Flex>
-        </Box>
-        </>
-      )}
-
-      {logType === 'disposed' && (
-        <>
-        {/* Disposed Documents */}
-        <Box mb={8}>
-          <Flex justify="space-between" align="center" mb={4} bg={'gray.50'} p={3} borderRadius="md" borderLeftWidth="4px" borderLeftColor={'gray.500'}>
-            <Heading as="h2" size="md" display="flex" alignItems="center">
-              <Icon as={LuLogs} mr={2} color={'gray.500'} /> DISPOSED DOCUMENTS
-            </Heading>
-          </Flex>
-
-          {isLoadingDisposedDocuments ? (
-            <Center p={10}>
-              <Spinner size="lg" color={'orange.500'} />
-            </Center>
-          ) : disposedDocs.length > 0 ? (
-            <Box overflowX="auto">
-              <TableContainer>
-                <Table variant="simple" size="md">
-                  <Thead bg="gray.50">
-                    <Tr>
-                      <Th>Reference #</Th>
-                      <Th>Title</Th>
-                      <Th>Date Disposed</Th>
-                      <Th>Disposed By</Th>
-                      <Th
-                        position={{ base: 'static', md: 'sticky' }}
-                        right={0}
-                        bg="gray.50"
-                        zIndex={{ base: 0, md: 1 }}
-                        textAlign="center"
-                        width="120px"
-                      >
-                        <Box display={{ base: 'none', md: 'block' }}>Scroll →</Box>
-                        <Box display={{ base: 'block', md: 'none' }}>Actions</Box>
-                      </Th>
-                    </Tr>
-                  </Thead>
-                  <Tbody>
-                    {documents.map((doc) => {
-                      const lastAction = doc.lastAction || (doc.lifeCycle?.[doc.lifeCycle.length - 1] ?? {});
-                      const date = lastAction?.timeStamp ? new Date(lastAction.timeStamp).toLocaleString() : '—';
-                      const by = `${lastAction?.performedBy?.first_name || ''} ${lastAction?.performedBy?.last_name || ''}`.trim() || '—';
-                      return (
-                        <Tr key={doc._id} fontSize="sm">
-                          <Td fontWeight="semibold">{doc.refNumber || '—'}</Td>
-                          <Td>{doc.documentName === 'N/A' ? doc.documentNameText : doc.documentName || '-'}</Td>
-                          <Td>{date}</Td>
-                          <Td>{by}</Td>
-                          <Td
-                            isNumeric
-                            position={{ base: 'static', md: 'sticky' }}
-                            right={0}
-                            zIndex={1}
-                            bg="white"
-                          >
-                            <Button
-                              size="sm"
-                              colorScheme='gray'
-                              leftIcon={<FaEye />}
-                              onClick={() => handleOpenDetails(doc, { archived: false, disposal: false, isDisposalPage: true })}
-                            >
-                              Details
-                            </Button>
-                          </Td>
-                        </Tr>
-                      );
-                    })}
-                  </Tbody>
-                </Table>
-              </TableContainer>
-            </Box>
-          ) : (
-            <Center
-              p={10}
-              borderWidth="1px"
-              borderRadius="md"
-              borderStyle="dashed"
-              borderColor="gray.300"
-              flexDirection="column"
-              gap={3}
-            >
-              <Icon as={FiInbox} boxSize={10} color="gray.400" />
-              <Text color="gray.500" fontWeight="medium">
-                No archived documents found
-              </Text>
-              <Text fontSize="sm" color="gray.400">
-                Try adjusting your search.
-              </Text>
-            </Center>
-          )}
-
-          <Flex justifyContent="space-between" alignItems="center" mt={4}>
-            <PaginationControls
-              currentPage={expiredCurrentPage}
-              setCurrentPage={setExpiredPage}
-              totalPages={expiredTotalPages}
-              totalItems={expiredTotalItems}
-              colorScheme='orange'
-            />
-          </Flex>
-        </Box>
-        </>
-      )}
-      
-
-      {/* Details Modal (view-only) */}
-      <DocumentLifeCycleModal
+      <OngoingTicketPanel
         isOpen={isOpen}
-        onClose={onClose}
-        document={selectedDoc}
-        isPendingPage={false}
-        isOutgoingPage={false}
-        isProduceDocumentPage={false}
-        isReleased={false}
-        isArchived={isArchived}
-        isForDisposal={isForDisposal}
-        isDisposalPage={isDisposalPage}
+        onClose={() => {
+          onClose();
+          setSelectedWeeklySchedule(null);
+        }}
+        selectedWeeklySchedule={selectedWeeklySchedule}
+        onRequestReopenSchedule={handleRequestReopenSchedule}
       />
     </Box>
   );
 };
 
-export default TicketRequests;
+export default TripTicketReturns;

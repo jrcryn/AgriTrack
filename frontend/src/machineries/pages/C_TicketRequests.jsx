@@ -245,7 +245,7 @@ const TicketRequests = () => {
   return (
     <Box overflow="hidden" bg="white" p={5} minH="100vh">
       <Heading as="h1" size="xl" mb={2}>
-        Document Logs
+        Ticket Requests
       </Heading>
       <Text color="gray.600" mb={5}>
         View and manage pending, scheduled, ongoing and declined ticket requests.
