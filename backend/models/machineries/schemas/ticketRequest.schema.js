@@ -29,7 +29,7 @@ export const ticketRequestSchema = new mongoose.Schema({
     barangay: {type: String, required: true},
     estimatedArea: { type: Number, required: true},
     dateRequested: {type: Date, required: true},
-    status: { type: String, enum: ['Pending', 'Scheduled', 'Ongoing' ,'Declined'] },
+    status: { type: String, enum: ['Pending', 'Scheduled', 'Ongoing' , 'Completed', 'Declined'] },
     disabledForEditing: Boolean,
 
     declinedBy: {

@@ -1188,6 +1188,10 @@ export const undeclineTicketRequest = async (req, res) => {
     }
 };
 
+export const setRequestTicketToComplete = async (req, res) => {
+    
+}
+
 //FETCH CONTROLLERS
 export const formGetAvailableMachineryTypes = async (req, res) => {
     try {
