@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter,
   Box, VStack, Text, Heading, SimpleGrid, Badge, Flex, Button,
@@ -16,11 +16,31 @@ const ReturnTicketPanel = ({
 }) => {
   const toast = useToast();
   const signatureRef = useRef(null);
+  const canvasContainerRef = useRef(null);
   
   const [proofImage, setProofImage] = useState(null);
   const [proofImagePreview, setProofImagePreview] = useState(null);
   const [signature, setSignature] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [canvasSize, setCanvasSize] = useState({ width: 0, height: 200 });
+
+  // Calculate canvas size based on container width
+  useEffect(() => {
+    const updateCanvasSize = () => {
+      if (canvasContainerRef.current) {
+        const containerWidth = canvasContainerRef.current.offsetWidth;
+        setCanvasSize({
+          width: containerWidth - 16, // Subtract padding
+          height: 200
+        });
+      }
+    };
+
+    updateCanvasSize();
+    window.addEventListener('resize', updateCanvasSize);
+    
+    return () => window.removeEventListener('resize', updateCanvasSize);
+  }, [isOpen]);
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -76,6 +96,12 @@ const ReturnTicketPanel = ({
     if (signatureRef.current && !signatureRef.current.isEmpty()) {
       const signatureData = signatureRef.current.toDataURL();
       setSignature(signatureData);
+      
+      // Disable the canvas after saving
+      if (signatureRef.current) {
+        signatureRef.current.off();
+      }
+      
       toast({
         title: "Signature saved",
         description: "Farmer signature has been captured",
@@ -93,7 +119,7 @@ const ReturnTicketPanel = ({
       });
     }
   };
-
+  
   const handleSubmit = async () => {
     // Validate required fields
     if (!proofImage) {
@@ -157,7 +183,10 @@ const ReturnTicketPanel = ({
     setProofImage(null);
     setProofImagePreview(null);
     setSignature(null);
-    handleClearSignature();
+    if (signatureRef.current) {
+      signatureRef.current.clear();
+      signatureRef.current.on(); // Re-enable canvas on close
+    }
     onClose();
   };
 
@@ -197,7 +226,7 @@ const ReturnTicketPanel = ({
                 <Box>
                   <AlertTitle fontSize="sm">Completion Requirements</AlertTitle>
                   <AlertDescription fontSize="sm">
-                    Please upload a selfie proof image and capture the farmer's signature to complete this ticket.
+                    Please upload a selfie proof image and capture the farmer's signature to complete or ask for an extension for this ticket.
                   </AlertDescription>
                 </Box>
               </Alert>
@@ -323,27 +352,47 @@ const ReturnTicketPanel = ({
                   </Text>
                   
                   <Box
+                    ref={canvasContainerRef}
                     borderWidth={2}
                     borderColor={signature ? "green.400" : "gray.300"}
                     borderRadius="md"
                     bg="white"
                     p={2}
+                    position="relative"
                   >
-                    <SignatureCanvas
-                      ref={signatureRef}
-                      canvasProps={{
-                        width: 500,
-                        height: 200,
-                        className: 'signature-canvas',
-                        style: {
-                          width: '100%',
-                          height: '200px',
-                          border: '1px solid #E2E8F0',
-                          borderRadius: '4px'
-                        }
-                      }}
-                      backgroundColor="white"
-                    />
+                    <Box
+                      borderWidth={1}
+                      borderColor="gray.200"
+                      borderRadius="md"
+                      overflow="hidden"
+                      position="relative"
+                    >
+                      <SignatureCanvas
+                        ref={signatureRef}
+                        canvasProps={{
+                          width: canvasSize.width,
+                          height: canvasSize.height,
+                          style: {
+                            display: 'block',
+                            touchAction: 'none',
+                            opacity: signature ? 0.5 : 1,
+                            pointerEvents: signature ? 'none' : 'auto'
+                          }
+                        }}
+                        backgroundColor="white"
+                      />
+                      {signature && (
+                        <Box
+                          position="absolute"
+                          top={0}
+                          left={0}
+                          right={0}
+                          bottom={0}
+                          bg="transparent"
+                          pointerEvents="none"
+                        />
+                      )}
+                    </Box>
                     
                     <HStack mt={2} spacing={2}>
                       <Button
@@ -351,13 +400,20 @@ const ReturnTicketPanel = ({
                         colorScheme="blue"
                         onClick={handleSaveSignature}
                         leftIcon={<FaSignature />}
+                        isDisabled={signature !== null}
                       >
                         Save Signature
                       </Button>
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={handleClearSignature}
+                        onClick={() => {
+                          handleClearSignature();
+                          // Re-enable canvas when clearing
+                          if (signatureRef.current) {
+                            signatureRef.current.on();
+                          }
+                        }}
                       >
                         Clear
                       </Button>
