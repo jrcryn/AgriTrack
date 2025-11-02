@@ -187,7 +187,7 @@ const AddTicketPanel = ({
       onCloseParent?.();
 
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['pendingTicketRequests'] }),
+        queryClient.invalidateQueries({ queryKey: ['plannedWeeklySchedules'] }),
         queryClient.invalidateQueries({ queryKey: ['weeklySchedules'] })
       ]);
 

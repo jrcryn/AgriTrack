@@ -15,7 +15,8 @@ const ReturnTicketPanel = ({
   isOpen,
   onClose,
   selectedTicket = null,
-  onRequestReopenSchedule
+  onRequestReopenSchedule,
+  scheduleId
 }) => {
   const toast = useToast();
   const queryClient = useQueryClient();
@@ -187,10 +188,7 @@ const ReturnTicketPanel = ({
       // Invalidate queries to refresh data
       await queryClient.invalidateQueries({ queryKey: ['inProgressWeeklySchedules'] });
 
-      // Request to reopen schedule if needed
-      if (selectedTicket.scheduleId) {
-        onRequestReopenSchedule?.(selectedTicket.scheduleId);
-      }
+      onRequestReopenSchedule?.(scheduleId);
 
       handleClose();
     } catch (error) {

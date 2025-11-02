@@ -49,6 +49,7 @@ const TripTicketReturns = () => {
 
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [selectedWeeklySchedule, setSelectedWeeklySchedule] = useState(null);
+  console.log(selectedWeeklySchedule);
 
   const inProgressWeeklySchedulesList = inProgressWeeklySchedules?.data?.relevantSchedules || [];
   const inProgressSchedulesTotalPages = inProgressWeeklySchedules?.data?.totalPages || 1;

@@ -11,6 +11,7 @@ import { FaCalendarAlt } from "react-icons/fa";
 import { useAdminDashboard } from '../machineries/store/adminDashboard.store.js';
 import { useQueryClient } from '@tanstack/react-query';
 import ReturnTicketPanel from './returnTicketPanel.jsx';
+import TicketRequestCompletedDetailsPanel from './ticketRequestCompletedDetailsPanel.jsx';
 
 const OngoingTicketPanel = ({
   isOpen,
@@ -21,12 +22,11 @@ const OngoingTicketPanel = ({
   const toast = useToast();
   const queryClient = useQueryClient();
 
-  const {
-    
-  } = useAdminDashboard();
-
   const { isOpen: isOpenReturnModal, onOpen: onOpenReturnModal, onClose: onCloseReturnModal } = useDisclosure();
   const [selectedTicketForReturn, setSelectedTicketForReturn] = useState(null);
+  
+  const { isOpen: isOpenCompletedDetails, onOpen: onOpenCompletedDetails, onClose: onCloseCompletedDetails } = useDisclosure();
+  const [selectedCompletedTicket, setSelectedCompletedTicket] = useState(null);
 
   const formatDate = (dateString) => {
     if (!dateString) return 'Not assigned';
@@ -110,8 +110,8 @@ const OngoingTicketPanel = ({
                             {selectedWeeklySchedule.ticketRequests.map((tr) => {
                               const ticket = tr.ticketDetails;
                               return (
-                                <Tr key={tr.ticketRequestId}>
-                                  <Td fontWeight="semibold" fontSize={'xs'}>{ticket.refNumber}</Td>
+                                <Tr key={tr.ticketRequestId} bgColor={ticket.status === 'Completed' ? 'green.100' : null}>
+                                  <Td fontWeight="semibold" fontSize={'xs'} >{ticket.refNumber}</Td>
                                   <Td fontSize={'xs'}>{`${ticket.requestorFarmer?.first_name} ${ticket.requestorFarmer?.surname}`}</Td>
                                   <Td fontSize={'xs'}>{ticket.barangay}</Td>
                                   <Td fontSize={'xs'}>{ticket.requestedMachineType?.equipmentType}</Td>
@@ -126,18 +126,38 @@ const OngoingTicketPanel = ({
                                     {ticket.assignedMachineUnit?.plateNumber || '-'}
                                   </Td>
                                   <Td>
-                                    <Button
-                                      colorScheme='green'
-                                      size={'xs'}
-                                      mr={5}
-                                      onClick={() => {
-                                        setSelectedTicketForReturn(ticket);
-                                        onOpenReturnModal();
-                                      }}
-                                      isDisabled={ticket.disabledForEditing === false}
-                                    >
-                                      Update Ticket
-                                    </Button>
+                                    {ticket.status === 'Completed' ? (
+                                      <>
+                                      <Badge colorScheme='green' fontSize='10px' pl={4} borderRadius='md'>
+                                        Completed
+                                      </Badge>
+                                      <Button 
+                                        size={'xs'} 
+                                        colorScheme='green' 
+                                        ml={1}
+                                        onClick={() => {
+                                          setSelectedCompletedTicket(ticket);
+                                          onOpenCompletedDetails();
+                                        }}
+                                      >
+                                        View Details
+                                      </Button>
+                                      </>
+                                    ) : (
+                                      <Button
+                                        colorScheme='yellow'
+                                        size={'xs'}
+                                        mr={5}
+                                        onClick={() => {
+                                          setSelectedTicketForReturn(ticket);
+                                          onOpenReturnModal();
+                                        }}
+                                        isDisabled={ticket.disabledForEditing === false}
+                                      >
+                                        Update Ticket
+                                      </Button>
+                                    )}
+                                    
                                   </Td>
                                 </Tr>
                               );
@@ -172,6 +192,18 @@ const OngoingTicketPanel = ({
           setSelectedTicketForReturn(null);
         }}
         selectedTicket={selectedTicketForReturn}
+        scheduleId={selectedWeeklySchedule?._id}
+        onRequestReopenSchedule={onRequestReopenSchedule}
+      />
+
+      {/* Completed Ticket Details Modal */}
+      <TicketRequestCompletedDetailsPanel
+        isOpen={isOpenCompletedDetails}
+        onClose={() => {
+          onCloseCompletedDetails();
+          setSelectedCompletedTicket(null);
+        }}
+        selectedTicket={selectedCompletedTicket}
       />
     </>
   );

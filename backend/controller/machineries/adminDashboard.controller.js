@@ -1239,7 +1239,7 @@ export const setRequestTicketToComplete = async (req, res) => {
         const signatureFile = req.files.signature[0];
 
         // Upload proof image using the Google Drive service
-        const proofImageName = `proof_${ticket.refNumber}_${Date.now()}.${proofImageFile.originalname.split('.').pop()}`;
+        const proofImageName = `proof_${ticket.refNumber}`;
         const proofImageResult = await uploadFileToDrive(
             proofImageFile.buffer,
             proofImageName,
@@ -1248,7 +1248,7 @@ export const setRequestTicketToComplete = async (req, res) => {
         );
 
         // Upload signature using the Google Drive service
-        const signatureName = `signature_${ticket.refNumber}_${Date.now()}.${signatureFile.originalname.split('.').pop()}`;
+        const signatureName = `signature_${ticket.refNumber}`;
         const signatureResult = await uploadFileToDrive(
             signatureFile.buffer,
             signatureName,
