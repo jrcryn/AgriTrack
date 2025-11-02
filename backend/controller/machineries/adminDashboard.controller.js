@@ -1191,7 +1191,7 @@ export const undeclineTicketRequest = async (req, res) => {
 import { uploadFileToDrive } from '../googleDrive.controller.js';
 
 export const setRequestTicketToComplete = async (req, res) => {
-    const { ticketRequestId, extensionRequest, areaServiced, remainingArea } = req.body;
+    const { ticketRequestId, extensionRequest, areaServiced, remainingArea, remarks } = req.body;
 
     if (!ticketRequestId) {
         return res.status(400).json({
@@ -1206,6 +1206,27 @@ export const setRequestTicketToComplete = async (req, res) => {
             success: false,
             message: "Please provide both proof image and signature."
         });
+    }
+
+    // Validate extension request fields if extension is requested
+    if (extensionRequest === 'true') {
+        if (!areaServiced || !remainingArea) {
+            return res.status(400).json({
+                success: false,
+                message: "Please provide area serviced and remaining area for extension request."
+            });
+        }
+
+        // Validate numeric values
+        const areaServicedNum = parseFloat(areaServiced);
+        const remainingAreaNum = parseFloat(remainingArea);
+
+        if (isNaN(areaServicedNum) || isNaN(remainingAreaNum) || areaServicedNum <= 0 || remainingAreaNum <= 0) {
+            return res.status(400).json({
+                success: false,
+                message: "Area serviced and remaining area must be valid positive numbers."
+            });
+        }
     }
 
     try {
@@ -1256,20 +1277,37 @@ export const setRequestTicketToComplete = async (req, res) => {
             process.env.GOOGLE_DRIVE_FOLDER_ID_FARMER_SIGNATURES
         );
 
+        // Build update data
+        const updateData = {
+            status: 'Completed',
+            completionProof: {
+                proofImageId: proofImageResult.id,
+                proofImageUrl: `https://drive.google.com/uc?id=${proofImageResult.id}`,
+                signatureId: signatureResult.id,
+                signatureUrl: `https://drive.google.com/uc?id=${signatureResult.id}`,
+                completedAt: new Date()
+            },
+            disabledForEditing: true
+        };
+
+        // Add remarks if provided
+        if (remarks && remarks.trim()) {
+            updateData.remarks = remarks.trim();
+        }
+
+        // Add extension details if extension is requested
+        if (extensionRequest === 'true') {
+            updateData.extensionDetails = {
+                areaServiced: parseFloat(areaServiced),
+                remainingArea: parseFloat(remainingArea)
+            };
+            updateData.extensionNeeded = true;
+        }
+
         // Update ticket with completion details
         const updatedTicket = await global.machineriesModels.TicketRequest.findByIdAndUpdate(
             ticketRequestId,
-            {
-                status: 'Completed',
-                completionProof: {
-                    proofImageId: proofImageResult.id,
-                    proofImageUrl: `https://drive.google.com/uc?id=${proofImageResult.id}`,
-                    signatureId: signatureResult.id,
-                    signatureUrl: `https://drive.google.com/uc?id=${signatureResult.id}`,
-                    completedAt: new Date()
-                },
-                disabledForEditing: true
-            },
+            updateData,
             { new: true }
         );
 
@@ -1293,10 +1331,13 @@ export const setRequestTicketToComplete = async (req, res) => {
 
         return res.status(200).json({
             success: true,
-            message: "Ticket marked as completed successfully.",
+            message: extensionRequest === 'true' 
+                ? "Ticket marked as completed with extension request successfully." 
+                : "Ticket marked as completed successfully.",
             data: {
                 ticket: updatedTicket,
-                scheduleCompleted: allCompleted
+                scheduleCompleted: allCompleted,
+                extensionRequested: extensionRequest === 'true'
             }
         });
 

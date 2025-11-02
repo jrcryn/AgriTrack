@@ -28,6 +28,36 @@ const OngoingTicketPanel = ({
   const { isOpen: isOpenCompletedDetails, onOpen: onOpenCompletedDetails, onClose: onCloseCompletedDetails } = useDisclosure();
   const [selectedCompletedTicket, setSelectedCompletedTicket] = useState(null);
 
+  useEffect(() => {
+    if (!isOpen) {
+      // Reset return modal state when parent closes
+      if (isOpenReturnModal) {
+        onCloseReturnModal();
+        setSelectedTicketForReturn(null);
+      }
+      if (isOpenCompletedDetails) {
+        onCloseCompletedDetails();
+        setSelectedCompletedTicket(null);
+      }
+    }
+  }, [isOpen]);
+
+  const handleOpenReturnModal = (ticket) => {
+    setSelectedTicketForReturn(ticket);
+    // Use setTimeout to ensure state is set before opening
+    setTimeout(() => {
+      onOpenReturnModal();
+    }, 0);
+  };
+
+  const handleCloseReturnModal = () => {
+    onCloseReturnModal();
+    // Clear selection after modal animation completes
+    setTimeout(() => {
+      setSelectedTicketForReturn(null);
+    }, 200);
+  };
+
   const formatDate = (dateString) => {
     if (!dateString) return 'Not assigned';
     const date = new Date(dateString);
@@ -149,8 +179,7 @@ const OngoingTicketPanel = ({
                                         size={'xs'}
                                         mr={5}
                                         onClick={() => {
-                                          setSelectedTicketForReturn(ticket);
-                                          onOpenReturnModal();
+                                          handleOpenReturnModal(ticket);
                                         }}
                                         isDisabled={ticket.disabledForEditing === false}
                                       >
@@ -187,10 +216,7 @@ const OngoingTicketPanel = ({
       {/* Return Ticket Modal */}
       <ReturnTicketPanel
         isOpen={isOpenReturnModal}
-        onClose={() => {
-          onCloseReturnModal();
-          setSelectedTicketForReturn(null);
-        }}
+        onClose={handleCloseReturnModal}
         selectedTicket={selectedTicketForReturn}
         scheduleId={selectedWeeklySchedule?._id}
         onRequestReopenSchedule={onRequestReopenSchedule}
@@ -201,7 +227,7 @@ const OngoingTicketPanel = ({
         isOpen={isOpenCompletedDetails}
         onClose={() => {
           onCloseCompletedDetails();
-          setSelectedCompletedTicket(null);
+          setTimeout(() => setSelectedCompletedTicket(null), 200);
         }}
         selectedTicket={selectedCompletedTicket}
       />

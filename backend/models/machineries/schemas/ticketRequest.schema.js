@@ -162,6 +162,13 @@ export const ticketRequestSchema = new mongoose.Schema({
         completedAt: Date,
     },
 
+    extensionNeeded: Boolean,
+    
+    extensionDetails: {
+        areaServiced: Number,
+        remainingArea: Number
+    },
+
     remarks: String,
 
     extensionTickets: [extensionTicketSchema],

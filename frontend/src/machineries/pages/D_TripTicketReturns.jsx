@@ -351,6 +351,6 @@ const TripTicketReturns = () => {
       />
     </Box>
   );
-};
+}
 
 export default TripTicketReturns;
