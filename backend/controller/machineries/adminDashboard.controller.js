@@ -1244,7 +1244,7 @@ export const setRequestTicketToComplete = async (req, res) => {
             proofImageFile.buffer,
             proofImageName,
             proofImageFile.mimetype,
-            process.env.GOOGLE_DRIVE_FOLDER_ID
+            process.env.GOOGLE_DRIVE_FOLDER_ID_SELFIE_PROOFS
         );
 
         // Upload signature using the Google Drive service
@@ -1253,7 +1253,7 @@ export const setRequestTicketToComplete = async (req, res) => {
             signatureFile.buffer,
             signatureName,
             signatureFile.mimetype,
-            process.env.GOOGLE_DRIVE_FOLDER_ID
+            process.env.GOOGLE_DRIVE_FOLDER_ID_FARMER_SIGNATURES
         );
 
         // Update ticket with completion details
