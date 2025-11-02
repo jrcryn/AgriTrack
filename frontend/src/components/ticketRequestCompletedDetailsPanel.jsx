@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter,
-  Box, VStack, Text, Heading, SimpleGrid, Badge, Button, Divider, Image, AspectRatio
+  Box, VStack, Text, Heading, SimpleGrid, Badge, Button, Divider, AspectRatio
 } from '@chakra-ui/react';
 import { FaCheckCircle } from "react-icons/fa";
 
@@ -19,6 +19,21 @@ const TicketRequestCompletedDetailsPanel = ({
       month: 'short',
       day: 'numeric'
     });
+  };
+
+  // Convert uc?id= format to thumbnail format for better compatibility
+  const getImageUrl = (url) => {
+    if (!url) return null;
+    
+    // Extract file ID from the URL
+    const match = url.match(/[?&]id=([^&]+)/);
+    if (match && match[1]) {
+      const fileId = match[1];
+      // Use thumbnail format which works better for embedding
+      return `https://drive.google.com/thumbnail?id=${fileId}&sz=w1000`;
+    }
+    
+    return url;
   };
 
   return (
@@ -95,17 +110,17 @@ const TicketRequestCompletedDetailsPanel = ({
                     <Text fontWeight="bold" fontSize="sm" color="gray.600" mb={2}>
                       Selfie Proof
                     </Text>
-                    {selectedTicket.completionProof.proofImageUrl ? (
+                    {selectedTicket.completionProof?.proofImageUrl ? (
                       <AspectRatio ratio={4 / 3} borderRadius="md" overflow="hidden" border="1px" borderColor="gray.200">
-                        <Image
-                          src={selectedTicket.completionProof.proofImageUrl}
+                        <Box
+                          as="img"
+                          src={getImageUrl(selectedTicket.completionProof.proofImageUrl)}
                           alt="Selfie Proof"
                           objectFit="cover"
-                          fallback={
-                            <Box bg="gray.100" display="flex" alignItems="center" justifyContent="center">
-                              <Text color="gray.500">Image not available</Text>
-                            </Box>
-                          }
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            e.target.parentElement.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #f7fafc;"><span style="color: #718096;">Image not available</span></div>';
+                          }}
                         />
                       </AspectRatio>
                     ) : (
@@ -120,7 +135,7 @@ const TicketRequestCompletedDetailsPanel = ({
                         <Text color="gray.500">No selfie proof available</Text>
                       </Box>
                     )}
-                    {selectedTicket.completionProof.proofImageUrl && (
+                    {selectedTicket.completionProof?.proofImageUrl && (
                       <Button
                         as="a"
                         href={selectedTicket.completionProof.proofImageUrl}
@@ -141,17 +156,17 @@ const TicketRequestCompletedDetailsPanel = ({
                     <Text fontWeight="bold" fontSize="sm" color="gray.600" mb={2}>
                       Farmer Signature
                     </Text>
-                    {selectedTicket.completionProof.signatureUrl ? (
+                    {selectedTicket.completionProof?.signatureUrl ? (
                       <AspectRatio ratio={4 / 3} borderRadius="md" overflow="hidden" border="1px" borderColor="gray.200">
-                        <Image
-                          src={selectedTicket.completionProof.signatureUrl}
+                        <Box
+                          as="img"
+                          src={getImageUrl(selectedTicket.completionProof.signatureUrl)}
                           alt="Farmer Signature"
                           objectFit="cover"
-                          fallback={
-                            <Box bg="gray.100" display="flex" alignItems="center" justifyContent="center">
-                              <Text color="gray.500">Image not available</Text>
-                            </Box>
-                          }
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            e.target.parentElement.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #f7fafc;"><span style="color: #718096;">Image not available</span></div>';
+                          }}
                         />
                       </AspectRatio>
                     ) : (
@@ -166,7 +181,7 @@ const TicketRequestCompletedDetailsPanel = ({
                         <Text color="gray.500">No farmer signature available</Text>
                       </Box>
                     )}
-                    {selectedTicket.completionProof.signatureUrl && (
+                    {selectedTicket.completionProof?.signatureUrl && (
                       <Button
                         as="a"
                         href={selectedTicket.completionProof.signatureUrl}

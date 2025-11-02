@@ -3,7 +3,7 @@ import {
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter,
   Box, VStack, Text, Heading, SimpleGrid, Badge, Flex, Button,
   FormControl, FormLabel, Input, useToast, Icon, Image, HStack,
-  Alert, AlertIcon, AlertTitle, AlertDescription, Center
+  Alert, AlertIcon, AlertTitle, AlertDescription, Center, Switch, NumberInput, NumberInputField
 } from '@chakra-ui/react';
 import { FaCheckCircle, FaCamera, FaSignature } from "react-icons/fa";
 import { CloseIcon } from '@chakra-ui/icons';
@@ -29,6 +29,8 @@ const ReturnTicketPanel = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 200 });
 
+  const [extensionRequestData, setExtensionRequestData] = useState({extensionRequest: false, areaServiced: '', remainingArea: ''});
+  console.log('extensionRequestData:', extensionRequestData);
   const {
     setTicketToComplete,
     isSettingTicketToComplete
@@ -209,6 +211,7 @@ const ReturnTicketPanel = ({
     setProofImage(null);
     setProofImagePreview(null);
     setSignature(null);
+    setExtensionRequestData({extensionRequest: false, areaServiced: '', remainingArea: ''});
     if (signatureRef.current) {
       signatureRef.current.clear();
       signatureRef.current.on(); // Re-enable canvas on close
@@ -455,6 +458,64 @@ const ReturnTicketPanel = ({
                   </Box>
                 </FormControl>
               </Box>
+
+              <Box>
+                <Flex alignItems="center" mb={extensionRequestData.extensionRequest ? 4 : 0}>
+                  <Text fontWeight="bold" mr={2}>Request Extension for Unfinished Work</Text>
+                  <Switch
+                    isChecked={extensionRequestData.extensionRequest}
+                    onChange={(e) =>
+                      setExtensionRequestData(d => ({ ...d, extensionRequest: e.target.checked, areaServiced: '', remainingArea: '' }))
+                    }
+                    colorScheme="orange"
+                  />
+                </Flex>
+
+                {extensionRequestData.extensionRequest && (
+                  <Box mt={4} p={4} bg="orange.50" borderRadius="md" borderWidth={1} borderColor="orange.200">
+                    <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+                      <FormControl isRequired>
+                        <FormLabel fontSize="sm">Area Serviced (ha)</FormLabel>
+                        <NumberInput
+                          value={extensionRequestData.areaServiced}
+                          onChange={(valueString) =>
+                            setExtensionRequestData(d => ({ ...d, areaServiced: valueString }))
+                          }
+                          min={0}
+                          precision={2}
+                          step={0.1}
+                          bg='white'
+                        >
+                          <NumberInputField placeholder="Enter area serviced" />
+                        </NumberInput>
+                      </FormControl>
+
+                      <FormControl isRequired>
+                        <FormLabel fontSize="sm">Remaining Area (ha)</FormLabel>
+                        <NumberInput
+                          value={extensionRequestData.remainingArea}
+                          onChange={(valueString) =>
+                            setExtensionRequestData(d => ({ ...d, remainingArea: valueString }))
+                          }
+                          min={0}
+                          precision={2}
+                          step={0.1}
+                          bg='white'
+                        >
+                          <NumberInputField placeholder="Enter remaining area" />
+                        </NumberInput>
+                      </FormControl>
+                    </SimpleGrid>
+
+                    <Alert status="info" mt={3} borderRadius="md" size="sm">
+                      <AlertIcon />
+                      <Text fontSize="xs">
+                        Extension request will be submitted for admin approval along with the completion proof.
+                      </Text>
+                    </Alert>
+                  </Box>
+                )}
+              </Box>
             </VStack>
           ) : (
             <Center py={8}>
@@ -468,14 +529,13 @@ const ReturnTicketPanel = ({
             Cancel
           </Button>
           <Button
-            colorScheme="green"
+            colorScheme={extensionRequestData.extensionRequest ? "orange" : "green"}
             onClick={handleSubmit}
             isLoading={isSubmitting || isSettingTicketToComplete}
-            isDisabled={!proofImage || !signature}
-            leftIcon={<FaCheckCircle />}
+            isDisabled={!proofImage || !signature || (extensionRequestData.extensionRequest && (!extensionRequestData.areaServiced || !extensionRequestData.remainingArea))}
             size="md"
           >
-            Mark as Completed
+            {extensionRequestData.extensionRequest ? 'Request Extension' : 'Mark as Completed'}
           </Button>
         </ModalFooter>
       </ModalContent>

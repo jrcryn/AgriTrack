@@ -1,5 +1,87 @@
 import mongoose from 'mongoose';
 
+// Extension ticket sub-schema
+export const extensionTicketSchema = new mongoose.Schema({
+    refNumber: { type: String, required: true },
+    areaServiced: { type: Number, required: true },
+    remainingArea: { type: Number, required: true },
+    extensionReason: String,
+    requestedDate: { type: Date, default: Date.now },
+    
+    status: { 
+        type: String, 
+        enum: ['Pending', 'Approved', 'Scheduled', 'Ongoing', 'Completed', 'Declined'],
+        default: 'Pending'
+    },
+
+    approvedBy: {
+        employeeId: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee_Account' },
+        first_name: String,
+        last_name: String,
+        middle_name: String,
+        suffix: String,
+        email: String,
+        phone: String,
+        approvedAt: Date
+    },
+
+    declinedBy: {
+        employeeId: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee_Account' },
+        first_name: String,
+        last_name: String,
+        middle_name: String,
+        suffix: String,
+        email: String,
+        phone: String,
+        declinedAt: Date
+    },
+
+    declineReason: String,
+
+    scheduleId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Weekly_Schedule',
+    },
+
+    assignedDate: Date,
+
+    assignedMachineUnit: {
+        assignedMachineUnitId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Machine_Unit',
+        },
+        plateNumber: String, 
+        engineBrand: String,
+        engineHorsepower: String
+    },
+
+    assignedOperator: {
+        assignedOperatorId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Staff_Account',
+        },
+        first_name: String,
+        last_name: String,
+        middle_name: String,
+        suffix: String,
+        email: String,
+        phone: String
+    },
+
+    completionProof: {
+        proofImageId: String,
+        proofImageUrl: String,
+        signatureId: String,
+        signatureUrl: String,
+        completedAt: Date,
+    },
+
+    remarks: String,
+}, { _id: true, timestamps: true });
+
+
+
+
 export const ticketRequestSchema = new mongoose.Schema({
     requestorFarmer: {
         requestorFarmerId: { 
@@ -77,8 +159,10 @@ export const ticketRequestSchema = new mongoose.Schema({
         proofImageUrl: String,
         signatureId: String,
         signatureUrl: String,
-        completedAt: Date
+        completedAt: Date,
     },
 
-    extensionNeeded: Boolean
+    remarks: String,
+
+    extensionTickets: [extensionTicketSchema],
 }, { versionKey: false, timestamps: true });

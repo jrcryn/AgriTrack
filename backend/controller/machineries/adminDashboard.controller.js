@@ -1191,7 +1191,7 @@ export const undeclineTicketRequest = async (req, res) => {
 import { uploadFileToDrive } from '../googleDrive.controller.js';
 
 export const setRequestTicketToComplete = async (req, res) => {
-    const { ticketRequestId } = req.body;
+    const { ticketRequestId, extensionRequest, areaServiced, remainingArea } = req.body;
 
     if (!ticketRequestId) {
         return res.status(400).json({

@@ -536,7 +536,7 @@ const Responses = () => {
             <Tbody>
               {data.length > 0 ? (
                 data.map((response, index) => (
-                  <Tr key={response.farmerInput._id || index} bg={response.farmerInput.isForReview === true ? 'yellow.100' : 'white'}>
+                  <Tr key={response.farmerInput._id || index} bg={response.farmerInput.isForReview === true ? 'orange.100' : 'white'}>
                     {response.farmerInput.isForReview === false ? (
                       <>
                     <Td>
@@ -594,7 +594,7 @@ const Responses = () => {
                           </Td>
                         </>
                       )}
-                    <Td isNumeric position={{ base: 'static', md: 'sticky' }} right={0} zIndex={1} bg={response.farmerInput.isForReview === true ? 'yellow.100' : 'white'}>
+                    <Td isNumeric position={{ base: 'static', md: 'sticky' }} right={0} zIndex={1} bg={response.farmerInput.isForReview === true ? 'orange.100' : 'white'}>
                       <Button
                         size="sm"
                         colorScheme={status === 'NEWLY PLANTED' ? 'green' : 'orange'}
@@ -1593,7 +1593,7 @@ const Responses = () => {
         <ModalOverlay />
         <ModalContent borderRadius="lg" overflow="hidden">
           <ModalHeader 
-            bg={selectedResponse?.farmerInput?.isForReview === true ? "yellow.100" : "gray.50"}
+            bg={selectedResponse?.farmerInput?.isForReview === true ? "orange.50" : "gray.50"}
             borderBottomWidth="1px"
             borderColor="gray.200"
             py={4}
@@ -1634,10 +1634,10 @@ const Responses = () => {
             {selectedResponse?.farmerInput?.isForReview === true ? (
               <>
                 <Button 
-                  colorScheme="yellow" 
+                  colorScheme="orange" 
                   onClick={() => handleUnsetForReview(selectedResponse)}
                   boxShadow="sm"
-                  _hover={{ boxShadow: "md", bg: "yellow.500" }}
+                  _hover={{ boxShadow: "md", bg: "orange.600" }}
                   isLoading={isUpdatingForReview}
                 >
                   Unflag for Review
@@ -1667,13 +1667,13 @@ const Responses = () => {
 
             {selectedResponse?.farmerInput?.isForReview === true && (
               <Button 
-                colorScheme="red" 
+                colorScheme="yellow" 
                 boxShadow="sm"
                 mr={3}
-                _hover={{ boxShadow: "md", bg: "red.600" }}
+                _hover={{ boxShadow: "md", bg: "yellow.500" }}
                 onClick={onOpenWarningDelete}
               >
-                Delete Response
+                Archive Response
               </Button>
             )}
 
