@@ -137,7 +137,7 @@ export const uploadFile = (req, res) => {
 };
 
 // Create folder handler
-export const createFolder = async (req, res) => {
+export const createFolder = async (req, res) => { //will not be used, maybe in the future
     try {
         const { folderName, parentFolderId } = req.body;
         const result = await createDriveFolder(folderName, parentFolderId);
