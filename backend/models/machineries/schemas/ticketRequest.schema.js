@@ -70,5 +70,15 @@ export const ticketRequestSchema = new mongoose.Schema({
         suffix: String,
         email: String,
         phone: String
-    }
+    },
+
+    completionProof: {
+        proofImageId: String,
+        proofImageUrl: String,
+        signatureId: String,
+        signatureUrl: String,
+        completedAt: Date
+    },
+
+    extensionNeeded: Boolean
 }, { versionKey: false, timestamps: true });

@@ -36,8 +36,8 @@ export const handleCallback = async (req, res) => {
     }
 };
 
-// Internal helpers (previously exported service functions)
-const uploadFileToDrive = async (fileBuffer, fileName, mimeType, folderId = null) => {
+// Export this helper so other controllers can use it
+export const uploadFileToDrive = async (fileBuffer, fileName, mimeType, folderId = null) => {
     const fileMetadata = {
         name: fileName,
         ...(folderId && { parents: [folderId] })
@@ -54,7 +54,7 @@ const uploadFileToDrive = async (fileBuffer, fileName, mimeType, folderId = null
         fields: 'id, name, webViewLink, webContentLink'
     });
 
-    // Make file publicly accessible (optional)
+    // Make file publicly accessible
     await drive.permissions.create({
         fileId: response.data.id,
         requestBody: { role: 'reader', type: 'anyone' }
@@ -63,6 +63,7 @@ const uploadFileToDrive = async (fileBuffer, fileName, mimeType, folderId = null
     return response.data;
 };
 
+// Internal helpers (previously exported service functions)
 const createDriveFolder = async (folderName, parentFolderId = null) => {
     const fileMetadata = {
         name: folderName,
@@ -111,7 +112,7 @@ const deleteDriveFile = async (fileId) => {
     return { success: true, message: 'File deleted successfully' };
 };
 
-// Express handlers (routes call these directly)
+
 
 // Upload handler (parses multipart + uploads)
 export const uploadFile = (req, res) => {

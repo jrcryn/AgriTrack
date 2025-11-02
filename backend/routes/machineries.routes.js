@@ -1,4 +1,5 @@
 import express from 'express';
+import multer from 'multer';
 
 import { 
     createTicketRequestForm,
@@ -23,7 +24,8 @@ import {
     getPlannedWeeklySchedules,
     updateWeeklySchedule,
     getInProgressWeeklySchedules,
-    undeclineTicketRequest // added
+    undeclineTicketRequest, // added
+    setRequestTicketToComplete
 } from '../controller/machineries/adminDashboard.controller.js';
 
 import { generateMachineryExcelReport } from '../controller/machineries/genReports.controller.js';
@@ -32,6 +34,10 @@ import { verifyAuthToken } from '../middleware/verifyToken.js';
 import { verifyRole } from '../middleware/verifyRole.js';
 
 const router = express.Router();
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+});
 
 router.get('/generate-machinery-report', verifyAuthToken, verifyRole(['MIM', 'MIS']), generateMachineryExcelReport);
 
@@ -61,6 +67,13 @@ router.post('/remove-from-schedule/:ticketRequestId', removeTicketRequestFromSch
 router.post('/move-to-schedule', moveTicketRequestToASchedule);  // working frontend
 router.post('/update-weekly-schedule', updateWeeklySchedule); // for review
 router.post('/undecline-ticket-request', undeclineTicketRequest); // new route
+router.post('/ticket-request-complete', 
+  upload.fields([
+    { name: 'proofImage', maxCount: 1 },
+    { name: 'signature', maxCount: 1 }
+  ]),
+  setRequestTicketToComplete
+); // being tested
 
 
 // Public API routes

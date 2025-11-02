@@ -1188,9 +1188,127 @@ export const undeclineTicketRequest = async (req, res) => {
     }
 };
 
+import { uploadFileToDrive } from '../googleDrive.controller.js';
+
 export const setRequestTicketToComplete = async (req, res) => {
-    
-}
+    const { ticketRequestId } = req.body;
+
+    if (!ticketRequestId) {
+        return res.status(400).json({
+            success: false,
+            message: "Please provide the ticket request ID."
+        });
+    }
+
+    // Check if files are uploaded
+    if (!req.files || !req.files.proofImage || !req.files.signature) {
+        return res.status(400).json({
+            success: false,
+            message: "Please provide both proof image and signature."
+        });
+    }
+
+    try {
+        // Find the ticket request
+        const ticket = await global.machineriesModels.TicketRequest.findById(ticketRequestId);
+        
+        if (!ticket) {
+            return res.status(404).json({
+                success: false,
+                message: "Ticket request not found."
+            });
+        }
+
+        // Validate ticket status
+        if (ticket.status !== 'Ongoing') {
+            return res.status(400).json({
+                success: false,
+                message: "Only ongoing tickets can be marked as completed."
+            });
+        }
+
+        // Validate schedule exists
+        if (!ticket.scheduleId) {
+            return res.status(400).json({
+                success: false,
+                message: "Ticket is not assigned to any schedule."
+            });
+        }
+
+        const proofImageFile = req.files.proofImage[0];
+        const signatureFile = req.files.signature[0];
+
+        // Upload proof image using the Google Drive service
+        const proofImageName = `proof_${ticket.refNumber}_${Date.now()}.${proofImageFile.originalname.split('.').pop()}`;
+        const proofImageResult = await uploadFileToDrive(
+            proofImageFile.buffer,
+            proofImageName,
+            proofImageFile.mimetype,
+            process.env.GOOGLE_DRIVE_FOLDER_ID
+        );
+
+        // Upload signature using the Google Drive service
+        const signatureName = `signature_${ticket.refNumber}_${Date.now()}.${signatureFile.originalname.split('.').pop()}`;
+        const signatureResult = await uploadFileToDrive(
+            signatureFile.buffer,
+            signatureName,
+            signatureFile.mimetype,
+            process.env.GOOGLE_DRIVE_FOLDER_ID
+        );
+
+        // Update ticket with completion details
+        const updatedTicket = await global.machineriesModels.TicketRequest.findByIdAndUpdate(
+            ticketRequestId,
+            {
+                status: 'Completed',
+                completionProof: {
+                    proofImageId: proofImageResult.id,
+                    proofImageUrl: `https://drive.google.com/uc?id=${proofImageResult.id}`,
+                    signatureId: signatureResult.id,
+                    signatureUrl: `https://drive.google.com/uc?id=${signatureResult.id}`,
+                    completedAt: new Date()
+                },
+                disabledForEditing: true
+            },
+            { new: true }
+        );
+
+        // Check if all tickets in the schedule are completed
+        const schedule = await global.machineriesModels.WeeklySchedule.findById(ticket.scheduleId);
+        const allTicketIds = schedule.ticketRequests.map(tr => tr.ticketRequestId);
+        
+        const allTickets = await global.machineriesModels.TicketRequest.find({
+            _id: { $in: allTicketIds }
+        });
+
+        const allCompleted = allTickets.every(t => t.status === 'Completed');
+
+        // If all tickets are completed, update schedule status
+        if (allCompleted) {
+            await global.machineriesModels.WeeklySchedule.findByIdAndUpdate(
+                ticket.scheduleId,
+                { status: 'Completed' }
+            );
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: "Ticket marked as completed successfully.",
+            data: {
+                ticket: updatedTicket,
+                scheduleCompleted: allCompleted
+            }
+        });
+
+    } catch (error) {
+        console.error("Error marking ticket as completed:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Error marking ticket as completed.",
+            error: error.message
+        });
+    }
+};
 
 //FETCH CONTROLLERS
 export const formGetAvailableMachineryTypes = async (req, res) => {

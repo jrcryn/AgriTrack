@@ -2,6 +2,7 @@ import axios from 'axios';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useAuthStore } from '../../auth/store/authStore.js';
+import { useMutation } from '@tanstack/react-query';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -177,6 +178,7 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
     const [isDecliningTicketRequests, setIsDecliningTicketRequests] = useState(false); 
     const [isUpdatingWeeklySchedule, setIsUpdatingWeeklySchedule] = useState(false); 
     const [isUndecliningTicketRequest, setIsUndecliningTicketRequest] = useState(false); 
+    const [isSettingTicketToComplete, setIsSettingTicketToComplete] = useState(false);
 
     // Actions
     const createMachineryType = async (data) => {
@@ -352,6 +354,22 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         }
     };
 
+    const setTicketToComplete = async (formData) => {
+        setIsSettingTicketToComplete(true);
+        try {
+            const res = await axios.post(`${API_URL}/api/machineries/ticket-request-complete`, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                }
+            });
+            return res.data;
+        } catch (error) {
+            throw error;
+        } finally {
+            setIsSettingTicketToComplete(false);
+        }
+    };
+
     return {
         // query data
         machineryTypes,
@@ -380,6 +398,7 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         undeclineTicketRequest, 
         getMachineryUnitsForDropDownByType,
         updateWeeklySchedule, 
+        setTicketToComplete,
 
         // loading states (queries)
         isLoadingMachineryTypes,
@@ -407,6 +426,7 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         isDecliningTicketRequests, 
         isUpdatingWeeklySchedule,  
         isUndecliningTicketRequest, 
+        isSettingTicketToComplete,
 
         // error states
         machineryTypesError,

@@ -8,13 +8,17 @@ import {
 import { FaCheckCircle, FaCamera, FaSignature } from "react-icons/fa";
 import { CloseIcon } from '@chakra-ui/icons';
 import SignatureCanvas from 'react-signature-canvas';
+import { useAdminDashboard } from '../machineries/store/adminDashboard.store.js';
+import { useQueryClient } from '@tanstack/react-query';
 
 const ReturnTicketPanel = ({
   isOpen,
   onClose,
-  selectedTicket = null
+  selectedTicket = null,
+  onRequestReopenSchedule
 }) => {
   const toast = useToast();
+  const queryClient = useQueryClient();
   const signatureRef = useRef(null);
   const canvasContainerRef = useRef(null);
   
@@ -23,6 +27,11 @@ const ReturnTicketPanel = ({
   const [signature, setSignature] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 200 });
+
+  const {
+    setTicketToComplete,
+    isSettingTicketToComplete
+  } = useAdminDashboard();
 
   // Calculate canvas size based on container width
   useEffect(() => {
@@ -147,22 +156,41 @@ const ReturnTicketPanel = ({
     setIsSubmitting(true);
 
     try {
-      // TODO: Implement API call to submit ticket completion
-      // const formData = new FormData();
-      // formData.append('ticketId', selectedTicket._id);
-      // formData.append('proofImage', proofImage);
-      // formData.append('signature', signature);
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Convert signature data URL to blob
+      const signatureBlob = await fetch(signature).then(r => r.blob());
+      const signatureFile = new File([signatureBlob], `signature_${selectedTicket.refNumber}.png`, { type: 'image/png' });
+
+      // Create FormData
+      const formData = new FormData();
+      formData.append('ticketRequestId', selectedTicket._id);
+      formData.append('proofImage', proofImage);
+      formData.append('signature', signatureFile);
+
+      for (const [key, value] of formData.entries()) {
+        if (value instanceof File) {
+          console.log(key, { name: value.name, size: value.size, type: value.type });
+        } else {
+          console.log(key, value);
+        }
+      }
+
+      const response = await setTicketToComplete(formData);
 
       toast({
         title: "Success",
-        description: "Ticket marked as completed successfully",
+        description: response.message || "Ticket marked as completed successfully",
         status: "success",
         duration: 5000,
         isClosable: true
       });
+
+      // Invalidate queries to refresh data
+      await queryClient.invalidateQueries({ queryKey: ['inProgressWeeklySchedules'] });
+
+      // Request to reopen schedule if needed
+      if (selectedTicket.scheduleId) {
+        onRequestReopenSchedule?.(selectedTicket.scheduleId);
+      }
 
       handleClose();
     } catch (error) {
@@ -209,6 +237,7 @@ const ReturnTicketPanel = ({
       scrollBehavior="inside" 
       isCentered 
       motionPreset='none'
+      blockScrollOnMount={false}
     >
       <ModalOverlay />
       <ModalContent borderRadius="md" overflow="hidden">
@@ -443,7 +472,7 @@ const ReturnTicketPanel = ({
           <Button
             colorScheme="green"
             onClick={handleSubmit}
-            isLoading={isSubmitting}
+            isLoading={isSubmitting || isSettingTicketToComplete}
             isDisabled={!proofImage || !signature}
             leftIcon={<FaCheckCircle />}
             size="md"
