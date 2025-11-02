@@ -21,26 +21,6 @@ const TicketRequestCompletedDetailsPanel = ({
     });
   };
 
-  // Convert Google Drive link to embeddable format
-  const getEmbedUrl = (driveUrl) => {
-    if (!driveUrl) return null;
-    
-    // Extract file ID from various Google Drive URL formats
-    let fileId = null;
-    
-    if (driveUrl.includes('/d/')) {
-      fileId = driveUrl.split('/d/')[1].split('/')[0];
-    } else if (driveUrl.includes('id=')) {
-      fileId = driveUrl.split('id=')[1].split('&')[0];
-    }
-    
-    if (fileId) {
-      return `https://drive.google.com/uc?export=view&id=${fileId}`;
-    }
-    
-    return driveUrl;
-  };
-
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="4xl" closeOnOverlayClick={false} scrollBehavior="inside" isCentered motionPreset='none'>
       <ModalOverlay />
@@ -115,10 +95,10 @@ const TicketRequestCompletedDetailsPanel = ({
                     <Text fontWeight="bold" fontSize="sm" color="gray.600" mb={2}>
                       Selfie Proof
                     </Text>
-                    {selectedTicket.proofImageUrl ? (
+                    {selectedTicket.completionProof.proofImageUrl ? (
                       <AspectRatio ratio={4 / 3} borderRadius="md" overflow="hidden" border="1px" borderColor="gray.200">
                         <Image
-                          src={selectedTicket.proofImageUrl}
+                          src={selectedTicket.completionProof.proofImageUrl}
                           alt="Selfie Proof"
                           objectFit="cover"
                           fallback={
@@ -140,10 +120,10 @@ const TicketRequestCompletedDetailsPanel = ({
                         <Text color="gray.500">No selfie proof available</Text>
                       </Box>
                     )}
-                    {selectedTicket.selfieProofLink && (
+                    {selectedTicket.completionProof.proofImageUrl && (
                       <Button
                         as="a"
-                        href={selectedTicket.selfieProofLink}
+                        href={selectedTicket.completionProof.proofImageUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                         size="sm"
@@ -151,7 +131,7 @@ const TicketRequestCompletedDetailsPanel = ({
                         variant="link"
                         mt={2}
                       >
-                        Open in Google Drive
+                        Open on another tab
                       </Button>
                     )}
                   </Box>
@@ -161,10 +141,10 @@ const TicketRequestCompletedDetailsPanel = ({
                     <Text fontWeight="bold" fontSize="sm" color="gray.600" mb={2}>
                       Farmer Signature
                     </Text>
-                    {selectedTicket.farmerSignatureLink ? (
+                    {selectedTicket.completionProof.signatureUrl ? (
                       <AspectRatio ratio={4 / 3} borderRadius="md" overflow="hidden" border="1px" borderColor="gray.200">
                         <Image
-                          src={getEmbedUrl(selectedTicket.farmerSignatureLink)}
+                          src={selectedTicket.completionProof.signatureUrl}
                           alt="Farmer Signature"
                           objectFit="cover"
                           fallback={
@@ -186,10 +166,10 @@ const TicketRequestCompletedDetailsPanel = ({
                         <Text color="gray.500">No farmer signature available</Text>
                       </Box>
                     )}
-                    {selectedTicket.farmerSignatureLink && (
+                    {selectedTicket.completionProof.signatureUrl && (
                       <Button
                         as="a"
-                        href={selectedTicket.farmerSignatureLink}
+                        href={selectedTicket.completionProof.signatureUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                         size="sm"
@@ -197,7 +177,7 @@ const TicketRequestCompletedDetailsPanel = ({
                         variant="link"
                         mt={2}
                       >
-                        Open in Google Drive
+                        Open on another tab
                       </Button>
                     )}
                   </Box>
