@@ -72,7 +72,7 @@ const OngoingTicketPanel = ({
     <>
       <Modal isOpen={isOpen} onClose={onClose} size="6xl" closeOnOverlayClick={false} scrollBehavior="inside" isCentered motionPreset='none' blockScrollOnMount={false}>
         <ModalOverlay />
-        <ModalContent borderRadius="md" overflow="hidden" minHeight={{ base: 'auto', md: '835px' }}>
+        <ModalContent borderRadius="md" overflow="hidden">
           <ModalHeader bg="purple.50" borderBottomWidth="1px" borderColor="gray.200" display="flex" alignItems="center">
             <FaCalendarAlt style={{ marginRight: 12, color: 'purple' }} />
             Manage Ongoing Schedule

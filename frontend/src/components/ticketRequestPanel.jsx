@@ -580,7 +580,7 @@ const TicketRequestPanel = ({
     <>
     <Modal isOpen={isOpen} onClose={onClose} size={width} closeOnOverlayClick={false} scrollBehavior="inside" isCentered motionPreset='none' blockScrollOnMount={false}>
       <ModalOverlay />
-      <ModalContent borderRadius="md" overflow="hidden" minHeight={{ base: 'auto', md: height }}>
+      <ModalContent borderRadius="md" overflow="hidden">
         {/* Header styling based on page context */}
 
         {isViewingDetails && (
