@@ -19,7 +19,10 @@ import {
     deleteFarmerResponse,
     formStatusEnable,
     formStatusDisable,
-    checkFormStatus
+    checkFormStatus,
+    getUnvalidatedArchivedFarmerInputs,
+    archiveResponse,
+    unarchiveResponse
  } from '../controller/high-value-crops/adminDashboard.controller.js'; 
 
 import { 
@@ -50,6 +53,10 @@ router.post('/flag-response-for-review/:farmerId', verifyAuthToken, verifyRole([
 router.post('/unflag-response-for-review/:farmerId', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), unflagResponseForReview);
 router.post('/form-status-enable', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), formStatusEnable);
 router.post('/form-status-disable', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), formStatusDisable);
+
+router.post('/archive-response', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), archiveResponse);
+router.post('/unarchive-response', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), unarchiveResponse);
+router.get('/get-unvalidated-archived-inputs', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), getUnvalidatedArchivedFarmerInputs);
 
 
 //________________________________ DASHBOARD (FARMERS) PAGE ____________________________________

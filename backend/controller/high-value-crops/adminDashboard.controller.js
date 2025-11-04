@@ -18,7 +18,13 @@ export const getUnvalidatedFarmerInputs = async (req, res) => {
     }
 
     // Base query for unvalidated farmer inputs
-    const baseQuery = { isValidated: false };
+    const baseQuery = { 
+      isValidated: false, 
+      $or: [
+        { isArchived: false },
+        { isArchived: { $exists: false } }
+      ]
+    };
 
     // Find all unvalidated farmer inputs and get their IDs
     const unvalidatedInputIds = (await global.highValueCropsModels.A_farmer_inputs.find(baseQuery).select('_id')).map(doc => doc._id);
@@ -98,8 +104,107 @@ export const getUnvalidatedFarmerInputs = async (req, res) => {
   }
 };
 
+// Get all unvalidated and archived farmer inputs with their referenced documents
+export const getUnvalidatedArchivedFarmerInputs = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 5; // Default to 5 per page for each section
+    const skip = (page - 1) * limit;
+    const cropStage = req.query.crop_stage; // 'NEWLY PLANTED' or 'HARVESTING'
+
+    if (!cropStage) {
+      return res.status(400).json({ message: 'crop_stage query parameter is required.' });
+    }
+
+    // Base query for unvalidated farmer inputs
+    const baseQuery = { 
+      isValidated: false, 
+      $or: [
+        { isArchived: true },
+        { isArchived: { $exists: true } }
+      ]
+    };
+
+    // Find all unvalidated farmer inputs and get their IDs
+    const unvalidatedInputIds = (await global.highValueCropsModels.A_farmer_inputs.find(baseQuery).select('_id')).map(doc => doc._id);
+
+    // Find related crop records based on the crop stage
+    const indusRecords = await global.highValueCropsModels.C_crop_records_indus.find({ farmer_input_id: { $in: unvalidatedInputIds }, crop_stage: cropStage }).select('farmer_input_id');
+    const othersRecords = await global.highValueCropsModels.C_crop_records_others.find({ farmer_input_id: { $in: unvalidatedInputIds }, crop_stage: cropStage }).select('farmer_input_id');
+
+    const relevantFarmerInputIds = [
+      ...indusRecords.map(r => r.farmer_input_id),
+      ...othersRecords.map(r => r.farmer_input_id)
+    ];
+
+    const totalCount = relevantFarmerInputIds.length;
+
+    // Fetch the paginated farmer inputs based on the filtered IDs
+    const farmerInputs = await global.highValueCropsModels.A_farmer_inputs
+      .find({ _id: { $in: relevantFarmerInputIds } })
+      .populate({ path: 'farmer_account_id', model: global.globalModels.FarmerAccount })
+      .lean()
+      .skip(skip)
+      .limit(limit);
+
+    const results = await Promise.all(farmerInputs.map(async (farmerInput) => {
+      const cropType = await global.highValueCropsModels.B_crop_types.findOne({ farmer_input_id: farmerInput._id }).lean();
+      
+      // This check is now less likely to fail, but good for safety
+      if (!cropType) {
+        return { farmerInput, cropType: null, cropRecord: null, cropDetails: null };
+      }
+      
+      let cropRecord, cropDetails;
+
+      if (cropType.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS') {
+        cropRecord = await global.highValueCropsModels.C_crop_records_indus.findOne({ farmer_input_id: farmerInput._id }).lean();
+        
+        if (!cropRecord) {
+          return { farmerInput, cropType, cropRecord: null, cropDetails: null };
+        }
+        
+        if (cropRecord.crop_stage === 'NEWLY PLANTED') {
+          cropDetails = await global.highValueCropsModels.D1_crop_indus_new.findOne({ record_id: cropRecord._id }).lean();
+        } else if (cropRecord.crop_stage === 'HARVESTING') {
+          cropDetails = await global.highValueCropsModels.D1_crop_indus_harvest.findOne({ record_id: cropRecord._id }).lean();
+        }
+      } else {
+        cropRecord = await global.highValueCropsModels.C_crop_records_others.findOne({ farmer_input_id: farmerInput._id }).lean();
+        
+        if (!cropRecord) {
+          return { farmerInput, cropType, cropRecord: null, cropDetails: null };
+        }
+        
+        if (cropRecord.crop_stage === 'NEWLY PLANTED') {
+          cropDetails = await global.highValueCropsModels.D2_bc_other_fct_new.findOne({ record_id: cropRecord._id }).lean();
+        } else if (cropRecord.crop_stage === 'HARVESTING') {
+          cropDetails = await global.highValueCropsModels.D2_bc_other_fct_harvest.findOne({ record_id: cropRecord._id }).lean();
+        }
+      }
+
+      return {
+        farmerInput,
+        cropType,
+        cropRecord,
+        cropDetails
+      };
+    }));
+
+    res.json({
+      results,
+      totalCount,
+      totalPages: Math.ceil(totalCount / limit),
+      currentPage: page
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: 'Error fetching unvalidated farmer inputs', error: error.message });
+  }
+};
 
 // Get all validated farmer inputs with their referenced documents
+
 // export const getValidatedFarmerInputs = async (req, res) => {
 //   try {
 //     // Only find farmer inputs where isValidated is true
@@ -524,6 +629,84 @@ export const checkFormStatus = async (req, res) => {
     return res.status(500).json({ message: 'Error checking form status', error: error.message });
   }
 };
+
+export const archiveResponse = async (req, res) => {
+  const { inputId } = req.body;
+  
+  if (!inputId) {
+    return res.status(400).json({ message: 'Farmer response ID is required.' });
+  }
+
+  try {
+    const farmerInput = await global.highValueCropsModels.A_farmer_inputs.findById(inputId);
+    
+    if (!farmerInput) {
+      return res.status(404).json({ message: 'Farmer response not found.' });
+    }
+
+    // Check if already archived
+    if (farmerInput.isArchived === true) {
+      return res.status(400).json({ message: 'Farmer response is already archived.' });
+    }
+
+    // Update isArchived to true
+    await global.highValueCropsModels.A_farmer_inputs.updateOne(
+      { _id: inputId },
+      { $set: { isArchived: true } }
+    );
+
+    return res.status(200).json({ 
+      message: 'Farmer response archived successfully.',
+      inputId: inputId 
+    });
+
+  } catch (error) {
+    return res.status(500).json({ 
+      message: 'Error archiving farmer response', 
+      error: error.message 
+    });
+  }
+};
+
+export const unarchiveResponse = async (req, res) => {
+  const { inputId } = req.body;
+  
+  if (!farmerId) {
+    return res.status(400).json({ message: 'Farmer response ID is required.' });
+  }
+
+  try {
+    const farmerInput = await global.highValueCropsModels.A_farmer_inputs.findById(inputId);
+    
+    if (!farmerInput) {
+      return res.status(404).json({ message: 'Farmer response not found.' });
+    }
+
+    // Check if already unarchived
+    if (farmerInput.isArchived === false) {
+      return res.status(400).json({ message: 'Farmer response is already unarchived.' });
+    }
+
+    // Update isArchived to false
+    await global.highValueCropsModels.A_farmer_inputs.updateOne(
+      { _id: inputId },
+      { $set: { isArchived: false } }
+    );
+
+    return res.status(200).json({ 
+      message: 'Farmer response unarchived successfully.',
+      inputId: inputId 
+    });
+
+  } catch (error) {
+    return res.status(500).json({ 
+      message: 'Error unarchiving farmer response', 
+      error: error.message 
+    });
+  }
+};
+
+
 
 //________________________________ FARMERS ACCOUNT MANAGEMENT PAGE ____________________________________
 

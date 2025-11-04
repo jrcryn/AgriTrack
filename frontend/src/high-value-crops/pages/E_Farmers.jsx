@@ -531,14 +531,14 @@ const E_Farmers = () => {
                   {currentFarmers.length > 0 ? (
                     currentFarmers.map((farmers) => (
                       <Tr key={farmers._id}>
-                        <Td fontWeight="medium">{farmers.farmerId ? farmers.farmerId : '-'}</Td>
-                        <Td fontWeight="medium">
+                        <Td fontWeight="medium" fontSize={'sm'}>{farmers.farmerId ? farmers.farmerId : '-'}</Td>
+                        <Td fontWeight="medium" fontSize={'sm'}>
                           {`${farmers.first_name} ${farmers.middle_name ? farmers.middle_name +'.' : ''} ${farmers.surname} ${farmers.suffix ? farmers.suffix : ''}`.trim()}
                         </Td>
-                        <Td>{farmers.farmer_barangay ? farmers.farmer_barangay : '-'}</Td>
-                        <Td>{farmers.birthdate ? formatDate(new Date(farmers.birthdate)) : '-'}</Td>
-                        <Td>{farmers.mobile_number ? farmers.mobile_number : '-'}</Td>
-                        <Td>
+                        <Td fontSize={'sm'}>{farmers.farmer_barangay ? farmers.farmer_barangay : '-'}</Td>
+                        <Td fontSize={'sm'}>{farmers.birthdate ? formatDate(new Date(farmers.birthdate)) : '-'}</Td>
+                        <Td fontSize={'sm'}>{farmers.mobile_number ? farmers.mobile_number : '-'}</Td>
+                        <Td fontSize={'sm'}>
                           {farmers.facebook ? (
                             <Link
                               href={farmers.facebook.startsWith("http") ? farmers.facebook : `https://${farmers.facebook}`}
@@ -554,7 +554,7 @@ const E_Farmers = () => {
                         <Td position={{ base: 'static', md: 'sticky' }} right={0} bg="white" zIndex={1}>
                           <HStack spacing={2} justifyContent="center">
                             <Button
-                              size="sm"
+                              size="xs"
                               colorScheme="green"
                               leftIcon={<FaEdit />}
                               onClick={() => handleEditClick(farmers)}

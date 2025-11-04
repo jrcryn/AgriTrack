@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '../../auth/store/authStore';
+import { set } from 'lodash';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -26,6 +27,32 @@ export const useUnvalidatedHarvestingQuery = (page = 1, isPaused = false, role) 
     queryFn: async () => {
       const params = new URLSearchParams({ page, limit: 5, crop_stage: 'HARVESTING' });
       const response = await axios.get(`${API_URL}/api/hvc/get-unvalidated-inputs`, { params });
+      return response.data;
+    },
+    staleTime: 0,
+    refetchInterval: isPaused ? false : 1000, // Refetch every second unless paused
+    enabled: role === 'HVCM' || role === 'HVCS' 
+  });
+
+export const useUnvalidatedNewlyPlantedArchivedQuery = (page = 1, isPaused = false, role) => 
+  useQuery({
+    queryKey: ['unvalidatedNewlyPlantedArchived', page],
+    queryFn: async () => {
+      const params = new URLSearchParams({ page, limit: 5, crop_stage: 'NEWLY PLANTED' });
+      const response = await axios.get(`${API_URL}/api/hvc/get-unvalidated-archived-inputs`, { params });
+      return response.data;
+    },
+    staleTime: 0,
+    refetchInterval: isPaused ? false : 1000, // Refetch every second unless paused
+    enabled: role === 'HVCM' || role === 'HVCS' 
+  });
+
+export const useUnvalidatedHarvestingArchivedQuery = (page = 1, isPaused = false, role) => 
+  useQuery({
+    queryKey: ['unvalidatedHarvestingArchived', page],
+    queryFn: async () => {
+      const params = new URLSearchParams({ page, limit: 5, crop_stage: 'HARVESTING' });
+      const response = await axios.get(`${API_URL}/api/hvc/get-unvalidated-archived-inputs`, { params });
       return response.data;
     },
     staleTime: 0,
@@ -191,10 +218,18 @@ export const useAdminDashboard = (searchParams = {}) => {
   const [selectedCommodity, setSelectedCommodity] = useState('');
   const [newlyPlantedPage, setNewlyPlantedPage] = useState(1);
   const [harvestingPage, setHarvestingPage] = useState(1);
+
+  const [newlyPlantedArchivedPage, setNewlyPlantedArchivedPage] = useState(1);
+  const [harvestingArchivedPage, setHarvestingArchivedPage] = useState(1);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const { data: newlyPlantedInputs = { results: [], totalPages: 1, totalCount: 0 }, isLoading: isLoadingNewlyPlanted, error: newlyPlantedError } = useUnvalidatedNewlyPlantedQuery(newlyPlantedPage, isModalOpen, role);
   const { data: harvestingInputs = { results: [], totalPages: 1, totalCount: 0 }, isLoading: isLoadingHarvesting, error: harvestingError } = useUnvalidatedHarvestingQuery(harvestingPage, isModalOpen, role);
+
+  const { data: archivedNewlyPlantedInputs = { results: [], totalPages: 1, totalCount: 0 }, isLoading: isLoadingNewlyPlantedArchived, error: archivedNewlyPlantedError } = useUnvalidatedNewlyPlantedArchivedQuery(newlyPlantedArchivedPage, isModalOpen, role);
+  const { data: archivedHarvestingInputs = { results: [], totalPages: 1, totalCount: 0 }, isLoading: isLoadingHarvestingArchived, error: archivedHarvestingError } = useUnvalidatedHarvestingArchivedQuery(harvestingArchivedPage, isModalOpen, role);
+
   const { data: farmerAccounts = [], isLoading: isLoadingAccounts, error: farmerAccountsError } = useFarmerAccountsQuery(searchParams, role);
 
   const { data: availableYears = [], isLoading: isLoadingUFRY, error: ufrYearsError } = useUnifiedFarmerResponseYearQuery(role);
@@ -216,6 +251,8 @@ export const useAdminDashboard = (searchParams = {}) => {
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [isUpdatingFarmerAccount, setIsUpdatingFarmerAccount] = useState(false);
   const [isUpdatingFormStatus, setIsUpdatingFormStatus] = useState(false);
+  const [isArchivingResponse, setIsArchivingResponse] = useState(false);
+  const [isUnarchivingResponse, setIsUnarchivingResponse] = useState(false);
 
 
   useEffect(() => {
@@ -407,6 +444,30 @@ export const useAdminDashboard = (searchParams = {}) => {
     }
   };
 
+  const archiveResponse = async (inputId) => {
+    setIsArchivingResponse(true);
+    try {
+      const response = await axios.post(`${API_URL}/api/hvc/archive-response`, { inputId });
+      return response.data;
+    } catch (error) {
+      throw error;
+    } finally {
+      setIsArchivingResponse(false);
+    }
+  };
+
+  const unarchiveResponse = async (inputId) => {
+    setIsUnarchivingResponse(true);
+    try {
+      const response = await axios.post(`${API_URL}/api/hvc/unarchive-response`, { inputId });
+      return response.data;
+    } catch (error) {
+      throw error;
+    } finally {
+      setIsUnarchivingResponse(false);
+    }
+  };
+
   // Combine errors from different sources
   // if (unvalidatedError) setError(unvalidatedError.message || 'Failed to fetch unvalidated inputs');
   // if (validatedError) setError(validatedError.message || 'Failed to fetch validated inputs');
@@ -433,11 +494,19 @@ export const useAdminDashboard = (searchParams = {}) => {
     setSelectedCommodity,
     dateRanges,
     barangays,
+    archivedNewlyPlantedInputs,
+    archivedHarvestingInputs,
 
     newlyPlantedPage,
     setNewlyPlantedPage,
     harvestingPage,
     setHarvestingPage,
+    setNewlyPlantedArchivedPage,
+    newlyPlantedArchivedPage,
+    setHarvestingArchivedPage,
+    harvestingArchivedPage,
+    isModalOpen,
+    setIsModalOpen,
     
     // Loading states
     isLoading: isLoadingAccounts || isLoadingMetrics || isLoadingDateRanges,
@@ -446,6 +515,8 @@ export const useAdminDashboard = (searchParams = {}) => {
     isLoadingUFRY,
     isLoadingUFRM,
     isLoadingBarangays,
+    isLoadingNewlyPlantedArchived,
+    isLoadingHarvestingArchived,
 
     //isUpdating,
     isCreatingUnifiedResponse,
@@ -454,10 +525,12 @@ export const useAdminDashboard = (searchParams = {}) => {
     isGeneratingReport,
     isUpdatingFarmerAccount,
     isUpdatingFormStatus,
+    isArchivingResponse,
+    isUnarchivingResponse,
 
     // Error states
     newlyPlantedError, 
-    harvestingError, 
+    harvestingError,
     //validatedError, //not in use
     farmerAccountsError, 
     ufrYearsError, 
@@ -465,7 +538,9 @@ export const useAdminDashboard = (searchParams = {}) => {
     metricsError, 
     dateRangesError, 
     barangaysError,
-    
+    archivedNewlyPlantedError,
+    archivedHarvestingError,
+
     // Actions
     //updateFarmerInput,
     createFarmerAccount,
@@ -481,6 +556,8 @@ export const useAdminDashboard = (searchParams = {}) => {
     setIsModalOpen,
     deleteFarmerResponse,
     FormStatusEnable,
-    FormStatusDisable
+    FormStatusDisable,
+    archiveResponse,
+    unarchiveResponse
   };
 };

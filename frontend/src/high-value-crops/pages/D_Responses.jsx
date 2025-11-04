@@ -58,7 +58,7 @@ const Responses = () => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { isOpen: isOpenWarning, onOpen: onOpenWarning, onClose: onCloseWarning } = useDisclosure();
   const { isOpen: isOpenWarningBatch, onOpen: onOpenWarningBatch, onClose: onCloseWarningBatch } = useDisclosure();
-  const { isOpen: isOpenWarningDelete, onOpen: onOpenWarningDelete, onClose: onCloseWarningDelete } = useDisclosure();
+  const { isOpen: isOpenArchive, onOpen: onOpenArchive, onClose: onCloseArchive } = useDisclosure();
   const { isOpen: isOpenFormSettings, onOpen: onOpenFormSettings, onClose: onCloseFormSettings } = useDisclosure();
 
   const [selectedNewlyPlanted, setSelectedNewlyPlanted] = useState([]);
@@ -67,7 +67,8 @@ const Responses = () => {
   const [pushType, setPushType] = useState(null);
 
   const [isUpdatingForReview, setIsUpdatingForReview] = useState(false);
-  const [isDeletingFarmerResponse, setIsDeletingFarmerResponse] = useState(false);
+
+  const [viewMode, setViewMode] = useState('unvalidated'); // 'unvalidated' or 'archived'
 
   // Unvalidated farmer inputs
   const { 
@@ -90,11 +91,28 @@ const Responses = () => {
     newlyPlantedError,
     harvestingError,
     setIsModalOpen,
-    deleteFarmerResponse,
 
     FormStatusEnable,
     FormStatusDisable,
-    isUpdatingFormStatus
+    isUpdatingFormStatus,
+
+    archiveResponse,
+    isArchivingResponse,
+
+    setNewlyPlantedArchivedPage,
+    newlyPlantedArchivedPage,
+    setHarvestingArchivedPage,
+    harvestingArchivedPage,
+
+    archivedNewlyPlantedInputs,
+    archivedHarvestingInputs,
+
+    isLoadingNewlyPlantedArchived,
+    isLoadingHarvestingArchived,
+
+    archivedNewlyPlantedError,
+    archivedHarvestingError,
+
   } = useAdminDashboard();
 
   const toast = useToast();
@@ -435,11 +453,11 @@ const Responses = () => {
       }
     };
 
-    const handleDeleteFarmerResponse = async (responseToDelete) => {
-      if (!responseToDelete?.farmerInput?._id) {
+    const handleArchiveResponse = async (responseToArchive) => {
+      if (!responseToArchive?.farmerInput?._id) {
         toast({
           title: "Error",
-          description: "Cannot identify the response to delete.",
+          description: "Cannot identify the response to archive.",
           status: "error",
           duration: 5000,
           isClosable: true,
@@ -447,8 +465,7 @@ const Responses = () => {
         return;
       }
       try {
-        setIsDeletingFarmerResponse(true);
-        const response = await deleteFarmerResponse(responseToDelete.farmerInput._id);
+        const response = await archiveResponse(responseToArchive.farmerInput._id);
 
         toast({
           title: "Success",
@@ -459,8 +476,7 @@ const Responses = () => {
         });
         queryClient.invalidateQueries({ queryKey: ['unvalidatedNewlyPlanted'] });
         queryClient.invalidateQueries({ queryKey: ['unvalidatedHarvesting'] });
-        setIsDeletingFarmerResponse(false);
-        onCloseWarningDelete();
+        onCloseArchive();
         onClose();
       } catch (error) {
         toast({
@@ -470,7 +486,6 @@ const Responses = () => {
           duration: 5000,
           isClosable: true,
         });
-        setIsDeletingFarmerResponse(false);
       }
     };
 
@@ -1385,7 +1400,8 @@ const Responses = () => {
           p={4}
           bg="blue.50"
           borderRadius="md"
-          alignItems={{ base: "flex-start", md: "center" }}  // This is the key change
+          alignItems={{ base: "flex-start", md: "center" }}
+          gap={2}
         >
           <Button colorScheme={formButtonColor} size="sm" width={{ base: "full", md: "auto" }} onClick={handleFormToggle} isLoading={isUpdatingFormStatus}>
             <Icon as={isFormOpen ? FaCheck : FaStop} mr={2}/>
@@ -1393,7 +1409,6 @@ const Responses = () => {
           </Button>
 
           <Button 
-            ml={2} 
             colorScheme='blue' 
             size="sm" 
             width={{ base: "full", md: "auto" }} 
@@ -1413,7 +1428,6 @@ const Responses = () => {
           </Button>
 
           <Button 
-            ml={2} 
             colorScheme='blue' 
             size="sm" 
             width={{ base: "full", md: "auto" }} 
@@ -1423,8 +1437,22 @@ const Responses = () => {
             Open Form in New Tab
           </Button>
 
+          <Spacer display={{ base: "none", md: "block" }} />
+
+          <Select 
+            value={viewMode} 
+            onChange={(e) => setViewMode(e.target.value)} 
+            size="sm" 
+            width={{ base: "full", md: "200px" }}
+            bg="white"
+          >
+            <option value="unvalidated">Unvalidated Responses</option>
+            <option value="archived">Archived Responses</option>
+          </Select>
+
         </Flex>
     
+        {viewMode === 'unvalidated' ? (
         <>
           {/* NEWLY PLANTED SECTION */}
           <Box mb={8}>
@@ -1576,6 +1604,133 @@ const Responses = () => {
             </Flex>
           </Box>
         </>
+        ) : (
+          <>
+            {/* ARCHIVED NEWLY PLANTED SECTION */}
+            <Box mb={8}>
+              <Flex 
+                justify="space-between" 
+                align="center" 
+                mb={4}
+                bg="gray.50"
+                p={3}
+                height={"60px"}
+                borderRadius="md"
+                borderLeftWidth="4px"
+                borderLeftColor="gray.500"
+              >
+                <Heading as="h2" size="md" display="flex" alignItems="center">
+                  <Icon as={FaSeedling} mr={2} color="green.600" /> ARCHIVED NEWLY PLANTED RESPONSES
+                </Heading>
+              </Flex>
+            
+              {isLoadingNewlyPlantedArchived ? (
+                <Flex justifyContent="center" alignItems="center" minH="200px">
+                  <Spinner size="lg" color="green.500" thickness="3px" />
+                  <Text ml={5}>Loading archived newly planted responses...</Text>
+                </Flex>
+              ) : (
+              <Box overflowX="auto" >
+                <ResponseTable 
+                  data={archivedNewlyPlantedInputs.results} 
+                  status="NEWLY PLANTED" 
+                  selectedItems={[]}
+                  onSelectItem={() => {}}
+                  onSelectAll={() => {}}
+                />
+              </Box>
+              )}
+
+              {archivedNewlyPlantedError && (
+                <Box 
+                  overflow="hidden" 
+                  bg="white" 
+                  p={5} 
+                >
+                  <Alert status="error" borderRadius="md">
+                    <AlertIcon />
+                    <AlertTitle>Error loading data!</AlertTitle>
+                    <AlertDescription>
+                      {archivedNewlyPlantedError || "Unable to load archived newly planted responses."}
+                    </AlertDescription>
+                  </Alert>
+                </Box>
+              )}
+              
+              <Flex justifyContent="space-between" alignItems="center" mt={4}>
+                <PaginationControls 
+                  currentPage={newlyPlantedArchivedPage}
+                  setCurrentPage={setNewlyPlantedArchivedPage}
+                  totalPages={archivedNewlyPlantedInputs.totalPages}
+                  totalItems={archivedNewlyPlantedInputs.totalCount}
+                  colorScheme="green"
+                />
+              </Flex>
+            </Box>
+            
+            {/* ARCHIVED HARVESTING SECTION */}
+            <Box mb={8}>
+              <Flex 
+                justify="space-between" 
+                align="center" 
+                mb={4}
+                bg="gray.50"
+                p={3}
+                height={"60px"}
+                borderRadius="md"
+                borderLeftWidth="4px"
+                borderLeftColor="gray.500"
+              >
+                <Heading as="h2" size="md" display="flex" alignItems="center">
+                  <Icon as={FaBoxes} mr={2} color="orange.600" /> ARCHIVED HARVESTING RESPONSES
+                </Heading>
+              </Flex>
+            
+              {isLoadingHarvestingArchived ? (
+                <Flex justifyContent="center" alignItems="center" minH="200px">
+                  <Spinner size="lg" color="orange.500" thickness="3px" />
+                  <Text ml={5}>Loading archived harvesting responses...</Text>
+                </Flex>
+              ) : (
+              <Box overflowX="auto">
+                <ResponseTable 
+                  data={archivedHarvestingInputs.results} 
+                  status="HARVESTING" 
+                  selectedItems={[]}
+                  onSelectItem={() => {}}
+                  onSelectAll={() => {}}
+                />
+              </Box>
+              )}
+
+              {archivedHarvestingError && (
+                <Box 
+                  overflow="hidden" 
+                  bg="white" 
+                  p={5} 
+                >
+                  <Alert status="error" borderRadius="md">
+                    <AlertIcon />
+                    <AlertTitle>Error loading data!</AlertTitle>
+                    <AlertDescription>
+                      {archivedHarvestingError || "Unable to load archived harvesting responses."}
+                    </AlertDescription>
+                  </Alert>
+                </Box>
+              )}
+
+              <Flex justifyContent="space-between" alignItems="center" mt={4}>
+                <PaginationControls 
+                  currentPage={harvestingArchivedPage}
+                  setCurrentPage={setHarvestingArchivedPage}
+                  totalPages={archivedHarvestingInputs.totalPages}
+                  totalItems={archivedHarvestingInputs.totalCount}
+                  colorScheme="orange"
+                />
+              </Flex>
+            </Box>
+          </>
+        )}
             
       {/* Details Modal */}
       <Modal 
@@ -1632,75 +1787,92 @@ const Responses = () => {
           
           <ModalFooter bg="gray.50" borderTopWidth="1px" borderColor="gray.200">
             
-            {selectedResponse?.farmerInput?.isForReview === true ? (
+            {selectedResponse?.farmerInput?.isArchived ? (
               <>
+                <Button variant="outline" mr={3} onClick={onClose} _hover={{ bg: "gray.100" }}>
+                  Close
+                </Button>
                 <Button 
-                  colorScheme="orange" 
-                  onClick={() => handleUnsetForReview(selectedResponse)}
+                  colorScheme="blue" 
                   boxShadow="sm"
-                  _hover={{ boxShadow: "md", bg: "orange.600" }}
-                  isLoading={isUpdatingForReview}
+                  _hover={{ boxShadow: "md", bg: "blue.600" }}
                 >
-                  Unflag for Review
+                  Unarchive Response
                 </Button>
               </>
             ) : (
-            <>
-              <Button 
-                colorScheme="yellow" 
-                onClick={() => handleSetForReview(selectedResponse)}
-                boxShadow="sm"
-                _hover={{ boxShadow: "md", bg: "yellow.500" }}
-                isLoading={isUpdatingForReview}
-              >
-                Flag for Review
-              </Button>
-            </>
-          )}
+              <>
+                {selectedResponse?.farmerInput?.isForReview === true ? (
+                  <>
+                    <Button 
+                      colorScheme="orange" 
+                      onClick={() => handleUnsetForReview(selectedResponse)}
+                      boxShadow="sm"
+                      _hover={{ boxShadow: "md", bg: "orange.600" }}
+                      isLoading={isUpdatingForReview}
+                    >
+                      Unflag for Review
+                    </Button>
+                  </>
+                ) : (
+                <>
+                  <Button 
+                    colorScheme="yellow" 
+                    onClick={() => handleSetForReview(selectedResponse)}
+                    boxShadow="sm"
+                    _hover={{ boxShadow: "md", bg: "yellow.500" }}
+                    isLoading={isUpdatingForReview}
+                  >
+                    Flag for Review
+                  </Button>
+                </>
+              )}
 
 
-            <Spacer />
+                <Spacer />
 
-            
-            <Button variant="outline" mr={3} onClick={onClose} _hover={{ bg: "gray.100" }}>
-              Close
-            </Button>
-
-            {selectedResponse?.farmerInput?.isForReview === true && (
-              <Button 
-                colorScheme="yellow" 
-                boxShadow="sm"
-                mr={3}
-                _hover={{ boxShadow: "md", bg: "yellow.500" }}
-                onClick={onOpenWarningDelete}
-              >
-                Archive Response
-              </Button>
-            )}
-
-            {selectedResponse?.farmerInput?.isForReview === true && (
-              <Button 
-                colorScheme="blue" 
-                boxShadow="sm"
-                _hover={{ boxShadow: "md", bg: "blue.600" }}
-                onClick={handleUpdateFields}
-                isLoading={isUpdatingFields}
-              >
-                Update
-              </Button>
-            )}
-
-            {selectedResponse?.farmerInput?.isForReview === false && (
-              <Tooltip label="Cannot push responses that are flagged for review." placement="top" hasArrow isDisabled={!selectedResponse?.farmerInput?.isForReview === true}>
-                <Button 
-                  colorScheme="green" 
-                  onClick={onOpenWarning}
-                  boxShadow="sm"
-                  _hover={{ boxShadow: "md", bg: "green.600" }}
-                >
-                  Push
+                
+                <Button variant="outline" mr={3} onClick={onClose} _hover={{ bg: "gray.100" }}>
+                  Close
                 </Button>
-              </Tooltip>
+
+                {selectedResponse?.farmerInput?.isForReview === true && (
+                  <Button 
+                    colorScheme="yellow" 
+                    boxShadow="sm"
+                    mr={3}
+                    _hover={{ boxShadow: "md", bg: "yellow.500" }}
+                    onClick={onOpenArchive}
+                  >
+                    Archive Response
+                  </Button>
+                )}
+
+                {selectedResponse?.farmerInput?.isForReview === true && (
+                  <Button 
+                    colorScheme="blue" 
+                    boxShadow="sm"
+                    _hover={{ boxShadow: "md", bg: "blue.600" }}
+                    onClick={handleUpdateFields}
+                    isLoading={isUpdatingFields}
+                  >
+                    Update
+                  </Button>
+                )}
+
+                {selectedResponse?.farmerInput?.isForReview === false && (
+                  <Tooltip label="Cannot push responses that are flagged for review." placement="top" hasArrow isDisabled={!selectedResponse?.farmerInput?.isForReview === true}>
+                    <Button 
+                      colorScheme="green" 
+                      onClick={onOpenWarning}
+                      boxShadow="sm"
+                      _hover={{ boxShadow: "md", bg: "green.600" }}
+                    >
+                      Push
+                    </Button>
+                  </Tooltip>
+                )}
+              </>
             )}
           </ModalFooter>
         </ModalContent>
@@ -1750,49 +1922,6 @@ const Responses = () => {
         </ModalContent>
       </Modal>
 
-      <Modal isOpen={isOpenWarningDelete} size="xs" onClose={onCloseWarningDelete} closeOnOverlayClick={false} scrollBehavior="inside" isCentered  motionPreset="none">
-        <ModalOverlay/>
-        <ModalContent borderRadius="lg" overflow="hidden">
-          <ModalHeader
-            bg="red.50" 
-            borderBottomWidth="1px"
-            borderColor="gray.200"
-            py={4}
-            display="flex" 
-            alignItems="center"
-          >
-            <Icon as={GoAlertFill} mr={2} color="red.500" />
-            Warning!
-          </ModalHeader>
-
-          <ModalFooter bg="gray.50" borderTopWidth="1px" borderColor="gray.200">
-            <Flex w="100%">
-            <Button 
-              variant="outline" 
-              mr={3} 
-              onClick={onCloseWarningDelete}
-              size="md"
-              _hover={{ bg: "gray.100" }}
-              w={"40%"}
-            >
-              Cancel
-            </Button>
-            <Spacer/>
-            <Button 
-                colorScheme="red"
-                onClick={() => handleDeleteFarmerResponse(selectedResponse)}
-                size="md"
-                _hover={{ boxShadow: "md", bg: "red.600" }}
-                w={"60%"}
-                isLoading={isDeletingFarmerResponse}
-            >
-              Delete Response
-            </Button>
-            </Flex>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
-
       <Modal isOpen={isOpenWarningBatch} size="xs" onClose={onCloseWarningBatch} closeOnOverlayClick={false} scrollBehavior="inside" isCentered  motionPreset="none">
         <ModalOverlay/>
         <ModalContent borderRadius="lg" overflow="hidden">
@@ -1836,6 +1965,49 @@ const Responses = () => {
                 isLoading={isBatchProcessing}
             >
               Push {pushType === 'NEWLY_PLANTED' ? selectedNewlyPlanted.length : selectedHarvesting.length} Selected
+            </Button>
+            </Flex>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      <Modal isOpen={isOpenArchive} size="xs" onClose={onCloseArchive} closeOnOverlayClick={false} scrollBehavior="inside" isCentered  motionPreset="none">
+        <ModalOverlay/>
+        <ModalContent borderRadius="lg" overflow="hidden">
+          <ModalHeader
+            bg="yellow.50" 
+            borderBottomWidth="1px"
+            borderColor="gray.200"
+            py={4}
+            display="flex" 
+            alignItems="center"
+          >
+            <Icon as={GoAlertFill} mr={2} color="yellow.500" />
+            Archive Response?
+          </ModalHeader>
+
+          <ModalFooter bg="gray.50" borderTopWidth="1px" borderColor="gray.200">
+            <Flex w="100%">
+            <Button 
+              variant="outline" 
+              mr={3} 
+              onClick={onCloseArchive}
+              size="md"
+              _hover={{ bg: "gray.100" }}
+              w={"40%"}
+            >
+              Cancel
+            </Button>
+            <Spacer/>
+            <Button 
+                colorScheme="yellow"
+                onClick={() => handleArchiveResponse(selectedResponse)}
+                size="md"
+                _hover={{ boxShadow: "md", bg: "yellow.600" }}
+                w={"60%"}
+                isLoading={isArchivingResponse}
+            >
+              Archive Response
             </Button>
             </Flex>
           </ModalFooter>
