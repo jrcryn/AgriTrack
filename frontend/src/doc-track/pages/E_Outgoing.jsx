@@ -255,7 +255,7 @@ const E_Outgoing = () => {
                                   bg="white"
                                 >
                                   <Button
-                                    size="sm"
+                                    size="xs"
                                     colorScheme="green"
                                     onClick={() => handleOpenStatus(doc)}
                                     leftIcon={<FaEye />}

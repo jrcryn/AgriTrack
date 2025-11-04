@@ -484,7 +484,7 @@ const Responses = () => {
 
     return(
         <TableContainer>
-          <Table variant="simple">
+          <Table variant="simple" size='md'>
             <Thead bg="gray.50">
               <Tr>
                 <Th width="50px">
@@ -549,25 +549,25 @@ const Responses = () => {
                     </>
                     ) : (<><Td></Td></>)}
 
-                    <Td fontWeight="medium">
+                    <Td fontWeight="medium" fontSize={'sm'}>
                     {`${response.farmerInput?.farmer_account_id?.first_name ?? ''} ${response.farmerInput?.farmer_account_id?.middle_name ? response.farmerInput?.farmer_account_id.middle_name +'.':''} ${response.farmerInput?.farmer_account_id?.surname ?? ''} ${response.farmerInput?.farmer_account_id?.suffix ?? ''}`.trim()}
                     </Td>
-                    <Td>{response.farmerInput?.farm_location ?? '-'}</Td>
+                    <Td fontSize={'sm'}>{response.farmerInput?.farm_location ?? '-'}</Td>
                     {status === 'NEWLY PLANTED' ? (
                         <>
-                          <Td>
+                          <Td fontSize={'sm'}>
                             {response.cropRecord
                               ? (response.cropType?.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS'
                                   ? (response.cropRecord.crop_type ?? '-')
                                   : (response.cropRecord.crop_variety ?? '-'))
                             : '-'}
                           </Td>
-                          <Td>
+                          <Td fontSize={'sm'}>
                             {response.cropDetails?.plantation_start_date && response.cropDetails?.plantation_end_date
                               ? `${new Date(response.cropDetails.plantation_start_date).toLocaleDateString('en-US', plnt_harvDate)} to ${new Date(response.cropDetails.plantation_end_date).toLocaleDateString('en-US', plnt_harvDate)}`
                               : '-'}
                           </Td>
-                          <Td>
+                          <Td fontSize={'sm'}>
                             {response.cropDetails?.total_trees != null && response.cropRecord?.crop_variety
                               ? `${numOfTreesToHectares(response.cropRecord.crop_variety, response.cropDetails.total_trees)?.toFixed(4) || 'invalid commodity'}`
                               : (response.cropDetails?.total_area_planted != null ? response.cropDetails.total_area_planted : '-')}
@@ -575,19 +575,19 @@ const Responses = () => {
                         </>
                       ) : (
                         <>
-                          <Td>
+                          <Td fontSize={'sm'}>
                             {response.cropRecord
                               ? (response.cropType?.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS'
                                   ? (response.cropRecord.crop_type ?? '-')
                                   : (response.cropRecord.crop_variety ?? '-'))
                             : '-'}
                           </Td>
-                          <Td>
+                          <Td fontSize={'sm'}>
                           {response.cropDetails?.harvest_start_date && response.cropDetails?.harvest_end_date
                             ? `${new Date(response.cropDetails.harvest_start_date).toLocaleDateString('en-US', plnt_harvDate)} to ${new Date(response.cropDetails.harvest_end_date).toLocaleDateString('en-US', plnt_harvDate)}`
                             : '-'}
                           </Td>
-                          <Td>
+                          <Td fontSize={'sm'}>
                             {response.cropDetails?.trees_harvested != null && response.cropRecord?.crop_variety
                               ? `${numOfTreesToHectares(response.cropRecord.crop_variety, response.cropDetails.trees_harvested)?.toFixed(4) || 'invalid commodity'}`
                               : (response.cropDetails?.total_area_harvested != null ? response.cropDetails.total_area_harvested : '-')}
@@ -596,7 +596,8 @@ const Responses = () => {
                       )}
                     <Td isNumeric position={{ base: 'static', md: 'sticky' }} right={0} zIndex={1} bg={response.farmerInput.isForReview === true ? 'orange.100' : 'white'}>
                       <Button
-                        size="sm"
+                      alignContent={'center'}
+                        size="xs"
                         colorScheme={status === 'NEWLY PLANTED' ? 'green' : 'orange'}
                         leftIcon={<FaEye />}
                         onClick={() => {

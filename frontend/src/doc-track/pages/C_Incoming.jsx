@@ -343,7 +343,7 @@ const C_Incoming = () => {
                                     bg="white"
                                   >
                                     <Button
-                                      size="sm"
+                                      size="xs"
                                       colorScheme="green"
                                       onClick={() => handleReceive(doc)}
                                       isLoading={receivingDocId === doc._id}
