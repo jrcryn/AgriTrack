@@ -118,11 +118,8 @@ export const getUnvalidatedArchivedFarmerInputs = async (req, res) => {
 
     // Base query for unvalidated farmer inputs
     const baseQuery = { 
-      isValidated: false, 
-      $or: [
-        { isArchived: true },
-        { isArchived: { $exists: true } }
-      ]
+      isValidated: false,
+      isArchived: true            // <-- only true; do not match "exists: true"
     };
 
     // Find all unvalidated farmer inputs and get their IDs
@@ -671,7 +668,7 @@ export const archiveResponse = async (req, res) => {
 export const unarchiveResponse = async (req, res) => {
   const { inputId } = req.body;
   
-  if (!farmerId) {
+  if (!inputId) {
     return res.status(400).json({ message: 'Farmer response ID is required.' });
   }
 

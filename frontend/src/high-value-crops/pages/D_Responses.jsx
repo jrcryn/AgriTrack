@@ -113,6 +113,9 @@ const Responses = () => {
     archivedNewlyPlantedError,
     archivedHarvestingError,
 
+    unarchiveResponse,
+    isUnarchivingResponse
+
   } = useAdminDashboard();
 
   const toast = useToast();
@@ -453,6 +456,44 @@ const Responses = () => {
       }
     };
 
+    const handleUnarchiveResponse = async (responseToUnarchive) => {
+      if (!responseToUnarchive?.farmerInput?._id) {
+        toast({
+          title: "Error",
+          description: "Cannot identify the response to unarchive.",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
+        return;
+      }
+      try {
+        const response = await unarchiveResponse(responseToUnarchive.farmerInput._id);
+
+        toast({
+          title: "Success",
+          description: response.message,
+          status: "success",
+          duration: 5000,
+          isClosable: true,
+        });
+        queryClient.invalidateQueries({ queryKey: ['unvalidatedNewlyPlanted'] });
+        queryClient.invalidateQueries({ queryKey: ['unvalidatedHarvesting'] });
+        queryClient.invalidateQueries({ queryKey: ['unvalidatedNewlyPlantedArchived'] });
+        queryClient.invalidateQueries({ queryKey: ['unvalidatedHarvestingArchived'] });
+        onCloseArchive();
+        onClose();
+        setSelectedResponse(null);
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: error.response?.data?.message,
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
+      }
+    };
     const handleArchiveResponse = async (responseToArchive) => {
       if (!responseToArchive?.farmerInput?._id) {
         toast({
@@ -476,8 +517,12 @@ const Responses = () => {
         });
         queryClient.invalidateQueries({ queryKey: ['unvalidatedNewlyPlanted'] });
         queryClient.invalidateQueries({ queryKey: ['unvalidatedHarvesting'] });
+        queryClient.invalidateQueries({ queryKey: ['unvalidatedNewlyPlantedArchived'] });
+        queryClient.invalidateQueries({ queryKey: ['unvalidatedHarvestingArchived'] });
+
         onCloseArchive();
         onClose();
+        setSelectedResponse(null);
       } catch (error) {
         toast({
           title: "Error",
@@ -551,7 +596,7 @@ const Responses = () => {
             <Tbody>
               {data.length > 0 ? (
                 data.map((response, index) => (
-                  <Tr key={response.farmerInput._id || index} bg={response.farmerInput.isForReview === true ? 'orange.100' : 'white'}>
+                  <Tr key={response.farmerInput._id || index} bg={viewMode === 'unvalidated' && response.farmerInput.isForReview === true ? 'orange.100' : 'white'}>
                     {response.farmerInput.isForReview === false ? (
                       <>
                     <Td>
@@ -609,7 +654,7 @@ const Responses = () => {
                           </Td>
                         </>
                       )}
-                    <Td isNumeric position={{ base: 'static', md: 'sticky' }} right={0} zIndex={1} bg={response.farmerInput.isForReview === true ? 'orange.100' : 'white'}>
+                    <Td isNumeric position={{ base: 'static', md: 'sticky' }} right={0} zIndex={1} bg={viewMode === 'unvalidated' && response.farmerInput.isForReview === true ? 'orange.100' : 'white'}>
                       <Button
                       alignContent={'center'}
                         size="xs"
@@ -1796,6 +1841,7 @@ const Responses = () => {
                   colorScheme="blue" 
                   boxShadow="sm"
                   _hover={{ boxShadow: "md", bg: "blue.600" }}
+                  onClick={() => handleUnarchiveResponse(selectedResponse)}
                 >
                   Unarchive Response
                 </Button>
