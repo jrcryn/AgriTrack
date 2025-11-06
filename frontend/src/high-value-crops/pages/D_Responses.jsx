@@ -1082,7 +1082,7 @@ const Responses = () => {
       if (!dateString) return '-';
       return new Date(dateString).toLocaleDateString('en-US', {
         year: 'numeric',
-        month: 'long',
+        month: 'short',
         day: 'numeric'
       });
     };
