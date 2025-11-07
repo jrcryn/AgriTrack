@@ -10,6 +10,8 @@ import { D1CropIndusHarvestSchema } from './schemas/D1_cropIndusHarvest.schema.j
 import { D2BcOtherFctNewSchema } from './schemas/D2_bc-other-fctNew.schema.js';
 import { D2BcOtherFctHarvestSchema } from './schemas/D2_bc-other-fctHarvest.schema.js';
 
+import { EditRequestSchema } from './schemas/editRequest.schema.js'
+
 import { FormStatus } from './schemas/formStatus.js';
 
 import { UnifiedFarmerRecordSchema } from './schemas/unifiedFarmerResponse.schema.js';
@@ -27,6 +29,9 @@ export const initializeHighValueCropsModels = () => {
     D1_crop_indus_harvest: db.model('D1_crop_indus_harvest', D1CropIndusHarvestSchema),
     D2_bc_other_fct_new: db.model('D2_bc_other_fct_new', D2BcOtherFctNewSchema),
     D2_bc_other_fct_harvest: db.model('D2_bc_other_fct_harvest', D2BcOtherFctHarvestSchema),
+
+    EditRequest: db.model('EditRequest', EditRequestSchema),
+
     FormStatus: db.model('FormStatus', FormStatus),
   };
 };

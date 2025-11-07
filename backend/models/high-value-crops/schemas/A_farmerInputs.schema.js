@@ -20,5 +20,24 @@ export const AFarmerInputsSchema = new mongoose.Schema({
   isValidated: { type: Boolean, default: false },
   isForReview: { type: Boolean, default: false },
   isArchived: { type: Boolean, default: false },
+
+  editConsent: {
+    status: { type: String, enum: ['Pending', 'Granted', 'Denied'] },
+    editRequestId: { type: mongoose.Schema.Types.ObjectId, ref: 'Edit_Request'},
+    grantedAt: { type: Date },
+    deniedAt: { type: Date },
+    reason: String
+  },
+
+  requiredValidationVisit: { type: Boolean, default: false },
+
+  validationVisitDetails: {
+    status: { type: String, enum: ['Pending', 'Completed'] },
+    scheduledAt: { type: Date },
+    completedAt: { type: Date },
+    validatorEmployee: { type: mongoose.Schema.Types.ObjectId, ref: 'User_Account' },
+    remarks: { type: String, trim: true },
+  }
+
 }, { versionKey: false, timestamps: true });
 

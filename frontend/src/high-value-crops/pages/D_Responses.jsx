@@ -59,7 +59,7 @@ const Responses = () => {
   const { isOpen: isOpenWarning, onOpen: onOpenWarning, onClose: onCloseWarning } = useDisclosure();
   const { isOpen: isOpenWarningBatch, onOpen: onOpenWarningBatch, onClose: onCloseWarningBatch } = useDisclosure();
   const { isOpen: isOpenArchive, onOpen: onOpenArchive, onClose: onCloseArchive } = useDisclosure();
-  const { isOpen: isOpenFormSettings, onOpen: onOpenFormSettings, onClose: onCloseFormSettings } = useDisclosure();
+  const { isOpen: isOpenRequestEdit, onOpen: onOpenRequestEdit, onClose: onCloseRequestEdit } = useDisclosure();
 
   const [selectedNewlyPlanted, setSelectedNewlyPlanted] = useState([]);
   const [selectedHarvesting, setSelectedHarvesting] = useState([]);
@@ -975,7 +975,7 @@ const Responses = () => {
   };
 
   // ResponseDetailForm to allow editing only for flagged responses and only allowed fields
-  const ResponseDetailForm = React.memo(function ResponseDetailForm({ response, editable, onValuesChange }) {
+  const ResponseDetailForm = React.memo(function ResponseDetailForm({ response, editable, onValuesChange, onHasChanges }) {
     const isNewlyPlanted = response.cropRecord?.crop_stage === 'NEWLY PLANTED';
     const isHarvesting = response.cropRecord?.crop_stage === 'HARVESTING';
     const isIndustrialCrop = response.cropType?.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS';
@@ -1039,6 +1039,10 @@ const Responses = () => {
       setLocalFields(prev => {
         const next = { ...prev, [field]: value };
         onValuesChange?.(next);
+
+        const hasChanges = Object.keys(next).some(key => next[key] !== (response.cropDetails?.[key] ?? ''));
+        onHasChanges?.(hasChanges);
+
         return next;
       });
     };
@@ -1096,7 +1100,7 @@ const Responses = () => {
       });
     };
 
-    return (
+    return ( 
       <VStack spacing={6} align="stretch">
         {/* Farmer Information Section */}
         <Box p={5} borderRadius="md" borderWidth="1px" borderColor="gray.200" bg="white" boxShadow="sm">
@@ -1899,10 +1903,10 @@ const Responses = () => {
                     colorScheme="blue" 
                     boxShadow="sm"
                     _hover={{ boxShadow: "md", bg: "blue.600" }}
-                    onClick={handleUpdateFields}
+                    onClick={onOpenRequestEdit}
                     isLoading={isUpdatingFields}
                   >
-                    Update
+                    Request Edit
                   </Button>
                 )}
 
@@ -2060,8 +2064,8 @@ const Responses = () => {
         </ModalContent>
       </Modal>
 
-      {/* Form Settings Modal - To be used, pag dumami na form settings*/}
-      {/* <Modal isOpen={isOpenFormSettings} onClose={onCloseFormSettings} size="md" isCentered motionPreset='none'>
+      {/* REQUEST EDIT MODAL*/}
+      <Modal isOpen={isOpenRequestEdit} onClose={onCloseRequestEdit} size="md" isCentered motionPreset='none'>
         <ModalOverlay />
         <ModalContent>
           <ModalHeader>Form Settings</ModalHeader>
@@ -2070,13 +2074,13 @@ const Responses = () => {
             
           </ModalBody>
           <ModalFooter>
-            <Button colorScheme="blue" mr={3} onClick={onCloseFormSettings}>
+            <Button colorScheme="blue" mr={3} onClick={onCloseRequestEdit}>
               Save Changes
             </Button>
-            <Button variant="ghost" onClick={onCloseFormSettings}>Cancel</Button>
+            <Button variant="ghost" onClick={onCloseRequestEdit}>Cancel</Button>
           </ModalFooter>
         </ModalContent>
-      </Modal> */}
+      </Modal>
       
     </Box>
   );
