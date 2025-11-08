@@ -753,7 +753,7 @@ const E_Farmers = () => {
                   <FormControl isInvalid={formErrors.mobile_number}>
                     <FormLabel fontWeight="medium">Mobile Number</FormLabel>
                     <InputGroup>
-                      <InputLeftAddon bg="gray.100" color="gray.700">+63</InputLeftAddon>
+                      {/* <InputLeftAddon bg="gray.100" color="gray.700">+63</InputLeftAddon> */}
                       <Input 
                         type="tel"
                         maxLength={11}
