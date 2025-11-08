@@ -26,7 +26,7 @@ export const AFarmerInputsSchema = new mongoose.Schema({
     editRequestId: { type: mongoose.Schema.Types.ObjectId, ref: 'Edit_Request'},
     grantedAt: { type: Date },
     deniedAt: { type: Date },
-    reason: String
+    reason: { type:String, trim:true }
   },
 
   requiredValidationVisit: { type: Boolean, default: false },

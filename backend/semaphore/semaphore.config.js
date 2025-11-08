@@ -10,7 +10,7 @@ export const sendSMS = async (phone, message) => {
       apikey: api_key,
       number: phone,
       message: message,
-      sendername: 'AgriTrack'
+      sendername: 'CanBRS'
     });
     console.log('SMS sent: ', response.data);
   } catch (error) {

@@ -909,8 +909,8 @@ const Responses = () => {
 
   const editValueRef = useRef(null);
 
-  // Handler for update button
-  const handleUpdateFields = async () => {
+  // Handler for requesting farmer consent for data change
+  const handleRequestConsent = async () => {
     if (!selectedResponse) return;
 
     const latest = editValueRef.current || {};

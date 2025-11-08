@@ -707,18 +707,20 @@ export const unarchiveResponse = async (req, res) => {
   }
 };
 
+import { sendNewlyPlantedCropCorrectionSMS, sendHarvestingCropCorrectionSMS } from '../../semaphore/sms.controller.js'
 
-export const requestEdit = async (req, res) => {
+export const requestEdit = async (req, res) => { //additional functions for sending sms, yung sa url link, mismong id ng edit request doc nalang gamitin
   try {
-    const { farmerId, crop_stage, updates } = req.body;
+    const { farmerId, crop_stage, updates, reason } = req.body;
     if (!farmerId || !crop_stage || !updates) {
       return res.status(400).json({ message: 'farmerId, crop_stage, and updates are required.' });
     }
 
     // Check if the response is flagged for review
     const farmerInput = await global.highValueCropsModels.A_farmer_inputs.findById(farmerId);
+    console.log(farmerInput);
     if (!farmerInput) {
-      return res.status(404).json({ message: 'Farmer response not found.' });
+      return res.status(404).json({ message: 'Farmer response not found.' }); 
     }
     if (farmerInput.isForReview !== true) {
       return res.status(400).json({ message: 'Only flagged responses can be requested for edit.' });
@@ -730,16 +732,27 @@ export const requestEdit = async (req, res) => {
       return res.status(404).json({ message: 'Crop type not found.' });
     }
 
-    let cropRecord, cropDetails, updateFields = {};
+    //find the farmer account
+    const farmer = await global.globalModels.FarmerAccount.findById(farmerInput.farmer_account_id);
+    if (!farmer) {
+      return res.status(404).json({ message: 'Farmer account not found.' });
+    }
+
+    const phone = farmer.mobile_number;
+    const farmerName = farmer.first_name;
+
+    let cropRecord, cropDetails, updateFields = {}, cropStage;
 
     if (cropType.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS') {
       cropRecord = await global.highValueCropsModels.C_crop_records_indus.findOne({ farmer_input_id: farmerId });
       if (!cropRecord) return res.status(404).json({ message: 'Crop record not found.' });
 
       if (crop_stage === 'NEWLY PLANTED') {
+        cropStage = 'newlyPlanted'
         cropDetails = await global.highValueCropsModels.D1_crop_indus_new.findOne({ record_id: cropRecord._id });
         if ('total_area_planted' in updates) updateFields.total_area_planted = updates.total_area_planted;
       } else if (crop_stage === 'HARVESTING') {
+        cropStage = 'harvesting'
         cropDetails = await global.highValueCropsModels.D1_crop_indus_harvest.findOne({ record_id: cropRecord._id });
         if ('total_weight' in updates) updateFields.total_weight = updates.total_weight;
         if ('total_area_harvested' in updates) updateFields.total_area_harvested = updates.total_area_harvested;
@@ -749,15 +762,17 @@ export const requestEdit = async (req, res) => {
       if (!cropRecord) return res.status(404).json({ message: 'Crop record not found.' });
 
       if (crop_stage === 'NEWLY PLANTED') {
+        cropStage = 'newlyPlanted'
         cropDetails = await global.highValueCropsModels.D2_bc_other_fct_new.findOne({ record_id: cropRecord._id });
         if ('total_trees' in updates) updateFields.total_trees = updates.total_trees;
       } else if (crop_stage === 'HARVESTING') {
+        cropStage = 'harvesting'
         cropDetails = await global.highValueCropsModels.D2_bc_other_fct_harvest.findOne({ record_id: cropRecord._id });
         if ('total_weight' in updates) updateFields.total_weight = updates.total_weight;
         if ('trees_harvested' in updates) updateFields.trees_harvested = updates.trees_harvested;
       }
     }
-
+    
     if (!cropDetails) {
       return res.status(404).json({ message: 'Crop details not found.' });
     }
@@ -769,31 +784,128 @@ export const requestEdit = async (req, res) => {
     // Build edit request payload
     const editPayload = {
       farmer_input_id: farmerId,
-      crop_stage,
-      crop_type: cropType.crop_type,
-      crop_record_id: cropRecord?._id,
-      crop_details_id: cropDetails?._id,
-      status: 'PENDING',
       ...updateFields
     };
 
     // Upsert one pending request per farmerId + crop_stage
-    const editDoc = await global.highValueCropsModels.EditRequest.findOneAndUpdate(
-      { farmer_input_id: farmerId, crop_stage, status: 'PENDING' },
-      { $set: editPayload },
-      { new: true, upsert: true }
-    );
+    const editDoc = await global.highValueCropsModels.EditRequest.create(editPayload);
+    
+
+    await global.highValueCropsModels.A_farmer_inputs.findOneAndUpdate(
+      {_id: farmerId},
+      {
+        editConsent: {
+          status: "Pending",
+          editRequestId: editDoc._id,
+          reason: reason
+        }
+      }
+    )
+    const reviewLink = `${process.env.CLIENT_URL}/hvc/consent-request/${editDoc._id}`
+
+    // if (cropStage === 'newlyPlanted') {
+    //   await sendNewlyPlantedCropCorrectionSMS(phone, farmerName, reviewLink);
+    // } else {
+    //   await sendHarvestingCropCorrectionSMS(phone, farmerName, reviewLink);
+    // }
 
     return res.json({
       message: 'Edit request recorded. Awaiting farmer consent.',
-      editRequest: editDoc
     });
   } catch (error) {
+    console.log(error);
     return res.status(500).json({ message: 'Error recording edit request.', error: error.message });
   }
 };
 
+export const getRequestEditDetailsForFarmerView = async (req, res) => { //ito yung controller pang kuha ng necessary informations para doon sa link na bubuksan ni farmer
+  try {
+    const { id } = req.params;
+    if (!id) {
+      return res.status(400).json({ message: 'Edit request id is required.' });
+    }
 
+    // 1) Find the edit request document
+    const editRequest = await global.highValueCropsModels.EditRequest.findById(id).lean();
+    if (!editRequest) {
+      return res.status(404).json({ message: 'Edit request not found.' });
+    }
+
+    const farmerInputId = editRequest.farmer_input_id;
+
+    // 2) Find the related unvalidated farmer input with farmer account
+    const farmerInput = await global.highValueCropsModels.A_farmer_inputs
+      .findOne({ _id: farmerInputId, isValidated: false })
+      .populate({ path: 'farmer_account_id', model: global.globalModels.FarmerAccount })
+      .lean();
+
+    if (!farmerInput) {
+      return res.status(404).json({ message: 'Unvalidated farmer response not found.' });
+    }
+
+    // 3) Copy the consolidation logic from getUnvalidatedArchivedFarmerInputs
+    const cropType = await global.highValueCropsModels.B_crop_types
+      .findOne({ farmer_input_id: farmerInput._id })
+      .lean();
+
+    if (!cropType) {
+      return res.json({
+        editRequest,
+        result: { farmerInput, cropType: null, cropRecord: null, cropDetails: null }
+      });
+    }
+
+    let cropRecord = null;
+    let cropDetails = null;
+
+    if (cropType.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS') {
+      cropRecord = await global.highValueCropsModels.C_crop_records_indus
+        .findOne({ farmer_input_id: farmerInput._id })
+        .lean();
+
+      if (cropRecord) {
+        if (cropRecord.crop_stage === 'NEWLY PLANTED') {
+          cropDetails = await global.highValueCropsModels.D1_crop_indus_new
+            .findOne({ record_id: cropRecord._id })
+            .lean();
+        } else if (cropRecord.crop_stage === 'HARVESTING') {
+          cropDetails = await global.highValueCropsModels.D1_crop_indus_harvest
+            .findOne({ record_id: cropRecord._id })
+            .lean();
+        }
+      }
+    } else {
+      cropRecord = await global.highValueCropsModels.C_crop_records_others
+        .findOne({ farmer_input_id: farmerInput._id })
+        .lean();
+
+      if (cropRecord) {
+        if (cropRecord.crop_stage === 'NEWLY PLANTED') {
+          cropDetails = await global.highValueCropsModels.D2_bc_other_fct_new
+            .findOne({ record_id: cropRecord._id })
+            .lean();
+        } else if (cropRecord.crop_stage === 'HARVESTING') {
+          cropDetails = await global.highValueCropsModels.D2_bc_other_fct_harvest
+            .findOne({ record_id: cropRecord._id })
+            .lean();
+        }
+      }
+    }
+
+    // 4) Return consolidated payload
+    return res.json({
+      editRequest,
+      result: {
+        farmerInput,
+        cropType,
+        cropRecord,
+        cropDetails
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ message: 'Error fetching edit request details.', error: error.message });
+  }
+};
 
 //________________________________ FARMERS ACCOUNT MANAGEMENT PAGE ____________________________________
 

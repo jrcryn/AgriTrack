@@ -22,7 +22,10 @@ import {
     checkFormStatus,
     getUnvalidatedArchivedFarmerInputs,
     archiveResponse,
-    unarchiveResponse
+    unarchiveResponse,
+
+    requestEdit,
+    getRequestEditDetailsForFarmerView
  } from '../controller/high-value-crops/adminDashboard.controller.js'; 
 
 import { 
@@ -57,6 +60,8 @@ router.post('/form-status-disable', verifyAuthToken, verifyRole(['HVCM', 'HVCS']
 router.post('/archive-response', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), archiveResponse);
 router.post('/unarchive-response', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), unarchiveResponse);
 router.get('/get-unvalidated-archived-inputs', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), getUnvalidatedArchivedFarmerInputs);
+
+router.post('/request-edit', requestEdit); //temporarily removed auth for testing
 
 
 //________________________________ DASHBOARD (FARMERS) PAGE ____________________________________
@@ -96,5 +101,6 @@ router.post('/generate-hvc-pr', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), g
 router.post('/farmer-form-submission', ensureHvcFormOpen, submitCompleteFarmerForm); // need ng way para ma-verify muna kung nahanap ba talaga (JWT probably again?) yung farmer bago magsubmit ng form, otherwise, reject ung submission. create middleware.
 router.get('/check-form-status', checkFormStatus);
 
+router.get('/get-edit-request-details-for-farmer-view/:farmerId', getRequestEditDetailsForFarmerView);
 
 export default router;

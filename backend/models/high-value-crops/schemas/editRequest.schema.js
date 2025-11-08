@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 
 export const EditRequestSchema = new mongoose.Schema({
-  // linkage/meta
+  // linkage/meta`
   farmer_input_id: { type: mongoose.Schema.Types.ObjectId, required: true },
 
   // newly planted - industrial crops
