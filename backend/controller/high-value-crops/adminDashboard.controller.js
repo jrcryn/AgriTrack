@@ -709,7 +709,10 @@ export const unarchiveResponse = async (req, res) => {
 
 import { sendNewlyPlantedCropCorrectionSMS, sendHarvestingCropCorrectionSMS } from '../../semaphore/sms.controller.js'
 
-export const requestEdit = async (req, res) => { //additional functions for sending sms, yung sa url link, mismong id ng edit request doc nalang gamitin
+export const requestEdit = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
     const { farmerId, crop_stage, updates, reason } = req.body;
     if (!farmerId || !crop_stage || !updates) {
@@ -717,24 +720,28 @@ export const requestEdit = async (req, res) => { //additional functions for send
     }
 
     // Check if the response is flagged for review
-    const farmerInput = await global.highValueCropsModels.A_farmer_inputs.findById(farmerId);
+    const farmerInput = await global.highValueCropsModels.A_farmer_inputs.findById(farmerId).session(session);
     console.log(farmerInput);
     if (!farmerInput) {
+      await session.abortTransaction();
       return res.status(404).json({ message: 'Farmer response not found.' }); 
     }
     if (farmerInput.isForReview !== true) {
+      await session.abortTransaction();
       return res.status(400).json({ message: 'Only flagged responses can be requested for edit.' });
     }
 
     // Find crop type and crop record
-    const cropType = await global.highValueCropsModels.B_crop_types.findOne({ farmer_input_id: farmerId }).lean();
+    const cropType = await global.highValueCropsModels.B_crop_types.findOne({ farmer_input_id: farmerId }).session(session).lean();
     if (!cropType) {
+      await session.abortTransaction();
       return res.status(404).json({ message: 'Crop type not found.' });
     }
 
     //find the farmer account
-    const farmer = await global.globalModels.FarmerAccount.findById(farmerInput.farmer_account_id);
+    const farmer = await global.globalModels.FarmerAccount.findById(farmerInput.farmer_account_id).session(session);
     if (!farmer) {
+      await session.abortTransaction();
       return res.status(404).json({ message: 'Farmer account not found.' });
     }
 
@@ -744,40 +751,48 @@ export const requestEdit = async (req, res) => { //additional functions for send
     let cropRecord, cropDetails, updateFields = {}, cropStage;
 
     if (cropType.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS') {
-      cropRecord = await global.highValueCropsModels.C_crop_records_indus.findOne({ farmer_input_id: farmerId });
-      if (!cropRecord) return res.status(404).json({ message: 'Crop record not found.' });
+      cropRecord = await global.highValueCropsModels.C_crop_records_indus.findOne({ farmer_input_id: farmerId }).session(session);
+      if (!cropRecord) {
+        await session.abortTransaction();
+        return res.status(404).json({ message: 'Crop record not found.' });
+      }
 
       if (crop_stage === 'NEWLY PLANTED') {
         cropStage = 'newlyPlanted'
-        cropDetails = await global.highValueCropsModels.D1_crop_indus_new.findOne({ record_id: cropRecord._id });
+        cropDetails = await global.highValueCropsModels.D1_crop_indus_new.findOne({ record_id: cropRecord._id }).session(session);
         if ('total_area_planted' in updates) updateFields.total_area_planted = updates.total_area_planted;
       } else if (crop_stage === 'HARVESTING') {
         cropStage = 'harvesting'
-        cropDetails = await global.highValueCropsModels.D1_crop_indus_harvest.findOne({ record_id: cropRecord._id });
+        cropDetails = await global.highValueCropsModels.D1_crop_indus_harvest.findOne({ record_id: cropRecord._id }).session(session);
         if ('total_weight' in updates) updateFields.total_weight = updates.total_weight;
         if ('total_area_harvested' in updates) updateFields.total_area_harvested = updates.total_area_harvested;
       }
     } else {
-      cropRecord = await global.highValueCropsModels.C_crop_records_others.findOne({ farmer_input_id: farmerId });
-      if (!cropRecord) return res.status(404).json({ message: 'Crop record not found.' });
+      cropRecord = await global.highValueCropsModels.C_crop_records_others.findOne({ farmer_input_id: farmerId }).session(session);
+      if (!cropRecord) {
+        await session.abortTransaction();
+        return res.status(404).json({ message: 'Crop record not found.' });
+      }
 
       if (crop_stage === 'NEWLY PLANTED') {
         cropStage = 'newlyPlanted'
-        cropDetails = await global.highValueCropsModels.D2_bc_other_fct_new.findOne({ record_id: cropRecord._id });
+        cropDetails = await global.highValueCropsModels.D2_bc_other_fct_new.findOne({ record_id: cropRecord._id }).session(session);
         if ('total_trees' in updates) updateFields.total_trees = updates.total_trees;
       } else if (crop_stage === 'HARVESTING') {
         cropStage = 'harvesting'
-        cropDetails = await global.highValueCropsModels.D2_bc_other_fct_harvest.findOne({ record_id: cropRecord._id });
+        cropDetails = await global.highValueCropsModels.D2_bc_other_fct_harvest.findOne({ record_id: cropRecord._id }).session(session);
         if ('total_weight' in updates) updateFields.total_weight = updates.total_weight;
         if ('trees_harvested' in updates) updateFields.trees_harvested = updates.trees_harvested;
       }
     }
     
     if (!cropDetails) {
+      await session.abortTransaction();
       return res.status(404).json({ message: 'Crop details not found.' });
     }
 
     if (Object.keys(updateFields).length === 0) {
+      await session.abortTransaction();
       return res.status(400).json({ message: 'No allowed fields provided for update.' });
     }
 
@@ -787,34 +802,44 @@ export const requestEdit = async (req, res) => { //additional functions for send
       ...updateFields
     };
 
-    // Upsert one pending request per farmerId + crop_stage
-    const editDoc = await global.highValueCropsModels.EditRequest.create(editPayload);
-    
+    // Create edit request document within transaction
+    const editDoc = await global.highValueCropsModels.EditRequest.create([editPayload], { session });
 
+    // Update farmer input within transaction
     await global.highValueCropsModels.A_farmer_inputs.findOneAndUpdate(
-      {_id: farmerId},
+      { _id: farmerId },
       {
         editConsent: {
           status: "Pending",
-          editRequestId: editDoc._id,
+          editRequestId: editDoc[0]._id,
           reason: reason
         }
-      }
-    )
-    const reviewLink = `${process.env.CLIENT_URL}/hvc/consent-request/${editDoc._id}`
+      },
+      { session }
+    );
 
-    // if (cropStage === 'newlyPlanted') {
-    //   await sendNewlyPlantedCropCorrectionSMS(phone, farmerName, reviewLink);
-    // } else {
-    //   await sendHarvestingCropCorrectionSMS(phone, farmerName, reviewLink);
-    // }
+    const reviewLink = `${process.env.CLIENT_URL}/hvc/consent-request/${editDoc[0]._id}`;
+
+    // Send SMS (if this fails, transaction will rollback)
+    if (cropStage === 'newlyPlanted') {
+      await sendNewlyPlantedCropCorrectionSMS(phone, farmerName, reviewLink);
+    } else {
+      await sendHarvestingCropCorrectionSMS(phone, farmerName, reviewLink);
+    }
+
+    // Commit the transaction only if everything succeeded
+    await session.commitTransaction();
 
     return res.json({
       message: 'Edit request recorded. Awaiting farmer consent.',
     });
   } catch (error) {
+    // Rollback transaction on any error
+    await session.abortTransaction();
     console.log(error);
     return res.status(500).json({ message: 'Error recording edit request.', error: error.message });
+  } finally {
+    session.endSession();
   }
 };
 
@@ -906,6 +931,96 @@ export const getRequestEditDetailsForFarmerView = async (req, res) => { //ito yu
     return res.status(500).json({ message: 'Error fetching edit request details.', error: error.message });
   }
 };
+
+
+// ...existing code...
+export const handleConsentForEditRequest = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { editRequestId, consent } = req.body; // consent: 'granted' or 'denied'
+    
+    if (!editRequestId || !consent) {
+      await session.abortTransaction();
+      return res.status(400).json({ message: 'Kinakailangan ang editRequestId at consent.' });
+    }
+
+    if (!['granted', 'denied'].includes(consent.toLowerCase())) {
+      await session.abortTransaction();
+      return res.status(400).json({ message: 'Ang consent ay dapat "granted" o "denied" lamang.' });
+    }
+
+    // Find the edit request
+    const editRequest = await global.highValueCropsModels.EditRequest.findById(editRequestId).session(session);
+    if (!editRequest) {
+      await session.abortTransaction();
+      return res.status(404).json({ message: 'Hindi nahanap ang kahilingang pag-edit.' });
+    }
+
+    // Find the farmer input
+    const farmerInput = await global.highValueCropsModels.A_farmer_inputs.findById(editRequest.farmer_input_id).session(session);
+    if (!farmerInput) {
+      await session.abortTransaction();
+      return res.status(404).json({ message: 'Hindi nahanap ang inyong sagot.' });
+    }
+
+    // Check if already processed
+    if (farmerInput.editConsent.status === 'Granted' || farmerInput.editConsent.status === 'Denied') {
+      await session.abortTransaction();
+      return res.status(400).json({ message: 'Naproseso na ang kahilingang ito.' });
+    }
+
+    const now = new Date();
+
+    if (consent.toLowerCase() === 'granted') {
+      // Update farmer input with granted consent
+      await global.highValueCropsModels.A_farmer_inputs.findByIdAndUpdate(
+        editRequest.farmer_input_id,
+        {
+          $set: {
+            'editConsent.status': 'Granted',
+            'editConsent.grantedAt': now
+          }
+        },
+        { session }
+      );
+
+      await session.commitTransaction();
+      
+      return res.status(200).json({
+        message: 'Salamat po! Pinayagan ninyo ang pag-edit ng inyong sagot. Maaari na pong isarado ang tab na ito.',
+        consent: 'granted'
+      });
+    } else {
+      // Update farmer input with denied consent
+      await global.highValueCropsModels.A_farmer_inputs.findByIdAndUpdate(
+        editRequest.farmer_input_id,
+        {
+          $set: {
+            'editConsent.status': 'Denied',
+            'editConsent.deniedAt': now
+          }
+        },
+        { session }
+      );
+
+      await session.commitTransaction();
+
+      return res.status(200).json({
+        message: 'Salamat po sa inyong tugon. Hindi ninyo pinayagan ang pag-edit. Maaari na pong isarado ang tab na ito.',
+        consent: 'denied'
+      });
+    }
+  } catch (error) {
+    await session.abortTransaction();
+    console.log(error);
+    return res.status(500).json({ message: 'May error sa pagproseso ng inyong consent.', error: error.message });
+  } finally {
+    session.endSession();
+  }
+};
+
 
 //________________________________ FARMERS ACCOUNT MANAGEMENT PAGE ____________________________________
 

@@ -29,6 +29,8 @@ import D2_bc_Other_fctHarvest from '../high-value-crops/formPages/D2_bc-other-fc
 import D2_bc_Other_fctNew from '../high-value-crops/formPages/D2_bc-other-fctNew.jsx';
 import SuccessPage from '../high-value-crops/formPages/E_successPage.jsx';
 
+import ConsentRequestPage from '../high-value-crops/formPages/ConsentRequestPage.jsx';
+
 //redirect authenticated users
 const ProtectedRoute = ({children}) => {
     const {isAuthenticated, isCheckingAuth, user, checkAuth} = useAuthStore();
@@ -185,6 +187,8 @@ const highValueCropsApp = () => {
           <Route path="profile-settings" element={<ProfileSettings />} />
           
         </Route>
+
+        <Route path="/consent-request/:editRequestId" element={<ConsentRequestPage />} />
 
         <Route path='/form/form-closed' element={<FormClosedPage />} />
         <Route path='/form/istcns' element={<Instructions onNext={() => handleNext('/dpa')} />} />

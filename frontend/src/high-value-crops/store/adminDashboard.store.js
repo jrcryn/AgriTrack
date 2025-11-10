@@ -253,6 +253,9 @@ export const useAdminDashboard = (searchParams = {}) => {
   const [isUpdatingFormStatus, setIsUpdatingFormStatus] = useState(false);
   const [isArchivingResponse, setIsArchivingResponse] = useState(false);
   const [isUnarchivingResponse, setIsUnarchivingResponse] = useState(false);
+  const [isRequestingEdit, setIsRequestingEdit] = useState(false);
+  const [isGettingEditRequestDetails, setIsGettingEditRequestDetails] = useState(false);
+  const [isHandlingConsent, setIsHandlingConsent] = useState(false);
 
 
   useEffect(() => {
@@ -399,7 +402,7 @@ export const useAdminDashboard = (searchParams = {}) => {
     }
   };
 
-  // Add updateFarmerResponseFields for flagged responses (partial update)
+  // for granted consent requests (full update)
   const updateFarmerResponseFields = async ({ farmerId, crop_stage, updates }) => {
     try {
       const response = await axios.post(`${API_URL}/api/hvc/update-farmer-response-fields`, {
@@ -410,6 +413,47 @@ export const useAdminDashboard = (searchParams = {}) => {
       return response.data;
     } catch (error) {
       throw error;
+    }
+  };
+
+  const requestEdit = async ({ farmerId, crop_stage, updates, reason }) => {
+    setIsRequestingEdit(true);
+    try {
+      const response = await axios.post(`${API_URL}/api/hvc/request-edit`, {
+        farmerId,
+        crop_stage,
+        updates,
+        reason
+      });
+      return response.data;
+    } catch (error) {
+      throw error;
+    } finally {
+      setIsRequestingEdit(false);
+    }
+  };
+
+  const getEditRequestDetails = async (editRequestId) => {
+    setIsGettingEditRequestDetails(true);
+    try {
+      const response = await axios.get(`${API_URL}/api/hvc/get-edit-request-details-for-farmer-view/${editRequestId}`);
+      return response.data; // { editRequest, result: { farmerInput, cropType, cropRecord, cropDetails } }
+    } catch (error) {
+      throw error;
+    } finally {
+      setIsGettingEditRequestDetails(false);
+    }
+  };
+
+  const handleConsentForEditRequest = async ({ editRequestId, consent }) => {
+    setIsHandlingConsent(true);
+    try {
+      const response = await axios.post(`${API_URL}/api/hvc/handle-consent-for-edit-request`, { editRequestId, consent });
+      return response.data;
+    } catch (error) {
+      throw error;
+    } finally {
+      setIsHandlingConsent(false);
     }
   };
 
@@ -468,6 +512,7 @@ export const useAdminDashboard = (searchParams = {}) => {
     }
   };
 
+  
   // Combine errors from different sources
   // if (unvalidatedError) setError(unvalidatedError.message || 'Failed to fetch unvalidated inputs');
   // if (validatedError) setError(validatedError.message || 'Failed to fetch validated inputs');
@@ -507,6 +552,7 @@ export const useAdminDashboard = (searchParams = {}) => {
     harvestingArchivedPage,
     isModalOpen,
     setIsModalOpen,
+    getEditRequestDetails,
     
     // Loading states
     isLoading: isLoadingAccounts || isLoadingMetrics || isLoadingDateRanges,
@@ -517,6 +563,7 @@ export const useAdminDashboard = (searchParams = {}) => {
     isLoadingBarangays,
     isLoadingNewlyPlantedArchived,
     isLoadingHarvestingArchived,
+    isGettingEditRequestDetails,
 
     //isUpdating,
     isCreatingUnifiedResponse,
@@ -527,6 +574,8 @@ export const useAdminDashboard = (searchParams = {}) => {
     isUpdatingFormStatus,
     isArchivingResponse,
     isUnarchivingResponse,
+    isRequestingEdit,
+    isHandlingConsent,
 
     // Error states
     newlyPlantedError, 
@@ -558,6 +607,8 @@ export const useAdminDashboard = (searchParams = {}) => {
     FormStatusEnable,
     FormStatusDisable,
     archiveResponse,
-    unarchiveResponse
+    unarchiveResponse,
+    requestEdit,
+    handleConsentForEditRequest
   };
 };

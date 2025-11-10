@@ -41,6 +41,7 @@ import {
   Checkbox,
   Spacer,
   Tooltip,
+  Textarea,
 } from '@chakra-ui/react';
 import numOfTreesToHectares from '../../components/conversions.js';
 import { FaSearch, FaEye, FaSeedling, FaBoxes, FaUser, FaLeaf, FaWifi, FaUpload, FaInfo, FaCheck, FaStop, FaLink, FaExternalLinkAlt } from 'react-icons/fa';
@@ -114,7 +115,10 @@ const Responses = () => {
     archivedHarvestingError,
 
     unarchiveResponse,
-    isUnarchivingResponse
+    isUnarchivingResponse,
+
+    requestEdit,
+    isRequestingEdit
 
   } = useAdminDashboard();
 
@@ -874,6 +878,11 @@ const Responses = () => {
   const [editFields, setEditFields] = useState({});
   const [isUpdatingFields, setIsUpdatingFields] = useState(false);
 
+  // NEW: Request-edit state
+  const [requestEditValues, setRequestEditValues] = useState({});
+  const [requestEditReason, setRequestEditReason] = useState("");
+  const [hasRequestEditChanges, setHasRequestEditChanges] = useState(false);
+
   // When selectedResponse changes, reset editFields
   useEffect(() => {
     if (!selectedResponse) {
@@ -909,52 +918,95 @@ const Responses = () => {
 
   const editValueRef = useRef(null);
 
-  // Handler for requesting farmer consent for data change
+  // Initialize request-edit values when the Request Edit modal opens
+  useEffect(() => {
+    if (!isOpenRequestEdit || !selectedResponse) return;
+
+    const isNewlyPlanted = selectedResponse.cropRecord?.crop_stage === 'NEWLY PLANTED';
+    const isHarvesting = selectedResponse.cropRecord?.crop_stage === 'HARVESTING';
+    const isIndustrialCrop = selectedResponse.cropType?.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS';
+
+    let initial = {};
+    if (isNewlyPlanted) {
+      initial = isIndustrialCrop
+        ? { total_area_planted: selectedResponse.cropDetails?.total_area_planted ?? '' }
+        : { total_trees: selectedResponse.cropDetails?.total_trees ?? '' };
+    } else if (isHarvesting) {
+      initial = isIndustrialCrop
+        ? {
+            total_weight: selectedResponse.cropDetails?.total_weight ?? '',
+            total_area_harvested: selectedResponse.cropDetails?.total_area_harvested ?? '',
+          }
+        : {
+            total_weight: selectedResponse.cropDetails?.total_weight ?? '',
+            trees_harvested: selectedResponse.cropDetails?.trees_harvested ?? '',
+          };
+    }
+    setRequestEditValues(initial);
+    setRequestEditReason("");
+    setHasRequestEditChanges(false);
+  }, [isOpenRequestEdit, selectedResponse]);
+
+  // Check for changes in request-edit values
+  useEffect(() => {
+    if (!selectedResponse || !isOpenRequestEdit) return;
+
+    const hasChanges = Object.keys(requestEditValues).some(key => {
+      const currentValue = String(requestEditValues[key] ?? '');
+      const originalValue = String(selectedResponse.cropDetails?.[key] ?? '');
+      return currentValue !== originalValue;
+    });
+
+    setHasRequestEditChanges(hasChanges);
+  }, [requestEditValues, selectedResponse, isOpenRequestEdit]);
+
+  // Handler for requesting farmer consent for data change (moved to Request Edit modal)
+  // ...existing code...
   const handleRequestConsent = async () => {
     if (!selectedResponse) return;
 
-    const latest = editValueRef.current || {};
+    // sanitize values: cast numeric-like strings to numbers
+    const sanitized = Object.entries(requestEditValues || {}).reduce((acc, [k, v]) => {
+      if (v === '' || v === null || v === undefined) {
+        acc[k] = v;
+      } else if (!isNaN(v)) {
+        acc[k] = Number(v);
+      } else {
+        acc[k] = v;
+      }
+      return acc;
+    }, {});
+
     setIsUpdatingFields(true);
     try {
       const crop_stage = selectedResponse.cropRecord?.crop_stage;
-      await updateFarmerResponseFields({
+
+      // Use atomic requestEdit (creates edit request + awaits consent)
+      const result = await requestEdit({
         farmerId: selectedResponse.farmerInput._id,
         crop_stage,
-        updates: latest
+        updates: sanitized,
+        reason: requestEditReason?.trim(), 
       });
 
-      // Create a deep copy of the selected response with updated values
-      const updatedResponse = {
-        ...selectedResponse,
-        cropDetails: {
-          ...selectedResponse.cropDetails,
-          ...latest
-        }
-      };
-      
-      // Update the state with the new values
-      setSelectedResponse(updatedResponse);
-      
       toast({
-        title: "Success",
-        description: "Fields updated successfully.",
+        title: "Request Sent",
+        description: result?.message || "Edit request recorded. Awaiting farmer consent.",
         status: "success",
         duration: 5000,
         isClosable: true,
       });
-      
-      // Invalidate queries to refresh data
+
+      // Refresh lists (no optimistic local mutation; data changes only after farmer grants consent)
       queryClient.invalidateQueries({ queryKey: ['unvalidatedNewlyPlanted'] });
       queryClient.invalidateQueries({ queryKey: ['unvalidatedHarvesting'] });
-      
-      // Add a slight delay before closing the modal to ensure the user sees the updated values
-      setTimeout(() => {
-        onClose();
-      }, 500);
+
+      onCloseRequestEdit();
     } catch (error) {
+      console.log(error);
       toast({
         title: "Error",
-        description: error.response?.data?.message || "Failed to update fields.",
+        description: error.response?.data?.message || "Failed to send edit request.",
         status: "error",
         duration: 5000,
         isClosable: true,
@@ -963,6 +1015,68 @@ const Responses = () => {
       setIsUpdatingFields(false);
     }
   };
+
+  // const handleRequestConsent = async () => {
+  //   if (!selectedResponse) return;
+
+  //   // sanitize values: cast numeric-like strings to numbers
+  //   const sanitized = Object.entries(requestEditValues || {}).reduce((acc, [k, v]) => {
+  //     if (v === '' || v === null || v === undefined) {
+  //       acc[k] = v;
+  //     } else if (!isNaN(v)) {
+  //       acc[k] = Number(v);
+  //     } else {
+  //       acc[k] = v;
+  //     }
+  //     return acc;
+  //   }, {});
+
+  //   setIsUpdatingFields(true);
+  //   try {
+  //     const crop_stage = selectedResponse.cropRecord?.crop_stage;
+  //     await updateFarmerResponseFields({
+  //       farmerId: selectedResponse.farmerInput._id,
+  //       crop_stage,
+  //       updates: sanitized,
+  //       reason: requestEditReason, // include reason
+  //     });
+
+  //     // update local selected response values
+  //     const updatedResponse = {
+  //       ...selectedResponse,
+  //       cropDetails: {
+  //         ...selectedResponse.cropDetails,
+  //         ...sanitized,
+  //       },
+  //     };
+  //     setSelectedResponse(updatedResponse);
+
+  //     toast({
+  //       title: "Success",
+  //       description: "Edit request sent successfully.",
+  //       status: "success",
+  //       duration: 5000,
+  //       isClosable: true,
+  //     });
+
+  //     // refresh lists
+  //     queryClient.invalidateQueries({ queryKey: ['unvalidatedNewlyPlanted'] });
+  //     queryClient.invalidateQueries({ queryKey: ['unvalidatedHarvesting'] });
+
+  //     // close request-edit modal (and keep details modal open)
+  //     onCloseRequestEdit();
+  //   } catch (error) {
+  //     toast({
+  //       title: "Error",
+  //       description: error.response?.data?.message || "Failed to send edit request.",
+  //       status: "error",
+  //       duration: 5000,
+  //       isClosable: true,
+  //     });
+  //   } finally {
+  //     setIsUpdatingFields(false);
+  //   }
+  // };
 
   const handleFormToggle = async () => {
     if (isFormOpen) {
@@ -1179,7 +1293,7 @@ const Responses = () => {
           </SimpleGrid>
         </Box>
 
-        {/* Plantation Information */}
+        {/* Newlyplanted Information */}
         {isNewlyPlanted && (
           <Box p={5} borderRadius="md" borderWidth="1px" borderColor="gray.200" bg="white" boxShadow="sm">
             <Heading as="h3" size="md" mb={4} color="teal.600" fontWeight="600">
@@ -1828,8 +1942,7 @@ const Responses = () => {
             {selectedResponse && (
               <ResponseDetailForm 
                 response={selectedResponse}
-                editable={selectedResponse?.farmerInput?.isForReview === true}
-                onValuesChange={(vals) => { editValueRef.current = vals; }}
+                editable={false} // make details modal read-only
               />
             )}
           </ModalBody>
@@ -1846,6 +1959,7 @@ const Responses = () => {
                   boxShadow="sm"
                   _hover={{ boxShadow: "md", bg: "blue.600" }}
                   onClick={() => handleUnarchiveResponse(selectedResponse)}
+                  isLoading={isUnarchivingResponse}
                 >
                   Unarchive Response
                 </Button>
@@ -2064,24 +2178,152 @@ const Responses = () => {
         </ModalContent>
       </Modal>
 
-      {/* REQUEST EDIT MODAL*/}
-      <Modal isOpen={isOpenRequestEdit} onClose={onCloseRequestEdit} size="md" isCentered motionPreset='none'>
+      {/* REQUEST EDIT MODAL */}
+      <Modal isOpen={isOpenRequestEdit} onClose={onCloseRequestEdit} size="md" isCentered motionPreset='none' closeOnOverlayClick={false} scrollBehavior="inside">
         <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>Form Settings</ModalHeader>
-          <ModalBody>
-            <Text mb={4}>Customize the fields displayed in the response forms.</Text>
-            
+        <ModalContent borderRadius="lg" overflow="hidden">
+          <ModalHeader
+            bg="gray.50"
+            borderBottomWidth="1px"
+            borderColor="gray.200"
+            py={4}
+            display="flex" 
+            alignItems="center"
+          >
+            Request Edit From Farmer
+          </ModalHeader>
+          <ModalBody py={6}>
+            {selectedResponse ? (
+              <VStack align="stretch" spacing={4}>
+                {/* Warning if no phone number */}
+                {!selectedResponse.farmerInput?.farmer_account_id?.mobile_number && (
+                  <Alert status="warning" borderRadius="md" variant="left-accent">
+                    <AlertIcon />
+                    <Box flex="1">
+                      <AlertTitle fontSize="sm">No Phone Number Registered</AlertTitle>
+                      <AlertDescription fontSize="xs">
+                        SMS notification cannot be sent. Please contact the farmer leader or conduct a site visit to request this edit.
+                      </AlertDescription>
+                    </Box>
+                  </Alert>
+                )}
+
+                {/* Dynamic fields based on stage/type */}
+                {selectedResponse.cropRecord?.crop_stage === 'NEWLY PLANTED' ? (
+                  selectedResponse.cropType?.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS' ? (
+                    <FormControl>
+                      <FormLabel fontWeight="medium">Total Area Planted (ha)</FormLabel>
+                      <InputGroup>
+                        <Input
+                          type="number"
+                          value={requestEditValues.total_area_planted ?? ''}
+                          onChange={(e) => setRequestEditValues(v => ({ ...v, total_area_planted: e.target.value }))
+                          }
+                        />
+                        <InputRightAddon children="hectares" />
+                      </InputGroup>
+                    </FormControl>
+                  ) : (
+                    <FormControl>
+                      <FormLabel fontWeight="medium">Total Number of Trees</FormLabel>
+                      <InputGroup>
+                        <Input
+                          type="number"
+                          value={requestEditValues.total_trees ?? ''}
+                          onChange={(e) => setRequestEditValues(v => ({ ...v, total_trees: e.target.value }))
+                          }
+                        />
+                        <InputRightAddon children="trees" />
+                      </InputGroup>
+                    </FormControl>
+                  )
+                ) : (
+                  // HARVESTING
+                  <>
+                    <FormControl>
+                      <FormLabel fontWeight="medium">Total Weight</FormLabel>
+                      <InputGroup>
+                        <Input
+                          type="number"
+                          value={requestEditValues.total_weight ?? ''}
+                          onChange={(e) => setRequestEditValues(v => ({ ...v, total_weight: e.target.value }))
+                          }
+                        />
+                        <InputRightAddon children="kg" />
+                      </InputGroup>
+                    </FormControl>
+
+                    {selectedResponse.cropType?.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS' ? (
+                      <FormControl>
+                        <FormLabel fontWeight="medium">Total Area Harvested (ha)</FormLabel>
+                        <InputGroup>
+                          <Input
+                            type="number"
+                            value={requestEditValues.total_area_harvested ?? ''}
+                            onChange={(e) => setRequestEditValues(v => ({ ...v, total_area_harvested: e.target.value }))
+                            }
+                          />
+                          <InputRightAddon children="hectares" />
+                        </InputGroup>
+                      </FormControl>
+                    ) : (
+                      <FormControl>
+                        <FormLabel fontWeight="medium">Total Number of Trees Harvested</FormLabel>
+                        <InputGroup>
+                          <Input
+                            type="number"
+                            value={requestEditValues.trees_harvested ?? ''}
+                            onChange={(e) => setRequestEditValues(v => ({ ...v, trees_harvested: e.target.value }))
+                            }
+                          />
+                          <InputRightAddon children="trees" />
+                        </InputGroup>
+                      </FormControl>
+                    )}
+                  </>
+                )}
+
+                <Divider />
+
+                <FormControl isRequired>
+                  <FormLabel fontWeight="medium">Reason for request</FormLabel>
+                  <Textarea
+                    placeholder="Explain why this edit is needed..."
+                    value={requestEditReason}
+                    onChange={(e) => setRequestEditReason(e.target.value)}
+                    minH="100px"
+                  />
+                </FormControl>
+              </VStack>
+            ) : null}
           </ModalBody>
-          <ModalFooter>
-            <Button colorScheme="blue" mr={3} onClick={onCloseRequestEdit}>
-              Save Changes
-            </Button>
-            <Button variant="ghost" onClick={onCloseRequestEdit}>Cancel</Button>
+          <ModalFooter bg="gray.50" borderTopWidth="1px" borderColor="gray.200">
+            <Flex w="100%" display={'flex'} justifyContent={'right'}>
+              <Button 
+                variant="outline" 
+                onClick={onCloseRequestEdit}
+                size="md"
+                _hover={{ bg: "gray.100" }}
+              >
+                Cancel
+              </Button>
+            
+              <Button
+                colorScheme="blue"
+                onClick={handleRequestConsent}
+                isLoading={isUpdatingFields}
+                isDisabled={!requestEditReason?.trim() || !hasRequestEditChanges}
+                size="md"
+                _hover={{ boxShadow: "md", bg: "blue.600" }}
+                ml={'3'}
+              >
+                Send Request
+              </Button>
+            </Flex>
           </ModalFooter>
         </ModalContent>
       </Modal>
-      
+
     </Box>
   );
 };

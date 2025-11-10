@@ -25,7 +25,8 @@ import {
     unarchiveResponse,
 
     requestEdit,
-    getRequestEditDetailsForFarmerView
+    getRequestEditDetailsForFarmerView,
+    handleConsentForEditRequest
  } from '../controller/high-value-crops/adminDashboard.controller.js'; 
 
 import { 
@@ -74,7 +75,7 @@ router.post('/get-farmer-account-by-name-user', verifyAuthToken, verifyRole(['HV
 //router.post('/get-farmer-account', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), getFarmerAccountById);
 router.post('/create-unified-farmer-response', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), createUnifiedFarmerResponse);
 router.put('/farmer-accounts/update', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), updateFarmerAccount);
-router.post('/update-farmer-response-fields', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), updateFarmerResponseFields);
+router.post('/update-farmer-response-fields', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), updateFarmerResponseFields); //sa new responses page dapat ito
 router.post('/delete-farmer-response', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), deleteFarmerResponse);
 
 
@@ -101,6 +102,8 @@ router.post('/generate-hvc-pr', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), g
 router.post('/farmer-form-submission', ensureHvcFormOpen, submitCompleteFarmerForm); // need ng way para ma-verify muna kung nahanap ba talaga (JWT probably again?) yung farmer bago magsubmit ng form, otherwise, reject ung submission. create middleware.
 router.get('/check-form-status', checkFormStatus);
 
-router.get('/get-edit-request-details-for-farmer-view/:farmerId', getRequestEditDetailsForFarmerView);
+router.get('/get-edit-request-details-for-farmer-view/:id', getRequestEditDetailsForFarmerView);
+
+router.post('/handle-consent-for-edit-request', handleConsentForEditRequest);
 
 export default router;
