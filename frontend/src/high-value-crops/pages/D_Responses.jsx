@@ -538,6 +538,26 @@ const Responses = () => {
       }
     };
 
+  const ButtonWithNotification = ({ children, showNotification }) => {
+    return (
+      <Box position="relative" display="inline-block">
+        {children}
+        {showNotification && (
+          <Box
+            position="absolute"
+            top="-2px"
+            right="-2px"
+            width="10px"
+            height="10px"
+            bg="red"
+            borderRadius="full"
+            //border="1px solid white"
+            zIndex={1}
+          />
+        )}
+      </Box>
+    );
+  };
 
   // Table component to reuse for both sections
   const ResponseTable = ({ data, status, selectedItems, onSelectItem, onSelectAll }) => {
@@ -659,19 +679,20 @@ const Responses = () => {
                         </>
                       )}
                     <Td isNumeric position={{ base: 'static', md: 'sticky' }} right={0} zIndex={1} bg={viewMode === 'unvalidated' && response.farmerInput.isForReview === true ? 'orange.100' : 'white'}>
-                      <Button
-                      alignContent={'center'}
-                        size="xs"
-                        colorScheme={status === 'NEWLY PLANTED' ? 'green' : 'orange'}
-                        leftIcon={<FaEye />}
-                        onClick={() => {
-                          setSelectedResponse(response);
-                          onOpen();
-                        }}
-                        
-                      >
-                        Details
-                      </Button>
+                        <ButtonWithNotification showNotification={response.farmerInput?.editConsent?.status === 'Granted'}>
+                          <Button
+                            alignContent={'center'}
+                            size="xs"
+                            colorScheme={status === 'NEWLY PLANTED' ? 'green' : 'orange'}
+                            leftIcon={<FaEye />}
+                            onClick={() => {
+                              setSelectedResponse(response);
+                              onOpen();
+                            }}
+                          >
+                            Details
+                          </Button>
+                        </ButtonWithNotification>
                     </Td>
                   </Tr>
                 ))

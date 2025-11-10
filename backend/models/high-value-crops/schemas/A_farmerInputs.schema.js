@@ -22,7 +22,7 @@ export const AFarmerInputsSchema = new mongoose.Schema({
   isArchived: { type: Boolean, default: false },
 
   editConsent: {
-    status: { type: String, enum: ['Pending', 'Granted', 'Denied'] },
+    status: { type: String, enum: ['Pending', 'Granted', 'Denied', 'Completed'] },
     editRequestId: { type: mongoose.Schema.Types.ObjectId, ref: 'Edit_Request'},
     grantedAt: { type: Date },
     deniedAt: { type: Date },
