@@ -46,7 +46,7 @@ const ConsentRequestPage = () => {
         setEditRequestData(data);
         
         // Check if already processed
-        if (data?.result?.farmerInput?.editConsent?.status === 'Granted' || data?.result?.farmerInput?.editConsent?.status === 'Completed' ||
+        if (data?.result?.farmerInput?.editConsent?.status === 'Granted' ||
             data?.result?.farmerInput?.editConsent?.status === 'Denied') {
           setIsProcessed(true);
         }
@@ -160,13 +160,13 @@ const ConsentRequestPage = () => {
           {/* Already Processed Alert */}
           {isProcessed && (
             <Alert
-              status={farmerInput?.editConsent?.status === 'Granted' || farmerInput?.editConsent?.status === 'Completed' ? 'success' : 'warning'}
+              status={farmerInput?.editConsent?.status === 'Granted' ? 'success' : 'warning'}
               borderRadius="md"
             >
               <AlertIcon />
               <Box flex="1">
                 <AlertTitle>
-                  {farmerInput?.editConsent?.status === 'Granted' || farmerInput?.editConsent?.status === 'Completed' ? 'Pumayag na sa Pagbabago' : 'Tumanggi na sa Pagbabago'}
+                  {farmerInput?.editConsent?.status === 'Granted' ? 'Pumayag na sa Pagbabago' : 'Tumanggi na sa Pagbabago'}
                 </AlertTitle>
                 <AlertDescription>
                   Ang kahilingang ito ay naproseso na.

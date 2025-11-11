@@ -397,7 +397,6 @@ export const updateFarmerResponseFields = async (req, res) => {
       {
         $set: {
           successfullyUpdated: true,
-          'editConsent.status': 'Completed'
         }
       },
       { session }
