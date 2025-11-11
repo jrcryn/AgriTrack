@@ -30,6 +30,8 @@ export const AFarmerInputsSchema = new mongoose.Schema({
   },
 
   requiredValidationVisit: { type: Boolean, default: false },
+  
+  successfullyUpdated: { type: Boolean, default: false },
 
   validationVisitDetails: {
     status: { type: String, enum: ['Pending', 'Completed'] },
