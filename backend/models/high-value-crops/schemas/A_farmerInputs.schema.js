@@ -38,7 +38,23 @@ export const AFarmerInputsSchema = new mongoose.Schema({
     scheduledAt: { type: Date },
     completedAt: { type: Date },
     validatorEmployee: { type: mongoose.Schema.Types.ObjectId, ref: 'User_Account' },
+
+    first_name: String,
+    last_name: String,
+    middle_name: String,
+    suffix: String,
+    email: String,
+    phone: String,
+
+    initialRemarks: { type: String, trim: true },
     remarks: { type: String, trim: true },
+
+    proofImageId: String,
+    proofImageUrl: String,
+    signatureId: String,
+    signatureUrl: String,
+
+    isValidationVisitDetailsApproved: { type: Boolean },
   }
 
 }, { versionKey: false, timestamps: true });

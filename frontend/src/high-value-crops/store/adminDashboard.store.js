@@ -256,6 +256,7 @@ export const useAdminDashboard = (searchParams = {}) => {
   const [isRequestingEdit, setIsRequestingEdit] = useState(false);
   const [isGettingEditRequestDetails, setIsGettingEditRequestDetails] = useState(false);
   const [isHandlingConsent, setIsHandlingConsent] = useState(false);
+  const [isUpdatingFarmerResponse, setIsUpdatingFarmerResponse] = useState(false);
 
 
   useEffect(() => {
@@ -403,16 +404,15 @@ export const useAdminDashboard = (searchParams = {}) => {
   };
 
   // for granted consent requests (full update)
-  const updateFarmerResponseFields = async ({ farmerId, crop_stage, updates }) => {
+  const updateFarmerResponseFields = async ({ farmerId }) => {
+    setIsUpdatingFarmerResponse(true);
     try {
-      const response = await axios.post(`${API_URL}/api/hvc/update-farmer-response-fields`, {
-        farmerId,
-        crop_stage,
-        updates
-      });
+      const response = await axios.post(`${API_URL}/api/hvc/update-farmer-response-fields/${farmerId}` );
       return response.data;
     } catch (error) {
       throw error;
+    } finally {
+      setIsUpdatingFarmerResponse(false);
     }
   };
 
@@ -576,6 +576,7 @@ export const useAdminDashboard = (searchParams = {}) => {
     isUnarchivingResponse,
     isRequestingEdit,
     isHandlingConsent,
+    isUpdatingFarmerResponse,
 
     // Error states
     newlyPlantedError, 

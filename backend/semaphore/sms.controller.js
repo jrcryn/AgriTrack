@@ -22,3 +22,21 @@ export const sendHarvestingCropCorrectionSMS = async (phone, farmerName, reviewL
     }
 };
 
+export const sendVisitationScheduleSMS = async (phone, farmerName, visitDate, visitTime, location, officerName) => {
+    try {
+        const message =
+            `Magandang araw, ${farmerName}! Napansin namin na tinanggihan mo ang huling request para itama ang iyong datos. ` +
+            `Upang ma-verify at maresolba ang iyong submission, magsasagawa kami ng field visitation.\n\n` +
+            `Iskedyul: ${visitDate} ${visitTime}\n` +
+            `Lokasyon: ${location}\n` +
+            `Personnel: ${officerName}\n\n` +
+            `Kung may conflict sa iskedyul, makipag-ugnayan sa ating group chat para sa re-schedule. Salamat.`;
+
+        await sendSMS(phone, message);
+        console.log("Visitation schedule SMS sent successfully");
+    } catch (error) {
+        console.error("Error sending visitation schedule SMS:", error);
+        throw new Error(`Error sending visitation schedule SMS: ${error}`);
+    }
+};
+

@@ -267,7 +267,7 @@ export const updateFarmerResponseFields = async (req, res) => {
   session.startTransaction();
 
   try {
-    const { farmerId } = req.body;
+    const { farmerId } = req.params;
     if (!farmerId) {
       await session.abortTransaction();
       return res.status(400).json({ message: 'farmerId is required.' });
@@ -407,8 +407,7 @@ export const updateFarmerResponseFields = async (req, res) => {
 
     // Return updated details
     res.json({
-      message: 'Fields updated successfully.',
-      updated: updateFields
+      message: 'Fields updated successfully.'
     });
   } catch (error) {
     await session.abortTransaction();
@@ -897,7 +896,8 @@ export const requestEdit = async (req, res) => {
           status: "Pending",
           editRequestId: editDoc[0]._id,
           reason: reason
-        }
+        },
+        successfullyUpdated: false
       },
       { session }
     );
@@ -905,11 +905,11 @@ export const requestEdit = async (req, res) => {
     const reviewLink = `${process.env.CLIENT_URL}/hvc/consent-request/${editDoc[0]._id}`;
 
     // Send SMS (if this fails, transaction will rollback)
-    if (cropStage === 'newlyPlanted') {
-      await sendNewlyPlantedCropCorrectionSMS(phone, farmerName, reviewLink);
-    } else {
-      await sendHarvestingCropCorrectionSMS(phone, farmerName, reviewLink);
-    }
+    // if (cropStage === 'newlyPlanted') {
+    //   await sendNewlyPlantedCropCorrectionSMS(phone, farmerName, reviewLink);
+    // } else {
+    //   await sendHarvestingCropCorrectionSMS(phone, farmerName, reviewLink);
+    // }
 
     // Commit the transaction only if everything succeeded
     await session.commitTransaction();
@@ -1063,7 +1063,8 @@ export const handleConsentForEditRequest = async (req, res) => {
         {
           $set: {
             'editConsent.status': 'Granted',
-            'editConsent.grantedAt': now
+            'editConsent.grantedAt': now,
+            'resolved': true
           }
         },
         { session }
@@ -1082,7 +1083,8 @@ export const handleConsentForEditRequest = async (req, res) => {
         {
           $set: {
             'editConsent.status': 'Denied',
-            'editConsent.deniedAt': now
+            'editConsent.deniedAt': now,
+            'resolved': false
           }
         },
         { session }
@@ -1104,6 +1106,285 @@ export const handleConsentForEditRequest = async (req, res) => {
   }
 };
 
+export const createValidationScheduleVisit = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { farmerId, scheduledAt, initialRemarks } = req.body;
+
+    // Validate required fields
+    if (!farmerId || !scheduledAt || !initialRemarks) {
+      await session.abortTransaction();
+      return res.status(400).json({ 
+        message: 'farmerId, scheduledAt, and initialRemarks are required.' 
+      });
+    }
+
+    // Find the farmer input
+    const farmerInput = await global.highValueCropsModels.A_farmer_inputs
+      .findById(farmerId)
+      .session(session);
+
+    if (!farmerInput) {
+      await session.abortTransaction();
+      return res.status(404).json({ message: 'Farmer response not found.' });
+    }
+
+    // Check if validation visit is already scheduled
+    if (farmerInput.validationVisitDetails?.status === 'Pending') {
+      await session.abortTransaction();
+      return res.status(400).json({ 
+        message: 'Validation visit is already scheduled for this farmer response.' 
+      });
+    }
+
+    // Update the farmer input with validation visit details
+    const updateData = {
+      requiredValidationVisit: true,
+      validationVisitDetails: {
+        status: 'Pending',
+        scheduledAt: new Date(scheduledAt),
+        initialRemarks: initialRemarks.trim(),
+      }
+    };
+
+    await global.highValueCropsModels.A_farmer_inputs.findByIdAndUpdate(
+      farmerId,
+      { $set: updateData },
+      { session }
+    );
+
+    await session.commitTransaction();
+
+    return res.status(200).json({
+      message: 'Validation schedule visit created successfully.',
+      data: {
+        farmerId,
+        scheduledAt,
+        status: 'Pending'
+      }
+    });
+
+  } catch (error) {
+    await session.abortTransaction();
+    console.error('Error creating validation schedule visit:', error);
+    return res.status(500).json({ 
+      message: 'Error creating validation schedule visit.', 
+      error: error.message 
+    });
+  } finally {
+    session.endSession();
+  }
+};
+
+import { uploadFileToDrive } from '../googleDrive.controller.js'; 
+
+export const setValidationVisitCompleted = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { farmerId, remarks, validatorEmployeeId } = req.body;
+
+    // Validate required fields
+    if (!farmerId || !remarks || !validatorEmployeeId) {
+      await session.abortTransaction();
+      return res.status(400).json({ 
+        message: 'farmerId, remarks, and validatorEmployeeId are required.' 
+      });
+    }
+
+    // Check if files are uploaded
+    if (!req.files || !req.files.proofImage || !req.files.signature) {
+      await session.abortTransaction();
+      return res.status(400).json({
+        message: 'Please provide both proof image and signature.'
+      });
+    }
+
+    // Find the farmer input
+    const farmerInput = await global.highValueCropsModels.A_farmer_inputs
+      .findById(farmerId)
+      .session(session);
+
+    if (!farmerInput) {
+      await session.abortTransaction();
+      return res.status(404).json({ message: 'Farmer response not found.' });
+    }
+
+    // Validate that validation visit is required and pending
+    if (!farmerInput.requiredValidationVisit) {
+      await session.abortTransaction();
+      return res.status(400).json({ 
+        message: 'Validation visit is not required for this farmer response.' 
+      });
+    }
+
+    if (farmerInput.validationVisitDetails?.status !== 'Pending') {
+      await session.abortTransaction();
+      return res.status(400).json({ 
+        message: 'Validation visit is not in pending status.' 
+      });
+    }
+
+    // Validate validator employee
+    const validator = await global.globalModels.UserAccount
+      .findById(validatorEmployeeId)
+      .session(session);
+
+    if (!validator) {
+      await session.abortTransaction();
+      return res.status(404).json({ message: 'Validator employee not found.' });
+    }
+
+    const proofImageFile = req.files.proofImage[0];
+    const signatureFile = req.files.signature[0];
+
+    // Generate unique names for the files
+    const proofImageName = `validation_proof_${farmerInput.farmerId}_${Date.now()}`;
+    const signatureName = `validation_signature_${farmerInput.farmerId}_${Date.now()}`;
+
+    // Upload proof image to Google Drive
+    const proofImageResult = await uploadFileToDrive(
+      proofImageFile.buffer,
+      proofImageName,
+      proofImageFile.mimetype,
+      process.env.GOOGLE_DRIVE_FOLDER_ID_VALIDATION_PROOFS_HVC
+    );
+
+    // Upload signature to Google Drive
+    const signatureResult = await uploadFileToDrive(
+      signatureFile.buffer,
+      signatureName,
+      signatureFile.mimetype,
+      process.env.GOOGLE_DRIVE_FOLDER_ID_VALIDATION_SIGNATURES_HVC
+    );
+
+    // Update the farmer input with validation visit completion details
+    const updateData = {
+      'validationVisitDetails.status': 'Completed',
+      'validationVisitDetails.completedAt': new Date(),
+      'validationVisitDetails.validatorEmployee': validator._id,
+      'validationVisitDetails.first_name': validator.first_name,
+      'validationVisitDetails.last_name': validator.last_name,
+      'validationVisitDetails.middle_name': validator.middle_name,
+      'validationVisitDetails.suffix': validator.suffix,
+      'validationVisitDetails.email': validator.email,
+      'validationVisitDetails.phone': validator.phone,
+      'validationVisitDetails.remarks': remarks.trim(),
+      'validationVisitDetails.proofImageId': proofImageResult.id,
+      'validationVisitDetails.proofImageUrl': `https://drive.google.com/uc?id=${proofImageResult.id}`,
+      'validationVisitDetails.signatureId': signatureResult.id,
+      'validationVisitDetails.signatureUrl': `https://drive.google.com/uc?id=${signatureResult.id}`
+    };
+
+    await global.highValueCropsModels.A_farmer_inputs.findByIdAndUpdate(
+      farmerId,
+      { $set: updateData },
+      { session }
+    );
+
+    await session.commitTransaction();
+
+    return res.status(200).json({
+      message: 'Validation visit marked as completed successfully.',
+      data: {
+        farmerId,
+        status: 'Completed',
+        completedAt: new Date()
+      }
+    });
+
+  } catch (error) {
+    await session.abortTransaction();
+    console.error('Error completing validation visit:', error);
+    return res.status(500).json({ 
+      message: 'Error completing validation visit.', 
+      error: error.message 
+    });
+  } finally {
+    session.endSession();
+  }
+};
+
+
+export const approveValidationVisitDetails = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { farmerId } = req.body;
+
+    // Validate required fields
+    if (!farmerId) {
+      await session.abortTransaction();
+      return res.status(400).json({ 
+        message: 'farmerId is required.' 
+      });
+    }
+
+    // Find the farmer input
+    const farmerInput = await global.highValueCropsModels.A_farmer_inputs
+      .findById(farmerId)
+      .session(session);
+
+    if (!farmerInput) {
+      await session.abortTransaction();
+      return res.status(404).json({ message: 'Farmer response not found.' });
+    }
+
+    // Validate that validation visit exists and is completed
+    if (!farmerInput.requiredValidationVisit) {
+      await session.abortTransaction();
+      return res.status(400).json({ 
+        message: 'Validation visit is not required for this farmer response.' 
+      });
+    }
+
+    if (farmerInput.validationVisitDetails?.status !== 'Completed') {
+      await session.abortTransaction();
+      return res.status(400).json({ 
+        message: 'Validation visit must be completed before approval.' 
+      });
+    }
+
+    // Check if already approved
+    if (farmerInput.validationVisitDetails?.isValidationVisitDetailsApproved === true) {
+      await session.abortTransaction();
+      return res.status(400).json({ 
+        message: 'Validation visit details are already approved.' 
+      });
+    }
+
+    // Update the farmer input to approve validation visit details
+    await global.highValueCropsModels.A_farmer_inputs.findByIdAndUpdate(
+      farmerId,
+      { $set: { 'validationVisitDetails.isValidationVisitDetailsApproved': true } },
+      { session }
+    );
+
+    await session.commitTransaction();
+
+    return res.status(200).json({
+      message: 'Validation visit details approved successfully.',
+      data: {
+        farmerId,
+        isApproved: true
+      }
+    });
+
+  } catch (error) {
+    await session.abortTransaction();
+    console.error('Error approving validation visit details:', error);
+    return res.status(500).json({ 
+      message: 'Error approving validation visit details.', 
+      error: error.message 
+    });
+  } finally {
+    session.endSession();
+  }
+};
 
 //________________________________ FARMERS ACCOUNT MANAGEMENT PAGE ____________________________________
 

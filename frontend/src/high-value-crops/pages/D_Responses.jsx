@@ -42,6 +42,10 @@ import {
   Spacer,
   Tooltip,
   Textarea,
+  Menu,
+  MenuButton,
+  MenuList,
+  MenuItem,
 } from '@chakra-ui/react';
 import numOfTreesToHectares from '../../components/conversions.js';
 import { FaSearch, FaEye, FaSeedling, FaBoxes, FaUser, FaLeaf, FaWifi, FaUpload, FaInfo, FaCheck, FaStop, FaLink, FaExternalLinkAlt } from 'react-icons/fa';
@@ -61,6 +65,7 @@ const Responses = () => {
   const { isOpen: isOpenWarningBatch, onOpen: onOpenWarningBatch, onClose: onCloseWarningBatch } = useDisclosure();
   const { isOpen: isOpenArchive, onOpen: onOpenArchive, onClose: onCloseArchive } = useDisclosure();
   const { isOpen: isOpenRequestEdit, onOpen: onOpenRequestEdit, onClose: onCloseRequestEdit } = useDisclosure();
+  const { isOpen: isOpenScheduleVisit, onOpen: onOpenScheduleVisit, onClose: onCloseScheduleVisit } = useDisclosure();
 
   const [selectedNewlyPlanted, setSelectedNewlyPlanted] = useState([]);
   const [selectedHarvesting, setSelectedHarvesting] = useState([]);
@@ -81,9 +86,7 @@ const Responses = () => {
     flagResponseForReview,
     unflagResponseForReview,
     error,
-    updateFarmerInput,
     createUnifiedFarmerResponse,
-    updateFarmerResponseFields,
     newlyPlantedPage,
     setNewlyPlantedPage,
     harvestingPage,
@@ -118,7 +121,10 @@ const Responses = () => {
     isUnarchivingResponse,
 
     requestEdit,
-    isRequestingEdit
+    isRequestingEdit,
+
+    updateFarmerResponseFields,
+    isUpdatingFarmerResponse
 
   } = useAdminDashboard();
 
@@ -537,6 +543,50 @@ const Responses = () => {
         });
       }
     };
+
+    const handleUpdateResponseFields = async () => {
+    if (!selectedResponse?.farmerInput?._id) {
+      toast({
+        title: "Error",
+        description: "No response selected.",
+        status: "error",
+        duration: 4000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    try {
+      const response = await updateFarmerResponseFields({
+        farmerId: selectedResponse.farmerInput._id
+      });
+      await unflagResponseForReview(selectedResponse.farmerInput._id);
+
+      toast({
+        title: "Updated",
+        description: response?.message || "Fields updated successfully.",
+        status: "success",
+        duration: 5000,
+        isClosable: true,
+      });
+      onClose();
+      setSelectedResponse(null);
+      queryClient.invalidateQueries({ queryKey: ['unvalidatedNewlyPlanted'] });
+      queryClient.invalidateQueries({ queryKey: ['unvalidatedHarvesting'] });
+
+    } catch (error) {
+      console.log(error);
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Failed updating fields.",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+    };
+
+
 
   const ButtonWithNotification = ({ children, showNotification }) => {
     return (
@@ -1023,6 +1073,7 @@ const Responses = () => {
       queryClient.invalidateQueries({ queryKey: ['unvalidatedHarvesting'] });
 
       onCloseRequestEdit();
+      onClose();
     } catch (error) {
       console.log(error);
       toast({
@@ -1036,8 +1087,6 @@ const Responses = () => {
       setIsUpdatingFields(false);
     }
   };
-
-  // const handleRequestConsent = async () => {
   //   if (!selectedResponse) return;
 
   //   // sanitize values: cast numeric-like strings to numbers
@@ -1110,7 +1159,7 @@ const Responses = () => {
   };
 
   // ResponseDetailForm to allow editing only for flagged responses and only allowed fields
-  const ResponseDetailForm = React.memo(function ResponseDetailForm({ response, editable, onValuesChange, onHasChanges }) {
+  const ResponseDetailForm = React.memo(function ResponseDetailForm({ response }) {
     const isNewlyPlanted = response.cropRecord?.crop_stage === 'NEWLY PLANTED';
     const isHarvesting = response.cropRecord?.crop_stage === 'HARVESTING';
     const isIndustrialCrop = response.cropType?.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS';
@@ -1133,8 +1182,56 @@ const Responses = () => {
       });
     };
 
+    // Get edit consent status
+    const editConsentStatus = response.farmerInput?.editConsent?.status;
+    const hasEditRequest = editConsentStatus && ['Pending', 'Granted', 'Denied', 'Completed'].includes(editConsentStatus);
+
     return ( 
       <VStack spacing={6} align="stretch">
+
+        {/* Edit Consent Status Alert */}
+        {hasEditRequest && (
+          <Alert
+            status={
+              editConsentStatus === 'Granted' || editConsentStatus === 'Completed' 
+                ? 'success' 
+                : editConsentStatus === 'Denied' 
+                ? 'error' 
+                : 'info'
+            }
+            variant="left-accent"
+            borderRadius="md"
+          >
+            <AlertIcon />
+            <Box flex="1">
+              <AlertTitle fontSize="sm">
+                {editConsentStatus === 'Granted' && 'Farmer Granted Edit Permission'}
+                {editConsentStatus === 'Denied' && 'Farmer Denied Edit Request'}
+                {editConsentStatus === 'Pending' && 'Edit Request Pending'}
+                {editConsentStatus === 'Completed' && 'Edit Successfully Applied'}
+              </AlertTitle>
+              <AlertDescription fontSize="xs">
+                {editConsentStatus === 'Granted' && 
+                  `The farmer has granted permission to edit their response. You can now apply the requested changes or push the updated data to records.`
+                }
+                {editConsentStatus === 'Denied' && 
+                  `The farmer has denied the edit request for their response. No changes can be made without their consent.`
+                }
+                {editConsentStatus === 'Pending' && 
+                  `Waiting for farmer's response to the edit request. An SMS notification has been sent. If it's taking too long, consider scheduling up a validation visit, reaching out to the farmer directly.`
+                }
+                {editConsentStatus === 'Completed' && 
+                  `The requested edits have been successfully applied to this response. The updated values are shown below.`
+                }
+                {response.farmerInput?.editConsent?.reason && (
+                  <Text mt={1} fontStyle="italic">
+                    Reason: {response.farmerInput.editConsent.reason}
+                  </Text>
+                )}
+              </AlertDescription>
+            </Box>
+          </Alert>
+        )}
 
         {/* Farmer Information Section */}
         <Box p={5} borderRadius="md" borderWidth="1px" borderColor="gray.200" bg="white" boxShadow="sm">
@@ -1262,7 +1359,7 @@ const Responses = () => {
                   <FormLabel fontWeight="medium">Total Area Planted (ha)</FormLabel>
                   <InputGroup>
                     <Input
-                      value={`${response.cropDetails?.total_area_planted != null ? response.cropDetails.total_area_planted : '-'}  ${response?.farmerInput?.editConsent?.editRequestId?.total_area_planted != null ? '=>' : ''}  ${response?.farmerInput?.editConsent?.editRequestId?.total_area_planted != null ? response.farmerInput.editConsent.editRequestId.total_area_planted : ''}`}
+                      value={`${response.cropDetails?.total_area_planted != null ? response.cropDetails.total_area_planted : '-'}${response?.farmerInput?.editConsent?.editRequestId?.total_area_planted != null && response?.farmerInput?.editConsent?.editRequestId?.resolved === false ? ' => ' + response.farmerInput.editConsent.editRequestId.total_area_planted : ''}`}
                       isReadOnly
                       bg="white"
                       borderColor="gray.200"
@@ -1280,7 +1377,7 @@ const Responses = () => {
                     </FormLabel>
                     <InputGroup>
                       <Input
-                        value={`${response.cropDetails?.total_trees != null ? response.cropDetails.total_trees : '-'}  ${response?.farmerInput?.editConsent?.editRequestId?.total_trees != null ? '=>' : ''}  ${response?.farmerInput?.editConsent?.editRequestId?.total_trees != null ? response.farmerInput.editConsent.editRequestId.total_trees : ''}`}
+                        value={`${response.cropDetails?.total_trees != null ? response.cropDetails.total_trees : '-'}${response?.farmerInput?.editConsent?.editRequestId?.total_trees != null && response?.farmerInput?.editConsent?.editRequestId?.resolved === false ? ' => ' + response.farmerInput.editConsent.editRequestId.total_trees : ''}`}
                         isReadOnly
                         bg="white"
                         borderColor="gray.300"
@@ -1341,7 +1438,7 @@ const Responses = () => {
                 <FormLabel fontWeight="medium">Total Weight</FormLabel>
                 <InputGroup>
                   <Input
-                    value={`${response.cropDetails?.total_weight != null ? response.cropDetails.total_weight : '-'}  ${response?.farmerInput?.editConsent?.editRequestId?.total_weight != null ? '=>' : ''}  ${response?.farmerInput?.editConsent?.editRequestId?.total_weight != null ? response.farmerInput.editConsent.editRequestId.total_weight : ''}`}
+                    value={`${response.cropDetails?.total_weight != null ? response.cropDetails.total_weight : '-'}${response?.farmerInput?.editConsent?.editRequestId?.total_weight != null && response?.farmerInput?.editConsent?.editRequestId?.resolved === false ? ' => ' + response.farmerInput.editConsent.editRequestId.total_weight : ''}`}
                     isReadOnly
                     bg="white"
                     borderColor="gray.200"
@@ -1362,7 +1459,7 @@ const Responses = () => {
                   <FormLabel fontWeight="medium">Total Area Harvested (Ha)</FormLabel>
                   <InputGroup>
                     <Input
-                      value={`${response.cropDetails?.total_area_harvested != null ? response.cropDetails.total_area_harvested : '-'}  ${response?.farmerInput?.editConsent?.editRequestId?.total_area_harvested != null ? '=>' : ''}  ${response?.farmerInput?.editConsent?.editRequestId?.total_area_harvested != null ? response.farmerInput.editConsent.editRequestId.total_area_harvested : ''}`}
+                      value={`${response.cropDetails?.total_area_harvested != null ? response.cropDetails.total_area_harvested : '-'}${response?.farmerInput?.editConsent?.editRequestId?.total_area_harvested != null && response?.farmerInput?.editConsent?.editRequestId?.resolved === false ? ' => ' + response.farmerInput.editConsent.editRequestId.total_area_harvested : ''}`}
                       isReadOnly
                       bg="white"
                       borderColor="gray.200"
@@ -1380,7 +1477,7 @@ const Responses = () => {
                     </FormLabel>
                     <InputGroup>
                       <Input
-                        value={`${response.cropDetails?.trees_harvested != null ? response.cropDetails.trees_harvested : '-'}  ${response?.farmerInput?.editConsent?.editRequestId?.trees_harvested != null ? '=>' : ''}  ${response?.farmerInput?.editConsent?.editRequestId?.trees_harvested != null ? response.farmerInput.editConsent.editRequestId.trees_harvested : ''}`}
+                        value={`${response.cropDetails?.trees_harvested != null ? response.cropDetails.trees_harvested : '-'}${response?.farmerInput?.editConsent?.editRequestId?.trees_harvested != null && response?.farmerInput?.editConsent?.editRequestId?.resolved === false ? ' => ' + response.farmerInput.editConsent.editRequestId.trees_harvested : ''}`}
                         isReadOnly
                         bg="white"
                         borderColor="gray.300"
@@ -1815,6 +1912,7 @@ const Responses = () => {
           >
             <Icon 
               as={selectedResponse?.cropRecord?.crop_stage === 'NEWLY PLANTED' ? FaSeedling : FaBoxes} 
+              
               mr={2} 
               color={selectedResponse?.cropRecord?.crop_stage === 'NEWLY PLANTED' ? "green.600" : "orange.600"} 
             />
@@ -1862,15 +1960,30 @@ const Responses = () => {
               <>
                 {selectedResponse?.farmerInput?.isForReview === true ? (
                   <>
-                    <Button 
-                      colorScheme="orange" 
-                      onClick={() => handleUnsetForReview(selectedResponse)}
-                      boxShadow="sm"
-                      _hover={{ boxShadow: "md", bg: "orange.600" }}
-                      isLoading={isUpdatingForReview}
-                    >
-                      Unflag for Review
-                    </Button>
+                    {selectedResponse?.farmerInput?.editConsent?.status === 'Pending' ? (
+                      <Tooltip label="You can't unflag a response for review if the edit request status is still pending." hasArrow placement='top'>
+                        <Button 
+                          colorScheme="orange" 
+                          onClick={() => handleUnsetForReview(selectedResponse)}
+                          boxShadow="sm"
+                          _hover={{ boxShadow: "md", bg: "orange.600" }}
+                          isLoading={isUpdatingForReview}
+                          isDisabled
+                        >
+                          Unflag for Review
+                        </Button>
+                      </Tooltip>
+                    ) : (
+                      <Button 
+                        colorScheme="orange" 
+                        onClick={() => handleUnsetForReview(selectedResponse)}
+                        boxShadow="sm"
+                        _hover={{ boxShadow: "md", bg: "orange.600" }}
+                        isLoading={isUpdatingForReview}
+                      >
+                        Unflag for Review
+                      </Button>
+                    )}
                   </>
                 ) : (
                 <>
@@ -1905,18 +2018,51 @@ const Responses = () => {
                     Archive Response
                   </Button>
                 )}
-
-                {selectedResponse?.farmerInput?.isForReview === true && (
-                  <Button 
-                    colorScheme="blue" 
-                    boxShadow="sm"
-                    _hover={{ boxShadow: "md", bg: "blue.600" }}
-                    onClick={onOpenRequestEdit}
-                    isLoading={isUpdatingFields}
-                  >
-                    Request Edit
-                  </Button>
+                
+                {selectedResponse?.farmerInput?.editConsent?.status === 'Granted' ? (
+                  <>
+                    <Button 
+                      colorScheme="blue" 
+                      boxShadow="sm"
+                      _hover={{ boxShadow: "md", bg: "blue.600" }}
+                      onClick={handleUpdateResponseFields}
+                      isLoading={isUpdatingFarmerResponse}
+                    >
+                        Update
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    {selectedResponse?.farmerInput?.isForReview === true && (
+                      selectedResponse?.farmerInput?.editConsent?.status === 'Pending' ? (
+                        <Menu>
+                          <MenuButton
+                            as={Button}
+                            colorScheme="blue"
+                            boxShadow="sm"
+                            _hover={{ boxShadow: "md", bg: "blue.600" }}
+                          >
+                            Options
+                          </MenuButton>
+                          <MenuList>
+                            <MenuItem onClick={onOpenRequestEdit}>Update Request</MenuItem>
+                            <MenuItem onClick={onOpenScheduleVisit}>Require Validation Visit</MenuItem>
+                          </MenuList>
+                        </Menu>
+                      ) : (
+                        <Button 
+                          colorScheme="blue" 
+                          boxShadow="sm"
+                          _hover={{ boxShadow: "md", bg: "blue.600" }}
+                          onClick={onOpenRequestEdit}
+                        >
+                          Request Edit
+                        </Button>
+                      )
+                    )}
+                  </>
                 )}
+                
 
                 {selectedResponse?.farmerInput?.isForReview === false && (
                   <Tooltip label="Cannot push responses that are flagged for review." placement="top" hasArrow isDisabled={!selectedResponse?.farmerInput?.isForReview === true}>
@@ -2205,13 +2351,54 @@ const Responses = () => {
               <Button
                 colorScheme="blue"
                 onClick={handleRequestConsent}
-                isLoading={isUpdatingFields}
+                isLoading={isRequestingEdit}
                 isDisabled={!requestEditReason?.trim() || !hasRequestEditChanges}
                 size="md"
                 _hover={{ boxShadow: "md", bg: "blue.600" }}
                 ml={'3'}
               >
                 Send Request
+              </Button>
+            </Flex>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* SCHEDULE VALIDATION VISIT MODAL */}
+      <Modal isOpen={isOpenScheduleVisit} onClose={onCloseScheduleVisit} size="md" isCentered motionPreset='none' closeOnOverlayClick={false} scrollBehavior="inside">
+        <ModalOverlay />
+        <ModalContent borderRadius="lg" overflow="hidden">
+          <ModalHeader
+            bg="gray.50"
+            borderBottomWidth="1px"
+            borderColor="gray.200"
+            py={4}
+            display="flex" 
+            alignItems="center"
+          >
+            Schedule Validation Visit
+          </ModalHeader>
+          <ModalBody py={6}>
+            {/* Modal body content will be added here */}
+          </ModalBody>
+          <ModalFooter bg="gray.50" borderTopWidth="1px" borderColor="gray.200">
+            <Flex w="100%" display={'flex'} justifyContent={'right'}>
+              <Button 
+                variant="outline" 
+                onClick={onCloseScheduleVisit}
+                size="md"
+                _hover={{ bg: "gray.100" }}
+              >
+                Cancel
+              </Button>
+            
+              <Button
+                colorScheme="blue"
+                size="md"
+                _hover={{ boxShadow: "md", bg: "blue.600" }}
+                ml={'3'}
+              >
+                Schedule Visit
               </Button>
             </Flex>
           </ModalFooter>

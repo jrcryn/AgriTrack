@@ -26,7 +26,10 @@ import {
 
     requestEdit,
     getRequestEditDetailsForFarmerView,
-    handleConsentForEditRequest
+    handleConsentForEditRequest,
+
+    createValidationScheduleVisit,
+    setValidationVisitCompleted
  } from '../controller/high-value-crops/adminDashboard.controller.js'; 
 
 import { 
@@ -75,7 +78,11 @@ router.post('/get-farmer-account-by-name-user', verifyAuthToken, verifyRole(['HV
 //router.post('/get-farmer-account', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), getFarmerAccountById);
 router.post('/create-unified-farmer-response', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), createUnifiedFarmerResponse);
 router.put('/farmer-accounts/update', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), updateFarmerAccount);
-router.post('/update-farmer-response-fields', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), updateFarmerResponseFields); //sa new responses page dapat ito
+
+
+router.post('/update-farmer-response-fields/:farmerId', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), updateFarmerResponseFields); //sa new responses page dapat ito
+
+
 router.post('/delete-farmer-response', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), deleteFarmerResponse);
 
 

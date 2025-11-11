@@ -16,6 +16,8 @@ export const EditRequestSchema = new mongoose.Schema({
 
   // for both indus and other harvesting
   total_weight: Number,
+
+  resolved: { type: Boolean, default: false },
 }, { versionKey: false, timestamps: true });
 
 EditRequestSchema.index({ farmer_input_id: 1, crop_stage: 1, status: 1 });
