@@ -15,7 +15,7 @@ import {
     getAvailableMetricsYears,
     getAvailableMonthsForYear,
     getMetricsForYearMonth,
-    updateFarmerResponseFields,
+
     deleteFarmerResponse,
     formStatusEnable,
     formStatusDisable,
@@ -27,9 +27,12 @@ import {
     requestEdit,
     getRequestEditDetailsForFarmerView,
     handleConsentForEditRequest,
+    updateFarmerResponseFields,
 
     createValidationScheduleVisit,
-    setValidationVisitCompleted
+    setValidationVisitCompleted,
+    approveValidationVisitDetails,
+    rejectValidationVisitDetails,
  } from '../controller/high-value-crops/adminDashboard.controller.js'; 
 
 import { 
@@ -65,7 +68,16 @@ router.post('/archive-response', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), 
 router.post('/unarchive-response', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), unarchiveResponse);
 router.get('/get-unvalidated-archived-inputs', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), getUnvalidatedArchivedFarmerInputs);
 
-router.post('/request-edit', requestEdit); //temporarily removed auth for testing
+router.post('/request-edit', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), requestEdit);
+
+router.get('/get-edit-request-details-for-farmer-view/:id', getRequestEditDetailsForFarmerView);
+router.post('/handle-consent-for-edit-request', handleConsentForEditRequest);
+router.post('/update-farmer-response-fields/:farmerId', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), updateFarmerResponseFields); //sa new responses page dapat ito
+
+router.post('/create-validation-schedule-visit', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), createValidationScheduleVisit);
+router.post('/set-validation-visit-completed', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), setValidationVisitCompleted);
+router.post('/approve-validation-visit-details', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), approveValidationVisitDetails);
+router.post('/reject-validation-visit-details', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), rejectValidationVisitDetails);
 
 
 //________________________________ DASHBOARD (FARMERS) PAGE ____________________________________
@@ -78,11 +90,6 @@ router.post('/get-farmer-account-by-name-user', verifyAuthToken, verifyRole(['HV
 //router.post('/get-farmer-account', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), getFarmerAccountById);
 router.post('/create-unified-farmer-response', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), createUnifiedFarmerResponse);
 router.put('/farmer-accounts/update', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), updateFarmerAccount);
-
-
-router.post('/update-farmer-response-fields/:farmerId', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), updateFarmerResponseFields); //sa new responses page dapat ito
-
-
 router.post('/delete-farmer-response', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), deleteFarmerResponse);
 
 
@@ -109,8 +116,6 @@ router.post('/generate-hvc-pr', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), g
 router.post('/farmer-form-submission', ensureHvcFormOpen, submitCompleteFarmerForm); // need ng way para ma-verify muna kung nahanap ba talaga (JWT probably again?) yung farmer bago magsubmit ng form, otherwise, reject ung submission. create middleware.
 router.get('/check-form-status', checkFormStatus);
 
-router.get('/get-edit-request-details-for-farmer-view/:id', getRequestEditDetailsForFarmerView);
 
-router.post('/handle-consent-for-edit-request', handleConsentForEditRequest);
 
 export default router;

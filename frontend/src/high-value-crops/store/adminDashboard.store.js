@@ -257,6 +257,10 @@ export const useAdminDashboard = (searchParams = {}) => {
   const [isGettingEditRequestDetails, setIsGettingEditRequestDetails] = useState(false);
   const [isHandlingConsent, setIsHandlingConsent] = useState(false);
   const [isUpdatingFarmerResponse, setIsUpdatingFarmerResponse] = useState(false);
+  const [isCreatingValidationSchedule, setIsCreatingValidationSchedule] = useState(false);
+  const [isSettingVisitCompleted, setIsSettingVisitCompleted] = useState(false);
+  const [isApprovingVisitDetails, setIsApprovingVisitDetails] = useState(false);
+  const [isRejectingVisitDetails, setIsRejectingVisitDetails] = useState(false);
 
 
   useEffect(() => {
@@ -512,6 +516,55 @@ export const useAdminDashboard = (searchParams = {}) => {
     }
   };
 
+  const createValidationScheduleVisit = async (scheduleData) => {
+    setIsCreatingValidationSchedule(true);
+    try {
+      const response = await axios.post(`${API_URL}/api/hvc/create-validation-schedule-visit`, scheduleData);
+      return response.data;
+    } catch (error) {
+      throw error;
+    } finally {
+      setIsCreatingValidationSchedule(false);
+    }
+  };
+
+  const setValidationVisitCompleted = async (visitData) => {
+    setIsSettingVisitCompleted(true);
+    try {
+      const response = await axios.post(`${API_URL}/api/hvc/set-validation-visit-completed`, visitData);
+      return response.data;
+    } catch (error) {
+      throw error;
+    } finally {
+      setIsSettingVisitCompleted(false);
+    }
+  };
+
+  const approveValidationVisitDetails = async (visitData) => {
+    setIsApprovingVisitDetails(true);
+    try {
+      const response = await axios.post(`${API_URL}/api/hvc/approve-validation-visit-details`, visitData);
+      return response.data;
+    } catch (error) {
+      throw error;
+    } finally {
+      setIsApprovingVisitDetails(false);
+    }
+  };
+
+  const rejectValidationVisitDetails = async (visitData) => {
+    setIsRejectingVisitDetails(true);
+    try {
+      const response = await axios.post(`${API_URL}/api/hvc/reject-validation-visit-details`, visitData);
+      return response.data;
+    } catch (error) {
+      throw error;
+    } finally {
+      setIsRejectingVisitDetails(false);
+    }
+  };
+
+  
   
   // Combine errors from different sources
   // if (unvalidatedError) setError(unvalidatedError.message || 'Failed to fetch unvalidated inputs');
@@ -577,6 +630,10 @@ export const useAdminDashboard = (searchParams = {}) => {
     isRequestingEdit,
     isHandlingConsent,
     isUpdatingFarmerResponse,
+    isCreatingValidationSchedule,
+    isSettingVisitCompleted,
+    isApprovingVisitDetails,
+    isRejectingVisitDetails,
 
     // Error states
     newlyPlantedError, 
@@ -610,6 +667,10 @@ export const useAdminDashboard = (searchParams = {}) => {
     archiveResponse,
     unarchiveResponse,
     requestEdit,
-    handleConsentForEditRequest
+    handleConsentForEditRequest,
+    createValidationScheduleVisit,
+    setValidationVisitCompleted,
+    approveValidationVisitDetails,
+    rejectValidationVisitDetails,
   };
 };
