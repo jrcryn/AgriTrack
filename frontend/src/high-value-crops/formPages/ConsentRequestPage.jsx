@@ -76,6 +76,10 @@ const ConsentRequestPage = () => {
       });
 
       setIsProcessed(true);
+
+      queryClient.invalidateQueries({ queryKey: ['unvalidatedNewlyPlanted'] });
+      queryClient.invalidateQueries({ queryKey: ['unvalidatedHarvesting'] });
+
     } catch (err) {
       toast({
         title: "Error",

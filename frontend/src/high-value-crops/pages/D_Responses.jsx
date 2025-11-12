@@ -729,7 +729,7 @@ const Responses = () => {
                         </>
                       )}
                     <Td isNumeric position={{ base: 'static', md: 'sticky' }} right={0} zIndex={1} bg={viewMode === 'unvalidated' && response.farmerInput.isForReview === true ? 'orange.100' : 'white'}>
-                        <ButtonWithNotification showNotification={response.farmerInput?.editConsent?.status === 'Granted'}>
+                        <ButtonWithNotification showNotification={response.farmerInput?.editConsent?.status === 'Granted' && response.farmerInput?.successfullyUpdated === false}>
                           <Button
                             alignContent={'center'}
                             size="xs"
@@ -1087,8 +1087,6 @@ const Responses = () => {
       setIsUpdatingFields(false);
     }
   };
-  //   if (!selectedResponse) return;
-
   //   // sanitize values: cast numeric-like strings to numbers
   //   const sanitized = Object.entries(requestEditValues || {}).reduce((acc, [k, v]) => {
   //     if (v === '' || v === null || v === undefined) {
@@ -1185,6 +1183,7 @@ const Responses = () => {
     // Get edit consent status
     const editConsentStatus = response.farmerInput?.editConsent?.status;
     const hasEditRequest = editConsentStatus && ['Pending', 'Granted', 'Denied', 'Completed'].includes(editConsentStatus);
+    const successfullyUpdated = response.farmerInput?.successfullyUpdated;
 
     return ( 
       <VStack spacing={6} align="stretch">
@@ -1205,10 +1204,10 @@ const Responses = () => {
             <AlertIcon />
             <Box flex="1">
               <AlertTitle fontSize="sm">
-                {editConsentStatus === 'Granted' && 'Farmer Granted Edit Permission'}
+                {editConsentStatus === 'Granted' && successfullyUpdated === false && 'Farmer Granted Edit Permission'}
                 {editConsentStatus === 'Denied' && 'Farmer Denied Edit Request'}
                 {editConsentStatus === 'Pending' && 'Edit Request Pending'}
-                {editConsentStatus === 'Completed' && 'Edit Successfully Applied'}
+                {successfullyUpdated === true && 'Edit Successfully Applied'}
               </AlertTitle>
               <AlertDescription fontSize="xs">
                 {editConsentStatus === 'Granted' && 
@@ -2019,22 +2018,24 @@ const Responses = () => {
                   </Button>
                 )}
                 
-                {selectedResponse?.farmerInput?.editConsent?.status === 'Granted' ? (
+                {selectedResponse?.farmerInput?.isForReview === true && (
                   <>
-                    <Button 
-                      colorScheme="blue" 
-                      boxShadow="sm"
-                      _hover={{ boxShadow: "md", bg: "blue.600" }}
-                      onClick={handleUpdateResponseFields}
-                      isLoading={isUpdatingFarmerResponse}
-                    >
-                        Update
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    {selectedResponse?.farmerInput?.isForReview === true && (
-                      selectedResponse?.farmerInput?.editConsent?.status === 'Pending' ? (
+                    {selectedResponse?.farmerInput?.editConsent?.status === 'Granted' && (
+                      <>
+                        <Button 
+                          colorScheme="blue" 
+                          boxShadow="sm"
+                          _hover={{ boxShadow: "md", bg: "blue.600" }}
+                          onClick={handleUpdateResponseFields}
+                          isLoading={isUpdatingFarmerResponse}
+                        >
+                            Update
+                        </Button>
+                      </>
+                    )}
+
+                    {selectedResponse?.farmerInput?.editConsent?.status === 'Pending' && (
+                      <>
                         <Menu>
                           <MenuButton
                             as={Button}
@@ -2049,7 +2050,11 @@ const Responses = () => {
                             <MenuItem onClick={onOpenScheduleVisit}>Require Validation Visit</MenuItem>
                           </MenuList>
                         </Menu>
-                      ) : (
+                      </>
+                    )}
+
+                    {selectedResponse?.farmerInput?.editConsent?.status === 'Completed' && (
+                      <>
                         <Button 
                           colorScheme="blue" 
                           boxShadow="sm"
@@ -2058,11 +2063,11 @@ const Responses = () => {
                         >
                           Request Edit
                         </Button>
-                      )
+                      </>
                     )}
+
                   </>
                 )}
-                
 
                 {selectedResponse?.farmerInput?.isForReview === false && (
                   <Tooltip label="Cannot push responses that are flagged for review." placement="top" hasArrow isDisabled={!selectedResponse?.farmerInput?.isForReview === true}>
