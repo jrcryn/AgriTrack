@@ -1385,6 +1385,8 @@ export const approveValidationVisitDetails = async (req, res) => {
   }
 };
 
+
+
 //________________________________ FARMERS ACCOUNT MANAGEMENT PAGE ____________________________________
 
 

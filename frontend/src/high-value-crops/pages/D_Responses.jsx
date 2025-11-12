@@ -67,6 +67,7 @@ const Responses = () => {
   const { isOpen: isOpenRequestEdit, onOpen: onOpenRequestEdit, onClose: onCloseRequestEdit } = useDisclosure();
   const { isOpen: isOpenScheduleVisit, onOpen: onOpenScheduleVisit, onClose: onCloseScheduleVisit } = useDisclosure();
 
+
   const [selectedNewlyPlanted, setSelectedNewlyPlanted] = useState([]);
   const [selectedHarvesting, setSelectedHarvesting] = useState([]);
   const [isBatchProcessing, setIsBatchProcessing] = useState(false);
@@ -2053,7 +2054,7 @@ const Responses = () => {
                       </>
                     )}
 
-                    {selectedResponse?.farmerInput?.editConsent?.status === 'Completed' && (
+                    {(selectedResponse?.farmerInput?.editConsent?.status === 'Completed' || !selectedResponse?.farmerInput?.editConsent?.status) && (
                       <>
                         <Button 
                           colorScheme="blue" 

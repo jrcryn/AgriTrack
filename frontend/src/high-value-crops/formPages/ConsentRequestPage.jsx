@@ -28,6 +28,7 @@ import {
 } from '@chakra-ui/react';
 import { FaUser, FaSeedling, FaBoxes, FaCheck, FaTimes } from 'react-icons/fa';
 import { useAdminDashboard } from '../store/adminDashboard.store.js';
+import { useQueryClient } from '@tanstack/react-query';
 
 const ConsentRequestPage = () => {
   const { editRequestId } = useParams();
@@ -38,6 +39,7 @@ const ConsentRequestPage = () => {
   const [editRequestData, setEditRequestData] = useState(null);
   const [error, setError] = useState(null);
   const [isProcessed, setIsProcessed] = useState(false);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     const fetchEditRequest = async () => {
@@ -46,12 +48,15 @@ const ConsentRequestPage = () => {
         setEditRequestData(data);
         
         // Check if already processed
-        if (data?.result?.farmerInput?.editConsent?.status === 'Granted' ||
+        if (data?.result?.farmerInput?.editConsent?.status === 'Granted' || 
+            data?.result?.farmerInput?.editConsent?.status === 'Completed' ||
             data?.result?.farmerInput?.editConsent?.status === 'Denied') {
           setIsProcessed(true);
         }
+
       } catch (err) {
         setError(err.response?.data?.message || 'Failed to load edit request details.');
+        console.error('Error fetching edit request details:', err);
       }
     };
 
@@ -164,13 +169,13 @@ const ConsentRequestPage = () => {
           {/* Already Processed Alert */}
           {isProcessed && (
             <Alert
-              status={farmerInput?.editConsent?.status === 'Granted' ? 'success' : 'warning'}
+              status={farmerInput?.editConsent?.status === 'Granted' || farmerInput?.editConsent?.status === 'Completed' ? 'success' : 'warning'}
               borderRadius="md"
             >
               <AlertIcon />
               <Box flex="1">
                 <AlertTitle>
-                  {farmerInput?.editConsent?.status === 'Granted' ? 'Pumayag na sa Pagbabago' : 'Tumanggi na sa Pagbabago'}
+                  {farmerInput?.editConsent?.status === 'Granted' || farmerInput?.editConsent?.status === 'Completed' ? 'Pumayag na sa Pagbabago' : 'Tumanggi na sa Pagbabago'}
                 </AlertTitle>
                 <AlertDescription>
                   Ang kahilingang ito ay naproseso na.
