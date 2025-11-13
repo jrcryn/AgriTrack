@@ -1193,7 +1193,7 @@ const DocumentLifeCycleModal = ({
                     <Text>
                     {(() => {
                         if (data.currentHandler && data.currentHandler?.first_name && data.currentHandler?.last_name) {
-                            return `${data.currentHandler.first_name} ${data.currentHandler.last_name} (${roleLabel(data.currentHandler.office_position, data.currentHandler.role)})`;
+                            return `${data.currentHandler.first_name} ${data.currentHandler.last_name} (${data.currentHandler.office_position === null ? 'Manager' : data.currentHandler.office_position})`;
                         }
                         return <i>No current handler, document may have been released or archived.</i>;
                     })()}
