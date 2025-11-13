@@ -80,6 +80,7 @@ const Responses = () => {
   const [pushType, setPushType] = useState(null);
 
   const { user } = useAuthStore();
+  console.log(user);
 
   const signatureRef = useRef(null);
   const canvasContainerRef = useRef(null);
@@ -1327,7 +1328,7 @@ const Responses = () => {
       formData.append('farmerId', selectedResponse.farmerInput._id);
       formData.append('proofImage', proofImage);
       formData.append('signature', signatureFile);
-      formData.append('validatorEmployeeId', user._id);
+      formData.append('validatorEmployeeId', user.id);
       formData.append('remarks', afterValidationRemarks);
 
       // Check if any edit request values have been modified
@@ -1405,6 +1406,7 @@ const Responses = () => {
       }
 
       const response = await setValidationVisitCompleted(formData);
+      console.log(formData);
 
       toast({
         title: "Success",
@@ -3205,6 +3207,7 @@ const Responses = () => {
                 ml="3"
                 onClick={handleSubmitValidationProof}
                 isDisabled={!proofImage || !signature}
+                isLoading={isSettingVisitCompleted}
               >
                 Submit Consent Proof
               </Button>

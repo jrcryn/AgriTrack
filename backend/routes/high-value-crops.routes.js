@@ -1,4 +1,5 @@
 import express from 'express';
+import multer from 'multer';
 
 import { 
     getUnvalidatedFarmerInputs, 
@@ -50,6 +51,10 @@ import { verifyAuthToken } from '../middleware/verifyToken.js';
 import { verifyRole } from '../middleware/verifyRole.js';
 import { ensureHvcFormOpen } from '../middleware/verifyHVCFormStatus.js';
 
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+});
 
 const router = express.Router();
 
@@ -75,7 +80,18 @@ router.post('/handle-consent-for-edit-request', handleConsentForEditRequest);
 router.post('/update-farmer-response-fields/:farmerId', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), updateFarmerResponseFields); //sa new responses page dapat ito
 
 router.post('/create-validation-schedule-visit', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), createValidationScheduleVisit);
-router.post('/set-validation-visit-completed', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), setValidationVisitCompleted);
+
+router.post(
+  '/set-validation-visit-completed', 
+  verifyAuthToken, 
+  verifyRole(['HVCM', 'HVCS']), 
+  upload.fields([
+    { name: 'proofImage', maxCount: 1 },
+    { name: 'signature', maxCount: 1 }
+  ]),
+  setValidationVisitCompleted
+);
+
 router.post('/approve-validation-visit-details', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), approveValidationVisitDetails);
 router.post('/reject-validation-visit-details', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), rejectValidationVisitDetails);
 

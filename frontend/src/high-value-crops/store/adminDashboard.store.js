@@ -531,7 +531,11 @@ export const useAdminDashboard = (searchParams = {}) => {
   const setValidationVisitCompleted = async (visitData) => {
     setIsSettingVisitCompleted(true);
     try {
-      const response = await axios.post(`${API_URL}/api/hvc/set-validation-visit-completed`, visitData);
+      const response = await axios.post(`${API_URL}/api/hvc/set-validation-visit-completed`, visitData, {
+        headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+      });
       return response.data;
     } catch (error) {
       throw error;

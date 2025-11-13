@@ -1441,13 +1441,26 @@ export const setValidationVisitCompleted = async (req, res) => { //for submittin
   session.startTransaction();
 
   try {
-    const { farmerId, remarks, validatorEmployeeId, updates } = req.body;
+    const { farmerId, remarks, validatorEmployeeId } = req.body;
+
+    // Parse updates if provided (multipart sends strings)
+    let parsedUpdates = {};
+    if (req.body?.updates) {
+      try {
+        parsedUpdates = typeof req.body.updates === 'string'
+          ? JSON.parse(req.body.updates)
+          : req.body.updates;
+      } catch (e) {
+        await session.abortTransaction();
+        return res.status(400).json({ message: 'Invalid updates payload (must be valid JSON).' });
+      }
+    }
 
     // Validate required fields
     if (!farmerId || !validatorEmployeeId) {
       await session.abortTransaction();
       return res.status(400).json({ 
-        message: 'farmerId, remarks, and validator employee are required.' 
+        message: 'Farmer ID and validator employee are required.' 
       });
     }
 
@@ -1486,17 +1499,17 @@ export const setValidationVisitCompleted = async (req, res) => { //for submittin
     }
 
     // Validate validator employee
-    const validator = await global.globalModels.UserAccount
+    const validator = await global.globalModels.EmployeeAccount
       .findById(validatorEmployeeId)
       .session(session);
 
     if (!validator) {
       await session.abortTransaction();
-      return res.status(404).json({ message: 'Validator employee not found.' });
+      return res.status(404).json({ message: 'Employee account not found.' });
     }
 
-    // If updates are provided, update the edit request
-    if (updates && Object.keys(updates).length > 0) {
+    // If updates are provided, update the edit request (whitelisted by crop type + stage)
+    if (parsedUpdates && Object.keys(parsedUpdates).length > 0) {
       // Check if edit request exists
       if (!farmerInput.editConsent?.editRequestId) {
         await session.abortTransaction();
@@ -1517,7 +1530,6 @@ export const setValidationVisitCompleted = async (req, res) => { //for submittin
       let cropRecord;
       let updateFields = {};
 
-      // Validate and extract update fields based on crop type
       if (cropType.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS') {
         cropRecord = await global.highValueCropsModels.C_crop_records_indus
           .findOne({ farmer_input_id: farmerId })
@@ -1529,12 +1541,12 @@ export const setValidationVisitCompleted = async (req, res) => { //for submittin
         }
 
         if (cropRecord.crop_stage === 'NEWLY PLANTED') {
-          if ('total_area_planted' in updates) {
-            updateFields.total_area_planted = updates.total_area_planted;
+          if ('total_area_planted' in parsedUpdates) {
+            updateFields.total_area_planted = parsedUpdates.total_area_planted;
           }
         } else if (cropRecord.crop_stage === 'HARVESTING') {
-          if ('total_weight' in updates) updateFields.total_weight = updates.total_weight;
-          if ('total_area_harvested' in updates) updateFields.total_area_harvested = updates.total_area_harvested;
+          if ('total_weight' in parsedUpdates) updateFields.total_weight = parsedUpdates.total_weight;
+          if ('total_area_harvested' in parsedUpdates) updateFields.total_area_harvested = parsedUpdates.total_area_harvested;
         }
       } else {
         cropRecord = await global.highValueCropsModels.C_crop_records_others
@@ -1547,15 +1559,14 @@ export const setValidationVisitCompleted = async (req, res) => { //for submittin
         }
 
         if (cropRecord.crop_stage === 'NEWLY PLANTED') {
-          if ('total_trees' in updates) updateFields.total_trees = updates.total_trees;
+          if ('total_trees' in parsedUpdates) updateFields.total_trees = parsedUpdates.total_trees;
         } else if (cropRecord.crop_stage === 'HARVESTING') {
-          if ('total_weight' in updates) updateFields.total_weight = updates.total_weight;
-          if ('trees_harvested' in updates) updateFields.trees_harvested = updates.trees_harvested;
+          if ('total_weight' in parsedUpdates) updateFields.total_weight = parsedUpdates.total_weight;
+          if ('trees_harvested' in parsedUpdates) updateFields.trees_harvested = parsedUpdates.trees_harvested;
         }
       }
 
       if (Object.keys(updateFields).length > 0) {
-        // Update the existing edit request document
         const editRequestId = farmerInput.editConsent.editRequestId._id;
         await global.highValueCropsModels.EditRequest.findByIdAndUpdate(
           editRequestId,
@@ -1599,7 +1610,7 @@ export const setValidationVisitCompleted = async (req, res) => { //for submittin
       'validationVisitDetails.suffix': validator.suffix,
       'validationVisitDetails.email': validator.email,
       'validationVisitDetails.phone': validator.phone,
-      'validationVisitDetails.remarks': remarks.trim(),
+      'validationVisitDetails.remarks': (remarks || '').trim(),
       'validationVisitDetails.proofImageId': proofImageResult.id,
       'validationVisitDetails.proofImageUrl': `https://drive.google.com/uc?id=${proofImageResult.id}`,
       'validationVisitDetails.signatureId': signatureResult.id,
@@ -1629,6 +1640,7 @@ export const setValidationVisitCompleted = async (req, res) => { //for submittin
     session.endSession();
   }
 };
+// ...existing code...
 
 export const approveValidationVisitDetails = async (req, res) => { //use for manager approval of validation visit details
   const session = await mongoose.startSession();
