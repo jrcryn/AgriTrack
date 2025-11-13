@@ -8,7 +8,6 @@ import {
 } from '@chakra-ui/react';
 import { CheckCircleIcon, ArrowForwardIcon, TimeIcon } from "@chakra-ui/icons";
 import { FaArchive, FaInfo } from "react-icons/fa";
-import { CiInboxOut } from "react-icons/ci";
 import { GrFolderCycle } from "react-icons/gr";
 import { TbRouteAltRight, TbFileShredder } from "react-icons/tb";
 import { MdOutgoingMail } from "react-icons/md";
@@ -18,7 +17,6 @@ import { RiMailDownloadFill } from "react-icons/ri";
 import { useAdminDashboard } from '../doc-track/store/adminDashboard.store';
 import { useAuthStore } from '../auth/store/authStore.js';
 import { useQueryClient } from '@tanstack/react-query';
-import { Form } from 'react-router-dom';
 
 
 const actionStyles = {
@@ -52,6 +50,7 @@ const DocumentLifeCycleModal = ({
   isDisposalPage
 }) => {
     const data = document;
+    console.log("DocumentLifeCycleModal data:", data);
     const toast = useToast();
     const queryClient = useQueryClient();
 
@@ -1043,7 +1042,7 @@ const DocumentLifeCycleModal = ({
                                 <Text fontWeight="bold">{event?.action || 'Event'}</Text>
                                 <Text fontSize="sm" color="gray.600">
                                   {event?.performedBy
-                                    ? `By: ${event.performedBy.first_name || ''} ${event.performedBy.last_name || ''} (${roleLabel(event.performedBy.office_position, event.performedBy.role)})`
+                                    ? `By: ${event.performedBy.first_name || ''} ${event.performedBy.last_name || ''} (${event.performedBy.office_position === null ? 'Manager' : event.performedBy.office_position})`
                                     : 'By: Unknown'}
                                 </Text>
                               </Box>
@@ -1053,7 +1052,7 @@ const DocumentLifeCycleModal = ({
                             {event?.action === "Forwarded" && event?.forwardDetails && (
                               <Box mt={2} p={3} bg="blue.50" borderRadius="md" borderLeftWidth="3px" borderLeftColor="blue.500">
                                 <Text fontSize="sm" fontWeight="bold">
-                                  {`Forwarded to: ${event.forwardDetails.first_name || ''} ${event.forwardDetails.last_name || ''} (${roleLabel(event.forwardDetails.office_position, event.forwardDetails.role)})`}
+                                  {`Forwarded to: ${event.forwardDetails.first_name || ''} ${event.forwardDetails.last_name || ''} (${event.performedBy.office_position === null ? 'Manager' : event.performedBy.office_position})`}
                                 </Text>
                                 {event.forwardDetails.forwardRemarks && (
                                   <Text fontSize="sm" mt={1}>
@@ -1066,7 +1065,7 @@ const DocumentLifeCycleModal = ({
                             {event?.action === "Unarchived" && event?.forwardDetails && (
                               <Box mt={2} p={3} bg="yellow.50" borderRadius="md" borderLeftWidth="3px" borderLeftColor="yellow.500">
                                 <Text fontSize="sm" fontWeight="bold">
-                                  {`Forwarded to: ${event.forwardDetails.first_name || ''} ${event.forwardDetails.last_name || ''} (${roleLabel(event.forwardDetails.office_position, event.forwardDetails.role)})`}
+                                  {`Forwarded to: ${event.forwardDetails.first_name || ''} ${event.forwardDetails.last_name || ''} (${event.performedBy.office_position === null ? 'Manager' : event.performedBy.office_position})`}
                                 </Text>
                                 {event.forwardDetails.forwardRemarks && (
                                   <Text fontSize="sm" mt={1}>
@@ -1079,7 +1078,7 @@ const DocumentLifeCycleModal = ({
                             {event?.action === "Rerouted" && event?.rerouteDetails && (
                               <Box mt={2} p={3} bg="blue.50" borderRadius="md" borderLeftWidth="3px" borderLeftColor="blue.500">
                                 <Text fontSize="sm" fontWeight="bold">
-                                  {`Rerouted to: ${event.rerouteDetails.first_name || ''} ${event.rerouteDetails.last_name || ''} (${roleLabel(event.rerouteDetails.office_position, event.rerouteDetails.role)})`}
+                                  {`Rerouted to: ${event.rerouteDetails.first_name || ''} ${event.rerouteDetails.last_name || ''} (${event.performedBy.office_position === null ? 'Manager' : event.performedBy.office_position})`}
                                 </Text>
                                 {event.rerouteDetails.rerouteRemarks && (
                                   <Text fontSize="sm" mt={1}>

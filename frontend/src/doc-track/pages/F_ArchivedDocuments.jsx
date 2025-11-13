@@ -235,7 +235,7 @@ const F_ArchivedDocuments = () => {
                             bg="white"
                           >
                             <Button
-                              size="sm"
+                              size="xs"
                               colorScheme='orange'
                               leftIcon={<FaEye />}
                               onClick={() => handleOpenDetails(doc, { archived: true, disposal: false })}
@@ -341,7 +341,7 @@ const F_ArchivedDocuments = () => {
                             bg="white"
                           >
                             <Button
-                              size="sm"
+                              size="xs"
                               colorScheme='orange'
                               leftIcon={<FaEye />}
                               onClick={() => handleOpenDetails(doc, { archived: false, disposal: true })}
@@ -445,7 +445,7 @@ const F_ArchivedDocuments = () => {
                             bg="white"
                           >
                             <Button
-                              size="sm"
+                              size="xs"
                               colorScheme='gray'
                               leftIcon={<FaEye />}
                               onClick={() => handleOpenDetails(doc, { archived: false, disposal: false, isDisposalPage: true })}

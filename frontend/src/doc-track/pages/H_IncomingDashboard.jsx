@@ -228,7 +228,7 @@ const H_IncomingDashboard = () => {
                           bg="white"
                         >
                           <Button
-                            size="sm"
+                            size="xs"
                             colorScheme='green'
                             leftIcon={<FaEye />}
                             onClick={() => handleOpenDetails(doc, { archived: true, disposal: false })}

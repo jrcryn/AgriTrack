@@ -926,7 +926,7 @@ export const requestEdit = async (req, res) => {
   }
 };
 
-const updateRequestedEdit = async (req, res) => {
+const updateRequestedEdit = async (req, res) => { 
   const session = await mongoose.startSession();
   session.startTransaction();
 

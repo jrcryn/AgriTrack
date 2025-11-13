@@ -137,7 +137,7 @@ const G_Staffs = () => {
                         <Td fontWeight="semibold">
                           {row.first_name} {row.middle_name} {row.last_name}
                         </Td>
-                        <Td>{row.office_position || (row.role ? row.role[0].toUpperCase() + row.role.slice(1) : '—')}</Td>
+                        <Td>{row.office_position === null ? 'Manager' : row.office_position}</Td>
                         <Td isNumeric>
                           <Badge colorScheme="green">{row.incoming?.count ?? 0}</Badge>
                         </Td>

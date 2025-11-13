@@ -54,7 +54,10 @@ const ReturnTicketPanel = ({
       }
     };
 
-    updateCanvasSize();
+    if (isOpen) {
+      // Increase delay to ensure modal is fully rendered
+      setTimeout(updateCanvasSize, 150);
+    }
     window.addEventListener('resize', updateCanvasSize);
     
     return () => window.removeEventListener('resize', updateCanvasSize);

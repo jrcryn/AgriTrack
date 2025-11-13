@@ -100,7 +100,10 @@ const Responses = () => {
       }
     };
 
-    updateCanvasSize();
+    if (isOpenConsentProof) {
+      // Increase delay to ensure modal is fully rendered
+      setTimeout(updateCanvasSize, 150);
+    }
     window.addEventListener('resize', updateCanvasSize);
     
     return () => window.removeEventListener('resize', updateCanvasSize);
@@ -1114,7 +1117,6 @@ const Responses = () => {
     }
   }, [selectedResponse]);
 
-  const editValueRef = useRef(null);
 
   // Initialize request-edit values when the Request Edit modal opens
   useEffect(() => {
@@ -2620,13 +2622,13 @@ const Responses = () => {
                 <AlertIcon />
                 <Box>
                   <AlertTitle fontSize="sm">Validation Visit Completion</AlertTitle>
-                  <AlertDescription fontSize="sm">
+                  <AlertDescription fontSize="xs">
                     Upload a proof image and capture the farmer's signature to confirm consent for the requested edits.
                   </AlertDescription>
                 </Box>
               </Alert>
 
-              {/* Proof Image Upload Section - Updated */}
+              {/* Proof Image Upload Section */}
               <Box>
                 <FormControl isRequired>
                   <FormLabel display="flex" alignItems="center" gap={2}>
@@ -2692,7 +2694,7 @@ const Responses = () => {
                 </FormControl>
               </Box>
 
-              {/* Signature Section - Updated */}
+              {/* Signature Section */}
               <Box>
                 <FormControl isRequired>
                   <FormLabel display="flex" alignItems="center" gap={2}>
@@ -2761,7 +2763,6 @@ const Responses = () => {
                         variant="outline"
                         onClick={() => {
                           handleClearSignature();
-                          // Re-enable canvas when clearing
                           if (signatureRef.current) {
                             signatureRef.current.on();
                           }
@@ -2781,14 +2782,19 @@ const Responses = () => {
                 </FormControl>
               </Box>
 
+              <Divider />
+
               {/* Dynamic Edit Fields Section */}
               {selectedResponse && (
                 <Box>
+                  <Heading as="h4" size="sm" mb={3} color="gray.700">
+                    Confirm Values
+                  </Heading>
                   <Alert status="warning" borderRadius="md" variant="left-accent" mb={4}>
                     <AlertIcon />
                     <Box>
                       <AlertTitle fontSize="sm">Confirm the Values (adjust if agreed upon during visit)</AlertTitle>
-                      <AlertDescription fontSize="sm">
+                      <AlertDescription fontSize="xs">
                         If the farmer and staff agreed on different values during the validation visit, you can update them below before submitting.
                       </AlertDescription>
                     </Box>
@@ -2802,15 +2808,11 @@ const Responses = () => {
                           <InputGroup>
                             <Input
                               type="number"
-                              placeholder={selectedResponse?.farmerInput?.editConsent?.editRequestId?.total_area_planted ?? selectedResponse.cropDetails?.total_area_planted ?? ''}
-                              defaultValue={selectedResponse?.farmerInput?.editConsent?.editRequestId?.total_area_planted ?? selectedResponse.cropDetails?.total_area_planted ?? ''}
-                              onChange={(e) => {/* handler to be implemented */}}
+                              value={requestEditValues.total_area_planted ?? ''}
+                              onChange={(e) => setRequestEditValues(v => ({ ...v, total_area_planted: e.target.value }))}
                             />
                             <InputRightAddon children="hectares" />
                           </InputGroup>
-                          <Text fontSize="xs" color="gray.500" mt={1}>
-                            Current request value: {selectedResponse?.farmerInput?.editConsent?.editRequestId?.total_area_planted ?? selectedResponse.cropDetails?.total_area_planted ?? '-'}
-                          </Text>
                         </FormControl>
                       ) : (
                         <FormControl>
@@ -2818,15 +2820,11 @@ const Responses = () => {
                           <InputGroup>
                             <Input
                               type="number"
-                              placeholder={selectedResponse?.farmerInput?.editConsent?.editRequestId?.total_trees ?? selectedResponse.cropDetails?.total_trees ?? ''}
-                              defaultValue={selectedResponse?.farmerInput?.editConsent?.editRequestId?.total_trees ?? selectedResponse.cropDetails?.total_trees ?? ''}
-                              onChange={(e) => {/* handler to be implemented */}}
+                              value={requestEditValues.total_trees ?? ''}
+                              onChange={(e) => setRequestEditValues(v => ({ ...v, total_trees: e.target.value }))}
                             />
                             <InputRightAddon children="trees" />
                           </InputGroup>
-                          <Text fontSize="xs" color="gray.500" mt={1}>
-                            Current request value: {selectedResponse?.farmerInput?.editConsent?.editRequestId?.total_trees ?? selectedResponse.cropDetails?.total_trees ?? '-'}
-                          </Text>
                         </FormControl>
                       )
                     ) : (
@@ -2837,15 +2835,11 @@ const Responses = () => {
                           <InputGroup>
                             <Input
                               type="number"
-                              placeholder={selectedResponse?.farmerInput?.editConsent?.editRequestId?.total_weight ?? selectedResponse.cropDetails?.total_weight ?? ''}
-                              defaultValue={selectedResponse?.farmerInput?.editConsent?.editRequestId?.total_weight ?? selectedResponse.cropDetails?.total_weight ?? ''}
-                              onChange={(e) => {/* handler to be implemented */}}
+                              value={requestEditValues.total_weight ?? ''}
+                              onChange={(e) => setRequestEditValues(v => ({ ...v, total_weight: e.target.value }))}
                             />
                             <InputRightAddon children="kg" />
                           </InputGroup>
-                          <Text fontSize="xs" color="gray.500" mt={1}>
-                            Current request value: {selectedResponse?.farmerInput?.editConsent?.editRequestId?.total_weight ?? selectedResponse.cropDetails?.total_weight ?? '-'} kg
-                          </Text>
                         </FormControl>
 
                         {selectedResponse.cropType?.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS' ? (
@@ -2854,15 +2848,11 @@ const Responses = () => {
                             <InputGroup>
                               <Input
                                 type="number"
-                                placeholder={selectedResponse?.farmerInput?.editConsent?.editRequestId?.total_area_harvested ?? selectedResponse.cropDetails?.total_area_harvested ?? ''}
-                                defaultValue={selectedResponse?.farmerInput?.editConsent?.editRequestId?.total_area_harvested ?? selectedResponse.cropDetails?.total_area_harvested ?? ''}
-                                onChange={(e) => {/* handler to be implemented */}}
+                                value={requestEditValues.total_area_harvested ?? ''}
+                                onChange={(e) => setRequestEditValues(v => ({ ...v, total_area_harvested: e.target.value }))}
                               />
                               <InputRightAddon children="hectares" />
                             </InputGroup>
-                            <Text fontSize="xs" color="gray.500" mt={1}>
-                              Current request value: {selectedResponse?.farmerInput?.editConsent?.editRequestId?.total_area_harvested ?? selectedResponse.cropDetails?.total_area_harvested ?? '-'}
-                            </Text>
                           </FormControl>
                         ) : (
                           <FormControl>
@@ -2870,15 +2860,11 @@ const Responses = () => {
                             <InputGroup>
                               <Input
                                 type="number"
-                                placeholder={selectedResponse?.farmerInput?.editConsent?.editRequestId?.trees_harvested ?? selectedResponse.cropDetails?.trees_harvested ?? ''}
-                                defaultValue={selectedResponse?.farmerInput?.editConsent?.editRequestId?.trees_harvested ?? selectedResponse.cropDetails?.trees_harvested ?? ''}
-                                onChange={(e) => {/* handler to be implemented */}}
+                                value={requestEditValues.trees_harvested ?? ''}
+                                onChange={(e) => setRequestEditValues(v => ({ ...v, trees_harvested: e.target.value }))}
                               />
                               <InputRightAddon children="trees" />
                             </InputGroup>
-                            <Text fontSize="xs" color="gray.500" mt={1}>
-                              Current request value: {selectedResponse?.farmerInput?.editConsent?.editRequestId?.trees_harvested ?? selectedResponse.cropDetails?.trees_harvested ?? '-'}
-                            </Text>
                           </FormControl>
                         )}
                       </>
@@ -2910,10 +2896,10 @@ const Responses = () => {
                 size="md"
                 _hover={{ boxShadow: "md", bg: "blue.600" }}
                 ml="3"
-                onClick={() => {}}
+                onClick={handleSubmitValidationProof}
                 isDisabled={!proofImage || !signature}
               >
-                Save
+                Submit Consent Proof
               </Button>
             </Flex>
           </ModalFooter>
