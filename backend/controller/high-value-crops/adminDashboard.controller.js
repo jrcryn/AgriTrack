@@ -1588,7 +1588,7 @@ export const setValidationVisitCompleted = async (req, res) => { //for submittin
       proofImageFile.buffer,
       proofImageName,
       proofImageFile.mimetype,
-      process.env.GOOGLE_DRIVE_FOLDER_ID_VALIDATION_PROOFS_HVC
+      process.env.GOOGLE_DRIVE_FOLDER_ID_SELFIE_PROOFS_HVC
     );
 
     // Upload signature to Google Drive
@@ -1596,7 +1596,7 @@ export const setValidationVisitCompleted = async (req, res) => { //for submittin
       signatureFile.buffer,
       signatureName,
       signatureFile.mimetype,
-      process.env.GOOGLE_DRIVE_FOLDER_ID_VALIDATION_SIGNATURES_HVC
+      process.env.GOOGLE_DRIVE_FOLDER_ID_FARMER_SIGNATURES_HVC
     );
 
     // Update the farmer input with validation visit completion details

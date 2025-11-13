@@ -717,7 +717,7 @@ const Responses = () => {
 
 
 
-  const ButtonWithNotification = ({ children, showNotification }) => {
+  const ButtonWithNotification = ({ children, showNotification, dotColor }) => {
     return (
       <Box position="relative" display="inline-block">
         {children}
@@ -728,9 +728,9 @@ const Responses = () => {
             right="-2px"
             width="10px"
             height="10px"
-            bg="red"
+            bg={dotColor}
             borderRadius="full"
-            //border="1px solid white"
+            boxShadow="0 0 0 2px white"
             zIndex={1}
           />
         )}
@@ -858,7 +858,10 @@ const Responses = () => {
                         </>
                       )}
                     <Td isNumeric position={{ base: 'static', md: 'sticky' }} right={0} zIndex={1} bg={viewMode === 'unvalidated' && response.farmerInput.isForReview === true ? 'orange.100' : 'white'}>
-                        <ButtonWithNotification showNotification={response.farmerInput?.editConsent?.status === 'Granted' && response.farmerInput?.successfullyUpdated === false}>
+                        <ButtonWithNotification 
+                          showNotification={(response.farmerInput?.editConsent?.status === 'Granted' && response.farmerInput?.successfullyUpdated === false) || response.farmerInput?.validationVisitDetails?.isValidationVisitDetailsApproved === 'Completed'}
+                          dotColor={response.farmerInput?.editConsent?.status === 'Granted' && response.farmerInput?.successfullyUpdated === false ? 'yellow.400' : 'blue.400'}
+                          >
                           <Button
                             alignContent={'center'}
                             size="xs"
@@ -2739,7 +2742,7 @@ const Responses = () => {
                 <Box>
                   <AlertTitle fontSize="sm">Field Validation Required</AlertTitle>
                   <AlertDescription fontSize="xs">
-                    Create a validation visit to verify the requested edits on-site. Specify the corrected values below.
+                    Require a validation visit to verify the requested edits on-site. Specify the corrected values below.
                   </AlertDescription>
                 </Box>
               </Alert>
@@ -2872,7 +2875,7 @@ const Responses = () => {
                 onClick={handleScheduleVisitSubmit}
                 isLoading={isCreatingValidationSchedule}
               >
-                Schedule Visit
+                Require Validation Visit
               </Button>
             </Flex>
           </ModalFooter>
