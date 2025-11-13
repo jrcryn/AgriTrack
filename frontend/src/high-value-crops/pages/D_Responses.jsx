@@ -87,6 +87,7 @@ const Responses = () => {
   const [proofImagePreview, setProofImagePreview] = useState(null);
   const [signature, setSignature] = useState(null);
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 200 });
+  const [afterValidationRemarks, setAfterValidationRemarks] = useState('');
 
 
   useEffect(() => {
@@ -1289,7 +1290,163 @@ const Responses = () => {
   };
 
   const handleSubmitValidationProof = async () => {
+    if (!proofImage) {
+      toast({
+        title: "Missing proof image",
+        description: "Please upload a selfie proof image",
+        status: "warning",
+        duration: 3000,
+        isClosable: true
+      });
+      return;
+    }
 
+    if (!signature) {
+      toast({
+        title: "Missing signature",
+        description: "Please capture farmer's signature",
+        status: "warning",
+        duration: 3000,
+        isClosable: true
+      });
+      return;
+    }
+
+    if (!selectedResponse) {
+      toast({
+        title: "Error",
+        description: "No response selected",
+        status: "error",
+        duration: 3000,
+        isClosable: true
+      });
+      return;
+    }
+
+    try {
+      // Convert signature data URL to blob
+      const signatureBlob = await fetch(signature).then(r => r.blob());
+      const signatureFile = new File(
+        [signatureBlob], 
+        `signature_${selectedResponse.farmerInput._id}.png`, 
+        { type: 'image/png' }
+      );
+
+      // Create FormData
+      const formData = new FormData();
+      formData.append('farmerId', selectedResponse.farmerInput._id);
+      formData.append('proofImage', proofImage);
+      formData.append('signature', signatureFile);
+      formData.append('validatorEmployeeId', user._id);
+      formData.append('remarks', afterValidationRemarks);
+
+      // Check if any edit request values have been modified
+      const isNewlyPlanted = selectedResponse.cropRecord?.crop_stage === 'NEWLY PLANTED';
+      const isIndustrialCrop = selectedResponse.cropType?.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS';
+      
+      // Get original values for comparison
+      let hasChanges = false;
+      const updates = {};
+
+      if (isNewlyPlanted) {
+        if (isIndustrialCrop) {
+          const originalValue = selectedResponse?.farmerInput?.editConsent?.editRequestId?.total_area_planted ?? 
+                              selectedResponse.cropDetails?.total_area_planted;
+          const newValue = requestEditValues.total_area_planted;
+          
+          if (newValue !== undefined && newValue !== '' && String(newValue) !== String(originalValue)) {
+            updates.total_area_planted = Number(newValue);
+            hasChanges = true;
+          }
+        } else {
+          const originalValue = selectedResponse?.farmerInput?.editConsent?.editRequestId?.total_trees ?? 
+                              selectedResponse.cropDetails?.total_trees;
+          const newValue = requestEditValues.total_trees;
+          
+          if (newValue !== undefined && newValue !== '' && String(newValue) !== String(originalValue)) {
+            updates.total_trees = Number(newValue);
+            hasChanges = true;
+          }
+        }
+      } else {
+        // HARVESTING
+        const originalWeight = selectedResponse?.farmerInput?.editConsent?.editRequestId?.total_weight ?? 
+                              selectedResponse.cropDetails?.total_weight;
+        const newWeight = requestEditValues.total_weight;
+        
+        if (newWeight !== undefined && newWeight !== '' && String(newWeight) !== String(originalWeight)) {
+          updates.total_weight = Number(newWeight);
+          hasChanges = true;
+        }
+
+        if (isIndustrialCrop) {
+          const originalArea = selectedResponse?.farmerInput?.editConsent?.editRequestId?.total_area_harvested ?? 
+                              selectedResponse.cropDetails?.total_area_harvested;
+          const newArea = requestEditValues.total_area_harvested;
+          
+          if (newArea !== undefined && newArea !== '' && String(newArea) !== String(originalArea)) {
+            updates.total_area_harvested = Number(newArea);
+            hasChanges = true;
+          }
+        } else {
+          const originalTrees = selectedResponse?.farmerInput?.editConsent?.editRequestId?.trees_harvested ?? 
+                              selectedResponse.cropDetails?.trees_harvested;
+          const newTrees = requestEditValues.trees_harvested;
+          
+          if (newTrees !== undefined && newTrees !== '' && String(newTrees) !== String(originalTrees)) {
+            updates.trees_harvested = Number(newTrees);
+            hasChanges = true;
+          }
+        }
+      }
+
+      // Only append updates if there are changes
+      if (hasChanges) {
+        formData.append('updates', JSON.stringify(updates));
+      }
+
+      // Log FormData for debugging
+      for (const [key, value] of formData.entries()) {
+        if (value instanceof File) {
+          console.log(key, { name: value.name, size: value.size, type: value.type });
+        } else {
+          console.log(key, value);
+        }
+      }
+
+      const response = await setValidationVisitCompleted(formData);
+
+      toast({
+        title: "Success",
+        description: response.message || "Validation visit completed successfully",
+        status: "success",
+        duration: 5000,
+        isClosable: true
+      });
+
+      // Invalidate queries to refresh data
+      await queryClient.invalidateQueries({ queryKey: ['unvalidatedNewlyPlanted'] });
+      await queryClient.invalidateQueries({ queryKey: ['unvalidatedHarvesting'] });
+
+      // Reset states and close modal
+      setProofImage(null);
+      setProofImagePreview(null);
+      setSignature(null);
+      setRequestEditValues({});
+      onCloseConsentProof();
+      onClose();
+      setSelectedResponse(null);
+
+    } catch (error) {
+      console.error('Error submitting validation proof:', error);
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Failed to submit validation proof",
+        status: "error",
+        duration: 5000,
+        isClosable: true
+      });
+    }
   };
 
 
@@ -2793,9 +2950,9 @@ const Responses = () => {
                   <Alert status="warning" borderRadius="md" variant="left-accent" mb={4}>
                     <AlertIcon />
                     <Box>
-                      <AlertTitle fontSize="sm">Confirm the Values (adjust if agreed upon during visit)</AlertTitle>
+                      <AlertTitle fontSize="sm">Review and Adjust Values</AlertTitle>
                       <AlertDescription fontSize="xs">
-                        If the farmer and staff agreed on different values during the validation visit, you can update them below before submitting.
+                        The fields below show the current edit request values. If the farmer and staff agreed on different values during the validation visit, you can update them before submitting.
                       </AlertDescription>
                     </Box>
                   </Alert>
@@ -2813,6 +2970,9 @@ const Responses = () => {
                             />
                             <InputRightAddon children="hectares" />
                           </InputGroup>
+                          <Text fontSize="xs" color="gray.600" mt={1}>
+                            Current request: <b>{selectedResponse?.farmerInput?.editConsent?.editRequestId?.total_area_planted ?? selectedResponse.cropDetails?.total_area_planted ?? '-'}</b> hectares
+                          </Text>
                         </FormControl>
                       ) : (
                         <FormControl>
@@ -2825,6 +2985,9 @@ const Responses = () => {
                             />
                             <InputRightAddon children="trees" />
                           </InputGroup>
+                          <Text fontSize="xs" color="gray.600" mt={1}>
+                            Current request: <b>{selectedResponse?.farmerInput?.editConsent?.editRequestId?.total_trees ?? selectedResponse.cropDetails?.total_trees ?? '-'}</b> trees
+                          </Text>
                         </FormControl>
                       )
                     ) : (
@@ -2840,6 +3003,9 @@ const Responses = () => {
                             />
                             <InputRightAddon children="kg" />
                           </InputGroup>
+                          <Text fontSize="xs" color="gray.600" mt={1}>
+                            Current request: <b>{selectedResponse?.farmerInput?.editConsent?.editRequestId?.total_weight ?? selectedResponse.cropDetails?.total_weight ?? '-'}</b> kg
+                          </Text>
                         </FormControl>
 
                         {selectedResponse.cropType?.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS' ? (
@@ -2853,6 +3019,9 @@ const Responses = () => {
                               />
                               <InputRightAddon children="hectares" />
                             </InputGroup>
+                            <Text fontSize="xs" color="gray.600" mt={1}>
+                              Current request: <b>{selectedResponse?.farmerInput?.editConsent?.editRequestId?.total_area_harvested ?? selectedResponse.cropDetails?.total_area_harvested ?? '-'}</b> hectares
+                            </Text>
                           </FormControl>
                         ) : (
                           <FormControl>
@@ -2865,6 +3034,9 @@ const Responses = () => {
                               />
                               <InputRightAddon children="trees" />
                             </InputGroup>
+                            <Text fontSize="xs" color="gray.600" mt={1}>
+                              Current request: <b>{selectedResponse?.farmerInput?.editConsent?.editRequestId?.trees_harvested ?? selectedResponse.cropDetails?.trees_harvested ?? '-'}</b> trees
+                            </Text>
                           </FormControl>
                         )}
                       </>

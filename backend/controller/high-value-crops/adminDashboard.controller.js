@@ -1341,12 +1341,12 @@ export const createValidationScheduleVisit = async (req, res) => { // for schedu
 
 import { uploadFileToDrive } from '../googleDrive.controller.js'; 
 
-export const setValidationVisitCompleted = async (req, res) => { // for submitting a selfie proof and signature for consenting the edit request
+export const setValidationVisitCompleted = async (req, res) => { //for submitting a selfie proof and signature after validation visit
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
-    const { farmerId, remarks, validatorEmployeeId } = req.body;
+    const { farmerId, remarks, validatorEmployeeId, updates } = req.body;
 
     // Validate required fields
     if (!farmerId || !remarks || !validatorEmployeeId) {
@@ -1367,6 +1367,7 @@ export const setValidationVisitCompleted = async (req, res) => { // for submitti
     // Find the farmer input
     const farmerInput = await global.highValueCropsModels.A_farmer_inputs
       .findById(farmerId)
+      .populate({ path: 'editConsent.editRequestId', model: global.highValueCropsModels.EditRequest })
       .session(session);
 
     if (!farmerInput) {
@@ -1397,6 +1398,76 @@ export const setValidationVisitCompleted = async (req, res) => { // for submitti
     if (!validator) {
       await session.abortTransaction();
       return res.status(404).json({ message: 'Validator employee not found.' });
+    }
+
+    // If updates are provided, update the edit request
+    if (updates && Object.keys(updates).length > 0) {
+      // Check if edit request exists
+      if (!farmerInput.editConsent?.editRequestId) {
+        await session.abortTransaction();
+        return res.status(404).json({ message: 'No existing edit request found to update.' });
+      }
+
+      // Find crop type and crop record to determine valid update fields
+      const cropType = await global.highValueCropsModels.B_crop_types
+        .findOne({ farmer_input_id: farmerId })
+        .session(session)
+        .lean();
+
+      if (!cropType) {
+        await session.abortTransaction();
+        return res.status(404).json({ message: 'Crop type not found.' });
+      }
+
+      let cropRecord;
+      let updateFields = {};
+
+      // Validate and extract update fields based on crop type
+      if (cropType.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS') {
+        cropRecord = await global.highValueCropsModels.C_crop_records_indus
+          .findOne({ farmer_input_id: farmerId })
+          .session(session);
+
+        if (!cropRecord) {
+          await session.abortTransaction();
+          return res.status(404).json({ message: 'Crop record not found.' });
+        }
+
+        if (cropRecord.crop_stage === 'NEWLY PLANTED') {
+          if ('total_area_planted' in updates) {
+            updateFields.total_area_planted = updates.total_area_planted;
+          }
+        } else if (cropRecord.crop_stage === 'HARVESTING') {
+          if ('total_weight' in updates) updateFields.total_weight = updates.total_weight;
+          if ('total_area_harvested' in updates) updateFields.total_area_harvested = updates.total_area_harvested;
+        }
+      } else {
+        cropRecord = await global.highValueCropsModels.C_crop_records_others
+          .findOne({ farmer_input_id: farmerId })
+          .session(session);
+
+        if (!cropRecord) {
+          await session.abortTransaction();
+          return res.status(404).json({ message: 'Crop record not found.' });
+        }
+
+        if (cropRecord.crop_stage === 'NEWLY PLANTED') {
+          if ('total_trees' in updates) updateFields.total_trees = updates.total_trees;
+        } else if (cropRecord.crop_stage === 'HARVESTING') {
+          if ('total_weight' in updates) updateFields.total_weight = updates.total_weight;
+          if ('trees_harvested' in updates) updateFields.trees_harvested = updates.trees_harvested;
+        }
+      }
+
+      if (Object.keys(updateFields).length > 0) {
+        // Update the existing edit request document
+        const editRequestId = farmerInput.editConsent.editRequestId._id;
+        await global.highValueCropsModels.EditRequest.findByIdAndUpdate(
+          editRequestId,
+          { $set: updateFields },
+          { session }
+        );
+      }
     }
 
     const proofImageFile = req.files.proofImage[0];
@@ -1450,11 +1521,6 @@ export const setValidationVisitCompleted = async (req, res) => { // for submitti
 
     return res.status(200).json({
       message: 'Validation visit marked as completed successfully.',
-      data: {
-        farmerId,
-        status: 'Completed',
-        completedAt: new Date()
-      }
     });
 
   } catch (error) {
