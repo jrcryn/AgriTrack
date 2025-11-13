@@ -926,167 +926,167 @@ export const requestEdit = async (req, res) => {
   }
 };
 
-const updateRequestedEdit = async (req, res) => { 
-  const session = await mongoose.startSession();
-  session.startTransaction();
+// const updateRequestedEdit = async (req, res) => { 
+//   const session = await mongoose.startSession();
+//   session.startTransaction();
 
-  try {
-    const { farmerId, crop_stage, updates, reason } = req.body;
+//   try {
+//     const { farmerId, crop_stage, updates, reason } = req.body;
     
-    if (!farmerId || !crop_stage || !updates) {
-      await session.abortTransaction();
-      return res.status(400).json({ message: 'farmerId, crop_stage, and updates are required.' });
-    }
+//     if (!farmerId || !crop_stage || !updates) {
+//       await session.abortTransaction();
+//       return res.status(400).json({ message: 'farmerId, crop_stage, and updates are required.' });
+//     }
 
-    // Find the farmer input
-    const farmerInput = await global.highValueCropsModels.A_farmer_inputs
-      .findById(farmerId)
-      .populate({ path: 'editConsent.editRequestId', model: global.highValueCropsModels.EditRequest })
-      .session(session);
+//     // Find the farmer input
+//     const farmerInput = await global.highValueCropsModels.A_farmer_inputs
+//       .findById(farmerId)
+//       .populate({ path: 'editConsent.editRequestId', model: global.highValueCropsModels.EditRequest })
+//       .session(session);
 
-    if (!farmerInput) {
-      await session.abortTransaction();
-      return res.status(404).json({ message: 'Farmer response not found.' });
-    }
+//     if (!farmerInput) {
+//       await session.abortTransaction();
+//       return res.status(404).json({ message: 'Farmer response not found.' });
+//     }
 
-    // Check if response is flagged for review
-    if (farmerInput.isForReview !== true) {
-      await session.abortTransaction();
-      return res.status(400).json({ message: 'Only flagged responses can have edit requests updated.' });
-    }
+//     // Check if response is flagged for review
+//     if (farmerInput.isForReview !== true) {
+//       await session.abortTransaction();
+//       return res.status(400).json({ message: 'Only flagged responses can have edit requests updated.' });
+//     }
 
-    // Check if edit consent status is Pending
-    if (farmerInput.editConsent?.status !== 'Pending') {
-      await session.abortTransaction();
-      return res.status(400).json({ 
-        message: 'Edit request can only be updated when status is Pending.' 
-      });
-    }
+//     // Check if edit consent status is Pending
+//     if (farmerInput.editConsent?.status !== 'Pending') {
+//       await session.abortTransaction();
+//       return res.status(400).json({ 
+//         message: 'Edit request can only be updated when status is Pending.' 
+//       });
+//     }
 
-    // Check if edit request exists
-    if (!farmerInput.editConsent?.editRequestId) {
-      await session.abortTransaction();
-      return res.status(404).json({ message: 'No existing edit request found to update.' });
-    }
+//     // Check if edit request exists
+//     if (!farmerInput.editConsent?.editRequestId) {
+//       await session.abortTransaction();
+//       return res.status(404).json({ message: 'No existing edit request found to update.' });
+//     }
 
-    // Find crop type and crop record
-    const cropType = await global.highValueCropsModels.B_crop_types
-      .findOne({ farmer_input_id: farmerId })
-      .session(session)
-      .lean();
+//     // Find crop type and crop record
+//     const cropType = await global.highValueCropsModels.B_crop_types
+//       .findOne({ farmer_input_id: farmerId })
+//       .session(session)
+//       .lean();
 
-    if (!cropType) {
-      await session.abortTransaction();
-      return res.status(404).json({ message: 'Crop type not found.' });
-    }
+//     if (!cropType) {
+//       await session.abortTransaction();
+//       return res.status(404).json({ message: 'Crop type not found.' });
+//     }
 
-    let cropRecord, cropDetails, updateFields = {}, cropStage;
+//     let cropRecord, cropDetails, updateFields = {}, cropStage;
 
-    // Validate and extract update fields based on crop type
-    if (cropType.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS') {
-      cropRecord = await global.highValueCropsModels.C_crop_records_indus
-        .findOne({ farmer_input_id: farmerId })
-        .session(session);
+//     // Validate and extract update fields based on crop type
+//     if (cropType.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS') {
+//       cropRecord = await global.highValueCropsModels.C_crop_records_indus
+//         .findOne({ farmer_input_id: farmerId })
+//         .session(session);
 
-      if (!cropRecord) {
-        await session.abortTransaction();
-        return res.status(404).json({ message: 'Crop record not found.' });
-      }
+//       if (!cropRecord) {
+//         await session.abortTransaction();
+//         return res.status(404).json({ message: 'Crop record not found.' });
+//       }
 
-      if (crop_stage === 'NEWLY PLANTED') {
-        cropStage = 'newlyPlanted';
-        cropDetails = await global.highValueCropsModels.D1_crop_indus_new
-          .findOne({ record_id: cropRecord._id })
-          .session(session);
+//       if (crop_stage === 'NEWLY PLANTED') {
+//         cropStage = 'newlyPlanted';
+//         cropDetails = await global.highValueCropsModels.D1_crop_indus_new
+//           .findOne({ record_id: cropRecord._id })
+//           .session(session);
         
-        if ('total_area_planted' in updates) {
-          updateFields.total_area_planted = updates.total_area_planted;
-        }
-      } else if (crop_stage === 'HARVESTING') {
-        cropStage = 'harvesting';
-        cropDetails = await global.highValueCropsModels.D1_crop_indus_harvest
-          .findOne({ record_id: cropRecord._id })
-          .session(session);
+//         if ('total_area_planted' in updates) {
+//           updateFields.total_area_planted = updates.total_area_planted;
+//         }
+//       } else if (crop_stage === 'HARVESTING') {
+//         cropStage = 'harvesting';
+//         cropDetails = await global.highValueCropsModels.D1_crop_indus_harvest
+//           .findOne({ record_id: cropRecord._id })
+//           .session(session);
         
-        if ('total_weight' in updates) updateFields.total_weight = updates.total_weight;
-        if ('total_area_harvested' in updates) updateFields.total_area_harvested = updates.total_area_harvested;
-      }
-    } else {
-      cropRecord = await global.highValueCropsModels.C_crop_records_others
-        .findOne({ farmer_input_id: farmerId })
-        .session(session);
+//         if ('total_weight' in updates) updateFields.total_weight = updates.total_weight;
+//         if ('total_area_harvested' in updates) updateFields.total_area_harvested = updates.total_area_harvested;
+//       }
+//     } else {
+//       cropRecord = await global.highValueCropsModels.C_crop_records_others
+//         .findOne({ farmer_input_id: farmerId })
+//         .session(session);
 
-      if (!cropRecord) {
-        await session.abortTransaction();
-        return res.status(404).json({ message: 'Crop record not found.' });
-      }
+//       if (!cropRecord) {
+//         await session.abortTransaction();
+//         return res.status(404).json({ message: 'Crop record not found.' });
+//       }
 
-      if (crop_stage === 'NEWLY PLANTED') {
-        cropStage = 'newlyPlanted';
-        cropDetails = await global.highValueCropsModels.D2_bc_other_fct_new
-          .findOne({ record_id: cropRecord._id })
-          .session(session);
+//       if (crop_stage === 'NEWLY PLANTED') {
+//         cropStage = 'newlyPlanted';
+//         cropDetails = await global.highValueCropsModels.D2_bc_other_fct_new
+//           .findOne({ record_id: cropRecord._id })
+//           .session(session);
         
-        if ('total_trees' in updates) updateFields.total_trees = updates.total_trees;
-      } else if (crop_stage === 'HARVESTING') {
-        cropStage = 'harvesting';
-        cropDetails = await global.highValueCropsModels.D2_bc_other_fct_harvest
-          .findOne({ record_id: cropRecord._id })
-          .session(session);
+//         if ('total_trees' in updates) updateFields.total_trees = updates.total_trees;
+//       } else if (crop_stage === 'HARVESTING') {
+//         cropStage = 'harvesting';
+//         cropDetails = await global.highValueCropsModels.D2_bc_other_fct_harvest
+//           .findOne({ record_id: cropRecord._id })
+//           .session(session);
         
-        if ('total_weight' in updates) updateFields.total_weight = updates.total_weight;
-        if ('trees_harvested' in updates) updateFields.trees_harvested = updates.trees_harvested;
-      }
-    }
+//         if ('total_weight' in updates) updateFields.total_weight = updates.total_weight;
+//         if ('trees_harvested' in updates) updateFields.trees_harvested = updates.trees_harvested;
+//       }
+//     }
 
-    if (!cropDetails) {
-      await session.abortTransaction();
-      return res.status(404).json({ message: 'Crop details not found.' });
-    }
+//     if (!cropDetails) {
+//       await session.abortTransaction();
+//       return res.status(404).json({ message: 'Crop details not found.' });
+//     }
 
-    if (Object.keys(updateFields).length === 0) {
-      await session.abortTransaction();
-      return res.status(400).json({ message: 'No valid update fields provided.' });
-    }
+//     if (Object.keys(updateFields).length === 0) {
+//       await session.abortTransaction();
+//       return res.status(400).json({ message: 'No valid update fields provided.' });
+//     }
 
-    // Update the existing edit request document
-    const editRequestId = farmerInput.editConsent.editRequestId._id;
-    await global.highValueCropsModels.EditRequest.findByIdAndUpdate(
-      editRequestId,
-      { $set: updateFields },
-      { session }
-    );
+//     // Update the existing edit request document
+//     const editRequestId = farmerInput.editConsent.editRequestId._id;
+//     await global.highValueCropsModels.EditRequest.findByIdAndUpdate(
+//       editRequestId,
+//       { $set: updateFields },
+//       { session }
+//     );
 
-    // Update reason if provided
-    if (reason) {
-      await global.highValueCropsModels.A_farmer_inputs.findByIdAndUpdate(
-        farmerId,
-        { $set: { 'editConsent.reason': reason } },
-        { session }
-      );
-    }
+//     // Update reason if provided
+//     if (reason) {
+//       await global.highValueCropsModels.A_farmer_inputs.findByIdAndUpdate(
+//         farmerId,
+//         { $set: { 'editConsent.reason': reason } },
+//         { session }
+//       );
+//     }
 
-    await session.commitTransaction();
+//     await session.commitTransaction();
 
-    return res.json({
-      message: 'Edit request updated successfully. Farmer will be notified.',
-      data: {
-        editRequestId,
-        updatedFields: updateFields
-      }
-    });
+//     return res.json({
+//       message: 'Edit request updated successfully. Farmer will be notified.',
+//       data: {
+//         editRequestId,
+//         updatedFields: updateFields
+//       }
+//     });
 
-  } catch (error) {
-    await session.abortTransaction();
-    console.error('Error updating edit request:', error);
-    return res.status(500).json({ 
-      message: 'Error updating edit request.', 
-      error: error.message 
-    });
-  } finally {
-    session.endSession();
-  }
-};
+//   } catch (error) {
+//     await session.abortTransaction();
+//     console.error('Error updating edit request:', error);
+//     return res.status(500).json({ 
+//       message: 'Error updating edit request.', 
+//       error: error.message 
+//     });
+//   } finally {
+//     session.endSession();
+//   }
+// };
 
 export const getRequestEditDetailsForFarmerView = async (req, res) => { //ito yung controller pang kuha ng necessary informations para doon sa link na bubuksan ni farmer
   try {
@@ -1272,13 +1272,13 @@ export const createValidationScheduleVisit = async (req, res) => { // for schedu
   session.startTransaction();
 
   try {
-    const { farmerId, scheduledAt, initialRemarks } = req.body;
+    const { farmerId, initialRemarks, updates, crop_stage } = req.body;
 
     // Validate required fields
-    if (!farmerId || !scheduledAt || !initialRemarks) {
+    if (!farmerId || !updates || !crop_stage) {
       await session.abortTransaction();
       return res.status(400).json({ 
-        message: 'farmerId, scheduledAt, and initialRemarks are required.' 
+        message: 'farmerId, updates, and crop_stage are required.' 
       });
     }
 
@@ -1296,18 +1296,113 @@ export const createValidationScheduleVisit = async (req, res) => { // for schedu
     if (farmerInput.validationVisitDetails?.status === 'Pending') {
       await session.abortTransaction();
       return res.status(400).json({ 
-        message: 'Validation visit is already scheduled for this farmer response.' 
+        message: 'Validation visit is already made for this farmer response.' 
       });
     }
 
-    // Update the farmer input with validation visit details
+    // Check if the response is flagged for review
+    if (farmerInput.isForReview !== true) {
+      await session.abortTransaction();
+      return res.status(400).json({ message: 'Only flagged responses can have validation visits scheduled.' });
+    }
+
+    // Find crop type and crop record
+    const cropType = await global.highValueCropsModels.B_crop_types
+      .findOne({ farmer_input_id: farmerId })
+      .session(session)
+      .lean();
+
+    if (!cropType) {
+      await session.abortTransaction();
+      return res.status(404).json({ message: 'Crop type not found.' });
+    }
+
+    let cropRecord, cropDetails, updateFields = {};
+
+    // Validate and extract update fields based on crop type
+    if (cropType.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS') {
+      cropRecord = await global.highValueCropsModels.C_crop_records_indus
+        .findOne({ farmer_input_id: farmerId })
+        .session(session);
+
+      if (!cropRecord) {
+        await session.abortTransaction();
+        return res.status(404).json({ message: 'Crop record not found.' });
+      }
+
+      if (crop_stage === 'NEWLY PLANTED') {
+        cropDetails = await global.highValueCropsModels.D1_crop_indus_new
+          .findOne({ record_id: cropRecord._id })
+          .session(session);
+        
+        if ('total_area_planted' in updates) {
+          updateFields.total_area_planted = updates.total_area_planted;
+        }
+      } else if (crop_stage === 'HARVESTING') {
+        cropDetails = await global.highValueCropsModels.D1_crop_indus_harvest
+          .findOne({ record_id: cropRecord._id })
+          .session(session);
+        
+        if ('total_weight' in updates) updateFields.total_weight = updates.total_weight;
+        if ('total_area_harvested' in updates) updateFields.total_area_harvested = updates.total_area_harvested;
+      }
+    } else {
+      cropRecord = await global.highValueCropsModels.C_crop_records_others
+        .findOne({ farmer_input_id: farmerId })
+        .session(session);
+
+      if (!cropRecord) {
+        await session.abortTransaction();
+        return res.status(404).json({ message: 'Crop record not found.' });
+      }
+
+      if (crop_stage === 'NEWLY PLANTED') {
+        cropDetails = await global.highValueCropsModels.D2_bc_other_fct_new
+          .findOne({ record_id: cropRecord._id })
+          .session(session);
+        
+        if ('total_trees' in updates) updateFields.total_trees = updates.total_trees;
+      } else if (crop_stage === 'HARVESTING') {
+        cropDetails = await global.highValueCropsModels.D2_bc_other_fct_harvest
+          .findOne({ record_id: cropRecord._id })
+          .session(session);
+        
+        if ('total_weight' in updates) updateFields.total_weight = updates.total_weight;
+        if ('trees_harvested' in updates) updateFields.trees_harvested = updates.trees_harvested;
+      }
+    }
+
+    if (!cropDetails) {
+      await session.abortTransaction();
+      return res.status(404).json({ message: 'Crop details not found.' });
+    }
+
+    if (Object.keys(updateFields).length === 0) {
+      await session.abortTransaction();
+      return res.status(400).json({ message: 'No allowed fields provided for update.' });
+    }
+
+    // Build edit request payload
+    const editPayload = {
+      farmer_input_id: farmerId,
+      ...updateFields
+    };
+
+    // Create edit request document within transaction
+    const editDoc = await global.highValueCropsModels.EditRequest.create([editPayload], { session });
+
+    // Update the farmer input with validation visit details and edit request
     const updateData = {
       requiredValidationVisit: true,
       validationVisitDetails: {
         status: 'Pending',
-        scheduledAt: new Date(scheduledAt),
-        initialRemarks: initialRemarks.trim(),
-      }
+        initialRemarks: initialRemarks?.trim() || '',
+      },
+      editConsent: {
+        status: 'Pending',
+        editRequestId: editDoc[0]._id
+      },
+      successfullyUpdated: false
     };
 
     await global.highValueCropsModels.A_farmer_inputs.findByIdAndUpdate(
@@ -1319,10 +1414,10 @@ export const createValidationScheduleVisit = async (req, res) => { // for schedu
     await session.commitTransaction();
 
     return res.status(200).json({
-      message: 'Validation schedule visit created successfully.',
+      message: 'Validation visit scheduled successfully with edit request.',
       data: {
         farmerId,
-        scheduledAt,
+        editRequestId: editDoc[0]._id,
         status: 'Pending'
       }
     });
@@ -1349,7 +1444,7 @@ export const setValidationVisitCompleted = async (req, res) => { //for submittin
     const { farmerId, remarks, validatorEmployeeId, updates } = req.body;
 
     // Validate required fields
-    if (!farmerId || !remarks || !validatorEmployeeId) {
+    if (!farmerId || !validatorEmployeeId) {
       await session.abortTransaction();
       return res.status(400).json({ 
         message: 'farmerId, remarks, and validator employee are required.' 

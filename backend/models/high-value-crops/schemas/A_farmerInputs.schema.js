@@ -35,7 +35,6 @@ export const AFarmerInputsSchema = new mongoose.Schema({
 
   validationVisitDetails: {
     status: { type: String, enum: ['Pending', 'Completed'] },
-    scheduledAt: { type: Date },
     completedAt: { type: Date },
     validatorEmployee: { type: mongoose.Schema.Types.ObjectId, ref: 'User_Account' },
 

@@ -58,6 +58,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../auth/store/authStore.js';
 
 import SignatureCanvas from 'react-signature-canvas';
+import { initial, set } from 'lodash';
 
 const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL;
 
@@ -1074,7 +1075,6 @@ const Responses = () => {
 
   // State for editable fields in modal
   const [editFields, setEditFields] = useState({});
-  const [isUpdatingFields, setIsUpdatingFields] = useState(false);
 
   // Request-edit state
   const [requestEditValues, setRequestEditValues] = useState({});
@@ -1213,9 +1213,7 @@ const Responses = () => {
         duration: 5000,
         isClosable: true,
       });
-    } finally {
-      setIsUpdatingFields(false);
-    }
+    } 
   };
 
   const handleFormToggle = async () => {
@@ -1229,64 +1227,56 @@ const Responses = () => {
   };
 
   const handleScheduleVisitSubmit = async () => {
-    if (!selectedResponse?.farmerInput?._id) {
-      toast({
-        title: "Error",
-        description: "No selected response.",
-        status: "error",
-        duration: 4000,
-        isClosable: true,
-      });
-      return;
-    }
+    if (!selectedResponse) return;
 
-    if (!validationVisitDate) {
-      toast({
-        title: "Validation date required",
-        description: "Please select a validation date.",
-        status: "warning",
-        duration: 4000,
-        isClosable: true,
-      });
-      return;
-    }
+    // sanitize values: cast numeric-like strings to numbers
+    const sanitized = Object.entries(requestEditValues || {}).reduce((acc, [k, v]) => {
+      if (v === '' || v === null || v === undefined) {
+        acc[k] = v;
+      } else if (!isNaN(v)) {
+        acc[k] = Number(v);
+      } else {
+        acc[k] = v;
+      }
+      return acc;
+    }, {});
 
+    setIsUpdatingFields(true);
     try {
-      const payload = {
-        farmerId: selectedResponse.farmerInput._id,
-        scheduledAt: validationVisitDate,
-        initialRemarks: (validationVisitRemarks || "").trim(),
-      };
+      const crop_stage = selectedResponse.cropRecord?.crop_stage;
 
-      const res = await createValidationScheduleVisit(payload);
+      // Use atomic requestEdit (creates edit request + awaits consent)
+      const result = await createValidationScheduleVisit({
+        farmerId: selectedResponse.farmerInput._id,
+        crop_stage,
+        updates: sanitized,
+        initialRemarks: validationVisitRemarks?.trim(), 
+      });
 
       toast({
-        title: "Scheduled",
-        description: res?.message || "Validation visit scheduled successfully.",
+        title: "Request Sent",
+        description: result?.message || "Edit request recorded. Awaiting farmer consent.",
         status: "success",
         duration: 5000,
         isClosable: true,
       });
 
-      // refresh lists
+      // Refresh lists (no optimistic local mutation; data changes only after farmer grants consent)
       queryClient.invalidateQueries({ queryKey: ['unvalidatedNewlyPlanted'] });
       queryClient.invalidateQueries({ queryKey: ['unvalidatedHarvesting'] });
 
-      // reset and close
-      setValidationVisitDate('');
-      setValidationVisitRemarks('');
-      onCloseScheduleVisit();
+      onCloseRequestEdit();
       onClose();
     } catch (error) {
       console.log(error);
       toast({
         title: "Error",
-        description: error?.response?.data?.message || "Failed to schedule validation visit.",
+        description: error.response?.data?.message || "Failed to send edit request.",
         status: "error",
-        duration: 6000,
+        duration: 5000,
         isClosable: true,
       });
-    }
+    } 
   };
 
   const handleSubmitValidationProof = async () => {
@@ -1485,56 +1475,71 @@ const Responses = () => {
 
         {/* Edit Consent Status Alert */}
         {hasEditRequest && (
-          <Alert
-            status={
-              editConsentStatus === 'Granted' || editConsentStatus === 'Completed' 
-                ? 'success' 
-                : editConsentStatus === 'Denied' 
-                ? 'error' 
-                : 'info'
-            }
-            variant="left-accent"
-            borderRadius="md"
-          >
-            <AlertIcon />
-            <Box flex="1">
-              <AlertTitle fontSize="sm">
-                {requiredValidationVisits === true && 'Validation Visit Scheduled'}
-                {editConsentStatus === 'Granted' &&  successfullyUpdated === false && 'Farmer Granted Edit Permission'}
-                {editConsentStatus === 'Denied' && requiredValidationVisits === false && 'Farmer Denied Edit Request'}
-                {editConsentStatus === 'Pending' && requiredValidationVisits === false && 'Edit Request Pending'}
-                {successfullyUpdated === true && 'Edit Successfully Applied'}
-              </AlertTitle>
-              <AlertDescription fontSize="xs">
-                {requiredValidationVisits === true && 
-                  `A validation visit has been scheduled to verify the requested edits. Please check the schedule section for details.`
-                }
-                {editConsentStatus === 'Granted' && 
-                  `The farmer has granted permission to edit their response. You can now apply the requested changes or push the updated data to records.`
-                }
-                {editConsentStatus === 'Denied' && 
-                  `The farmer has denied the edit request for their response. No changes can be made without their consent.`
-                }
-                {editConsentStatus === 'Pending' && 
-                  `Waiting for farmer's response to the edit request. An SMS notification has been sent. If it's taking too long, consider scheduling up a validation visit, reaching out to the farmer directly.`
-                }
-                {editConsentStatus === 'Completed' && 
-                  `The requested edits have been successfully applied to this response. The updated values are shown below.`
-                }
-                {response.farmerInput?.editConsent?.reason && requiredValidationVisits === false && (
-                  <Text mt={1} fontStyle="italic">
-                    Reason: {response.farmerInput.editConsent.reason}
-                  </Text>
-                )}
-                {requiredValidationVisits === true && (
-                  <Text mt={1} fontStyle="italic">
-                    Initial Remarks: {response.farmerInput.validationVisitDetails.initialRemarks} <br /> Scheduled Visit: <b>{formatDate(response.farmerInput.validationVisitDetails.scheduledAt)}</b>
-                  </Text>
-                )}
-              </AlertDescription>
-            </Box>
-          </Alert>
+          <>
+            <Alert
+              status={
+                editConsentStatus === 'Granted' || editConsentStatus === 'Completed' 
+                  ? 'success' 
+                  : editConsentStatus === 'Denied' 
+                  ? 'error' 
+                  : 'info'
+              }
+              variant="left-accent"
+              borderRadius="md"
+            >
+              <AlertIcon />
+              <Box flex="1">
+                <AlertTitle fontSize="sm">
+                  {requiredValidationVisits === true && 'Validation Visit Scheduled'}
+                  {editConsentStatus === 'Granted' &&  successfullyUpdated === false && 'Farmer Granted Edit Permission'}
+                  {editConsentStatus === 'Denied' && requiredValidationVisits === false && 'Farmer Denied Edit Request'}
+                  {editConsentStatus === 'Pending' && requiredValidationVisits === false && 'Edit Request Pending'}
+                  {successfullyUpdated === true && 'Edit Successfully Applied'}
+                </AlertTitle>
+                <AlertDescription fontSize="xs">
+                  {requiredValidationVisits === true && 
+                    `A validation visit has been scheduled to verify the requested edits. Please check the schedule section for details.`
+                  }
+                  {editConsentStatus === 'Granted' && 
+                    `The farmer has granted permission to edit their response. You can now apply the requested changes or push the updated data to records.`
+                  }
+                  {editConsentStatus === 'Denied' && 
+                    `The farmer has denied the edit request for their response. No changes can be made without their consent.`
+                  }
+                  {editConsentStatus === 'Pending' && 
+                    `Waiting for farmer's response to the edit request. An SMS notification has been sent. If it's taking too long, consider scheduling up a validation visit, reaching out to the farmer directly.`
+                  }
+                  {editConsentStatus === 'Completed' && 
+                    `The requested edits have been successfully applied to this response. The updated values are shown below.`
+                  }
+                  {response.farmerInput?.editConsent?.reason && requiredValidationVisits === false && (
+                    <Text mt={1} fontStyle="italic">
+                      Reason: {response.farmerInput.editConsent.reason}
+                    </Text>
+                  )}
+                  {requiredValidationVisits === true && (
+                    <Text mt={1} fontStyle="italic">
+                      Initial Remarks: {response.farmerInput.validationVisitDetails.initialRemarks} <br /> Scheduled Visit: <b>{formatDate(response.farmerInput.validationVisitDetails.scheduledAt)}</b>
+                    </Text>
+                  )}
+                </AlertDescription>
+              </Box>
+            </Alert>
+          </>
         )}
+
+        {/* No Phone Number Alert - Only show when edit requested or validation visit scheduled */}
+        {response.farmerInput.isForReview === true && !response.farmerInput?.farmer_account_id?.mobile_number && !response?.farmerInput?.validationVisitDetails?.scheduledAt && (
+          <Alert status="warning" borderRadius="md" variant="left-accent">
+            <AlertIcon />
+              <Box flex="1">
+                <AlertTitle fontSize="sm">No Phone Number Registered</AlertTitle>
+                <AlertDescription fontSize="xs">
+                  SMS notification for edit request cannot be sent. Please update the farmer details on the system or conduct a site visit to request an edit.
+                </AlertDescription>
+              </Box>
+          </Alert>
+            )}
 
         {/* Farmer Information Section */}
         <Box p={5} borderRadius="md" borderWidth="1px" borderColor="gray.200" bg="white" boxShadow="sm">
@@ -2367,7 +2372,7 @@ const Responses = () => {
                       </>
                     )}
 
-                    {(selectedResponse?.farmerInput?.editConsent?.status === 'Completed' || !selectedResponse?.farmerInput?.editConsent?.status) && (
+                    {(selectedResponse?.farmerInput?.editConsent?.status === 'Completed' || !selectedResponse?.farmerInput?.editConsent?.status) && selectedResponse?.farmerInput?.farmer_account_id?.mobile_number && (
                       <>
                         <Button 
                           colorScheme="blue" 
@@ -2376,6 +2381,19 @@ const Responses = () => {
                           onClick={onOpenRequestEdit}
                         >
                           Request Edit
+                        </Button>
+                      </>
+                    )}
+
+                    {!selectedResponse?.farmerInput?.farmer_account_id?.mobile_number && !selectedResponse?.farmerInput?.validationVisitDetails?.scheduledAt && (
+                      <>
+                        <Button 
+                          colorScheme="blue" 
+                          boxShadow="sm"
+                          _hover={{ boxShadow: "md", bg: "blue.600" }}
+                          onClick={onOpenScheduleVisit}
+                        >
+                          Require Validation Visit
                         </Button>
                       </>
                     )}
@@ -2554,18 +2572,8 @@ const Responses = () => {
           <ModalBody py={6}>
             {selectedResponse ? (
               <VStack align="stretch" spacing={4}>
-                {/* Warning if no phone number */}
-                {!selectedResponse.farmerInput?.farmer_account_id?.mobile_number && (
-                  <Alert status="warning" borderRadius="md" variant="left-accent">
-                    <AlertIcon />
-                    <Box flex="1">
-                      <AlertTitle fontSize="sm">No Phone Number Registered</AlertTitle>
-                      <AlertDescription fontSize="xs">
-                        SMS notification cannot be sent. Please contact the farmer leader or conduct a site visit to request this edit.
-                      </AlertDescription>
-                    </Box>
-                  </Alert>
-                )}
+
+                
 
                 {/* Heads-up when updating an existing pending request */}
                 {selectedResponse?.farmerInput?.editConsent?.status === 'Pending' && (
@@ -2575,6 +2583,18 @@ const Responses = () => {
                       <AlertTitle fontSize="sm">Update will notify the farmer again</AlertTitle>
                       <AlertDescription fontSize="xs">
                         Updating this edit request will send another SMS notification to the farmer. If no changes are needed, consider waiting for the farmer’s response to the current request instead.
+                      </AlertDescription>
+                    </Box>
+                  </Alert>
+                )}
+
+                {!selectedResponse?.farmerInput?.editConsent?.status && (
+                  <Alert status="info" borderRadius="md" variant="left-accent">
+                    <AlertIcon />
+                    <Box>
+                      <AlertTitle fontSize="sm">Request Edit from Farmer</AlertTitle>
+                      <AlertDescription fontSize="xs">
+                        Send an SMS notification to farmer where they can view the requested edits and grant them consent or not.
                       </AlertDescription>
                     </Box>
                   </Alert>
@@ -2711,25 +2731,119 @@ const Responses = () => {
             Schedule Validation Visit
           </ModalHeader>
           <ModalBody py={6}>
-            {/* Date and initial remarks */}
             <VStack align="stretch" spacing={4}>
-              <FormControl isRequired>
-                <FormLabel fontWeight="medium">Validation Date</FormLabel>
-                <Input
-                  type="date"
-                  value={validationVisitDate}
-                  onChange={(e) => setValidationVisitDate(e.target.value)}
-                />
-              </FormControl>
+              <Alert status="info" borderRadius="md" variant="left-accent">
+                <AlertIcon />
+                <Box>
+                  <AlertTitle fontSize="sm">Field Validation Required</AlertTitle>
+                  <AlertDescription fontSize="xs">
+                    Create a validation visit to verify the requested edits on-site. Specify the corrected values below.
+                  </AlertDescription>
+                </Box>
+              </Alert>
+
+              {/* Dynamic Edit Fields Section */}
+              {selectedResponse && (
+                <>
+                  {selectedResponse.cropRecord?.crop_stage === 'NEWLY PLANTED' ? (
+                    selectedResponse.cropType?.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS' ? (
+                      <FormControl>
+                        <FormLabel fontWeight="medium">Total Area Planted (ha)</FormLabel>
+                        <InputGroup>
+                          <Input
+                            type="number"
+                            value={requestEditValues.total_area_planted ?? ''}
+                            onChange={(e) => setRequestEditValues(v => ({ ...v, total_area_planted: e.target.value }))}
+                          />
+                          <InputRightAddon children="hectares" />
+                        </InputGroup>
+                        <Text fontSize="xs" color="gray.600" mt={1}>
+                          Current value: <b>{selectedResponse.cropDetails?.total_area_planted ?? '-'}</b> hectares
+                        </Text>
+                      </FormControl>
+                    ) : (
+                      <FormControl>
+                        <FormLabel fontWeight="medium">Total Number of Trees</FormLabel>
+                        <InputGroup>
+                          <Input
+                            type="number"
+                            value={requestEditValues.total_trees ?? ''}
+                            onChange={(e) => setRequestEditValues(v => ({ ...v, total_trees: e.target.value }))}
+                          />
+                          <InputRightAddon children="trees" />
+                        </InputGroup>
+                        <Text fontSize="xs" color="gray.600" mt={1}>
+                          Current value: <b>{selectedResponse.cropDetails?.total_trees ?? '-'}</b> trees
+                        </Text>
+                      </FormControl>
+                    )
+                  ) : (
+                    // HARVESTING
+                    <>
+                      <FormControl>
+                        <FormLabel fontWeight="medium">Total Weight</FormLabel>
+                        <InputGroup>
+                          <Input
+                            type="number"
+                            value={requestEditValues.total_weight ?? ''}
+                            onChange={(e) => setRequestEditValues(v => ({ ...v, total_weight: e.target.value }))}
+                          />
+                          <InputRightAddon children="kg" />
+                        </InputGroup>
+                        <Text fontSize="xs" color="gray.600" mt={1}>
+                          Current value: <b>{selectedResponse.cropDetails?.total_weight ?? '-'}</b> kg
+                        </Text>
+                      </FormControl>
+
+                      {selectedResponse.cropType?.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS' ? (
+                        <FormControl>
+                          <FormLabel fontWeight="medium">Total Area Harvested (ha)</FormLabel>
+                          <InputGroup>
+                            <Input
+                              type="number"
+                              value={requestEditValues.total_area_harvested ?? ''}
+                              onChange={(e) => setRequestEditValues(v => ({ ...v, total_area_harvested: e.target.value }))}
+                            />
+                            <InputRightAddon children="hectares" />
+                          </InputGroup>
+                          <Text fontSize="xs" color="gray.600" mt={1}>
+                            Current value: <b>{selectedResponse.cropDetails?.total_area_harvested ?? '-'}</b> hectares
+                          </Text>
+                        </FormControl>
+                      ) : (
+                        <FormControl>
+                          <FormLabel fontWeight="medium">Total Number of Trees Harvested</FormLabel>
+                          <InputGroup>
+                            <Input
+                              type="number"
+                              value={requestEditValues.trees_harvested ?? ''}
+                              onChange={(e) => setRequestEditValues(v => ({ ...v, trees_harvested: e.target.value }))}
+                            />
+                            <InputRightAddon children="trees" />
+                          </InputGroup>
+                          <Text fontSize="xs" color="gray.600" mt={1}>
+                            Current value: <b>{selectedResponse.cropDetails?.trees_harvested ?? '-'}</b> trees
+                          </Text>
+                        </FormControl>
+                      )}
+                    </>
+                  )}
+                </>
+              )}
+
+              <Divider />
 
               <FormControl>
-                <FormLabel fontWeight="medium">Initial Remarks</FormLabel>
+                <FormLabel fontWeight="medium">Initial Remarks (Optional)</FormLabel>
                 <Textarea
-                  placeholder="Optional notes for the field validation..."
+                  placeholder="Add notes about why this validation visit is needed..."
                   value={validationVisitRemarks}
                   onChange={(e) => setValidationVisitRemarks(e.target.value)}
                   minH="100px"
                 />
+                <Text fontSize="xs" color="gray.500" mt={1}>
+                  These remarks will be saved with the validation visit schedule
+                </Text>
               </FormControl>
             </VStack>
           </ModalBody>
@@ -2737,7 +2851,11 @@ const Responses = () => {
             <Flex w="100%" display={'flex'} justifyContent={'right'}>
               <Button 
                 variant="outline" 
-                onClick={onCloseScheduleVisit}
+                onClick={() => {
+                  onCloseScheduleVisit();
+                  setValidationVisitRemarks('');
+                  setRequestEditValues({});
+                }}
                 size="md"
                 _hover={{ bg: "gray.100" }}
               >
@@ -2939,8 +3057,23 @@ const Responses = () => {
                 </FormControl>
               </Box>
 
+              {/* Remarks Section */}
+              <Box>
+                <FormControl>
+                  <FormLabel fontWeight="medium">Remarks (Optional)</FormLabel>
+                  <Textarea
+                    placeholder="Add any additional notes or observations from the validation visit..."
+                    value={afterValidationRemarks}
+                    onChange={(e) => setAfterValidationRemarks(e.target.value)}
+                    minH="100px"
+                    resize="vertical"
+                  />
+                  <Text fontSize="xs" color="gray.500" mt={1}>
+                    These final remarks will be saved with the validation visit details
+                  </Text>
+                </FormControl>
+              </Box>
               <Divider />
-
               {/* Dynamic Edit Fields Section */}
               {selectedResponse && (
                 <Box>
@@ -3056,6 +3189,8 @@ const Responses = () => {
                   setProofImage(null);
                   setProofImagePreview(null);
                   setSignature(null);
+                  setAfterValidationRemarks('');
+                  setRequestEditValues({});
                 }}
                 size="md"
                 _hover={{ bg: "gray.100" }}
