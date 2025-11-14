@@ -201,67 +201,7 @@ export const getUnvalidatedArchivedFarmerInputs = async (req, res) => {
   }
 };
 
-// Get all validated farmer inputs with their referenced documents
-
-
-// export const getValidatedFarmerInputs = async (req, res) => {
-//   try {
-//     // Only find farmer inputs where isValidated is true
-//     const farmerInputs = await global.highValueCropsModels.A_farmer_inputs.find({ isValidated: true }).lean();
-    
-//     const results = await Promise.all(farmerInputs.map(async (farmerInput) => {
-//       const cropType = await global.highValueCropsModels.B_crop_types.findOne({ farmer_input_id: farmerInput._id }).lean();
-      
-//       // Handle case where no crop type exists
-//       if (!cropType) {
-//         return { farmerInput, cropType: null, cropRecord: null, cropDetails: null };
-//       }
-      
-//       let cropRecord, cropDetails;
-
-//       if (cropType.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS') {
-//         cropRecord = await global.highValueCropsModels.C_crop_records_indus.findOne({ farmer_input_id: farmerInput._id }).lean();
-        
-//         if (!cropRecord) {
-//           return { farmerInput, cropType, cropRecord: null, cropDetails: null };
-//         }
-        
-//         if (cropRecord.crop_stage === 'NEWLY PLANTED') {
-//           cropDetails = await global.highValueCropsModels.D1_crop_indus_new.findOne({ record_id: cropRecord._id }).lean();
-//         } else if (cropRecord.crop_stage === 'HARVESTING') {
-//           cropDetails = await global.highValueCropsModels.D1_crop_indus_harvest.findOne({ record_id: cropRecord._id }).lean();
-//         }
-//       } else {
-//         cropRecord = await global.highValueCropsModels.C_crop_records_others.findOne({ farmer_input_id: farmerInput._id }).lean();
-        
-//         if (!cropRecord) {
-//           return { farmerInput, cropType, cropRecord: null, cropDetails: null };
-//         }
-        
-//         if (cropRecord.crop_stage === 'NEWLY PLANTED') {
-//           cropDetails = await global.highValueCropsModels.D2_bc_other_fct_new.findOne({ record_id: cropRecord._id }).lean();
-//         } else if (cropRecord.crop_stage === 'HARVESTING') {
-//           cropDetails = await global.highValueCropsModels.D2_bc_other_fct_harvest.findOne({ record_id: cropRecord._id }).lean();
-//         }
-//       }
-
-//       return {
-//         farmerInput,
-//         cropType,
-//         cropRecord,
-//         cropDetails
-//       };
-//     }));
-
-//     res.json(results);
-//   } catch (error) {
-//     res.status(500).json({ message: 'Error fetching validated farmer inputs', error: error.message });
-//   }
-// };
-
-
-
-// Update only specific fields for flagged responses
+// for updating the response field using the edit request document
 export const updateFarmerResponseFields = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -289,9 +229,9 @@ export const updateFarmerResponseFields = async (req, res) => {
       return res.status(400).json({ message: 'Only flagged responses can be updated.' });
     }
 
-    if (farmerInput.editConsent.status !== 'Granted' || !farmerInput.editConsent.grantedAt) {
+    if (farmerInput.editConsent.status !== 'Granted' && farmerInput.validationVisitDetails?.isValidationVisitDetailsApproved !== true) {
       await session.abortTransaction();
-      return res.status(403).json({ message: 'Edit consent not granted yet.' });
+      return res.status(403).json({ message: 'Updating this response requires either farmer consent (Granted) or manager approval (Validation Visit Approved).' });
     }
 
     if (!farmerInput.editConsent.editRequestId) {

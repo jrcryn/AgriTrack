@@ -730,10 +730,10 @@ const Responses = () => {
         {showNotification && (
           <Box
             position="absolute"
-            top="-2px"
-            right="-2px"
-            width="10px"
-            height="10px"
+            top="-5px"
+            right="-5px"
+            width="12px"
+            height="12px"
             bg={dotColor}
             borderRadius="full"
             boxShadow="0 0 0 2px white"
@@ -864,58 +864,71 @@ const Responses = () => {
                           </Td>
                         </>
                       )}
-                    <Td isNumeric position={{ base: 'static', md: 'sticky' }} right={0} zIndex={1} bg={viewMode === 'unvalidated' && response.farmerInput.isForReview === true ? 'orange.100' : 'white'}>
-                        {user?.role === 'HVCM' && (
-                          <ButtonWithNotification 
-                            showNotification={
-                              (response.farmerInput?.editConsent?.status === 'Granted' &&
-                                response.farmerInput?.successfullyUpdated === false) ||
-                              response.farmerInput?.validationVisitDetails?.status === 'Completed'
-                            }
-                            dotColor={
-                              response.farmerInput?.editConsent?.status === 'Granted' &&
-                              response.farmerInput?.successfullyUpdated === false
-                                ? 'yellow.400'
-                                : response.farmerInput?.validationVisitDetails?.status === 'Completed'
-                                ? 'blue.400'
-                                : undefined
-                            }
-                            >
-                            <Button
-                              alignContent={'center'}
-                              size="xs"
-                              colorScheme={status === 'NEWLY PLANTED' ? 'green' : 'orange'}
-                              leftIcon={<FaEye />}
-                              onClick={() => {
-                                setSelectedResponse(response);
-                                onOpen();
-                              }}
-                            >
-                              Details
-                          </Button>
-                          </ButtonWithNotification>
-                        )}
-                        {user?.role === 'HVCS' && (
-                          <ButtonWithNotification 
-                            showNotification={(response.farmerInput?.editConsent?.status === 'Granted' && response.farmerInput?.successfullyUpdated === false)}
-                            dotColor={'yellow.400'}
-                            >
-                            <Button
-                              alignContent={'center'}
-                              size="xs"
-                              colorScheme={status === 'NEWLY PLANTED' ? 'green' : 'orange'}
-                              leftIcon={<FaEye />}
-                              onClick={() => {
-                                setSelectedResponse(response);
-                                onOpen();
-                              }}
-                            >
-                              Details
-                          </Button>
-                          </ButtonWithNotification>
-                        )}
-                        
-                    </Td>
+<Td isNumeric position={{ base: 'static', md: 'sticky' }} right={0} zIndex={1} bg={viewMode === 'unvalidated' && response.farmerInput.isForReview === true ? 'orange.100' : 'white'}>
+  {user?.role === 'HVCM' && (
+    <ButtonWithNotification 
+      showNotification={
+        (response.farmerInput?.editConsent?.status === 'Granted' &&
+          response.farmerInput?.successfullyUpdated === false) ||
+        response.farmerInput?.validationVisitDetails?.status === 'Completed' ||
+        response.farmerInput?.validationVisitDetails?.status === 'Rejected'
+      }
+      dotColor={
+        response.farmerInput?.editConsent?.status === 'Granted' &&
+        response.farmerInput?.successfullyUpdated === false
+          ? 'green.400'
+          : response.farmerInput?.validationVisitDetails?.status === 'Completed'
+          ? 'blue.400'
+          : response.farmerInput?.validationVisitDetails?.status === 'Rejected'
+          ? 'red.400'
+          : undefined
+      }
+    >
+      <Button
+        alignContent={'center'}
+        size="xs"
+        colorScheme={status === 'NEWLY PLANTED' ? 'green' : 'orange'}
+        leftIcon={<FaEye />}
+        onClick={() => {
+          setSelectedResponse(response);
+          onOpen();
+        }}
+      >
+        Details
+      </Button>
+    </ButtonWithNotification>
+  )}
+  {user?.role === 'HVCS' && (
+    <ButtonWithNotification 
+      showNotification={
+        (response.farmerInput?.editConsent?.status === 'Granted' && 
+          response.farmerInput?.successfullyUpdated === false) ||
+        response.farmerInput?.validationVisitDetails?.status === 'Rejected'
+      }
+      dotColor={
+        response.farmerInput?.editConsent?.status === 'Granted' &&
+        response.farmerInput?.successfullyUpdated === false
+          ? 'yellow.400'
+          : response.farmerInput?.validationVisitDetails?.status === 'Rejected'
+          ? 'red.400'
+          : undefined
+      }
+    >
+      <Button
+        alignContent={'center'}
+        size="xs"
+        colorScheme={status === 'NEWLY PLANTED' ? 'green' : 'orange'}
+        leftIcon={<FaEye />}
+        onClick={() => {
+          setSelectedResponse(response);
+          onOpen();
+        }}
+      >
+        Details
+      </Button>
+    </ButtonWithNotification>
+  )}
+</Td>
                   </Tr>
                 ))
               ) : (
@@ -1514,7 +1527,7 @@ const Responses = () => {
 
     onCloseApproveVisit();
     onClose();
-    onCloseApproveVisit();
+    onCloseConfirmApprove();
     setSelectedResponse(null);
 
   } catch (error) {
@@ -1635,6 +1648,7 @@ const Responses = () => {
     const editConsentStatus = response.farmerInput?.editConsent?.status;
     const requiredValidationVisits = response.farmerInput?.requiredValidationVisit;
     const isSubmittedValidationVisitProof = response.farmerInput?.validationVisitDetails?.status;
+    const isValidationDetailsApproved = response.farmerInput?.validationVisitDetails?.isValidationVisitDetailsApproved;
     const hasEditRequest = editConsentStatus && ['Pending', 'Granted', 'Denied', 'Completed'].includes(editConsentStatus) || requiredValidationVisits === true;
     const successfullyUpdated = response.farmerInput?.successfullyUpdated;
 
@@ -1642,92 +1656,108 @@ const Responses = () => {
       <VStack spacing={6} align="stretch">
 
         {/* Edit Consent Status Alert */}
-        {hasEditRequest && (
-          <>
-            <Alert
-              status={
-                editConsentStatus === 'Granted' || editConsentStatus === 'Completed' 
-                  ? 'success' 
-                  : editConsentStatus === 'Denied' 
-                  ? 'error'
-                  : isSubmittedValidationVisitProof === 'Completed'
-                  ? 'info'
-                  : isSubmittedValidationVisitProof === 'Rejected'
-                  ? 'error'
-                  : 'info'
-              }
-              variant="left-accent"
-              borderRadius="md"
-            >
-              <AlertIcon />
-              <Box flex="1">
-                <AlertTitle fontSize="sm">
-                  {isSubmittedValidationVisitProof === 'Rejected' && 'Validation Visit Details Rejected'}
-                  {isSubmittedValidationVisitProof === 'Completed' && 'Validation Visit Proof Submitted'}
-                  {requiredValidationVisits === true && isSubmittedValidationVisitProof !== 'Completed' && isSubmittedValidationVisitProof !== 'Rejected' && 'Validation Visit Scheduled'}
-                  {editConsentStatus === 'Granted' && !successfullyUpdated && !requiredValidationVisits && 'Farmer Granted Edit Permission'}
-                  {editConsentStatus === 'Denied' && !requiredValidationVisits && 'Farmer Denied Edit Request'}
-                  {editConsentStatus === 'Pending' && !requiredValidationVisits && 'Edit Request Pending'}
-                  {successfullyUpdated === true && 'Edit Successfully Applied'}
-                </AlertTitle>
-                <AlertDescription fontSize="xs">
-                  {isSubmittedValidationVisitProof === 'Rejected' && (
-                    <>
-                      The manager has rejected the validation visit proof. The submission was incomplete or inaccurate. Please review the requirements and resubmit the validation proof.
-                      {response.farmerInput.validationVisitDetails.initialRemarks && (
-                        <Text mt={1} fontStyle="italic">
-                          Initial Remarks: {response.farmerInput.validationVisitDetails.initialRemarks}
-                        </Text>
-                      )}
-                    </>
-                  )}
-                  {isSubmittedValidationVisitProof === 'Completed' && (
-                    <>
-                      Validation proof submitted. Waiting for a manager to review and approve or reject the validation visit details.
-                      {response.farmerInput.validationVisitDetails.initialRemarks && (
-                        <Text mt={1} fontStyle="italic">
-                          Initial Remarks: {response.farmerInput.validationVisitDetails.initialRemarks}
-                        </Text>
-                      )}
-                      {response.farmerInput.validationVisitDetails.remarks && (
-                        <Text mt={1} fontStyle="italic">
-                          Final Remarks: {response.farmerInput.validationVisitDetails.remarks}
-                        </Text>
-                      )}
-                    </>
-                  )}
-                  {requiredValidationVisits === true && isSubmittedValidationVisitProof !== 'Completed' && isSubmittedValidationVisitProof !== 'Rejected' && (
-                    <>
-                      A validation visit has been scheduled to verify the requested edits. Please check the schedule section for details.
-                      {response.farmerInput.validationVisitDetails.initialRemarks && (
-                        <Text mt={1} fontStyle="italic">
-                          Initial Remarks: {response.farmerInput.validationVisitDetails.initialRemarks}
-                        </Text>
-                      )}
-                    </>
-                  )}
-                  {editConsentStatus === 'Granted' && !requiredValidationVisits && !isSubmittedValidationVisitProof && 
-                    `The farmer has granted permission to edit their response. You can now apply the requested changes or push the updated data to records.`
-                  }
-                  {editConsentStatus === 'Denied' && !requiredValidationVisits && 
-                    `The farmer has denied the edit request for their response. No changes can be made without their consent.`
-                  }
-                  {editConsentStatus === 'Pending' && !requiredValidationVisits && 
-                    `Waiting for farmer's response to the edit request. An SMS notification has been sent. If it's taking too long, consider scheduling up a validation visit, reaching out to the farmer directly.`
-                  }
-                  {editConsentStatus === 'Completed' && !requiredValidationVisits && 
-                    `The requested edits have been successfully applied to this response. The updated values are shown below.`
-                  }
-                  {response.farmerInput?.editConsent?.reason && !requiredValidationVisits && !isSubmittedValidationVisitProof && (
-                    <Text mt={1} fontStyle="italic">
-                      Reason: {response.farmerInput.editConsent.reason}
-                    </Text>
-                  )}
-                </AlertDescription>
-              </Box>
-            </Alert>
-          </>
-        )}
+{hasEditRequest && (
+  <>
+    <Alert
+      status={
+        editConsentStatus === 'Granted' || editConsentStatus === 'Completed' || isValidationDetailsApproved === true
+          ? 'success' 
+          : editConsentStatus === 'Denied' 
+          ? 'error'
+          : isSubmittedValidationVisitProof === 'Completed'
+          ? 'info'
+          : isSubmittedValidationVisitProof === 'Rejected'
+          ? 'error'
+          : 'info'
+      }
+      variant="left-accent"
+      borderRadius="md"
+    >
+      <AlertIcon />
+      <Box flex="1">
+        <AlertTitle fontSize="sm">
+          {isValidationDetailsApproved === true && 'Validation Visit Details Approved'}
+          {isSubmittedValidationVisitProof === 'Rejected' && !isValidationDetailsApproved && 'Validation Visit Details Rejected'}
+          {isSubmittedValidationVisitProof === 'Completed' && !isValidationDetailsApproved && 'Validation Visit Proof Submitted'}
+          {requiredValidationVisits === true && isSubmittedValidationVisitProof !== 'Completed' && isSubmittedValidationVisitProof !== 'Rejected' && !isValidationDetailsApproved && 'Validation Visit Scheduled'}
+          {editConsentStatus === 'Granted' && !successfullyUpdated && !requiredValidationVisits && !isValidationDetailsApproved && 'Farmer Granted Edit Permission'}
+          {editConsentStatus === 'Denied' && !requiredValidationVisits && !isValidationDetailsApproved && 'Farmer Denied Edit Request'}
+          {editConsentStatus === 'Pending' && !requiredValidationVisits && !isValidationDetailsApproved && 'Edit Request Pending'}
+          {successfullyUpdated === true && !isValidationDetailsApproved && 'Edit Successfully Applied'}
+        </AlertTitle>
+        <AlertDescription fontSize="xs">
+          {isValidationDetailsApproved === true && (
+            <>
+              The validation visit details have been approved by the manager. You can now apply the requested changes to update this response.
+              {response.farmerInput.validationVisitDetails.initialRemarks && (
+                <Text mt={1} fontStyle="italic">
+                  Initial Remarks: {response.farmerInput.validationVisitDetails.initialRemarks}
+                </Text>
+              )}
+              {response.farmerInput.validationVisitDetails.remarks && (
+                <Text mt={1} fontStyle="italic">
+                  Final Remarks: {response.farmerInput.validationVisitDetails.remarks}
+                </Text>
+              )}
+            </>
+          )}
+          {isSubmittedValidationVisitProof === 'Rejected' && !isValidationDetailsApproved && (
+            <>
+              The manager has rejected the validation visit proof. The submission was incomplete or inaccurate. Please review the requirements and resubmit the validation proof.
+              {response.farmerInput.validationVisitDetails.initialRemarks && (
+                <Text mt={1} fontStyle="italic">
+                  Initial Remarks: {response.farmerInput.validationVisitDetails.initialRemarks}
+                </Text>
+              )}
+            </>
+          )}
+          {isSubmittedValidationVisitProof === 'Completed' && !isValidationDetailsApproved && (
+            <>
+              Validation proof submitted. Waiting for a manager to review and approve or reject the validation visit details.
+              {response.farmerInput.validationVisitDetails.initialRemarks && (
+                <Text mt={1} fontStyle="italic">
+                  Initial Remarks: {response.farmerInput.validationVisitDetails.initialRemarks}
+                </Text>
+              )}
+              {response.farmerInput.validationVisitDetails.remarks && (
+                <Text mt={1} fontStyle="italic">
+                  Final Remarks: {response.farmerInput.validationVisitDetails.remarks}
+                </Text>
+              )}
+            </>
+          )}
+          {requiredValidationVisits === true && isSubmittedValidationVisitProof !== 'Completed' && isSubmittedValidationVisitProof !== 'Rejected' && !isValidationDetailsApproved && (
+            <>
+              A validation visit has been scheduled to verify the requested edits. Please check the schedule section for details.
+              {response.farmerInput.validationVisitDetails.initialRemarks && (
+                <Text mt={1} fontStyle="italic">
+                  Initial Remarks: {response.farmerInput.validationVisitDetails.initialRemarks}
+                </Text>
+              )}
+            </>
+          )}
+          {editConsentStatus === 'Granted' && !requiredValidationVisits && !isSubmittedValidationVisitProof && !isValidationDetailsApproved && 
+            `The farmer has granted permission to edit their response. You can now apply the requested changes or push the updated data to records.`
+          }
+          {editConsentStatus === 'Denied' && !requiredValidationVisits && !isValidationDetailsApproved && 
+            `The farmer has denied the edit request for their response. No changes can be made without their consent.`
+          }
+          {editConsentStatus === 'Pending' && !requiredValidationVisits && !isValidationDetailsApproved && 
+            `Waiting for farmer's response to the edit request. An SMS notification has been sent. If it's taking too long, consider scheduling up a validation visit, reaching out to the farmer directly.`
+          }
+          {editConsentStatus === 'Completed' && !requiredValidationVisits && !isValidationDetailsApproved && 
+            `The requested edits have been successfully applied to this response. The updated values are shown below.`
+          }
+          {response.farmerInput?.editConsent?.reason && !requiredValidationVisits && !isSubmittedValidationVisitProof && !isValidationDetailsApproved && (
+            <Text mt={1} fontStyle="italic">
+              Reason: {response.farmerInput.editConsent.reason}
+            </Text>
+          )}
+        </AlertDescription>
+      </Box>
+    </Alert>
+  </>
+)}
 
         {/* No Phone Number Alert - Only show when edit requested or validation visit scheduled */}
         {response.farmerInput.isForReview === true && !response.farmerInput?.farmer_account_id?.mobile_number && !response?.farmerInput?.validationVisitDetails?.scheduledAt && (
@@ -2545,7 +2575,8 @@ const Responses = () => {
 
                     {/* View Consent Proof Button - For managers to review validation proof */}
                     {user?.role === 'HVCM' && 
-                    selectedResponse?.farmerInput?.validationVisitDetails?.status === 'Completed' && (
+                    selectedResponse?.farmerInput?.validationVisitDetails?.status === 'Completed' &&
+                    (selectedResponse?.farmerInput?.validationVisitDetails?.isValidationVisitDetailsApproved === false) && (
                       <Button 
                         colorScheme="purple" 
                         boxShadow="sm"

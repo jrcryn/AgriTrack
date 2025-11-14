@@ -126,24 +126,27 @@ const highValueCropsApp = () => {
   const hasInteractedRef = useRef(false);
 
   useEffect(() => {
-    const isFormPath        = location.pathname.startsWith('/hvc/form/dpa') || location.pathname.startsWith('/hvc/form/a_fi') || location.pathname.startsWith('/hvc/form/b_ct') || location.pathname.startsWith('/hvc/form/c1_cri') || location.pathname.startsWith('/hvc/form/c2_cro') || location.pathname.startsWith('/hvc/form/d1_cih') || location.pathname.startsWith('/hvc/form/d1_cin') || location.pathname.startsWith('/hvc/form/d2_bc_ofh') || location.pathname.startsWith('/hvc/form/d2_bc_ofn') || location.pathname.startsWith('/hvc/form/success');
+    const isFormPath        = location.pathname.startsWith('/hvc/form/dpa') || location.pathname.startsWith('/hvc/form/a_fi') || location.pathname.startsWith('/hvc/form/b_ct') || location.pathname.startsWith('/hvc/form/c1_cri') || location.pathname.startsWith('/hvc/form/c2_cro') || location.pathname.startsWith('/hvc/form/d1_cih') || location.pathname.startsWith('/hvc/form/d1_cin') || location.pathname.startsWith('/hvc/form/d2_bc_ofh') || location.pathname.startsWith('/hvc/form/d2_bc_ofn');
     const isInitialFormPath = location.pathname === '/hvc/form/istcns'
+    const isSuccessPage = location.pathname.startsWith('/hvc/form/success');
     
     // Check if we're coming from the success page
     const isComingFromSuccess = sessionStorage.getItem('hvc_form_completed');
     
     // If we're coming from success, force a full page reload to reset all state
-    if (isComingFromSuccess && (isFormPath && !location.pathname.startsWith('/hvc/form/success'))) {
+    if (isComingFromSuccess && (isFormPath && !isSuccessPage)) {
       sessionStorage.removeItem('hvc_form_completed');
       window.location.reload();
       return;
     }
     
     // only on a true browser POP (refresh/direct URL) AND if we've never clicked Next/Back yet, redirect home
+    // BUT don't redirect if we're on the success page
     if (
       navigationType === 'POP' &&
       isFormPath &&
       !isInitialFormPath &&
+      !isSuccessPage &&
       !hasInteractedRef.current
     ) {
       navigate('/hvc/form/istcns', { replace: true });
