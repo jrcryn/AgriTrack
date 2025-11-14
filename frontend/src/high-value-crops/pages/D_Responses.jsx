@@ -1656,108 +1656,110 @@ const Responses = () => {
       <VStack spacing={6} align="stretch">
 
         {/* Edit Consent Status Alert */}
-{hasEditRequest && (
-  <>
-    <Alert
-      status={
-        editConsentStatus === 'Granted' || editConsentStatus === 'Completed' || isValidationDetailsApproved === true
-          ? 'success' 
-          : editConsentStatus === 'Denied' 
-          ? 'error'
-          : isSubmittedValidationVisitProof === 'Completed'
-          ? 'info'
-          : isSubmittedValidationVisitProof === 'Rejected'
-          ? 'error'
-          : 'info'
-      }
-      variant="left-accent"
-      borderRadius="md"
-    >
-      <AlertIcon />
-      <Box flex="1">
-        <AlertTitle fontSize="sm">
-          {isValidationDetailsApproved === true && 'Validation Visit Details Approved'}
-          {isSubmittedValidationVisitProof === 'Rejected' && !isValidationDetailsApproved && 'Validation Visit Details Rejected'}
-          {isSubmittedValidationVisitProof === 'Completed' && !isValidationDetailsApproved && 'Validation Visit Proof Submitted'}
-          {requiredValidationVisits === true && isSubmittedValidationVisitProof !== 'Completed' && isSubmittedValidationVisitProof !== 'Rejected' && !isValidationDetailsApproved && 'Validation Visit Scheduled'}
-          {editConsentStatus === 'Granted' && !successfullyUpdated && !requiredValidationVisits && !isValidationDetailsApproved && 'Farmer Granted Edit Permission'}
-          {editConsentStatus === 'Denied' && !requiredValidationVisits && !isValidationDetailsApproved && 'Farmer Denied Edit Request'}
-          {editConsentStatus === 'Pending' && !requiredValidationVisits && !isValidationDetailsApproved && 'Edit Request Pending'}
-          {successfullyUpdated === true && !isValidationDetailsApproved && 'Edit Successfully Applied'}
-        </AlertTitle>
-        <AlertDescription fontSize="xs">
-          {isValidationDetailsApproved === true && (
-            <>
-              The validation visit details have been approved by the manager. You can now apply the requested changes to update this response.
-              {response.farmerInput.validationVisitDetails.initialRemarks && (
-                <Text mt={1} fontStyle="italic">
-                  Initial Remarks: {response.farmerInput.validationVisitDetails.initialRemarks}
-                </Text>
-              )}
-              {response.farmerInput.validationVisitDetails.remarks && (
-                <Text mt={1} fontStyle="italic">
-                  Final Remarks: {response.farmerInput.validationVisitDetails.remarks}
-                </Text>
-              )}
-            </>
-          )}
-          {isSubmittedValidationVisitProof === 'Rejected' && !isValidationDetailsApproved && (
-            <>
-              The manager has rejected the validation visit proof. The submission was incomplete or inaccurate. Please review the requirements and resubmit the validation proof.
-              {response.farmerInput.validationVisitDetails.initialRemarks && (
-                <Text mt={1} fontStyle="italic">
-                  Initial Remarks: {response.farmerInput.validationVisitDetails.initialRemarks}
-                </Text>
-              )}
-            </>
-          )}
-          {isSubmittedValidationVisitProof === 'Completed' && !isValidationDetailsApproved && (
-            <>
-              Validation proof submitted. Waiting for a manager to review and approve or reject the validation visit details.
-              {response.farmerInput.validationVisitDetails.initialRemarks && (
-                <Text mt={1} fontStyle="italic">
-                  Initial Remarks: {response.farmerInput.validationVisitDetails.initialRemarks}
-                </Text>
-              )}
-              {response.farmerInput.validationVisitDetails.remarks && (
-                <Text mt={1} fontStyle="italic">
-                  Final Remarks: {response.farmerInput.validationVisitDetails.remarks}
-                </Text>
-              )}
-            </>
-          )}
-          {requiredValidationVisits === true && isSubmittedValidationVisitProof !== 'Completed' && isSubmittedValidationVisitProof !== 'Rejected' && !isValidationDetailsApproved && (
-            <>
-              A validation visit has been scheduled to verify the requested edits. Please check the schedule section for details.
-              {response.farmerInput.validationVisitDetails.initialRemarks && (
-                <Text mt={1} fontStyle="italic">
-                  Initial Remarks: {response.farmerInput.validationVisitDetails.initialRemarks}
-                </Text>
-              )}
-            </>
-          )}
-          {editConsentStatus === 'Granted' && !requiredValidationVisits && !isSubmittedValidationVisitProof && !isValidationDetailsApproved && 
-            `The farmer has granted permission to edit their response. You can now apply the requested changes or push the updated data to records.`
-          }
-          {editConsentStatus === 'Denied' && !requiredValidationVisits && !isValidationDetailsApproved && 
-            `The farmer has denied the edit request for their response. No changes can be made without their consent.`
-          }
-          {editConsentStatus === 'Pending' && !requiredValidationVisits && !isValidationDetailsApproved && 
-            `Waiting for farmer's response to the edit request. An SMS notification has been sent. If it's taking too long, consider scheduling up a validation visit, reaching out to the farmer directly.`
-          }
-          {(editConsentStatus === 'Completed' || response.farmerInput.successfullyUpdated === true) && !requiredValidationVisits && !isValidationDetailsApproved && 
-            `The requested edits have been successfully applied to this response. The updated values are shown below.`
-          }
-          {response.farmerInput?.editConsent?.reason && !requiredValidationVisits && !isSubmittedValidationVisitProof && !isValidationDetailsApproved && (
-            <Text mt={1} fontStyle="italic">
-              Reason: {response.farmerInput.editConsent.reason}
-            </Text>
-          )}
-        </AlertDescription>
-      </Box>
-    </Alert>
-  </>
-)}
+        {hasEditRequest && (
+          <>
+            <Alert
+              status={
+                editConsentStatus === 'Granted' || editConsentStatus === 'Completed' || isValidationDetailsApproved === true
+                  ? 'success' 
+                  : editConsentStatus === 'Denied' 
+                  ? 'error'
+                  : isSubmittedValidationVisitProof === 'Completed'
+                  ? 'info'
+                  : isSubmittedValidationVisitProof === 'Rejected'
+                  ? 'error'
+                  : 'info'
+              }
+              variant="left-accent"
+              borderRadius="md"
+            >
+              <AlertIcon />
+              <Box flex="1">
+                <AlertTitle fontSize="sm">
+                  {successfullyUpdated === true && 'Edit Successfully Applied'}
+                  {!successfullyUpdated && isValidationDetailsApproved === true && 'Validation Visit Details Approved'}
+                  {!successfullyUpdated && isSubmittedValidationVisitProof === 'Rejected' && !isValidationDetailsApproved && 'Validation Visit Details Rejected'}
+                  {!successfullyUpdated && isSubmittedValidationVisitProof === 'Completed' && !isValidationDetailsApproved && 'Validation Visit Proof Submitted'}
+                  {!successfullyUpdated && requiredValidationVisits === true && isSubmittedValidationVisitProof !== 'Completed' && isSubmittedValidationVisitProof !== 'Rejected' && !isValidationDetailsApproved && 'Validation Visit Scheduled'}
+                  {!successfullyUpdated && editConsentStatus === 'Granted' && !requiredValidationVisits && !isValidationDetailsApproved && 'Farmer Granted Edit Permission'}
+                  {!successfullyUpdated && editConsentStatus === 'Denied' && !requiredValidationVisits && !isValidationDetailsApproved && 'Farmer Denied Edit Request'}
+                  {!successfullyUpdated && editConsentStatus === 'Pending' && !requiredValidationVisits && !isValidationDetailsApproved && 'Edit Request Pending'}
+                </AlertTitle>
+                <AlertDescription fontSize="xs">
+                  {successfullyUpdated === true && (
+                    <>
+                      The requested edits have been successfully applied to this response. The updated values are shown below.
+                    </>
+                  )}
+                  {!successfullyUpdated && isValidationDetailsApproved === true && (
+                    <>
+                      The validation visit details have been approved by the manager. You can now apply the requested changes to update this response.
+                      {response.farmerInput.validationVisitDetails.initialRemarks && (
+                        <Text mt={1} fontStyle="italic">
+                          Initial Remarks: {response.farmerInput.validationVisitDetails.initialRemarks}
+                        </Text>
+                      )}
+                      {response.farmerInput.validationVisitDetails.remarks && (
+                        <Text mt={1} fontStyle="italic">
+                          Final Remarks: {response.farmerInput.validationVisitDetails.remarks}
+                        </Text>
+                      )}
+                    </>
+                  )}
+                  {!successfullyUpdated && isSubmittedValidationVisitProof === 'Rejected' && !isValidationDetailsApproved && (
+                    <>
+                      The manager has rejected the validation visit proof. The submission was incomplete or inaccurate. Please review the requirements and resubmit the validation proof.
+                      {response.farmerInput.validationVisitDetails.initialRemarks && (
+                        <Text mt={1} fontStyle="italic">
+                          Initial Remarks: {response.farmerInput.validationVisitDetails.initialRemarks}
+                        </Text>
+                      )}
+                    </>
+                  )}
+                  {!successfullyUpdated && isSubmittedValidationVisitProof === 'Completed' && !isValidationDetailsApproved && (
+                    <>
+                      Validation proof submitted. Waiting for a manager to review and approve or reject the validation visit details.
+                      {response.farmerInput.validationVisitDetails.initialRemarks && (
+                        <Text mt={1} fontStyle="italic">
+                          Initial Remarks: {response.farmerInput.validationVisitDetails.initialRemarks}
+                        </Text>
+                      )}
+                      {response.farmerInput.validationVisitDetails.remarks && (
+                        <Text mt={1} fontStyle="italic">
+                          Final Remarks: {response.farmerInput.validationVisitDetails.remarks}
+                        </Text>
+                      )}
+                    </>
+                  )}
+                  {!successfullyUpdated && requiredValidationVisits === true && isSubmittedValidationVisitProof !== 'Completed' && isSubmittedValidationVisitProof !== 'Rejected' && !isValidationDetailsApproved && (
+                    <>
+                      A validation visit has been scheduled to verify the requested edits. Please check the schedule section for details.
+                      {response.farmerInput.validationVisitDetails.initialRemarks && (
+                        <Text mt={1} fontStyle="italic">
+                          Initial Remarks: {response.farmerInput.validationVisitDetails.initialRemarks}
+                        </Text>
+                      )}
+                    </>
+                  )}
+                  {!successfullyUpdated && editConsentStatus === 'Granted' && !requiredValidationVisits && !isSubmittedValidationVisitProof && !isValidationDetailsApproved && 
+                    `The farmer has granted permission to edit their response. You can now apply the requested changes or push the updated data to records.`
+                  }
+                  {!successfullyUpdated && editConsentStatus === 'Denied' && !requiredValidationVisits && !isValidationDetailsApproved && 
+                    `The farmer has denied the edit request for their response. No changes can be made without their consent.`
+                  }
+                  {!successfullyUpdated && editConsentStatus === 'Pending' && !requiredValidationVisits && !isValidationDetailsApproved && 
+                    `Waiting for farmer's response to the edit request. An SMS notification has been sent. If it's taking too long, consider scheduling up a validation visit, reaching out to the farmer directly.`
+                  }
+                  {!successfullyUpdated && response.farmerInput?.editConsent?.reason && !requiredValidationVisits && !isSubmittedValidationVisitProof && !isValidationDetailsApproved && (
+                    <Text mt={1} fontStyle="italic">
+                      Reason: {response.farmerInput.editConsent.reason}
+                    </Text>
+                  )}
+                </AlertDescription>
+              </Box>
+            </Alert>
+          </>
+        )}
 
         {/* No Phone Number Alert - Only show when edit requested or validation visit scheduled */}
         {response.farmerInput.isForReview === true && !response.farmerInput?.farmer_account_id?.mobile_number && !response?.farmerInput?.validationVisitDetails?.scheduledAt && (
@@ -1898,7 +1900,7 @@ const Responses = () => {
                   <FormLabel fontWeight="medium">Total Area Planted (ha)</FormLabel>
                   <InputGroup>
                     <Input
-                      value={`${response.cropDetails?.total_area_planted != null ? response.cropDetails.total_area_planted : '-'}${response?.farmerInput?.editConsent?.editRequestId?.total_area_planted != null && response?.farmerInput?.editConsent?.editRequestId?.resolved === false ? ' => ' + response.farmerInput.editConsent.editRequestId.total_area_planted : ''}`}
+                      value={`${response.cropDetails?.total_area_planted != null ? response.cropDetails.total_area_planted : '-'}${response?.farmerInput?.editConsent?.editRequestId?.total_area_planted != null && response?.farmerInput?.editConsent?.editRequestId?.resolved === false && !response?.farmerInput?.successfullyUpdated ? ' => ' + response.farmerInput.editConsent.editRequestId.total_area_planted : ''}`}
                       isReadOnly
                       bg="white"
                       borderColor="gray.200"
@@ -1916,7 +1918,7 @@ const Responses = () => {
                     </FormLabel>
                     <InputGroup>
                       <Input
-                        value={`${response.cropDetails?.total_trees != null ? response.cropDetails.total_trees : '-'}${response?.farmerInput?.editConsent?.editRequestId?.total_trees != null && response?.farmerInput?.editConsent?.editRequestId?.resolved === false ? ' => ' + response.farmerInput.editConsent.editRequestId.total_trees : ''}`}
+                        value={`${response.cropDetails?.total_trees != null ? response.cropDetails.total_trees : '-'}${response?.farmerInput?.editConsent?.editRequestId?.total_trees != null && response?.farmerInput?.editConsent?.editRequestId?.resolved === false && !response?.farmerInput?.successfullyUpdated ? ' => ' + response.farmerInput.editConsent.editRequestId.total_trees : ''}`}
                         isReadOnly
                         bg="white"
                         borderColor="gray.300"
@@ -1977,7 +1979,7 @@ const Responses = () => {
                 <FormLabel fontWeight="medium">Total Weight</FormLabel>
                 <InputGroup>
                   <Input
-                    value={`${response.cropDetails?.total_weight != null ? response.cropDetails.total_weight : '-'}${response?.farmerInput?.editConsent?.editRequestId?.total_weight != null && response?.farmerInput?.editConsent?.editRequestId?.resolved === false ? ' => ' + response.farmerInput.editConsent.editRequestId.total_weight : ''}`}
+                    value={`${response.cropDetails?.total_weight != null ? response.cropDetails.total_weight : '-'}${response?.farmerInput?.editConsent?.editRequestId?.total_weight != null && response?.farmerInput?.editConsent?.editRequestId?.resolved === false && !response?.farmerInput?.successfullyUpdated ? ' => ' + response.farmerInput.editConsent.editRequestId.total_weight : ''}`}
                     isReadOnly
                     bg="white"
                     borderColor="gray.200"
@@ -1998,7 +2000,7 @@ const Responses = () => {
                   <FormLabel fontWeight="medium">Total Area Harvested (Ha)</FormLabel>
                   <InputGroup>
                     <Input
-                      value={`${response.cropDetails?.total_area_harvested != null ? response.cropDetails.total_area_harvested : '-'}${response?.farmerInput?.editConsent?.editRequestId?.total_area_harvested != null && response?.farmerInput?.editConsent?.editRequestId?.resolved === false ? ' => ' + response.farmerInput.editConsent.editRequestId.total_area_harvested : ''}`}
+                      value={`${response.cropDetails?.total_area_harvested != null ? response.cropDetails.total_area_harvested : '-'}${response?.farmerInput?.editConsent?.editRequestId?.total_area_harvested != null && response?.farmerInput?.editConsent?.editRequestId?.resolved === false && !response?.farmerInput?.successfullyUpdated ? ' => ' + response.farmerInput.editConsent.editRequestId.total_area_harvested : ''}`}
                       isReadOnly
                       bg="white"
                       borderColor="gray.200"
@@ -2016,7 +2018,7 @@ const Responses = () => {
                     </FormLabel>
                     <InputGroup>
                       <Input
-                        value={`${response.cropDetails?.trees_harvested != null ? response.cropDetails.trees_harvested : '-'}${response?.farmerInput?.editConsent?.editRequestId?.trees_harvested != null && response?.farmerInput?.editConsent?.editRequestId?.resolved === false ? ' => ' + response.farmerInput.editConsent.editRequestId.trees_harvested : ''}`}
+                        value={`${response.cropDetails?.trees_harvested != null ? response.cropDetails.trees_harvested : '-'}${response?.farmerInput?.editConsent?.editRequestId?.trees_harvested != null && response?.farmerInput?.editConsent?.editRequestId?.resolved === false && !response?.farmerInput?.successfullyUpdated ? ' => ' + response.farmerInput.editConsent.editRequestId.trees_harvested : ''}`}
                         isReadOnly
                         bg="white"
                         borderColor="gray.300"

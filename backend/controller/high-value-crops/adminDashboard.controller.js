@@ -1624,7 +1624,7 @@ export const approveValidationVisitDetails = async (req, res) => { //use for man
     // Update the farmer input to approve validation visit details
     await global.highValueCropsModels.A_farmer_inputs.findByIdAndUpdate(
       farmerId,
-      { $set: { 'validationVisitDetails.isValidationVisitDetailsApproved': true } },
+      { $set: { 'validationVisitDetails.isValidationVisitDetailsApproved': true, 'requiredValidationVisit': false } },
       { session }
     );
 

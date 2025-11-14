@@ -822,14 +822,14 @@ const E_Farmers = () => {
             <Flex w='100%'>
             {isEditMode && (
               <Button
-                colorScheme="red"
+                colorScheme="yellow"
                 mr={3}
-                onClick={onDeleteOpen}
-                isLoading={isDeletingFarmerAccount}
+                // onClick={onDeleteOpen}
+                // isLoading={isDeletingFarmerAccount}
                 size="md"
-                _hover={{ boxShadow: "md", bg: "red.600" }}
+                _hover={{ boxShadow: "md", bg: "yellow.600" }}
               >
-                Delete Record
+                Archive Record
               </Button>
             )}
             <Spacer />
