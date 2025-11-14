@@ -1745,7 +1745,7 @@ const Responses = () => {
           {editConsentStatus === 'Pending' && !requiredValidationVisits && !isValidationDetailsApproved && 
             `Waiting for farmer's response to the edit request. An SMS notification has been sent. If it's taking too long, consider scheduling up a validation visit, reaching out to the farmer directly.`
           }
-          {editConsentStatus === 'Completed' && !requiredValidationVisits && !isValidationDetailsApproved && 
+          {(editConsentStatus === 'Completed' || response.farmerInput.successfullyUpdated === true) && !requiredValidationVisits && !isValidationDetailsApproved && 
             `The requested edits have been successfully applied to this response. The updated values are shown below.`
           }
           {response.farmerInput?.editConsent?.reason && !requiredValidationVisits && !isSubmittedValidationVisitProof && !isValidationDetailsApproved && (
