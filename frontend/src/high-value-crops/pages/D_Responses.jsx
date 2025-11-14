@@ -868,14 +868,15 @@ const Responses = () => {
                           {user?.role === 'HVCM' && (
                             <ButtonWithNotification 
                               showNotification={
-                                (response.farmerInput?.editConsent?.status === 'Granted' &&
-                                  response.farmerInput?.successfullyUpdated === false) ||
-                                response.farmerInput?.validationVisitDetails?.status === 'Completed' ||
-                                response.farmerInput?.validationVisitDetails?.status === 'Rejected'
+                                !response.farmerInput?.successfullyUpdated && (
+                                  (response.farmerInput?.editConsent?.status === 'Granted') ||
+                                  response.farmerInput?.validationVisitDetails?.status === 'Completed' ||
+                                  response.farmerInput?.validationVisitDetails?.status === 'Rejected'
+                                )
                               }
                               dotColor={
                                 response.farmerInput?.editConsent?.status === 'Granted' &&
-                                response.farmerInput?.successfullyUpdated === false
+                                !response.farmerInput?.successfullyUpdated
                                   ? 'green.400'
                                   : response.farmerInput?.validationVisitDetails?.status === 'Completed'
                                   ? 'blue.400'
@@ -901,13 +902,14 @@ const Responses = () => {
                           {user?.role === 'HVCS' && (
                             <ButtonWithNotification 
                               showNotification={
-                                (response.farmerInput?.editConsent?.status === 'Granted' && 
-                                  response.farmerInput?.successfullyUpdated === false) ||
-                                response.farmerInput?.validationVisitDetails?.status === 'Rejected'
+                                !response.farmerInput?.successfullyUpdated && (
+                                  (response.farmerInput?.editConsent?.status === 'Granted') ||
+                                  response.farmerInput?.validationVisitDetails?.status === 'Rejected'
+                                )
                               }
                               dotColor={
                                 response.farmerInput?.editConsent?.status === 'Granted' &&
-                                response.farmerInput?.successfullyUpdated === false
+                                !response.farmerInput?.successfullyUpdated
                                   ? 'yellow.400'
                                   : response.farmerInput?.validationVisitDetails?.status === 'Rejected'
                                   ? 'red.400'

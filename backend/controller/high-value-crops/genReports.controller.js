@@ -250,6 +250,8 @@ export const generateHVCSaMPR = async (req, res) => {
 
     // Query data from the database based on the date range
     const UnifiedFarmerRecordModel = global.getUnifiedFarmerRecordModel(year);
+    const FarmerAccountModel = global.globalModels.FarmerAccount;
+
     const records = await UnifiedFarmerRecordModel.find({
       $or: [
         {
@@ -275,7 +277,7 @@ export const generateHVCSaMPR = async (req, res) => {
           ]
         }
       ]
-    }).populate('farmer_account_id').lean();
+    }).populate({ path: 'farmer_account_id', model: FarmerAccountModel }).lean();
 
     const dateRange = `${start.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}-${end.toLocaleDateString('en-US', { day: 'numeric'})}, ${end.toLocaleDateString('en-US', { year: 'numeric' })}`;
     worksheet.getRow(7).getCell(2).value = dateRange;
