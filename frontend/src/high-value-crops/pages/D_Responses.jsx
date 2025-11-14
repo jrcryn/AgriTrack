@@ -864,71 +864,71 @@ const Responses = () => {
                           </Td>
                         </>
                       )}
-<Td isNumeric position={{ base: 'static', md: 'sticky' }} right={0} zIndex={1} bg={viewMode === 'unvalidated' && response.farmerInput.isForReview === true ? 'orange.100' : 'white'}>
-  {user?.role === 'HVCM' && (
-    <ButtonWithNotification 
-      showNotification={
-        (response.farmerInput?.editConsent?.status === 'Granted' &&
-          response.farmerInput?.successfullyUpdated === false) ||
-        response.farmerInput?.validationVisitDetails?.status === 'Completed' ||
-        response.farmerInput?.validationVisitDetails?.status === 'Rejected'
-      }
-      dotColor={
-        response.farmerInput?.editConsent?.status === 'Granted' &&
-        response.farmerInput?.successfullyUpdated === false
-          ? 'green.400'
-          : response.farmerInput?.validationVisitDetails?.status === 'Completed'
-          ? 'blue.400'
-          : response.farmerInput?.validationVisitDetails?.status === 'Rejected'
-          ? 'red.400'
-          : undefined
-      }
-    >
-      <Button
-        alignContent={'center'}
-        size="xs"
-        colorScheme={status === 'NEWLY PLANTED' ? 'green' : 'orange'}
-        leftIcon={<FaEye />}
-        onClick={() => {
-          setSelectedResponse(response);
-          onOpen();
-        }}
-      >
-        Details
-      </Button>
-    </ButtonWithNotification>
-  )}
-  {user?.role === 'HVCS' && (
-    <ButtonWithNotification 
-      showNotification={
-        (response.farmerInput?.editConsent?.status === 'Granted' && 
-          response.farmerInput?.successfullyUpdated === false) ||
-        response.farmerInput?.validationVisitDetails?.status === 'Rejected'
-      }
-      dotColor={
-        response.farmerInput?.editConsent?.status === 'Granted' &&
-        response.farmerInput?.successfullyUpdated === false
-          ? 'yellow.400'
-          : response.farmerInput?.validationVisitDetails?.status === 'Rejected'
-          ? 'red.400'
-          : undefined
-      }
-    >
-      <Button
-        alignContent={'center'}
-        size="xs"
-        colorScheme={status === 'NEWLY PLANTED' ? 'green' : 'orange'}
-        leftIcon={<FaEye />}
-        onClick={() => {
-          setSelectedResponse(response);
-          onOpen();
-        }}
-      >
-        Details
-      </Button>
-    </ButtonWithNotification>
-  )}
-</Td>
+                        <Td isNumeric position={{ base: 'static', md: 'sticky' }} right={0} zIndex={1} bg={viewMode === 'unvalidated' && response.farmerInput.isForReview === true ? 'orange.100' : 'white'}>
+                          {user?.role === 'HVCM' && (
+                            <ButtonWithNotification 
+                              showNotification={
+                                (response.farmerInput?.editConsent?.status === 'Granted' &&
+                                  response.farmerInput?.successfullyUpdated === false) ||
+                                response.farmerInput?.validationVisitDetails?.status === 'Completed' ||
+                                response.farmerInput?.validationVisitDetails?.status === 'Rejected'
+                              }
+                              dotColor={
+                                response.farmerInput?.editConsent?.status === 'Granted' &&
+                                response.farmerInput?.successfullyUpdated === false
+                                  ? 'green.400'
+                                  : response.farmerInput?.validationVisitDetails?.status === 'Completed'
+                                  ? 'blue.400'
+                                  : response.farmerInput?.validationVisitDetails?.status === 'Rejected'
+                                  ? 'red.400'
+                                  : undefined
+                              }
+                            >
+                              <Button
+                                alignContent={'center'}
+                                size="xs"
+                                colorScheme={status === 'NEWLY PLANTED' ? 'green' : 'orange'}
+                                leftIcon={<FaEye />}
+                                onClick={() => {
+                                  setSelectedResponse(response);
+                                  onOpen();
+                                }}
+                              >
+                                Details
+                              </Button>
+                            </ButtonWithNotification>
+                          )}
+                          {user?.role === 'HVCS' && (
+                            <ButtonWithNotification 
+                              showNotification={
+                                (response.farmerInput?.editConsent?.status === 'Granted' && 
+                                  response.farmerInput?.successfullyUpdated === false) ||
+                                response.farmerInput?.validationVisitDetails?.status === 'Rejected'
+                              }
+                              dotColor={
+                                response.farmerInput?.editConsent?.status === 'Granted' &&
+                                response.farmerInput?.successfullyUpdated === false
+                                  ? 'yellow.400'
+                                  : response.farmerInput?.validationVisitDetails?.status === 'Rejected'
+                                  ? 'red.400'
+                                  : undefined
+                              }
+                            >
+                              <Button
+                                alignContent={'center'}
+                                size="xs"
+                                colorScheme={status === 'NEWLY PLANTED' ? 'green' : 'orange'}
+                                leftIcon={<FaEye />}
+                                onClick={() => {
+                                  setSelectedResponse(response);
+                                  onOpen();
+                                }}
+                              >
+                                Details
+                              </Button>
+                            </ButtonWithNotification>
+                          )}
+                        </Td>
                   </Tr>
                 ))
               ) : (

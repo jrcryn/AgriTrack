@@ -924,23 +924,23 @@ const DocumentLifeCycleModal = ({
                 <>
                   <Tabs colorScheme='green' variant='enclosed'>
                     <TabList>
-                      <Tab>Delete</Tab>
+                      <Tab>Remove</Tab>
                       <Tab>Download QR Code</Tab>
                     </TabList>
                     <TabPanels>
                       <TabPanel px={0} pt={4} pb={0}>
-                        <Box bg="red.50" p={3} borderRadius="md" mb={3} borderLeft="4px solid" borderLeftColor="red.400">
-                          <Text fontSize="sm" color="red.600">
-                            Deleting permanently removes the document from the system. This action cannot be undone.
-                          </Text>
+                        <Box bg="pink.50" p={3} borderRadius="md" mb={3} borderLeft="4px solid" borderLeftColor="pink.400">
+                        <Text fontSize="sm" color="pink.600">
+                          This will remove the document from the system. Useful for correcting registration errors (typos, wrong office, etc.) or removing unnecessary entries.
+                        </Text>
                         </Box>
                         <HStack justify="flex-end" align="center" spacing={2} mt={4}>
                           <FormControl display="flex" alignItems="center" gap={2}>
                             <FormLabel mb="0">I understand</FormLabel>
                             <Switch isChecked={isUnderstood} onChange={(e) => setIsUnderstood(e.target.checked)} />
                           </FormControl>
-                          <Button colorScheme="red" onClick={handleDeleteDocument} isLoading={isDeletingRegisteredDocument} pl={8} pr={8} isDisabled={!isUnderstood}>
-                            Delete Document
+                          <Button colorScheme="pink" onClick={handleDeleteDocument} isLoading={isDeletingRegisteredDocument} pl={8} pr={8} isDisabled={!isUnderstood}>
+                            Remove Document
                           </Button>
                         </HStack>
                       </TabPanel>
