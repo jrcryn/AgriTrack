@@ -175,7 +175,7 @@ const ConsentRequestPage = () => {
               <AlertIcon />
               <Box flex="1">
                 <AlertTitle>
-                  {farmerInput?.editConsent?.status === 'Granted' || farmerInput?.editConsent?.status === 'Completed' ? 'Pumayag na sa Pagbabago' : 'Tumanggi na sa Pagbabago'}
+                  {(farmerInput?.editConsent?.status === 'Granted' || farmerInput?.editConsent?.status === 'Completed') ? 'Pumayag na sa Pagbabago' : 'Tumanggi na sa Pagbabago'}
                 </AlertTitle>
                 <AlertDescription>
                   Ang kahilingang ito ay naproseso na.

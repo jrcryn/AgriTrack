@@ -26,7 +26,7 @@ export const AFarmerInputsSchema = new mongoose.Schema({
     editRequestId: { type: mongoose.Schema.Types.ObjectId, ref: 'Edit_Request'},
     grantedAt: { type: Date },
     deniedAt: { type: Date },
-    reason: { type:String, trim:true }
+    reason: { type:String, trim: true }
   },
 
   requiredValidationVisit: { type: Boolean, default: false },
@@ -34,7 +34,7 @@ export const AFarmerInputsSchema = new mongoose.Schema({
   successfullyUpdated: { type: Boolean, default: false },
 
   validationVisitDetails: {
-    status: { type: String, enum: ['Pending', 'Completed'] },
+    status: { type: String, enum: ['Pending', 'Completed', 'Rejected'] },
     completedAt: { type: Date },
     validatorEmployee: { type: mongoose.Schema.Types.ObjectId, ref: 'User_Account' },
 

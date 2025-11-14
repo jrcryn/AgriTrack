@@ -46,10 +46,12 @@ import {
   MenuButton,
   MenuList,
   MenuItem,
-  Image
+  Image,
+  Badge,
+  AspectRatio
 } from '@chakra-ui/react';
 import numOfTreesToHectares from '../../components/conversions.js';
-import { FaSearch, FaEye, FaSeedling, FaBoxes, FaUser, FaLeaf, FaWifi, FaUpload, FaInfo, FaCheck, FaStop, FaLink, FaExternalLinkAlt, FaCamera, FaSignature } from 'react-icons/fa';
+import { FaSearch, FaEye, FaSeedling, FaBoxes, FaUser, FaLeaf, FaWifi, FaUpload, FaInfo, FaCheck, FaStop, FaLink, FaExternalLinkAlt, FaCamera, FaSignature, FaCheckCircle  } from 'react-icons/fa';
 import { GoAlertFill } from "react-icons/go";
 import { CloseIcon } from '@chakra-ui/icons';
 import { useAdminDashboard } from '../store/adminDashboard.store.js';
@@ -73,6 +75,10 @@ const Responses = () => {
   const { isOpen: isOpenRequestEdit, onOpen: onOpenRequestEdit, onClose: onCloseRequestEdit } = useDisclosure();
   const { isOpen: isOpenScheduleVisit, onOpen: onOpenScheduleVisit, onClose: onCloseScheduleVisit } = useDisclosure();
   const { isOpen: isOpenConsentProof, onOpen: onOpenConsentProof, onClose: onCloseConsentProof } = useDisclosure();
+
+  const { isOpen: isOpenApproveVisit, onOpen: onOpenApproveVisit, onClose: onCloseApproveVisit } = useDisclosure();
+  const { isOpen: isOpenConfirmApprove, onOpen: onOpenConfirmApprove, onClose: onCloseConfirmApprove } = useDisclosure();
+  const { isOpen: isOpenConfirmReject, onOpen: onOpenConfirmReject, onClose: onCloseConfirmReject } = useDisclosure();
 
   const [selectedNewlyPlanted, setSelectedNewlyPlanted] = useState([]);
   const [selectedHarvesting, setSelectedHarvesting] = useState([]);
@@ -745,6 +751,7 @@ const Responses = () => {
     const selectableItems = data.filter(item => item.farmerInput.isForReview === false);
     const allSelected = selectableItems.length > 0 && selectableItems.every(item => selectedItems?.includes(item.farmerInput._id));
 
+    console.log(data);
     return(
         <TableContainer>
           <Table variant="simple" size='md'>
@@ -858,23 +865,56 @@ const Responses = () => {
                         </>
                       )}
                     <Td isNumeric position={{ base: 'static', md: 'sticky' }} right={0} zIndex={1} bg={viewMode === 'unvalidated' && response.farmerInput.isForReview === true ? 'orange.100' : 'white'}>
-                        <ButtonWithNotification 
-                          showNotification={(response.farmerInput?.editConsent?.status === 'Granted' && response.farmerInput?.successfullyUpdated === false) || response.farmerInput?.validationVisitDetails?.isValidationVisitDetailsApproved === 'Completed'}
-                          dotColor={response.farmerInput?.editConsent?.status === 'Granted' && response.farmerInput?.successfullyUpdated === false ? 'yellow.400' : 'blue.400'}
-                          >
-                          <Button
-                            alignContent={'center'}
-                            size="xs"
-                            colorScheme={status === 'NEWLY PLANTED' ? 'green' : 'orange'}
-                            leftIcon={<FaEye />}
-                            onClick={() => {
-                              setSelectedResponse(response);
-                              onOpen();
-                            }}
-                          >
-                            Details
+                        {user?.role === 'HVCM' && (
+                          <ButtonWithNotification 
+                            showNotification={
+                              (response.farmerInput?.editConsent?.status === 'Granted' &&
+                                response.farmerInput?.successfullyUpdated === false) ||
+                              response.farmerInput?.validationVisitDetails?.status === 'Completed'
+                            }
+                            dotColor={
+                              response.farmerInput?.editConsent?.status === 'Granted' &&
+                              response.farmerInput?.successfullyUpdated === false
+                                ? 'yellow.400'
+                                : response.farmerInput?.validationVisitDetails?.status === 'Completed'
+                                ? 'blue.400'
+                                : undefined
+                            }
+                            >
+                            <Button
+                              alignContent={'center'}
+                              size="xs"
+                              colorScheme={status === 'NEWLY PLANTED' ? 'green' : 'orange'}
+                              leftIcon={<FaEye />}
+                              onClick={() => {
+                                setSelectedResponse(response);
+                                onOpen();
+                              }}
+                            >
+                              Details
                           </Button>
-                        </ButtonWithNotification>
+                          </ButtonWithNotification>
+                        )}
+                        {user?.role === 'HVCS' && (
+                          <ButtonWithNotification 
+                            showNotification={(response.farmerInput?.editConsent?.status === 'Granted' && response.farmerInput?.successfullyUpdated === false)}
+                            dotColor={'yellow.400'}
+                            >
+                            <Button
+                              alignContent={'center'}
+                              size="xs"
+                              colorScheme={status === 'NEWLY PLANTED' ? 'green' : 'orange'}
+                              leftIcon={<FaEye />}
+                              onClick={() => {
+                                setSelectedResponse(response);
+                                onOpen();
+                              }}
+                            >
+                              Details
+                          </Button>
+                          </ButtonWithNotification>
+                        )}
+                        
                     </Td>
                   </Tr>
                 ))
@@ -1182,7 +1222,6 @@ const Responses = () => {
       return acc;
     }, {});
 
-    setIsUpdatingFields(true);
     try {
       const crop_stage = selectedResponse.cropRecord?.crop_stage;
 
@@ -1444,6 +1483,129 @@ const Responses = () => {
     }
   };
 
+  const handleApproveValidationVisit = async () => {
+  if (!selectedResponse?.farmerInput?._id) {
+    toast({
+      title: "Error",
+      description: "No response selected.",
+      status: "error",
+      duration: 4000,
+      isClosable: true,
+    });
+    return;
+  }
+
+  try {
+    const response = await approveValidationVisitDetails({
+      farmerId: selectedResponse.farmerInput._id
+    });
+
+    toast({
+      title: "Approved",
+      description: response?.message || "Validation visit details approved successfully.",
+      status: "success",
+      duration: 5000,
+      isClosable: true,
+    });
+
+    // Refresh the data
+    queryClient.invalidateQueries({ queryKey: ['unvalidatedNewlyPlanted'] });
+    queryClient.invalidateQueries({ queryKey: ['unvalidatedHarvesting'] });
+
+    onCloseApproveVisit();
+    onClose();
+    onCloseApproveVisit();
+    setSelectedResponse(null);
+
+  } catch (error) {
+    console.log(error);
+    toast({
+      title: "Error",
+      description: error.response?.data?.message || "Failed to approve validation visit details.",
+      status: "error",
+      duration: 5000,
+      isClosable: true,
+    });
+  }
+  };
+
+  const handleRejectValidationVisit = async () => {
+  if (!selectedResponse?.farmerInput?._id) {
+    toast({
+      title: "Error",
+      description: "No response selected.",
+      status: "error",
+      duration: 4000,
+      isClosable: true,
+    });
+    return;
+  }
+
+  try {
+    const response = await rejectValidationVisitDetails({
+      farmerId: selectedResponse.farmerInput._id
+    });
+
+    toast({
+      title: "Rejected",
+      description: response?.message || "Validation visit details rejected successfully.",
+      status: "success",
+      duration: 5000,
+      isClosable: true,
+    });
+
+    // Refresh the data
+    queryClient.invalidateQueries({ queryKey: ['unvalidatedNewlyPlanted'] });
+    queryClient.invalidateQueries({ queryKey: ['unvalidatedHarvesting'] });
+
+    onCloseApproveVisit();
+    onClose();
+    onCloseConfirmReject();
+    setSelectedResponse(null);
+
+  } catch (error) {
+    console.log(error);
+    toast({
+      title: "Error",
+      description: error.response?.data?.message || "Failed to reject validation visit details.",
+      status: "error",
+      duration: 5000,
+      isClosable: true,
+    });
+  }
+  };
+
+  const formatDate = (dateString) => {
+      if (!dateString) return '-';
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+  };
+
+  const formatTime = (dateString) => {
+    if (!dateString) return '-';
+    return new Date(dateString).toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: 'numeric',
+      hour12: true
+    });
+  };
+
+  const getImageUrl = (url) => {
+    if (!url) return null;
+    
+    // Extract file ID from the URL
+    const match = url.match(/[?&]id=([^&]+)/);
+    if (match && match[1]) {
+      const fileId = match[1];
+      // Use thumbnail format which works better for embedding
+      return `https://drive.google.com/thumbnail?id=${fileId}&sz=w1000`;
+    }
+    
+    return url;
+  };
 
   // ResponseDetailForm to allow editing only for flagged responses and only allowed fields
   const ResponseDetailForm = React.memo(function ResponseDetailForm({ response }) {
@@ -1472,6 +1634,7 @@ const Responses = () => {
     // Get edit consent status
     const editConsentStatus = response.farmerInput?.editConsent?.status;
     const requiredValidationVisits = response.farmerInput?.requiredValidationVisit;
+    const isSubmittedValidationVisitProof = response.farmerInput?.validationVisitDetails?.status;
     const hasEditRequest = editConsentStatus && ['Pending', 'Granted', 'Denied', 'Completed'].includes(editConsentStatus) || requiredValidationVisits === true;
     const successfullyUpdated = response.farmerInput?.successfullyUpdated;
 
@@ -1486,7 +1649,11 @@ const Responses = () => {
                 editConsentStatus === 'Granted' || editConsentStatus === 'Completed' 
                   ? 'success' 
                   : editConsentStatus === 'Denied' 
-                  ? 'error' 
+                  ? 'error'
+                  : isSubmittedValidationVisitProof === 'Completed'
+                  ? 'info'
+                  : isSubmittedValidationVisitProof === 'Rejected'
+                  ? 'error'
                   : 'info'
               }
               variant="left-accent"
@@ -1495,36 +1662,65 @@ const Responses = () => {
               <AlertIcon />
               <Box flex="1">
                 <AlertTitle fontSize="sm">
-                  {requiredValidationVisits === true && 'Validation Visit Scheduled'}
-                  {editConsentStatus === 'Granted' &&  successfullyUpdated === false && 'Farmer Granted Edit Permission'}
-                  {editConsentStatus === 'Denied' && requiredValidationVisits === false && 'Farmer Denied Edit Request'}
-                  {editConsentStatus === 'Pending' && requiredValidationVisits === false && 'Edit Request Pending'}
+                  {isSubmittedValidationVisitProof === 'Rejected' && 'Validation Visit Details Rejected'}
+                  {isSubmittedValidationVisitProof === 'Completed' && 'Validation Visit Proof Submitted'}
+                  {requiredValidationVisits === true && isSubmittedValidationVisitProof !== 'Completed' && isSubmittedValidationVisitProof !== 'Rejected' && 'Validation Visit Scheduled'}
+                  {editConsentStatus === 'Granted' && !successfullyUpdated && !requiredValidationVisits && 'Farmer Granted Edit Permission'}
+                  {editConsentStatus === 'Denied' && !requiredValidationVisits && 'Farmer Denied Edit Request'}
+                  {editConsentStatus === 'Pending' && !requiredValidationVisits && 'Edit Request Pending'}
                   {successfullyUpdated === true && 'Edit Successfully Applied'}
                 </AlertTitle>
                 <AlertDescription fontSize="xs">
-                  {requiredValidationVisits === true && 
-                    `A validation visit has been scheduled to verify the requested edits. Please check the schedule section for details.`
-                  }
-                  {editConsentStatus === 'Granted' && 
+                  {isSubmittedValidationVisitProof === 'Rejected' && (
+                    <>
+                      The manager has rejected the validation visit proof. The submission was incomplete or inaccurate. Please review the requirements and resubmit the validation proof.
+                      {response.farmerInput.validationVisitDetails.initialRemarks && (
+                        <Text mt={1} fontStyle="italic">
+                          Initial Remarks: {response.farmerInput.validationVisitDetails.initialRemarks}
+                        </Text>
+                      )}
+                    </>
+                  )}
+                  {isSubmittedValidationVisitProof === 'Completed' && (
+                    <>
+                      Validation proof submitted. Waiting for a manager to review and approve or reject the validation visit details.
+                      {response.farmerInput.validationVisitDetails.initialRemarks && (
+                        <Text mt={1} fontStyle="italic">
+                          Initial Remarks: {response.farmerInput.validationVisitDetails.initialRemarks}
+                        </Text>
+                      )}
+                      {response.farmerInput.validationVisitDetails.remarks && (
+                        <Text mt={1} fontStyle="italic">
+                          Final Remarks: {response.farmerInput.validationVisitDetails.remarks}
+                        </Text>
+                      )}
+                    </>
+                  )}
+                  {requiredValidationVisits === true && isSubmittedValidationVisitProof !== 'Completed' && isSubmittedValidationVisitProof !== 'Rejected' && (
+                    <>
+                      A validation visit has been scheduled to verify the requested edits. Please check the schedule section for details.
+                      {response.farmerInput.validationVisitDetails.initialRemarks && (
+                        <Text mt={1} fontStyle="italic">
+                          Initial Remarks: {response.farmerInput.validationVisitDetails.initialRemarks}
+                        </Text>
+                      )}
+                    </>
+                  )}
+                  {editConsentStatus === 'Granted' && !requiredValidationVisits && !isSubmittedValidationVisitProof && 
                     `The farmer has granted permission to edit their response. You can now apply the requested changes or push the updated data to records.`
                   }
-                  {editConsentStatus === 'Denied' && 
+                  {editConsentStatus === 'Denied' && !requiredValidationVisits && 
                     `The farmer has denied the edit request for their response. No changes can be made without their consent.`
                   }
-                  {editConsentStatus === 'Pending' && 
+                  {editConsentStatus === 'Pending' && !requiredValidationVisits && 
                     `Waiting for farmer's response to the edit request. An SMS notification has been sent. If it's taking too long, consider scheduling up a validation visit, reaching out to the farmer directly.`
                   }
-                  {editConsentStatus === 'Completed' && 
+                  {editConsentStatus === 'Completed' && !requiredValidationVisits && 
                     `The requested edits have been successfully applied to this response. The updated values are shown below.`
                   }
-                  {response.farmerInput?.editConsent?.reason && requiredValidationVisits === false && (
+                  {response.farmerInput?.editConsent?.reason && !requiredValidationVisits && !isSubmittedValidationVisitProof && (
                     <Text mt={1} fontStyle="italic">
                       Reason: {response.farmerInput.editConsent.reason}
-                    </Text>
-                  )}
-                  {requiredValidationVisits === true && (
-                    <Text mt={1} fontStyle="italic">
-                      Initial Remarks: {response.farmerInput.validationVisitDetails.initialRemarks} <br /> Scheduled Visit: <b>{formatDate(response.farmerInput.validationVisitDetails.scheduledAt)}</b>
                     </Text>
                   )}
                 </AlertDescription>
@@ -2329,80 +2525,100 @@ const Responses = () => {
                   </Button>
                 )}
                 
+
+                {/* MGA NAKAKAMATAY NA BUTTONS! */}
                 {selectedResponse?.farmerInput?.isForReview === true && (
                   <>
-                    {selectedResponse?.farmerInput?.requiredValidationVisit === true && selectedResponse?.farmerInput?.validationVisitDetails?.scheduledAt && (
-                      <>
-                        <Button 
-                          colorScheme="blue" 
+                    {/* Consent Proof Button - For staff to upload validation proof during visit */}
+                    {selectedResponse?.farmerInput?.requiredValidationVisit === true && 
+                    selectedResponse?.farmerInput?.validationVisitDetails?.status === 'Pending' ||
+                    selectedResponse?.farmerInput?.validationVisitDetails?.status === 'Rejected' && (
+                      <Button 
+                        colorScheme="blue" 
+                        boxShadow="sm"
+                        _hover={{ boxShadow: "md", bg: "blue.600" }}
+                        onClick={onOpenConsentProof}
+                      >
+                        Consent Proof
+                      </Button>
+                    )}
+
+                    {/* View Consent Proof Button - For managers to review validation proof */}
+                    {user?.role === 'HVCM' && 
+                    selectedResponse?.farmerInput?.validationVisitDetails?.status === 'Completed' && (
+                      <Button 
+                        colorScheme="purple" 
+                        boxShadow="sm"
+                        _hover={{ boxShadow: "md", bg: "purple.600" }}
+                        onClick={onOpenApproveVisit}
+                      >
+                        View Consent Proof
+                      </Button>
+                    )}
+
+                    {/* Update Button - Apply the approved changes */}
+                    {((selectedResponse?.farmerInput?.editConsent?.status === 'Granted') ||
+                      (selectedResponse?.farmerInput?.validationVisitDetails?.isValidationVisitDetailsApproved === true)) && (
+                      <Button 
+                        colorScheme="blue" 
+                        boxShadow="sm"
+                        _hover={{ boxShadow: "md", bg: "blue.600" }}
+                        onClick={handleUpdateResponseFields}
+                        isLoading={isUpdatingFarmerResponse}
+                      >
+                        Update
+                      </Button>
+                    )}
+
+                    {/* Options Button - For pending SMS requests */}
+                    {selectedResponse?.farmerInput?.editConsent?.status === 'Pending' && 
+                      selectedResponse?.farmerInput?.successfullyUpdated === false &&
+                    !selectedResponse?.farmerInput?.requiredValidationVisit &&
+                    (!selectedResponse?.farmerInput?.validationVisitDetails || selectedResponse?.farmerInput?.validationVisitDetails.isValidationVisitDetailsApproved === false) && (
+                      <Menu>
+                        <MenuButton
+                          as={Button}
+                          colorScheme="blue"
                           boxShadow="sm"
                           _hover={{ boxShadow: "md", bg: "blue.600" }}
-                          onClick={onOpenConsentProof}
                         >
-                            Consent Proof
-                        </Button>
-                      </>
+                          Options
+                        </MenuButton>
+                        <MenuList>
+                          <MenuItem onClick={onOpenRequestEdit}>Update Request</MenuItem>
+                          <MenuItem onClick={onOpenScheduleVisit}>Require Validation Visit</MenuItem>
+                        </MenuList>
+                      </Menu>
                     )}
 
-                    {selectedResponse?.farmerInput?.editConsent?.status === 'Granted' && (
-                      <>
-                        <Button 
-                          colorScheme="blue" 
-                          boxShadow="sm"
-                          _hover={{ boxShadow: "md", bg: "blue.600" }}
-                          onClick={handleUpdateResponseFields}
-                          isLoading={isUpdatingFarmerResponse}
-                        >
-                            Update
-                        </Button>
-                      </>
+                    {/* Request Edit Button - Send SMS notification to farmer */}
+                    {(selectedResponse?.farmerInput?.editConsent?.status === 'Completed' || 
+                      !selectedResponse?.farmerInput?.editConsent?.status) && 
+                      selectedResponse?.farmerInput?.farmer_account_id?.mobile_number && (
+                      <Button 
+                        colorScheme="blue" 
+                        boxShadow="sm"
+                        _hover={{ boxShadow: "md", bg: "blue.600" }}
+                        onClick={onOpenRequestEdit}
+                      >
+                        Request Edit
+                      </Button>
                     )}
 
-                    {selectedResponse?.farmerInput?.editConsent?.status === 'Pending' && selectedResponse?.farmerInput?.requiredValidationVisit === false && !selectedResponse?.farmerInput?.validationVisitDetails?.scheduledAt && (
-                      <>
-                        <Menu>
-                          <MenuButton
-                            as={Button}
-                            colorScheme="blue"
-                            boxShadow="sm"
-                            _hover={{ boxShadow: "md", bg: "blue.600" }}
-                          >
-                            Options
-                          </MenuButton>
-                          <MenuList>
-                            <MenuItem onClick={onOpenRequestEdit}>Update Request</MenuItem>
-                            <MenuItem onClick={onOpenScheduleVisit}>Require Validation Visit</MenuItem>
-                          </MenuList>
-                        </Menu>
-                      </>
+                    {/* Require Validation Visit Button - When no mobile number or no SMS request sent */}
+                    {!selectedResponse?.farmerInput?.farmer_account_id?.mobile_number && 
+                    selectedResponse?.farmerInput?.validationVisitDetails?.status !== 'Pending' &&
+                    selectedResponse?.farmerInput?.validationVisitDetails?.status !== 'Rejected' &&
+                    selectedResponse?.farmerInput?.validationVisitDetails?.status !== 'Completed' && (
+                      <Button 
+                        colorScheme="blue" 
+                        boxShadow="sm"
+                        _hover={{ boxShadow: "md", bg: "blue.600" }}
+                        onClick={onOpenScheduleVisit}
+                      >
+                        Require Validation Visit
+                      </Button>
                     )}
-
-                    {(selectedResponse?.farmerInput?.editConsent?.status === 'Completed' || !selectedResponse?.farmerInput?.editConsent?.status) && selectedResponse?.farmerInput?.farmer_account_id?.mobile_number && (
-                      <>
-                        <Button 
-                          colorScheme="blue" 
-                          boxShadow="sm"
-                          _hover={{ boxShadow: "md", bg: "blue.600" }}
-                          onClick={onOpenRequestEdit}
-                        >
-                          Request Edit
-                        </Button>
-                      </>
-                    )}
-
-                    {!selectedResponse?.farmerInput?.farmer_account_id?.mobile_number && !selectedResponse?.farmerInput?.validationVisitDetails?.scheduledAt && (
-                      <>
-                        <Button 
-                          colorScheme="blue" 
-                          boxShadow="sm"
-                          _hover={{ boxShadow: "md", bg: "blue.600" }}
-                          onClick={onOpenScheduleVisit}
-                        >
-                          Require Validation Visit
-                        </Button>
-                      </>
-                    )}
-
                   </>
                 )}
 
@@ -2593,7 +2809,7 @@ const Responses = () => {
                   </Alert>
                 )}
 
-                {!selectedResponse?.farmerInput?.editConsent?.status && (
+                {(!selectedResponse?.farmerInput?.editConsent?.status || selectedResponse?.farmerInput?.editConsent?.status === 'Completed') && (
                   <Alert status="info" borderRadius="md" variant="left-accent">
                     <AlertIcon />
                     <Box>
@@ -3215,6 +3431,361 @@ const Responses = () => {
                 Submit Consent Proof
               </Button>
             </Flex>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* APPROVE VALIDATION VISIT PROOF MODAL. */}
+      <Modal 
+        isOpen={isOpenApproveVisit} 
+        onClose={onCloseApproveVisit} 
+        size="4xl" 
+        closeOnOverlayClick={false} 
+        scrollBehavior="inside" 
+        isCentered 
+        motionPreset="none"
+      >
+        <ModalOverlay />
+        <ModalContent borderRadius="md" overflow="hidden">
+          <ModalHeader bg="blue.50" borderBottomWidth="1px" borderColor="gray.200" display="flex" alignItems="center">
+            <Icon as={FaCheckCircle} mr={3} color="blue.500" />
+            Review Validation Visit Details
+          </ModalHeader>
+
+          <ModalBody py={6}>
+            {selectedResponse?.farmerInput?.validationVisitDetails ? (
+              <VStack spacing={6} align="stretch">
+                {/* Validation Visit Information */}
+                <Box bg="blue.50" p={4} borderRadius="md">
+                  <Heading size="sm" mb={3}>Validation Visit Information</Heading>
+                  <SimpleGrid columns={{ base: 1, md: 2 }} spacing={3}>
+                    <Box>
+                      <Text fontWeight="bold" fontSize="sm" color="gray.600">Status</Text>
+                      <Badge colorScheme="green">
+                        {selectedResponse.farmerInput.validationVisitDetails.status}
+                      </Badge>
+                    </Box>
+                    <Box>
+                      <Text fontWeight="bold" fontSize="sm" color="gray.600">Completed Date</Text>
+                      <Text fontSize="md">
+                        {formatDate(selectedResponse.farmerInput.validationVisitDetails.completedAt)}
+                      </Text>
+                    </Box>
+                    <Box>
+                      <Text fontWeight="bold" fontSize="sm" color="gray.600">Completed Time</Text>
+                      <Text fontSize="md">
+                        {formatTime(selectedResponse.farmerInput.validationVisitDetails.completedAt)}
+                      </Text>
+                    </Box>
+                    <Box>
+                      <Text fontWeight="bold" fontSize="sm" color="gray.600">Validator Employee</Text>
+                      <Text fontSize="md">
+                        {selectedResponse.farmerInput.validationVisitDetails.first_name}{' '}
+                        {selectedResponse.farmerInput.validationVisitDetails.middle_name ? 
+                          selectedResponse.farmerInput.validationVisitDetails.middle_name.charAt(0).toUpperCase() + '. ' : ''}
+                        {selectedResponse.farmerInput.validationVisitDetails.last_name}{' '}
+                        {selectedResponse.farmerInput.validationVisitDetails.suffix || ''}
+                      </Text>
+                    </Box>
+                    <Box>
+                      <Text fontWeight="bold" fontSize="sm" color="gray.600">Validator Email</Text>
+                      <Text fontSize="md">
+                        {selectedResponse.farmerInput.validationVisitDetails.email || '-'}
+                      </Text>
+                    </Box>
+                    <Box>
+                      <Text fontWeight="bold" fontSize="sm" color="gray.600">Validator Phone</Text>
+                      <Text fontSize="md">
+                        {selectedResponse.farmerInput.validationVisitDetails.phone || '-'}
+                      </Text>
+                    </Box>
+                  </SimpleGrid>
+                </Box>
+
+                <Divider />
+
+                {/* Proof Images Section */}
+                <Box>
+                  <Heading size="sm" mb={4}>Validation Proof</Heading>
+                  <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
+                    {/* Selfie Proof */}
+                    <Box>
+                      <Text fontWeight="bold" fontSize="sm" color="gray.600" mb={2}>
+                        Selfie Proof Image
+                      </Text>
+                      {selectedResponse.farmerInput.validationVisitDetails.proofImageUrl ? (
+                        <AspectRatio ratio={4 / 3} borderRadius="md" overflow="hidden" border="1px" borderColor="gray.200">
+                          <Box
+                            as="img"
+                            src={getImageUrl(selectedResponse.farmerInput.validationVisitDetails.proofImageUrl)}
+                            alt="Validation Selfie Proof"
+                            objectFit="cover"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                              e.target.parentElement.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #f7fafc;"><span style="color: #718096;">Image not available</span></div>';
+                            }}
+                          />
+                        </AspectRatio>
+                      ) : (
+                        <Box
+                          bg="gray.100"
+                          borderRadius="md"
+                          p={8}
+                          textAlign="center"
+                          border="1px"
+                          borderColor="gray.200"
+                        >
+                          <Text color="gray.500">No proof image available</Text>
+                        </Box>
+                      )}
+                      {selectedResponse.farmerInput.validationVisitDetails.proofImageUrl && (
+                        <Button
+                          as="a"
+                          href={selectedResponse.farmerInput.validationVisitDetails.proofImageUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          size="sm"
+                          colorScheme="blue"
+                          variant="link"
+                          mt={2}
+                        >
+                          Open in new tab
+                        </Button>
+                      )}
+                    </Box>
+
+                    {/* Farmer Signature */}
+                    <Box>
+                      <Text fontWeight="bold" fontSize="sm" color="gray.600" mb={2}>
+                        Farmer Signature
+                      </Text>
+                      {selectedResponse.farmerInput.validationVisitDetails.signatureUrl ? (
+                        <AspectRatio ratio={4 / 3} borderRadius="md" overflow="hidden" border="1px" borderColor="gray.200">
+                          <Box
+                            as="img"
+                            src={getImageUrl(selectedResponse.farmerInput.validationVisitDetails.signatureUrl)}
+                            alt="Farmer Signature"
+                            objectFit="cover"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                              e.target.parentElement.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #f7fafc;"><span style="color: #718096;">Image not available</span></div>';
+                            }}
+                          />
+                        </AspectRatio>
+                      ) : (
+                        <Box
+                          bg="gray.100"
+                          borderRadius="md"
+                          p={8}
+                          textAlign="center"
+                          border="1px"
+                          borderColor="gray.200"
+                        >
+                          <Text color="gray.500">No signature available</Text>
+                        </Box>
+                      )}
+                      {selectedResponse.farmerInput.validationVisitDetails.signatureUrl && (
+                        <Button
+                          as="a"
+                          href={selectedResponse.farmerInput.validationVisitDetails.signatureUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          size="sm"
+                          colorScheme="blue"
+                          variant="link"
+                          mt={2}
+                        >
+                          Open in new tab
+                        </Button>
+                      )}
+                    </Box>
+                  </SimpleGrid>
+                </Box>
+
+                {/* Remarks Sections */}
+                <Divider />
+
+                
+              {selectedResponse.farmerInput.validationVisitDetails.initialRemarks && (
+                <Box>
+                  <FormControl>
+                    <FormLabel fontWeight="bold" fontSize="sm" color="gray.600">
+                      Initial Remarks
+                    </FormLabel>
+                    <Textarea
+                      value={selectedResponse.farmerInput.validationVisitDetails.initialRemarks}
+                      isReadOnly
+                      bg="gray.50"
+                      fontSize="sm"
+                      minH="80px"
+                      resize="none"
+                    />
+                  </FormControl>
+                </Box>
+              )}
+
+              {selectedResponse.farmerInput.validationVisitDetails.remarks && (
+                <Box>
+                  <FormControl>
+                    <FormLabel fontWeight="bold" fontSize="sm" color="gray.600">
+                      Final Remarks
+                    </FormLabel>
+                    <Textarea
+                      value={selectedResponse.farmerInput.validationVisitDetails.remarks}
+                      isReadOnly
+                      bg="gray.50"
+                      fontSize="sm"
+                      minH="80px"
+                      resize="none"
+                    />
+                  </FormControl>
+                </Box>
+              )}
+
+              </VStack>
+            ) : (
+              <VStack spacing={4} align="center" py={8}>
+                <Text color="gray.600" fontSize="sm">No validation visit details available</Text>
+              </VStack>
+            )}
+          </ModalBody>
+
+          <ModalFooter bg="gray.50" borderTopWidth="1px" borderColor="gray.200">
+            <Button 
+              variant="outline" 
+              mr={3} 
+              onClick={onCloseApproveVisit} 
+              _hover={{ bg: "gray.100" }}
+            >
+              Close
+            </Button>
+            <Button 
+              colorScheme="red" 
+              mr={3}
+              onClick={onOpenConfirmReject}
+            >
+              Reject
+            </Button>
+            <Button 
+              colorScheme="green"
+              onClick={onOpenConfirmApprove}
+            >
+              Approve
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+      
+      {/* CONFIRM APPROVE VALIDATION VISIT MODAL */}
+      <Modal 
+        isOpen={isOpenConfirmApprove} 
+        onClose={onCloseConfirmApprove} 
+        size="sm" 
+        isCentered 
+        motionPreset="none"
+        closeOnOverlayClick={false}
+      >
+        <ModalOverlay />
+        <ModalContent borderRadius="lg" overflow="hidden">
+          <ModalHeader
+            bg="green.50"
+            borderBottomWidth="1px"
+            borderColor="gray.200"
+            py={4}
+            display="flex"
+            alignItems="center"
+          >
+            <Icon as={FaCheckCircle} mr={2} color="green.500" />
+            Approve Validation Visit?
+          </ModalHeader>
+          {/* <ModalBody py={6}>
+            <VStack spacing={3} align="stretch">
+              <Text fontSize="sm">
+                Are you sure you want to approve this validation visit? This action will:
+              </Text>
+              <VStack align="stretch" spacing={2} pl={4}>
+                <Text fontSize="sm">• Mark the validation visit as approved</Text>
+                <Text fontSize="sm">• Allow the requested edits to be applied</Text>
+                <Text fontSize="sm">• Enable the response to be updated with new values</Text>
+              </VStack>
+            </VStack>
+          </ModalBody> */}
+          <ModalFooter bg="gray.50" borderTopWidth="1px" borderColor="gray.200">
+            <Button 
+              variant="outline" 
+              mr={3} 
+              onClick={onCloseConfirmApprove}
+              size="md"
+              _hover={{ bg: "gray.100" }}
+            >
+              Cancel
+            </Button>
+            <Button 
+              colorScheme="green"
+              onClick={handleApproveValidationVisit}
+              isLoading={isApprovingVisitDetails}
+              size="md"
+              _hover={{ boxShadow: "md", bg: "green.600" }}
+            >
+              Approve Details
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* CONFIRM REJECT VALIDATION VISIT MODAL */}
+      <Modal 
+        isOpen={isOpenConfirmReject} 
+        onClose={onCloseConfirmReject} 
+        size="sm" 
+        isCentered 
+        motionPreset="none"
+        closeOnOverlayClick={false}
+      >
+        <ModalOverlay />
+        <ModalContent borderRadius="lg" overflow="hidden">
+          <ModalHeader
+            bg="red.50"
+            borderBottomWidth="1px"
+            borderColor="gray.200"
+            py={4}
+            display="flex"
+            alignItems="center"
+          >
+            <Icon as={GoAlertFill} mr={2} color="red.500" />
+            Reject Validation Visit?
+          </ModalHeader>
+          <ModalBody py={6}>
+            <VStack spacing={3} align="stretch">
+              <Text fontSize="sm">
+                Are you sure you want to reject this validation visit? This action will:
+              </Text>
+              <VStack align="stretch" spacing={2} pl={4}>
+                <Text fontSize="sm">• Mark the validation visit as rejected</Text>
+                <Text fontSize="sm">• Reset the validation visit status to pending</Text>
+                <Text fontSize="sm">• Require the staff to submit new proof</Text>
+              </VStack>
+            </VStack>
+          </ModalBody>
+          <ModalFooter bg="gray.50" borderTopWidth="1px" borderColor="gray.200">
+            <Button 
+              variant="outline" 
+              mr={3} 
+              onClick={onCloseConfirmReject}
+              size="md"
+              _hover={{ bg: "gray.100" }}
+            >
+              Cancel
+            </Button>
+            <Button 
+              colorScheme="red"
+              onClick={handleRejectValidationVisit}
+              isLoading={isRejectingVisitDetails}
+              size="md"
+              _hover={{ boxShadow: "md", bg: "red.600" }}
+            >
+              Reject Details
+            </Button>
           </ModalFooter>
         </ModalContent>
       </Modal>

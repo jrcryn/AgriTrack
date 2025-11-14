@@ -63,145 +63,15 @@ export const uploadFileToDrive = async (fileBuffer, fileName, mimeType, folderId
     return response.data;
 };
 
-// Internal helpers (previously exported service functions)
-const createDriveFolder = async (folderName, parentFolderId = null) => {
-    const fileMetadata = {
-        name: folderName,
-        mimeType: 'application/vnd.google-apps.folder',
-        ...(parentFolderId && { parents: [parentFolderId] })
-    };
-
-    const response = await drive.files.create({
-        requestBody: fileMetadata,
-        fields: 'id, name'
-    });
-
-    return response.data;
-};
-
-const listDriveFiles = async (folderId = null, pageSize = 100) => {
-    const query = folderId
-        ? `'${folderId}' in parents and trashed=false`
-        : 'trashed=false';
-
-    const response = await drive.files.list({
-        q: query,
-        pageSize,
-        fields: 'files(id, name, mimeType, createdTime, modifiedTime, webViewLink, size)'
-    });
-
-    return response.data.files;
-};
-
-const getFileMetadata = async (fileId) => {
-    return drive.files.get({
-        fileId,
-        fields: 'id, name, mimeType, size'
-    });
-};
-
-const getFileStream = async (fileId) => {
-    return drive.files.get(
-        { fileId, alt: 'media' },
-        { responseType: 'stream' }
-    );
-};
-
-const deleteDriveFile = async (fileId) => {
-    await drive.files.delete({ fileId });
-    return { success: true, message: 'File deleted successfully' };
-};
-
-
-
-// Upload handler (parses multipart + uploads)
-export const uploadFile = (req, res) => {
-    uploadMiddleware(req, res, async (err) => {
-        if (err) return res.status(400).json({ error: err.message });
-        if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
-
-        try {
-            const { folderId } = req.body;
-            const result = await uploadFileToDrive(
-                req.file.buffer,
-                req.file.originalname,
-                req.file.mimetype,
-                folderId
-            );
-            res.json({ success: true, file: result });
-        } catch (error) {
-            console.error('Error uploading file:', error);
-            res.status(500).json({ error: error.message });
-        }
-    });
-};
-
-// Create folder handler
-export const createFolder = async (req, res) => { //will not be used, maybe in the future
+export const deleteFileFromDrive = async (fileId) => {
     try {
-        const { folderName, parentFolderId } = req.body;
-        const result = await createDriveFolder(folderName, parentFolderId);
-        res.json({ success: true, folder: result });
-    } catch (error) {
-        console.error('Error creating folder:', error);
-        res.status(500).json({ error: error.message });
-    }
-};
-
-// List files handler
-export const listFiles = async (req, res) => {
-    try {
-        const { folderId, pageSize } = req.query;
-        const files = await listDriveFiles(
-            folderId || null,
-            pageSize ? Number(pageSize) : 100
-        );
-        res.json({ success: true, files });
-    } catch (error) {
-        console.error('Error listing files:', error);
-        res.status(500).json({ error: error.message });
-    }
-};
-
-// Download handler (sets headers then streams)
-export const downloadFile = async (req, res) => {
-    try {
-        const { fileId } = req.params;
-        const meta = await getFileMetadata(fileId);
-        const streamResponse = await getFileStream(fileId);
-
-        const fileName = meta.data.name || 'file';
-        const mimeType = meta.data.mimeType || 'application/octet-stream';
-        const size = meta.data.size;
-
-        res.setHeader('Content-Type', mimeType);
-        res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
-        if (size) res.setHeader('Content-Length', size);
-
-        streamResponse.data.on('error', (err) => {
-            console.error('Stream error:', err);
-            if (!res.headersSent) {
-                res.status(500).json({ error: 'Error streaming file' });
-            } else {
-                res.end();
-            }
+        await drive.files.delete({
+            fileId: fileId
         });
 
-        streamResponse.data.pipe(res);
+        return { success: true, message: 'File deleted successfully' };
     } catch (error) {
-        console.error('Error downloading file:', error);
-        res.status(500).json({ error: error.message });
-    }
-};
-
-// Delete handler
-export const deleteFile = async (req, res) => {
-    try {
-        const { fileId } = req.params;
-        const result = await deleteDriveFile(fileId);
-        res.json(result);
-    } catch (error) {
-        console.error('Error deleting file:', error);
-        res.status(500).json({ error: error.message });
+        console.error('Error deleting file from Drive:', error);
+        throw new Error(`Failed to delete file: ${error.message}`);
     }
 };

@@ -1434,7 +1434,7 @@ export const createValidationScheduleVisit = async (req, res) => { // for schedu
   }
 };
 
-import { uploadFileToDrive } from '../googleDrive.controller.js'; 
+import { uploadFileToDrive, deleteFileFromDrive } from '../googleDrive.controller.js'; 
 
 export const setValidationVisitCompleted = async (req, res) => { //for submitting a selfie proof and signature after validation visit
   const session = await mongoose.startSession();
@@ -1491,10 +1491,10 @@ export const setValidationVisitCompleted = async (req, res) => { //for submittin
       });
     }
 
-    if (farmerInput.validationVisitDetails?.status !== 'Pending') {
+    if (farmerInput.validationVisitDetails?.status !== 'Pending' && farmerInput.validationVisitDetails?.status === 'Completed') {
       await session.abortTransaction();
       return res.status(400).json({ 
-        message: 'Validation visit is not in pending status.' 
+        message: 'Validation visit proof may have already been submitted.' 
       });
     }
 
@@ -1640,7 +1640,6 @@ export const setValidationVisitCompleted = async (req, res) => { //for submittin
     session.endSession();
   }
 };
-// ...existing code...
 
 export const approveValidationVisitDetails = async (req, res) => { //use for manager approval of validation visit details
   const session = await mongoose.startSession();
@@ -1679,21 +1678,6 @@ export const approveValidationVisitDetails = async (req, res) => { //use for man
       await session.abortTransaction();
       return res.status(400).json({ 
         message: 'Validation visit must be completed before approval.' 
-      });
-    }
-
-    // Check if already approved
-    if (farmerInput.validationVisitDetails?.isValidationVisitDetailsApproved === true) {
-      await session.abortTransaction();
-      return res.status(400).json({ 
-        message: 'Validation visit details are already approved.' 
-      });
-    }
-
-    if (farmerInput.validationVisitDetails?.isValidationVisitDetailsApproved === false) {
-      await session.abortTransaction();
-      return res.status(400).json({ 
-        message: 'Validation visit details are already rejected.' 
       });
     }
 
@@ -1762,47 +1746,70 @@ export const rejectValidationVisitDetails = async (req, res) => { //use for mana
     if (farmerInput.validationVisitDetails?.status !== 'Completed') {
       await session.abortTransaction();
       return res.status(400).json({ 
-        message: 'Validation visit must be completed before approval.' 
+        message: 'Validation visit must be completed before rejection.' 
       });
     }
 
-    // Check if already approved
-    if (farmerInput.validationVisitDetails?.isValidationVisitDetailsApproved === true) {
-      await session.abortTransaction();
-      return res.status(400).json({ 
-        message: 'Validation visit details are already approved.' 
-      });
+    // Store file IDs for deletion
+    const proofImageId = farmerInput.validationVisitDetails?.proofImageId;
+    const signatureId = farmerInput.validationVisitDetails?.signatureId;
+
+    // Delete uploaded files from Google Drive if they exist
+    try {
+      if (proofImageId) {
+        await deleteFileFromDrive(proofImageId);
+      }
+      if (signatureId) {
+        await deleteFileFromDrive(signatureId);
+      }
+    } catch (driveError) {
+      // Log the error but don't fail the transaction
+      console.error('Error deleting files from Google Drive:', driveError);
+      // You may want to continue with the rejection even if file deletion fails
     }
 
-    if (farmerInput.validationVisitDetails?.isValidationVisitDetailsApproved === false) {
-      await session.abortTransaction();
-      return res.status(400).json({ 
-        message: 'Validation visit details are already rejected.' 
-      });
-    }
+    // Rollback validation visit details to pending state
+    const rollbackData = {
+      'validationVisitDetails.status': 'Rejected',
+      'validationVisitDetails.isValidationVisitDetailsApproved': false,
+      'validationVisitDetails.completedAt': null,
+      'validationVisitDetails.validatorEmployee': null,
+      'validationVisitDetails.first_name': null,
+      'validationVisitDetails.last_name': null,
+      'validationVisitDetails.middle_name': null,
+      'validationVisitDetails.suffix': null,
+      'validationVisitDetails.email': null,
+      'validationVisitDetails.phone': null,
+      'validationVisitDetails.remarks': null,
+      'validationVisitDetails.proofImageId': null,
+      'validationVisitDetails.proofImageUrl': null,
+      'validationVisitDetails.signatureId': null,
+      'validationVisitDetails.signatureUrl': null
+    };
 
-    // Update the farmer input to approve validation visit details
+    // Update the farmer input to rollback validation visit details
     await global.highValueCropsModels.A_farmer_inputs.findByIdAndUpdate(
       farmerId,
-      { $set: { 'validationVisitDetails.isValidationVisitDetailsApproved': false } },
+      { $set: rollbackData },
       { session }
     );
 
     await session.commitTransaction();
 
     return res.status(200).json({
-      message: 'Validation visit details approved successfully.',
+      message: 'Validation visit details rejected successfully. Staff must resubmit proof.',
       data: {
         farmerId,
-        isApproved: true
+        isApproved: false,
+        status: 'Pending'
       }
     });
 
   } catch (error) {
     await session.abortTransaction();
-    console.error('Error approving validation visit details:', error);
+    console.error('Error rejecting validation visit details:', error);
     return res.status(500).json({ 
-      message: 'Error approving validation visit details.', 
+      message: 'Error rejecting validation visit details.', 
       error: error.message 
     });
   } finally {
