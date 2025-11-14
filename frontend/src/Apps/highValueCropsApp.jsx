@@ -121,8 +121,6 @@ const highValueCropsApp = () => {
   const [selectedCropType, setSelectedCropType] = useState('');
 
   // PAGE DIRECTION CONTROLLER FOR FARMER FORM PAGES
-
-  // this ref will flip to true whenever we do an in-app Next/Back
   const hasInteractedRef = useRef(false);
 
   useEffect(() => {
@@ -133,8 +131,9 @@ const highValueCropsApp = () => {
     // Check if we're coming from the success page
     const isComingFromSuccess = sessionStorage.getItem('hvc_form_completed');
     
-    // If we're coming from success, force a full page reload to reset all state
-    if (isComingFromSuccess && (isFormPath && !isSuccessPage)) {
+    // Only force reload when user navigates via POP (back/refresh) into any form step after completing.
+    // This prevents a reload during the normal submit -> success PUSH navigation.
+    if (isComingFromSuccess && navigationType === 'POP' && isFormPath) {
       sessionStorage.removeItem('hvc_form_completed');
       window.location.reload();
       return;
