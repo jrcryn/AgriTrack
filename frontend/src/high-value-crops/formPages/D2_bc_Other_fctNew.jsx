@@ -31,41 +31,22 @@ const D2_bc_Other_fctNew = ({ onNext, onBack }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Validate required fields
-    if (!localData.otherCrops) {
-      toast({
-        title: "Missing fields",
-        description: "Please specify the other crops planted.",
-        status: "warning",
-        duration: 4000,
-        isClosable: true
-      });
-      return;
-    }
+    const harvestDate = new Date(`${localData.harvest_year}-${localData.harvest_month}-01`);
+    const formattedHarvestDate = harvestDate.toISOString().split('T')[0];
 
-    // Prepare form data for submission
-    const formDataToSubmit = {
-      ...formData,
-      otherCrops: localData.otherCrops,
-      hasOtherCrops: localData.hasOtherCrops === 'Yes',
+    const data = {
+      ...localData,
+      harvest_month_year: formattedHarvestDate,
     };
-
+    updateCropOtherNew(data);
+    
     try {
-      // Submit the form data
-      await submitFarmerForm(formDataToSubmit);
-
-      // Navigate to success page with state
-      onNext('/success', null, { state: { fromSubmission: true } });
-      
+      const success = await submitFarmerForm();
+      if (success) {
+        onNext('/success', null, { state: { fromSubmission: true } });
+      }
     } catch (error) {
-      console.error('Form submission error:', error);
-      toast({
-        title: "Error",
-        description: error.response?.data?.message || "Error submitting form data",
-        status: "error",
-        duration: 5000,
-        isClosable: true
-      });
+      console.error("Submission error:", error);
     }
   };
 

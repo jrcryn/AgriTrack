@@ -150,14 +150,14 @@ const highValueCropsApp = () => {
     }
   }, [location.pathname, navigationType, navigate]);
 
-  const handleNext = (path, cropType, state = {}) => {
-    hasInteractedRef.current = true; // Set the ref to true when navigating forward
-    window.scrollTo(0, 0); // Scroll to top
-    if (cropType) {
-      setSelectedCropType(cropType);
-    }
-    navigate('/hvc/form' + path, state);
-  };
+const handleNext = (path, cropType, options = {}) => {
+  hasInteractedRef.current = true; // Set the ref to true when navigating forward
+  window.scrollTo(0, 0); // Scroll to top
+  if (cropType) {
+    setSelectedCropType(cropType);
+  }
+  navigate('/hvc/form' + path, options);
+};
 
   const handleBack = () => {
     hasInteractedRef.current = true; // Set the ref to true when navigating back

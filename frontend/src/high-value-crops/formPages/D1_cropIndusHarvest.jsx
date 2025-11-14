@@ -101,10 +101,8 @@ const CropIndusHarvest = ({ onNext, onBack }) => {
   const handleSubmit = async () => {
     setSubmitting(true);
     
-    // Create a copy of localFormData to modify
     const formDataToSubmit = {...localFormData};
     
-    // Replace "OTHERS" with the actual text input if applicable
     if (formDataToSubmit.destination === 'OTHERS' && otherDestination) {
       formDataToSubmit.destination = otherDestination;
     }
@@ -117,18 +115,19 @@ const CropIndusHarvest = ({ onNext, onBack }) => {
       formDataToSubmit.mode_of_delivery = otherDelivery;
     }
     
-    // Update the store with the modified data
     updateCropIndusHarvest(formDataToSubmit);
     
-    
-    
-    const success = await submitFarmerForm();
-    setSubmitting(false);
-    
-    if (success) {
-      onNext('/success'); // Navigate to success page
+    try {
+      const success = await submitFarmerForm();
+      setSubmitting(false);
+      
+      if (success) {
+        onNext('/success', null, { state: { fromSubmission: true } });
+      }
+    } catch (error) {
+      console.error("Submission error:", error);
+      setSubmitting(false);
     }
-    return formDataToSubmit;
   };
 
 

@@ -107,13 +107,17 @@ const bc_other_fctHarvest = ({ onNext, onBack }) => {
 
     updateCropOtherHarvest(formDataToSubmit);
     
-    const success = await submitFarmerForm();
-    setSubmitting(false);
-    
-    if (success) {
-      onNext('/success');
+    try {
+      const success = await submitFarmerForm();
+      setSubmitting(false);
+      
+      if (success) {
+        onNext('/success', null, { state: { fromSubmission: true } });
+      }
+    } catch (error) {
+      console.error("Submission error:", error);
+      setSubmitting(false);
     }
-    return formDataToSubmit;
   };
 
   useEffect(() => {

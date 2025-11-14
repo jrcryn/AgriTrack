@@ -57,9 +57,8 @@ const bc_other_fctNew = ({ onNext, onBack }) => {
   };
 
   const handleSubmit = async () => {
-    // Combine harvest_month and harvest_year into a date value
     const harvestDate = new Date(`${localFormData.harvest_year}-${localFormData.harvest_month}-01`);
-    const formattedHarvestDate = harvestDate.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+    const formattedHarvestDate = harvestDate.toISOString().split('T')[0];
 
     const data = {
       ...localFormData,
@@ -67,9 +66,13 @@ const bc_other_fctNew = ({ onNext, onBack }) => {
     };
     updateCropOtherNew(data);
     
-    const success = await submitFarmerForm();
-    if (success) {
-      onNext('/success');
+    try {
+      const success = await submitFarmerForm();
+      if (success) {
+        onNext('/success', null, { state: { fromSubmission: true } });
+      }
+    } catch (error) {
+      console.error("Submission error:", error);
     }
   };
 
