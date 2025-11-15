@@ -2884,9 +2884,21 @@ const Responses = () => {
                       <InputGroup>
                         <Input
                           type="number"
+                          min="0"
+                          step="0.01"
                           value={requestEditValues.total_area_planted  ?? ''}
-                          onChange={(e) => setRequestEditValues(v => ({ ...v, total_area_planted: e.target.value }))
-                          }
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            if (value === '' || parseFloat(value) >= 0) {
+                              setRequestEditValues(v => ({ ...v, total_area_planted: value }));
+                            }
+                          }}
+                          onWheel={(e) => e.target.blur()}
+                          onKeyDown={(e) => {
+                            if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+                              e.preventDefault();
+                            }
+                          }}
                         />
                         <InputRightAddon children="hectares" />
                       </InputGroup>
@@ -2897,9 +2909,21 @@ const Responses = () => {
                       <InputGroup>
                         <Input
                           type="number"
+                          min="0"
+                          step="1"
                           value={requestEditValues.total_trees ?? ''}
-                          onChange={(e) => setRequestEditValues(v => ({ ...v, total_trees: e.target.value }))
-                          }
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            if (value === '' || parseFloat(value) >= 0) {
+                              setRequestEditValues(v => ({ ...v, total_trees: value }));
+                            }
+                          }}
+                          onWheel={(e) => e.target.blur()}
+                          onKeyDown={(e) => {
+                            if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '.') {
+                              e.preventDefault();
+                            }
+                          }}
                         />
                         <InputRightAddon children="trees" />
                       </InputGroup>
@@ -2913,9 +2937,21 @@ const Responses = () => {
                       <InputGroup>
                         <Input
                           type="number"
+                          min="0"
+                          step="0.01"
                           value={requestEditValues.total_weight ?? ''}
-                          onChange={(e) => setRequestEditValues(v => ({ ...v, total_weight: e.target.value }))
-                          }
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            if (value === '' || parseFloat(value) >= 0) {
+                              setRequestEditValues(v => ({ ...v, total_weight: value }));
+                            }
+                          }}
+                          onWheel={(e) => e.target.blur()}
+                          onKeyDown={(e) => {
+                            if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+                              e.preventDefault();
+                            }
+                          }}
                         />
                         <InputRightAddon children="kg" />
                       </InputGroup>
@@ -2927,9 +2963,21 @@ const Responses = () => {
                         <InputGroup>
                           <Input
                             type="number"
+                            min="0"
+                            step="0.01"
                             value={requestEditValues.total_area_harvested ?? ''}
-                            onChange={(e) => setRequestEditValues(v => ({ ...v, total_area_harvested: e.target.value }))
-                            }
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              if (value === '' || parseFloat(value) >= 0) {
+                                setRequestEditValues(v => ({ ...v, total_area_harvested: value }));
+                              }
+                            }}
+                            onWheel={(e) => e.target.blur()}
+                            onKeyDown={(e) => {
+                              if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+                                e.preventDefault();
+                              }
+                            }}
                           />
                           <InputRightAddon children="hectares" />
                         </InputGroup>
@@ -2940,9 +2988,21 @@ const Responses = () => {
                         <InputGroup>
                           <Input
                             type="number"
+                            min="0"
+                            step="1"
                             value={requestEditValues.trees_harvested ?? ''}
-                            onChange={(e) => setRequestEditValues(v => ({ ...v, trees_harvested: e.target.value }))
-                            }
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              if (value === '' || parseFloat(value) >= 0) {
+                                setRequestEditValues(v => ({ ...v, trees_harvested: value }));
+                              }
+                            }}
+                            onWheel={(e) => e.target.blur()}
+                            onKeyDown={(e) => {
+                              if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '.') {
+                                e.preventDefault();
+                              }
+                            }}
                           />
                           <InputRightAddon children="trees" />
                         </InputGroup>
@@ -3028,8 +3088,21 @@ const Responses = () => {
                         <InputGroup>
                           <Input
                             type="number"
+                            min="0"
+                            step="0.01"
                             value={requestEditValues.total_area_planted ?? ''}
-                            onChange={(e) => setRequestEditValues(v => ({ ...v, total_area_planted: e.target.value }))}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              if (value === '' || parseFloat(value) >= 0) {
+                                setRequestEditValues(v => ({ ...v, total_area_planted: value }));
+                              }
+                            }}
+                            onWheel={(e) => e.target.blur()}
+                            onKeyDown={(e) => {
+                              if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+                                e.preventDefault();
+                              }
+                            }}
                           />
                           <InputRightAddon children="hectares" />
                         </InputGroup>
@@ -3043,8 +3116,21 @@ const Responses = () => {
                         <InputGroup>
                           <Input
                             type="number"
+                            min="0"
+                            step="1"
                             value={requestEditValues.total_trees ?? ''}
-                            onChange={(e) => setRequestEditValues(v => ({ ...v, total_trees: e.target.value }))}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              if (value === '' || parseFloat(value) >= 0) {
+                                setRequestEditValues(v => ({ ...v, total_trees: value }));
+                              }
+                            }}
+                            onWheel={(e) => e.target.blur()}
+                            onKeyDown={(e) => {
+                              if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '.') {
+                                e.preventDefault();
+                              }
+                            }}
                           />
                           <InputRightAddon children="trees" />
                         </InputGroup>
@@ -3061,8 +3147,21 @@ const Responses = () => {
                         <InputGroup>
                           <Input
                             type="number"
+                            min="0"
+                            step="0.01"
                             value={requestEditValues.total_weight ?? ''}
-                            onChange={(e) => setRequestEditValues(v => ({ ...v, total_weight: e.target.value }))}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              if (value === '' || parseFloat(value) >= 0) {
+                                setRequestEditValues(v => ({ ...v, total_weight: value }));
+                              }
+                            }}
+                            onWheel={(e) => e.target.blur()}
+                            onKeyDown={(e) => {
+                              if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+                                e.preventDefault();
+                              }
+                            }}
                           />
                           <InputRightAddon children="kg" />
                         </InputGroup>
@@ -3077,8 +3176,21 @@ const Responses = () => {
                           <InputGroup>
                             <Input
                               type="number"
+                              min="0"
+                              step="0.01"
                               value={requestEditValues.total_area_harvested ?? ''}
-                              onChange={(e) => setRequestEditValues(v => ({ ...v, total_area_harvested: e.target.value }))}
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                if (value === '' || parseFloat(value) >= 0) {
+                                  setRequestEditValues(v => ({ ...v, total_area_harvested: value }));
+                                }
+                              }}
+                              onWheel={(e) => e.target.blur()}
+                              onKeyDown={(e) => {
+                                if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+                                  e.preventDefault();
+                                }
+                              }}
                             />
                             <InputRightAddon children="hectares" />
                           </InputGroup>
@@ -3092,8 +3204,21 @@ const Responses = () => {
                           <InputGroup>
                             <Input
                               type="number"
+                              min="0"
+                              step="1"
                               value={requestEditValues.trees_harvested ?? ''}
-                              onChange={(e) => setRequestEditValues(v => ({ ...v, trees_harvested: e.target.value }))}
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                if (value === '' || parseFloat(value) >= 0) {
+                                  setRequestEditValues(v => ({ ...v, trees_harvested: value }));
+                                }
+                              }}
+                              onWheel={(e) => e.target.blur()}
+                              onKeyDown={(e) => {
+                                if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '.') {
+                                  e.preventDefault();
+                                }
+                              }}
                             />
                             <InputRightAddon children="trees" />
                           </InputGroup>
