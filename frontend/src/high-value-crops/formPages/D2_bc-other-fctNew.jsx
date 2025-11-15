@@ -12,11 +12,13 @@ import {
   Radio,
   RadioGroup,
   Select,
+  useToast,
 } from '@chakra-ui/react';
 import DateMonthOptions from '../../components/dateMonthOptions.js';
 import { useFarmerFormStore } from '../store/farmerForm.store.js';
 
 const bc_other_fctNew = ({ onNext, onBack }) => {
+  const toast = useToast();
   const dateOptions = DateMonthOptions();
   const { formData, updateCropOtherNew, submitFarmerForm, isLoading } = useFarmerFormStore();
 
@@ -57,6 +59,18 @@ const bc_other_fctNew = ({ onNext, onBack }) => {
   };
 
   const handleSubmit = async () => {
+    // Validate for negative numbers
+    if (parseFloat(localFormData.total_trees) < 0) {
+      toast({
+        title: 'Mali ang Input',
+        description: 'Hindi pwedeng negative ang kabuuang bilang ng puno.',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+      return;
+    }
+
     const harvestDate = new Date(`${localFormData.harvest_year}-${localFormData.harvest_month}-01`);
     const formattedHarvestDate = harvestDate.toISOString().split('T')[0];
 
@@ -236,6 +250,9 @@ const bc_other_fctNew = ({ onNext, onBack }) => {
                   name="total_trees"
                   value={localFormData.total_trees}
                   onChange={handleChange}
+                  onWheel={(e) => e.target.blur()}
+                  min="0"
+                  step="1"
                   placeholder="Your answer"
                 />
               </FormControl>

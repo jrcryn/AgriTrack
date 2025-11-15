@@ -881,10 +881,15 @@ const Responses = () => {
                                   ? 'green.400'
                                   : response.farmerInput?.editConsent?.status === 'Denied'
                                   ? 'red.400'
-                                  : response.farmerInput?.validationVisitDetails?.status === 'Completed'
+                                  : (response.farmerInput?.validationVisitDetails?.status === 'Completed' &&
+                                     !response.farmerInput?.validationVisitDetails?.isValidationVisitDetailsApproved)
                                   ? 'blue.400'
                                   : response.farmerInput?.validationVisitDetails?.status === 'Rejected'
                                   ? 'red.400'
+                                   // color for manager-approved validation (for staff)
+                                  : (response.farmerInput?.validationVisitDetails?.status === 'Completed' &&
+                                     response.farmerInput?.validationVisitDetails?.isValidationVisitDetailsApproved === true)
+                                  ? 'green.400'
                                   : undefined
                               }
                             >
@@ -908,7 +913,10 @@ const Responses = () => {
                                 !response.farmerInput?.successfullyUpdated && (
                                   (response.farmerInput?.editConsent?.status === 'Granted') ||
                                   (response.farmerInput?.editConsent?.status === 'Denied') ||
-                                  response.farmerInput?.validationVisitDetails?.status === 'Rejected'
+                                  response.farmerInput?.validationVisitDetails?.status === 'Rejected' ||
+                                  // show notification for staff when manager HAS approved validation visit details
+                                  (response.farmerInput?.validationVisitDetails?.status === 'Completed' &&
+                                   response.farmerInput?.validationVisitDetails?.isValidationVisitDetailsApproved === true)
                                 )
                               }
                               dotColor={
@@ -919,6 +927,10 @@ const Responses = () => {
                                   ? 'red.400'
                                   : response.farmerInput?.validationVisitDetails?.status === 'Rejected'
                                   ? 'red.400'
+                                  // color for manager-approved validation (for staff)
+                                  : (response.farmerInput?.validationVisitDetails?.status === 'Completed' &&
+                                     response.farmerInput?.validationVisitDetails?.isValidationVisitDetailsApproved === true)
+                                  ? 'green.400'
                                   : undefined
                               }
                             >
@@ -2872,9 +2884,21 @@ const Responses = () => {
                       <InputGroup>
                         <Input
                           type="number"
+                          min="0"
+                          step="0.01"
                           value={requestEditValues.total_area_planted  ?? ''}
-                          onChange={(e) => setRequestEditValues(v => ({ ...v, total_area_planted: e.target.value }))
-                          }
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            if (value === '' || parseFloat(value) >= 0) {
+                              setRequestEditValues(v => ({ ...v, total_area_planted: value }));
+                            }
+                          }}
+                          onWheel={(e) => e.target.blur()}
+                          onKeyDown={(e) => {
+                            if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+                              e.preventDefault();
+                            }
+                          }}
                         />
                         <InputRightAddon children="hectares" />
                       </InputGroup>
@@ -2885,9 +2909,21 @@ const Responses = () => {
                       <InputGroup>
                         <Input
                           type="number"
+                          min="0"
+                          step="1"
                           value={requestEditValues.total_trees ?? ''}
-                          onChange={(e) => setRequestEditValues(v => ({ ...v, total_trees: e.target.value }))
-                          }
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            if (value === '' || parseFloat(value) >= 0) {
+                              setRequestEditValues(v => ({ ...v, total_trees: value }));
+                            }
+                          }}
+                          onWheel={(e) => e.target.blur()}
+                          onKeyDown={(e) => {
+                            if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '.') {
+                              e.preventDefault();
+                            }
+                          }}
                         />
                         <InputRightAddon children="trees" />
                       </InputGroup>
@@ -2901,9 +2937,21 @@ const Responses = () => {
                       <InputGroup>
                         <Input
                           type="number"
+                          min="0"
+                          step="0.01"
                           value={requestEditValues.total_weight ?? ''}
-                          onChange={(e) => setRequestEditValues(v => ({ ...v, total_weight: e.target.value }))
-                          }
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            if (value === '' || parseFloat(value) >= 0) {
+                              setRequestEditValues(v => ({ ...v, total_weight: value }));
+                            }
+                          }}
+                          onWheel={(e) => e.target.blur()}
+                          onKeyDown={(e) => {
+                            if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+                              e.preventDefault();
+                            }
+                          }}
                         />
                         <InputRightAddon children="kg" />
                       </InputGroup>
@@ -2915,9 +2963,21 @@ const Responses = () => {
                         <InputGroup>
                           <Input
                             type="number"
+                            min="0"
+                            step="0.01"
                             value={requestEditValues.total_area_harvested ?? ''}
-                            onChange={(e) => setRequestEditValues(v => ({ ...v, total_area_harvested: e.target.value }))
-                            }
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              if (value === '' || parseFloat(value) >= 0) {
+                                setRequestEditValues(v => ({ ...v, total_area_harvested: value }));
+                              }
+                            }}
+                            onWheel={(e) => e.target.blur()}
+                            onKeyDown={(e) => {
+                              if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+                                e.preventDefault();
+                              }
+                            }}
                           />
                           <InputRightAddon children="hectares" />
                         </InputGroup>
@@ -2928,9 +2988,21 @@ const Responses = () => {
                         <InputGroup>
                           <Input
                             type="number"
+                            min="0"
+                            step="1"
                             value={requestEditValues.trees_harvested ?? ''}
-                            onChange={(e) => setRequestEditValues(v => ({ ...v, trees_harvested: e.target.value }))
-                            }
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              if (value === '' || parseFloat(value) >= 0) {
+                                setRequestEditValues(v => ({ ...v, trees_harvested: value }));
+                              }
+                            }}
+                            onWheel={(e) => e.target.blur()}
+                            onKeyDown={(e) => {
+                              if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '.') {
+                                e.preventDefault();
+                              }
+                            }}
                           />
                           <InputRightAddon children="trees" />
                         </InputGroup>
@@ -3016,8 +3088,21 @@ const Responses = () => {
                         <InputGroup>
                           <Input
                             type="number"
+                            min="0"
+                            step="0.01"
                             value={requestEditValues.total_area_planted ?? ''}
-                            onChange={(e) => setRequestEditValues(v => ({ ...v, total_area_planted: e.target.value }))}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              if (value === '' || parseFloat(value) >= 0) {
+                                setRequestEditValues(v => ({ ...v, total_area_planted: value }));
+                              }
+                            }}
+                            onWheel={(e) => e.target.blur()}
+                            onKeyDown={(e) => {
+                              if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+                                e.preventDefault();
+                              }
+                            }}
                           />
                           <InputRightAddon children="hectares" />
                         </InputGroup>
@@ -3031,8 +3116,21 @@ const Responses = () => {
                         <InputGroup>
                           <Input
                             type="number"
+                            min="0"
+                            step="1"
                             value={requestEditValues.total_trees ?? ''}
-                            onChange={(e) => setRequestEditValues(v => ({ ...v, total_trees: e.target.value }))}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              if (value === '' || parseFloat(value) >= 0) {
+                                setRequestEditValues(v => ({ ...v, total_trees: value }));
+                              }
+                            }}
+                            onWheel={(e) => e.target.blur()}
+                            onKeyDown={(e) => {
+                              if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '.') {
+                                e.preventDefault();
+                              }
+                            }}
                           />
                           <InputRightAddon children="trees" />
                         </InputGroup>
@@ -3049,8 +3147,21 @@ const Responses = () => {
                         <InputGroup>
                           <Input
                             type="number"
+                            min="0"
+                            step="0.01"
                             value={requestEditValues.total_weight ?? ''}
-                            onChange={(e) => setRequestEditValues(v => ({ ...v, total_weight: e.target.value }))}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              if (value === '' || parseFloat(value) >= 0) {
+                                setRequestEditValues(v => ({ ...v, total_weight: value }));
+                              }
+                            }}
+                            onWheel={(e) => e.target.blur()}
+                            onKeyDown={(e) => {
+                              if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+                                e.preventDefault();
+                              }
+                            }}
                           />
                           <InputRightAddon children="kg" />
                         </InputGroup>
@@ -3065,8 +3176,21 @@ const Responses = () => {
                           <InputGroup>
                             <Input
                               type="number"
+                              min="0"
+                              step="0.01"
                               value={requestEditValues.total_area_harvested ?? ''}
-                              onChange={(e) => setRequestEditValues(v => ({ ...v, total_area_harvested: e.target.value }))}
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                if (value === '' || parseFloat(value) >= 0) {
+                                  setRequestEditValues(v => ({ ...v, total_area_harvested: value }));
+                                }
+                              }}
+                              onWheel={(e) => e.target.blur()}
+                              onKeyDown={(e) => {
+                                if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+                                  e.preventDefault();
+                                }
+                              }}
                             />
                             <InputRightAddon children="hectares" />
                           </InputGroup>
@@ -3080,8 +3204,21 @@ const Responses = () => {
                           <InputGroup>
                             <Input
                               type="number"
+                              min="0"
+                              step="1"
                               value={requestEditValues.trees_harvested ?? ''}
-                              onChange={(e) => setRequestEditValues(v => ({ ...v, trees_harvested: e.target.value }))}
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                if (value === '' || parseFloat(value) >= 0) {
+                                  setRequestEditValues(v => ({ ...v, trees_harvested: value }));
+                                }
+                              }}
+                              onWheel={(e) => e.target.blur()}
+                              onKeyDown={(e) => {
+                                if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '.') {
+                                  e.preventDefault();
+                                }
+                              }}
                             />
                             <InputRightAddon children="trees" />
                           </InputGroup>
