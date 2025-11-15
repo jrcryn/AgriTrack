@@ -870,6 +870,7 @@ const Responses = () => {
                               showNotification={
                                 !response.farmerInput?.successfullyUpdated && (
                                   (response.farmerInput?.editConsent?.status === 'Granted') ||
+                                  (response.farmerInput?.editConsent?.status === 'Denied') ||
                                   response.farmerInput?.validationVisitDetails?.status === 'Completed' ||
                                   response.farmerInput?.validationVisitDetails?.status === 'Rejected'
                                 )
@@ -878,6 +879,8 @@ const Responses = () => {
                                 response.farmerInput?.editConsent?.status === 'Granted' &&
                                 !response.farmerInput?.successfullyUpdated
                                   ? 'green.400'
+                                  : response.farmerInput?.editConsent?.status === 'Denied'
+                                  ? 'red.400'
                                   : response.farmerInput?.validationVisitDetails?.status === 'Completed'
                                   ? 'blue.400'
                                   : response.farmerInput?.validationVisitDetails?.status === 'Rejected'
@@ -904,6 +907,7 @@ const Responses = () => {
                               showNotification={
                                 !response.farmerInput?.successfullyUpdated && (
                                   (response.farmerInput?.editConsent?.status === 'Granted') ||
+                                  (response.farmerInput?.editConsent?.status === 'Denied') ||
                                   response.farmerInput?.validationVisitDetails?.status === 'Rejected'
                                 )
                               }
@@ -911,6 +915,8 @@ const Responses = () => {
                                 response.farmerInput?.editConsent?.status === 'Granted' &&
                                 !response.farmerInput?.successfullyUpdated
                                   ? 'yellow.400'
+                                  : response.farmerInput?.editConsent?.status === 'Denied'
+                                  ? 'red.400'
                                   : response.farmerInput?.validationVisitDetails?.status === 'Rejected'
                                   ? 'red.400'
                                   : undefined
@@ -1299,7 +1305,6 @@ const Responses = () => {
       return acc;
     }, {});
 
-    setIsUpdatingFields(true);
     try {
       const crop_stage = selectedResponse.cropRecord?.crop_stage;
 
@@ -1325,6 +1330,7 @@ const Responses = () => {
 
       onCloseRequestEdit();
       onClose();
+      onCloseScheduleVisit();
     } catch (error) {
       console.log(error);
       toast({
@@ -1735,7 +1741,7 @@ const Responses = () => {
                   )}
                   {!successfullyUpdated && requiredValidationVisits === true && isSubmittedValidationVisitProof !== 'Completed' && isSubmittedValidationVisitProof !== 'Rejected' && !isValidationDetailsApproved && (
                     <>
-                      A validation visit has been scheduled to verify the requested edits. Please check the schedule section for details.
+                      A validation visit has been scheduled to verify the requested edits.
                       {response.farmerInput.validationVisitDetails.initialRemarks && (
                         <Text mt={1} fontStyle="italic">
                           Initial Remarks: {response.farmerInput.validationVisitDetails.initialRemarks}
@@ -1747,7 +1753,7 @@ const Responses = () => {
                     `The farmer has granted permission to edit their response. You can now apply the requested changes or push the updated data to records.`
                   }
                   {!successfullyUpdated && editConsentStatus === 'Denied' && !requiredValidationVisits && !isValidationDetailsApproved && 
-                    `The farmer has denied the edit request for their response. No changes can be made without their consent.`
+                    `The farmer has denied the edit request for their response. No changes can be made without their consent. You may consider scheduling a validation visit to verify the data directly.`
                   }
                   {!successfullyUpdated && editConsentStatus === 'Pending' && !requiredValidationVisits && !isValidationDetailsApproved && 
                     `Waiting for farmer's response to the edit request. An SMS notification has been sent. If it's taking too long, consider scheduling up a validation visit, reaching out to the farmer directly.`
@@ -1764,7 +1770,7 @@ const Responses = () => {
         )}
 
         {/* No Phone Number Alert - Only show when edit requested or validation visit scheduled */}
-        {response.farmerInput.isForReview === true && !response.farmerInput?.farmer_account_id?.mobile_number && !response?.farmerInput?.validationVisitDetails?.scheduledAt && (
+        {response.farmerInput.isForReview === true && !response.farmerInput?.farmer_account_id?.mobile_number && !response?.farmerInput?.validationVisitDetails?.status && (
           <Alert status="warning" borderRadius="md" variant="left-accent">
             <AlertIcon />
               <Box flex="1">
@@ -2565,8 +2571,8 @@ const Responses = () => {
                   <>
                     {/* Consent Proof Button - For staff to upload validation proof during visit */}
                     {selectedResponse?.farmerInput?.requiredValidationVisit === true && 
-                    selectedResponse?.farmerInput?.validationVisitDetails?.status === 'Pending' ||
-                    selectedResponse?.farmerInput?.validationVisitDetails?.status === 'Rejected' && (
+                    (selectedResponse?.farmerInput?.validationVisitDetails?.status === 'Pending' ||
+                    selectedResponse?.farmerInput?.validationVisitDetails?.status === 'Rejected') && (
                       <Button 
                         colorScheme="blue" 
                         boxShadow="sm"
@@ -2580,7 +2586,8 @@ const Responses = () => {
                     {/* View Consent Proof Button - For managers to review validation proof */}
                     {user?.role === 'HVCM' && 
                     selectedResponse?.farmerInput?.validationVisitDetails?.status === 'Completed' &&
-                    (selectedResponse?.farmerInput?.validationVisitDetails?.isValidationVisitDetailsApproved === false) && (
+                    (selectedResponse?.farmerInput?.validationVisitDetails?.isValidationVisitDetailsApproved === false || 
+                      !selectedResponse?.farmerInput?.validationVisitDetails?.isValidationVisitDetailsApproved) && (
                       <Button 
                         colorScheme="purple" 
                         boxShadow="sm"
@@ -2627,7 +2634,7 @@ const Responses = () => {
                     )}
 
                     {/* Request Edit Button - Send SMS notification to farmer */}
-                    {(selectedResponse?.farmerInput?.editConsent?.status === 'Completed' || 
+                    {(selectedResponse?.farmerInput?.editConsent?.status === 'Completed' ||
                       !selectedResponse?.farmerInput?.editConsent?.status) && 
                       selectedResponse?.farmerInput?.farmer_account_id?.mobile_number && (
                       <Button 
@@ -2641,10 +2648,10 @@ const Responses = () => {
                     )}
 
                     {/* Require Validation Visit Button - When no mobile number or no SMS request sent */}
-                    {!selectedResponse?.farmerInput?.farmer_account_id?.mobile_number && 
-                    selectedResponse?.farmerInput?.validationVisitDetails?.status !== 'Pending' &&
-                    selectedResponse?.farmerInput?.validationVisitDetails?.status !== 'Rejected' &&
-                    selectedResponse?.farmerInput?.validationVisitDetails?.status !== 'Completed' && (
+                    {((!selectedResponse?.farmerInput?.farmer_account_id?.mobile_number || 
+                       selectedResponse?.farmerInput?.editConsent?.status === 'Denied') && 
+                     (!selectedResponse?.farmerInput?.validationVisitDetails?.status || 
+                      selectedResponse?.farmerInput?.validationVisitDetails?.status === 'Rejected')) && (
                       <Button 
                         colorScheme="blue" 
                         boxShadow="sm"
@@ -2864,7 +2871,7 @@ const Responses = () => {
                       <InputGroup>
                         <Input
                           type="number"
-                          value={requestEditValues.total_area_planted ?? ''}
+                          value={requestEditValues.total_area_planted  ?? ''}
                           onChange={(e) => setRequestEditValues(v => ({ ...v, total_area_planted: e.target.value }))
                           }
                         />

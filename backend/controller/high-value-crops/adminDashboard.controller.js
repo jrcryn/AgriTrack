@@ -336,7 +336,13 @@ export const updateFarmerResponseFields = async (req, res) => {
       farmerId,
       {
         $set: {
-          successfullyUpdated: true,
+          successfullyUpdated: false,
+          isCurrentlyEditRequest: false,
+          requiredValidationVisit: false
+        },
+        $unset: {
+          editConsent: "",
+          validationVisitDetails: ""
         }
       },
       { session }
@@ -836,7 +842,7 @@ export const requestEdit = async (req, res) => {
           editRequestId: editDoc[0]._id,
           reason: reason
         },
-        successfullyUpdated: false
+        isCurrentlyEditRequest: true
       },
       { session }
     );
@@ -1342,7 +1348,7 @@ export const createValidationScheduleVisit = async (req, res) => { // for schedu
         status: 'Pending',
         editRequestId: editDoc[0]._id
       },
-      successfullyUpdated: false
+      isCurrentlyEditRequest: true
     };
 
     await global.highValueCropsModels.A_farmer_inputs.findByIdAndUpdate(
