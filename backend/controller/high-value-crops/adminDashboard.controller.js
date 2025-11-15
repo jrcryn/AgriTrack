@@ -1829,19 +1829,26 @@ export const createFarmerAccount = async (req, res) => {
 };
 
 
-export const deleteFarmerAccount = async (req, res) => {
+export const archiveFarmerAccount = async (req, res) => {
   const { farmerId } = req.body;
   if (!farmerId) {
     return res.status(400).json({ message: 'Farmer ID is required.' });
   }
   try {
-    const result = await global.globalModels.FarmerAccount.deleteOne({ farmerId: farmerId });
-    if (result.deleteCount === 0) {
+    const farmerAccount = await global.globalModels.FarmerAccount.findOne({ farmerId: farmerId });
+    if (!farmerAccount) {
       return res.status(404).json({ message: 'Farmer account not found' });
     }
-    return res.status(200).json({ message: 'Farmer account deleted successfully.' });
+    
+    // Archive instead of delete
+    await global.globalModels.FarmerAccount.updateOne(
+      { farmerId: farmerId },
+      { $set: { isArchived: true } }
+    );
+    
+    return res.status(200).json({ message: 'Farmer account archived successfully.' });
   } catch (error) {
-    return res.status(500).json({ message: 'Error deleting farmer account.', error: error.message });
+    return res.status(500).json({ message: 'Error archiving farmer account.', error: error.message });
   }
 };
 
@@ -2006,6 +2013,7 @@ export const updateFarmerAccount = async (req, res) => {
     });
   }
 };
+
 
 
 //________________________________ DASHBOARD (METRICS / HVC SUPPLY AND MARKET PROFILE REPORT / HVC PRODUCTION REPORT) PAGE ____________________________________

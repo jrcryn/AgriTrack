@@ -5,7 +5,7 @@ import {
     getUnvalidatedFarmerInputs, 
     //getValidatedFarmerInputs, // not in use
     createFarmerAccount, //manipulate data
-    deleteFarmerAccount,
+    archiveFarmerAccount,
     getFarmerAccounts,
     getFarmerAccountByNameUser, 
     //getFarmerAccountById, // not in use
@@ -100,7 +100,7 @@ router.post('/reject-validation-visit-details', verifyAuthToken, verifyRole(['HV
 
 
 router.post('/create-farmer-account', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), createFarmerAccount);
-router.post('/delete-farmer-account', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), deleteFarmerAccount);
+router.post('/archive-farmer-account', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), archiveFarmerAccount);
 router.get('/get-farmer-accounts', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), getFarmerAccounts);
 router.post('/get-farmer-account-by-name-user', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), getFarmerAccountByNameUser);
 //router.post('/get-farmer-account', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), getFarmerAccountById);

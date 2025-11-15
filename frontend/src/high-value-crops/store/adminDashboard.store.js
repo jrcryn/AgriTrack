@@ -307,10 +307,10 @@ export const useAdminDashboard = (searchParams = {}) => {
     }
   };
 
-  const deleteFarmerAccount = async (farmerId) => {
+  const archiveFarmerAccount = async (farmerId) => {
     setIsDeletingFarmerAccount(true);
     try {
-      const response = await axios.post(`${API_URL}/api/hvc/delete-farmer-account`, farmerId );
+      const response = await axios.post(`${API_URL}/api/hvc/archive-farmer-account`, farmerId );
       return response.data;
     } catch (error) {
       throw error;
@@ -656,7 +656,7 @@ export const useAdminDashboard = (searchParams = {}) => {
     //updateFarmerInput,
     createFarmerAccount,
     getFarmerAccountByNameUser,
-    deleteFarmerAccount,
+    archiveFarmerAccount,
     createUnifiedFarmerResponse,
     flagResponseForReview,
     unflagResponseForReview,

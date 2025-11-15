@@ -76,7 +76,7 @@ const E_Farmers = () => {
   const { 
     farmerAccounts,
     isCreatingFarmerAccount, 
-    deleteFarmerAccount,
+    archiveFarmerAccount,
     isDeletingFarmerAccount,
     error, 
     createFarmerAccount, 
@@ -302,12 +302,12 @@ const E_Farmers = () => {
     }
   };
 
-  const handleFarmerAccountDeletion = async () => {
+  const handleFarmerAccountArchive = async () => {
     try {
-      await deleteFarmerAccount({farmerId: selectedFarmerId});
+      await archiveFarmerAccount({farmerId: selectedFarmerId});
       toast({
         title: "Success",
-        description: "Farmer account deleted successfully.",
+        description: "Farmer account archived successfully.",
         status: "success",
         duration: 5000,
         isClosable: true,
@@ -824,8 +824,7 @@ const E_Farmers = () => {
               <Button
                 colorScheme="yellow"
                 mr={3}
-                // onClick={onDeleteOpen}
-                // isLoading={isDeletingFarmerAccount}
+                onClick={onDeleteOpen}
                 size="md"
                 _hover={{ boxShadow: "md", bg: "yellow.600" }}
               >
@@ -864,17 +863,29 @@ const E_Farmers = () => {
         <ModalOverlay/>
         <ModalContent borderRadius="lg" overflow="hidden">
           <ModalHeader
-            bg="red.50" 
+            bg="yellow.50" 
             borderBottomWidth="1px"
             borderColor="gray.200"
             py={4}
             display="flex" 
             alignItems="center"
           >
-            <Icon as={GoAlertFill} mr={2} color="red.500" />
-            Warning!
+            <Icon as={GoAlertFill} mr={2} color="yellow.500" />
+            Archive?
           </ModalHeader>
-
+          <ModalBody py={6}>
+            <VStack spacing={3} align="stretch">
+              <Text fontSize="sm">
+                Are you sure you want to archive this farmer record? This action will:
+              </Text>
+              <VStack align="stretch" spacing={2} pl={4}>
+                <Text fontSize="sm">• Hide the farmer account from the system</Text>
+                <Text fontSize="sm">• Prevent them from submitting High Value Crop Planting and Harvesting Reports</Text>
+                <Text fontSize="sm">• Block them from requesting Free Tractor Services (Ticket Request)</Text>
+                <Text fontSize="sm" fontWeight="medium" color="yellow.700">• Their account won't be found when searching</Text>
+              </VStack>
+            </VStack>
+          </ModalBody>
           <ModalFooter bg="gray.50" borderTopWidth="1px" borderColor="gray.200">
             <Button 
               variant="outline" 
@@ -886,13 +897,13 @@ const E_Farmers = () => {
               Cancel
             </Button>
             <Button 
-                colorScheme="red"
-                onClick={handleFarmerAccountDeletion}
+                colorScheme="yellow"
+                onClick={handleFarmerAccountArchive}
                 isLoading={isDeletingFarmerAccount}
                 size="md"
-                _hover={{ boxShadow: "md", bg: "red.600" }}
+                _hover={{ boxShadow: "md", bg: "yellow.600" }}
             >
-              Delete Farmer Record
+              Archive Record
             </Button>
           </ModalFooter>
         </ModalContent>

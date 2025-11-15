@@ -10,5 +10,6 @@ export const FarmerAccountSchema = new mongoose.Schema({
     mobile_number: { type: String,  trim: true },
     facebook: { type: String, trim: true },
     birthdate: { type: Date },
+    isArchived: { type: Boolean, default: false },
 }, { versionKey: false });
 
