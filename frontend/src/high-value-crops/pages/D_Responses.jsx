@@ -1688,7 +1688,7 @@ const Responses = () => {
                   {!successfullyUpdated && isValidationDetailsApproved === true && 'Validation Visit Details Approved'}
                   {!successfullyUpdated && isSubmittedValidationVisitProof === 'Rejected' && !isValidationDetailsApproved && 'Validation Visit Details Rejected'}
                   {!successfullyUpdated && isSubmittedValidationVisitProof === 'Completed' && !isValidationDetailsApproved && 'Validation Visit Proof Submitted'}
-                  {!successfullyUpdated && requiredValidationVisits === true && isSubmittedValidationVisitProof !== 'Completed' && isSubmittedValidationVisitProof !== 'Rejected' && !isValidationDetailsApproved && 'Validation Visit Scheduled'}
+                  {!successfullyUpdated && requiredValidationVisits === true && isSubmittedValidationVisitProof !== 'Completed' && isSubmittedValidationVisitProof !== 'Rejected' && !isValidationDetailsApproved && 'Validation Visit Made Required'}
                   {!successfullyUpdated && editConsentStatus === 'Granted' && !requiredValidationVisits && !isValidationDetailsApproved && 'Farmer Granted Edit Permission'}
                   {!successfullyUpdated && editConsentStatus === 'Denied' && !requiredValidationVisits && !isValidationDetailsApproved && 'Farmer Denied Edit Request'}
                   {!successfullyUpdated && editConsentStatus === 'Pending' && !requiredValidationVisits && !isValidationDetailsApproved && 'Edit Request Pending'}
@@ -1741,7 +1741,7 @@ const Responses = () => {
                   )}
                   {!successfullyUpdated && requiredValidationVisits === true && isSubmittedValidationVisitProof !== 'Completed' && isSubmittedValidationVisitProof !== 'Rejected' && !isValidationDetailsApproved && (
                     <>
-                      A validation visit has been scheduled to verify the requested edits.
+                      A validation visit has been required to verify the requested edits.
                       {response.farmerInput.validationVisitDetails.initialRemarks && (
                         <Text mt={1} fontStyle="italic">
                           Initial Remarks: {response.farmerInput.validationVisitDetails.initialRemarks}
