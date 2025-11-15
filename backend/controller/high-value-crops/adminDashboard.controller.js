@@ -850,11 +850,21 @@ export const requestEdit = async (req, res) => {
     const reviewLink = `${process.env.CLIENT_URL}/hvc/consent-request/${editDoc[0]._id}`;
 
     // Send SMS (if this fails, transaction will rollback)
-    // if (cropStage === 'newlyPlanted') {
-    //   await sendNewlyPlantedCropCorrectionSMS(phone, farmerName, reviewLink);
-    // } else {
-    //   await sendHarvestingCropCorrectionSMS(phone, farmerName, reviewLink);
-    // }
+    try {
+      if (cropStage === 'newlyPlanted') {
+        await sendNewlyPlantedCropCorrectionSMS(phone, farmerName, reviewLink);
+      } else {
+        await sendHarvestingCropCorrectionSMS(phone, farmerName, reviewLink);
+      }
+    } catch (smsError) {
+      // Rollback transaction if SMS fails
+      await session.abortTransaction();
+      console.error('SMS sending failed:', smsError);
+      return res.status(500).json({ 
+        message: 'Failed to send SMS notification to farmer. Edit request was not created.', 
+        error: smsError.message 
+      });
+    }
 
     // Commit the transaction only if everything succeeded
     await session.commitTransaction();
