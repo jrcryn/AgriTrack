@@ -257,7 +257,7 @@ const D_Pending = () => {
                                     bg="white"
                                   >
                                     <Button
-                                      size="sm"
+                                      size="xs"
                                       colorScheme="green"
                                       onClick={() => handleOpenManage(doc)}
                                       leftIcon={<HiDocumentDuplicate />}

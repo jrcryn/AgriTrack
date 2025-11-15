@@ -41,13 +41,28 @@ import {
   Checkbox,
   Spacer,
   Tooltip,
+  Textarea,
+  Menu,
+  MenuButton,
+  MenuList,
+  MenuItem,
+  Image,
+  Badge,
+  AspectRatio
 } from '@chakra-ui/react';
 import numOfTreesToHectares from '../../components/conversions.js';
-import { FaSearch, FaEye, FaSeedling, FaBoxes, FaUser, FaLeaf, FaWifi, FaUpload, FaInfo, FaCheck, FaStop } from 'react-icons/fa';
+import { FaSearch, FaEye, FaSeedling, FaBoxes, FaUser, FaLeaf, FaWifi, FaUpload, FaInfo, FaCheck, FaStop, FaLink, FaExternalLinkAlt, FaCamera, FaSignature, FaCheckCircle  } from 'react-icons/fa';
 import { GoAlertFill } from "react-icons/go";
+import { CloseIcon } from '@chakra-ui/icons';
 import { useAdminDashboard } from '../store/adminDashboard.store.js';
 import { useFormStatusCheck } from '../store/farmerForm.store.js'
 import { useQueryClient } from '@tanstack/react-query';
+import { useAuthStore } from '../../auth/store/authStore.js';
+
+import SignatureCanvas from 'react-signature-canvas';
+import { initial, set } from 'lodash';
+
+const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL;
 
 const Responses = () => {
   // States for search and pagination
@@ -56,16 +71,135 @@ const Responses = () => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { isOpen: isOpenWarning, onOpen: onOpenWarning, onClose: onCloseWarning } = useDisclosure();
   const { isOpen: isOpenWarningBatch, onOpen: onOpenWarningBatch, onClose: onCloseWarningBatch } = useDisclosure();
-  const { isOpen: isOpenWarningDelete, onOpen: onOpenWarningDelete, onClose: onCloseWarningDelete } = useDisclosure();
-  const { isOpen: isOpenFormSettings, onOpen: onOpenFormSettings, onClose: onCloseFormSettings } = useDisclosure();
+  const { isOpen: isOpenArchive, onOpen: onOpenArchive, onClose: onCloseArchive } = useDisclosure();
+  const { isOpen: isOpenRequestEdit, onOpen: onOpenRequestEdit, onClose: onCloseRequestEdit } = useDisclosure();
+  const { isOpen: isOpenScheduleVisit, onOpen: onOpenScheduleVisit, onClose: onCloseScheduleVisit } = useDisclosure();
+  const { isOpen: isOpenConsentProof, onOpen: onOpenConsentProof, onClose: onCloseConsentProof } = useDisclosure();
+
+  const { isOpen: isOpenApproveVisit, onOpen: onOpenApproveVisit, onClose: onCloseApproveVisit } = useDisclosure();
+  const { isOpen: isOpenConfirmApprove, onOpen: onOpenConfirmApprove, onClose: onCloseConfirmApprove } = useDisclosure();
+  const { isOpen: isOpenConfirmReject, onOpen: onOpenConfirmReject, onClose: onCloseConfirmReject } = useDisclosure();
 
   const [selectedNewlyPlanted, setSelectedNewlyPlanted] = useState([]);
   const [selectedHarvesting, setSelectedHarvesting] = useState([]);
   const [isBatchProcessing, setIsBatchProcessing] = useState(false);
   const [pushType, setPushType] = useState(null);
 
+  const { user } = useAuthStore();
+  console.log(user);
+
+  const signatureRef = useRef(null);
+  const canvasContainerRef = useRef(null);
+  
+  const [proofImage, setProofImage] = useState(null);
+  const [proofImagePreview, setProofImagePreview] = useState(null);
+  const [signature, setSignature] = useState(null);
+  const [canvasSize, setCanvasSize] = useState({ width: 0, height: 200 });
+  const [afterValidationRemarks, setAfterValidationRemarks] = useState('');
+
+
+  useEffect(() => {
+    const updateCanvasSize = () => {
+      if (canvasContainerRef.current) {
+        const containerWidth = canvasContainerRef.current.offsetWidth;
+        setCanvasSize({
+          width: containerWidth - 16, // Subtract padding
+          height: 200
+        });
+      }
+    };
+
+    if (isOpenConsentProof) {
+      // Increase delay to ensure modal is fully rendered
+      setTimeout(updateCanvasSize, 150);
+    }
+    window.addEventListener('resize', updateCanvasSize);
+    
+    return () => window.removeEventListener('resize', updateCanvasSize);
+  }, [isOpenConsentProof]);
+
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: "Invalid file type",
+          description: "Please upload an image file",
+          status: "error",
+          duration: 3000,
+          isClosable: true
+        });
+        return;
+      }
+
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "File too large",
+          description: "Image size should not exceed 5MB",
+          status: "error",
+          duration: 3000,
+          isClosable: true
+        });
+        return;
+      }
+
+      setProofImage(file);
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProofImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleClearImage = () => {
+    setProofImage(null);
+    setProofImagePreview(null);
+  };
+
+  const handleClearSignature = () => {
+    if (signatureRef.current) {
+      signatureRef.current.clear();
+      setSignature(null);
+    }
+  };
+
+  const handleSaveSignature = () => {
+    if (signatureRef.current && !signatureRef.current.isEmpty()) {
+      const signatureData = signatureRef.current.toDataURL();
+      setSignature(signatureData);
+      
+      // Disable the canvas after saving
+      if (signatureRef.current) {
+        signatureRef.current.off();
+      }
+      
+      toast({
+        title: "Signature saved",
+        description: "Farmer signature has been captured",
+        status: "success",
+        duration: 2000,
+        isClosable: true
+      });
+    } else {
+      toast({
+        title: "Empty signature",
+        description: "Please provide a signature before saving",
+        status: "warning",
+        duration: 3000,
+        isClosable: true
+      });
+    }
+  };
+
   const [isUpdatingForReview, setIsUpdatingForReview] = useState(false);
-  const [isDeletingFarmerResponse, setIsDeletingFarmerResponse] = useState(false);
+
+  const [viewMode, setViewMode] = useState('unvalidated'); // 'unvalidated' or 'archived'
 
   // Unvalidated farmer inputs
   const { 
@@ -77,9 +211,7 @@ const Responses = () => {
     flagResponseForReview,
     unflagResponseForReview,
     error,
-    updateFarmerInput,
     createUnifiedFarmerResponse,
-    updateFarmerResponseFields,
     newlyPlantedPage,
     setNewlyPlantedPage,
     harvestingPage,
@@ -88,11 +220,46 @@ const Responses = () => {
     newlyPlantedError,
     harvestingError,
     setIsModalOpen,
-    deleteFarmerResponse,
 
     FormStatusEnable,
     FormStatusDisable,
-    isUpdatingFormStatus
+    isUpdatingFormStatus,
+
+    archiveResponse,
+    isArchivingResponse,
+
+    setNewlyPlantedArchivedPage,
+    newlyPlantedArchivedPage,
+    setHarvestingArchivedPage,
+    harvestingArchivedPage,
+
+    archivedNewlyPlantedInputs,
+    archivedHarvestingInputs,
+
+    isLoadingNewlyPlantedArchived,
+    isLoadingHarvestingArchived,
+
+    archivedNewlyPlantedError,
+    archivedHarvestingError,
+
+    unarchiveResponse,
+    isUnarchivingResponse,
+
+    requestEdit,
+    isRequestingEdit,
+
+    updateFarmerResponseFields,
+    isUpdatingFarmerResponse,
+
+    createValidationScheduleVisit,
+    setValidationVisitCompleted,
+    approveValidationVisitDetails,
+    rejectValidationVisitDetails,
+    isCreatingValidationSchedule,
+    isSettingVisitCompleted,
+    isApprovingVisitDetails,
+    isRejectingVisitDetails,
+
   } = useAdminDashboard();
 
   const toast = useToast();
@@ -433,11 +600,11 @@ const Responses = () => {
       }
     };
 
-    const handleDeleteFarmerResponse = async (responseToDelete) => {
-      if (!responseToDelete?.farmerInput?._id) {
+    const handleUnarchiveResponse = async (responseToUnarchive) => {
+      if (!responseToUnarchive?.farmerInput?._id) {
         toast({
           title: "Error",
-          description: "Cannot identify the response to delete.",
+          description: "Cannot identify the response to unarchive.",
           status: "error",
           duration: 5000,
           isClosable: true,
@@ -445,8 +612,7 @@ const Responses = () => {
         return;
       }
       try {
-        setIsDeletingFarmerResponse(true);
-        const response = await deleteFarmerResponse(responseToDelete.farmerInput._id);
+        const response = await unarchiveResponse(responseToUnarchive.farmerInput._id);
 
         toast({
           title: "Success",
@@ -457,9 +623,11 @@ const Responses = () => {
         });
         queryClient.invalidateQueries({ queryKey: ['unvalidatedNewlyPlanted'] });
         queryClient.invalidateQueries({ queryKey: ['unvalidatedHarvesting'] });
-        setIsDeletingFarmerResponse(false);
-        onCloseWarningDelete();
+        queryClient.invalidateQueries({ queryKey: ['unvalidatedNewlyPlantedArchived'] });
+        queryClient.invalidateQueries({ queryKey: ['unvalidatedHarvestingArchived'] });
+        onCloseArchive();
         onClose();
+        setSelectedResponse(null);
       } catch (error) {
         toast({
           title: "Error",
@@ -468,10 +636,113 @@ const Responses = () => {
           duration: 5000,
           isClosable: true,
         });
-        setIsDeletingFarmerResponse(false);
       }
     };
 
+    const handleArchiveResponse = async (responseToArchive) => {
+      if (!responseToArchive?.farmerInput?._id) {
+        toast({
+          title: "Error",
+          description: "Cannot identify the response to archive.",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
+        return;
+      }
+      try {
+        const response = await archiveResponse(responseToArchive.farmerInput._id);
+
+        toast({
+          title: "Success",
+          description: response.message,
+          status: "success",
+          duration: 5000,
+          isClosable: true,
+        });
+        queryClient.invalidateQueries({ queryKey: ['unvalidatedNewlyPlanted'] });
+        queryClient.invalidateQueries({ queryKey: ['unvalidatedHarvesting'] });
+        queryClient.invalidateQueries({ queryKey: ['unvalidatedNewlyPlantedArchived'] });
+        queryClient.invalidateQueries({ queryKey: ['unvalidatedHarvestingArchived'] });
+
+        onCloseArchive();
+        onClose();
+        setSelectedResponse(null);
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: error.response?.data?.message,
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
+      }
+    };
+
+    const handleUpdateResponseFields = async () => {
+    if (!selectedResponse?.farmerInput?._id) {
+      toast({
+        title: "Error",
+        description: "No response selected.",
+        status: "error",
+        duration: 4000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    try {
+      const response = await updateFarmerResponseFields({
+        farmerId: selectedResponse.farmerInput._id
+      });
+      await unflagResponseForReview(selectedResponse.farmerInput._id);
+
+      toast({
+        title: "Updated",
+        description: response?.message || "Fields updated successfully.",
+        status: "success",
+        duration: 5000,
+        isClosable: true,
+      });
+      onClose();
+      setSelectedResponse(null);
+      queryClient.invalidateQueries({ queryKey: ['unvalidatedNewlyPlanted'] });
+      queryClient.invalidateQueries({ queryKey: ['unvalidatedHarvesting'] });
+
+    } catch (error) {
+      console.log(error);
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Failed updating fields.",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+    };
+
+
+
+  const ButtonWithNotification = ({ children, showNotification, dotColor }) => {
+    return (
+      <Box position="relative" display="inline-block">
+        {children}
+        {showNotification && (
+          <Box
+            position="absolute"
+            top="-5px"
+            right="-5px"
+            width="12px"
+            height="12px"
+            bg={dotColor}
+            borderRadius="full"
+            boxShadow="0 0 0 2px white"
+            zIndex={1}
+          />
+        )}
+      </Box>
+    );
+  };
 
   // Table component to reuse for both sections
   const ResponseTable = ({ data, status, selectedItems, onSelectItem, onSelectAll }) => {
@@ -480,9 +751,10 @@ const Responses = () => {
     const selectableItems = data.filter(item => item.farmerInput.isForReview === false);
     const allSelected = selectableItems.length > 0 && selectableItems.every(item => selectedItems?.includes(item.farmerInput._id));
 
+    console.log(data);
     return(
         <TableContainer>
-          <Table variant="simple">
+          <Table variant="simple" size='md'>
             <Thead bg="gray.50">
               <Tr>
                 <Th width="50px">
@@ -534,7 +806,7 @@ const Responses = () => {
             <Tbody>
               {data.length > 0 ? (
                 data.map((response, index) => (
-                  <Tr key={response.farmerInput._id || index} bg={response.farmerInput.isForReview === true ? 'yellow.100' : 'white'}>
+                  <Tr key={response.farmerInput._id || index} bg={viewMode === 'unvalidated' && response.farmerInput.isForReview === true ? 'orange.100' : 'white'}>
                     {response.farmerInput.isForReview === false ? (
                       <>
                     <Td>
@@ -547,25 +819,25 @@ const Responses = () => {
                     </>
                     ) : (<><Td></Td></>)}
 
-                    <Td fontWeight="medium">
+                    <Td fontWeight="medium" fontSize={'sm'}>
                     {`${response.farmerInput?.farmer_account_id?.first_name ?? ''} ${response.farmerInput?.farmer_account_id?.middle_name ? response.farmerInput?.farmer_account_id.middle_name +'.':''} ${response.farmerInput?.farmer_account_id?.surname ?? ''} ${response.farmerInput?.farmer_account_id?.suffix ?? ''}`.trim()}
                     </Td>
-                    <Td>{response.farmerInput?.farm_location ?? '-'}</Td>
+                    <Td fontSize={'sm'}>{response.farmerInput?.farm_location ?? '-'}</Td>
                     {status === 'NEWLY PLANTED' ? (
                         <>
-                          <Td>
+                          <Td fontSize={'sm'}>
                             {response.cropRecord
                               ? (response.cropType?.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS'
                                   ? (response.cropRecord.crop_type ?? '-')
                                   : (response.cropRecord.crop_variety ?? '-'))
                             : '-'}
                           </Td>
-                          <Td>
+                          <Td fontSize={'sm'}>
                             {response.cropDetails?.plantation_start_date && response.cropDetails?.plantation_end_date
                               ? `${new Date(response.cropDetails.plantation_start_date).toLocaleDateString('en-US', plnt_harvDate)} to ${new Date(response.cropDetails.plantation_end_date).toLocaleDateString('en-US', plnt_harvDate)}`
                               : '-'}
                           </Td>
-                          <Td>
+                          <Td fontSize={'sm'}>
                             {response.cropDetails?.total_trees != null && response.cropRecord?.crop_variety
                               ? `${numOfTreesToHectares(response.cropRecord.crop_variety, response.cropDetails.total_trees)?.toFixed(4) || 'invalid commodity'}`
                               : (response.cropDetails?.total_area_planted != null ? response.cropDetails.total_area_planted : '-')}
@@ -573,39 +845,98 @@ const Responses = () => {
                         </>
                       ) : (
                         <>
-                          <Td>
+                          <Td fontSize={'sm'}>
                             {response.cropRecord
                               ? (response.cropType?.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS'
                                   ? (response.cropRecord.crop_type ?? '-')
                                   : (response.cropRecord.crop_variety ?? '-'))
                             : '-'}
                           </Td>
-                          <Td>
+                          <Td fontSize={'sm'}>
                           {response.cropDetails?.harvest_start_date && response.cropDetails?.harvest_end_date
                             ? `${new Date(response.cropDetails.harvest_start_date).toLocaleDateString('en-US', plnt_harvDate)} to ${new Date(response.cropDetails.harvest_end_date).toLocaleDateString('en-US', plnt_harvDate)}`
                             : '-'}
                           </Td>
-                          <Td>
+                          <Td fontSize={'sm'}>
                             {response.cropDetails?.trees_harvested != null && response.cropRecord?.crop_variety
                               ? `${numOfTreesToHectares(response.cropRecord.crop_variety, response.cropDetails.trees_harvested)?.toFixed(4) || 'invalid commodity'}`
                               : (response.cropDetails?.total_area_harvested != null ? response.cropDetails.total_area_harvested : '-')}
                           </Td>
                         </>
                       )}
-                    <Td isNumeric position={{ base: 'static', md: 'sticky' }} right={0} zIndex={1} bg={response.farmerInput.isForReview === true ? 'yellow.100' : 'white'}>
-                      <Button
-                        size="sm"
-                        colorScheme={status === 'NEWLY PLANTED' ? 'green' : 'orange'}
-                        leftIcon={<FaEye />}
-                        onClick={() => {
-                          setSelectedResponse(response);
-                          onOpen();
-                        }}
-                        
-                      >
-                        Details
-                      </Button>
-                    </Td>
+                        <Td isNumeric position={{ base: 'static', md: 'sticky' }} right={0} zIndex={1} bg={viewMode === 'unvalidated' && response.farmerInput.isForReview === true ? 'orange.100' : 'white'}>
+                          {user?.role === 'HVCM' && (
+                            <ButtonWithNotification 
+                              showNotification={
+                                !response.farmerInput?.successfullyUpdated && (
+                                  (response.farmerInput?.editConsent?.status === 'Granted') ||
+                                  (response.farmerInput?.editConsent?.status === 'Denied') ||
+                                  response.farmerInput?.validationVisitDetails?.status === 'Completed' ||
+                                  response.farmerInput?.validationVisitDetails?.status === 'Rejected'
+                                )
+                              }
+                              dotColor={
+                                response.farmerInput?.editConsent?.status === 'Granted' &&
+                                !response.farmerInput?.successfullyUpdated
+                                  ? 'green.400'
+                                  : response.farmerInput?.editConsent?.status === 'Denied'
+                                  ? 'red.400'
+                                  : response.farmerInput?.validationVisitDetails?.status === 'Completed'
+                                  ? 'blue.400'
+                                  : response.farmerInput?.validationVisitDetails?.status === 'Rejected'
+                                  ? 'red.400'
+                                  : undefined
+                              }
+                            >
+                              <Button
+                                alignContent={'center'}
+                                size="xs"
+                                colorScheme={status === 'NEWLY PLANTED' ? 'green' : 'orange'}
+                                leftIcon={<FaEye />}
+                                onClick={() => {
+                                  setSelectedResponse(response);
+                                  onOpen();
+                                }}
+                              >
+                                Details
+                              </Button>
+                            </ButtonWithNotification>
+                          )}
+                          {user?.role === 'HVCS' && (
+                            <ButtonWithNotification 
+                              showNotification={
+                                !response.farmerInput?.successfullyUpdated && (
+                                  (response.farmerInput?.editConsent?.status === 'Granted') ||
+                                  (response.farmerInput?.editConsent?.status === 'Denied') ||
+                                  response.farmerInput?.validationVisitDetails?.status === 'Rejected'
+                                )
+                              }
+                              dotColor={
+                                response.farmerInput?.editConsent?.status === 'Granted' &&
+                                !response.farmerInput?.successfullyUpdated
+                                  ? 'yellow.400'
+                                  : response.farmerInput?.editConsent?.status === 'Denied'
+                                  ? 'red.400'
+                                  : response.farmerInput?.validationVisitDetails?.status === 'Rejected'
+                                  ? 'red.400'
+                                  : undefined
+                              }
+                            >
+                              <Button
+                                alignContent={'center'}
+                                size="xs"
+                                colorScheme={status === 'NEWLY PLANTED' ? 'green' : 'orange'}
+                                leftIcon={<FaEye />}
+                                onClick={() => {
+                                  setSelectedResponse(response);
+                                  onOpen();
+                                }}
+                              >
+                                Details
+                              </Button>
+                            </ButtonWithNotification>
+                          )}
+                        </Td>
                   </Tr>
                 ))
               ) : (
@@ -809,7 +1140,15 @@ const Responses = () => {
 
   // State for editable fields in modal
   const [editFields, setEditFields] = useState({});
-  const [isUpdatingFields, setIsUpdatingFields] = useState(false);
+
+  // Request-edit state
+  const [requestEditValues, setRequestEditValues] = useState({});
+  const [requestEditReason, setRequestEditReason] = useState("");
+  const [hasRequestEditChanges, setHasRequestEditChanges] = useState(false);
+
+  // fields for scheduling validation visit
+  const [validationVisitDate, setValidationVisitDate] = useState('');
+  const [validationVisitRemarks, setValidationVisitRemarks] = useState('');
 
   // When selectedResponse changes, reset editFields
   useEffect(() => {
@@ -844,61 +1183,101 @@ const Responses = () => {
     }
   }, [selectedResponse]);
 
-  const editValueRef = useRef(null);
 
-  // Handler for update button
-  const handleUpdateFields = async () => {
+  // Initialize request-edit values when the Request Edit modal opens
+  useEffect(() => {
+    if (!isOpenRequestEdit || !selectedResponse) return;
+
+    const isNewlyPlanted = selectedResponse.cropRecord?.crop_stage === 'NEWLY PLANTED';
+    const isHarvesting = selectedResponse.cropRecord?.crop_stage === 'HARVESTING';
+    const isIndustrialCrop = selectedResponse.cropType?.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS';
+
+    let initial = {};
+    if (isNewlyPlanted) {
+      initial = isIndustrialCrop
+        ? { total_area_planted: selectedResponse.cropDetails?.total_area_planted ?? '' }
+        : { total_trees: selectedResponse.cropDetails?.total_trees ?? '' };
+    } else if (isHarvesting) {
+      initial = isIndustrialCrop
+        ? {
+            total_weight: selectedResponse.cropDetails?.total_weight ?? '',
+            total_area_harvested: selectedResponse.cropDetails?.total_area_harvested ?? '',
+          }
+        : {
+            total_weight: selectedResponse.cropDetails?.total_weight ?? '',
+            trees_harvested: selectedResponse.cropDetails?.trees_harvested ?? '',
+          };
+    }
+    setRequestEditValues(initial);
+    setRequestEditReason("");
+    setHasRequestEditChanges(false);
+  }, [isOpenRequestEdit, selectedResponse]);
+
+  // Check for changes in request-edit values
+  useEffect(() => {
+    if (!selectedResponse || !isOpenRequestEdit) return;
+
+    const hasChanges = Object.keys(requestEditValues).some(key => {
+      const currentValue = String(requestEditValues[key] ?? '');
+      const originalValue = String(selectedResponse.cropDetails?.[key] ?? '');
+      return currentValue !== originalValue;
+    });
+
+    setHasRequestEditChanges(hasChanges);
+  }, [requestEditValues, selectedResponse, isOpenRequestEdit]);
+
+  // Handler for requesting farmer consent for data change (moved to Request Edit modal)
+  // ...existing code...
+  const handleRequestConsent = async () => {
     if (!selectedResponse) return;
 
-    const latest = editValueRef.current || {};
-    setIsUpdatingFields(true);
+    // sanitize values: cast numeric-like strings to numbers
+    const sanitized = Object.entries(requestEditValues || {}).reduce((acc, [k, v]) => {
+      if (v === '' || v === null || v === undefined) {
+        acc[k] = v;
+      } else if (!isNaN(v)) {
+        acc[k] = Number(v);
+      } else {
+        acc[k] = v;
+      }
+      return acc;
+    }, {});
+
     try {
       const crop_stage = selectedResponse.cropRecord?.crop_stage;
-      await updateFarmerResponseFields({
+
+      // Use atomic requestEdit (creates edit request + awaits consent)
+      const result = await requestEdit({
         farmerId: selectedResponse.farmerInput._id,
         crop_stage,
-        updates: latest
+        updates: sanitized,
+        reason: requestEditReason?.trim(), 
       });
 
-      // Create a deep copy of the selected response with updated values
-      const updatedResponse = {
-        ...selectedResponse,
-        cropDetails: {
-          ...selectedResponse.cropDetails,
-          ...latest
-        }
-      };
-      
-      // Update the state with the new values
-      setSelectedResponse(updatedResponse);
-      
       toast({
-        title: "Success",
-        description: "Fields updated successfully.",
+        title: "Request Sent",
+        description: result?.message || "Edit request recorded. Awaiting farmer consent.",
         status: "success",
         duration: 5000,
         isClosable: true,
       });
-      
-      // Invalidate queries to refresh data
+
+      // Refresh lists (no optimistic local mutation; data changes only after farmer grants consent)
       queryClient.invalidateQueries({ queryKey: ['unvalidatedNewlyPlanted'] });
       queryClient.invalidateQueries({ queryKey: ['unvalidatedHarvesting'] });
-      
-      // Add a slight delay before closing the modal to ensure the user sees the updated values
-      setTimeout(() => {
-        onClose();
-      }, 500);
+
+      onCloseRequestEdit();
+      onClose();
     } catch (error) {
+      console.log(error);
       toast({
         title: "Error",
-        description: error.response?.data?.message || "Failed to update fields.",
+        description: error.response?.data?.message || "Failed to send edit request.",
         status: "error",
         duration: 5000,
         isClosable: true,
       });
-    } finally {
-      setIsUpdatingFields(false);
-    }
+    } 
   };
 
   const handleFormToggle = async () => {
@@ -911,115 +1290,355 @@ const Responses = () => {
     }
   };
 
+  const handleScheduleVisitSubmit = async () => {
+    if (!selectedResponse) return;
+
+    // sanitize values: cast numeric-like strings to numbers
+    const sanitized = Object.entries(requestEditValues || {}).reduce((acc, [k, v]) => {
+      if (v === '' || v === null || v === undefined) {
+        acc[k] = v;
+      } else if (!isNaN(v)) {
+        acc[k] = Number(v);
+      } else {
+        acc[k] = v;
+      }
+      return acc;
+    }, {});
+
+    try {
+      const crop_stage = selectedResponse.cropRecord?.crop_stage;
+
+      // Use atomic requestEdit (creates edit request + awaits consent)
+      const result = await createValidationScheduleVisit({
+        farmerId: selectedResponse.farmerInput._id,
+        crop_stage,
+        updates: sanitized,
+        initialRemarks: validationVisitRemarks?.trim(), 
+      });
+
+      toast({
+        title: "Request Sent",
+        description: result?.message || "Edit request recorded. Awaiting farmer consent.",
+        status: "success",
+        duration: 5000,
+        isClosable: true,
+      });
+
+      // Refresh lists (no optimistic local mutation; data changes only after farmer grants consent)
+      queryClient.invalidateQueries({ queryKey: ['unvalidatedNewlyPlanted'] });
+      queryClient.invalidateQueries({ queryKey: ['unvalidatedHarvesting'] });
+
+      onCloseRequestEdit();
+      onClose();
+      onCloseScheduleVisit();
+    } catch (error) {
+      console.log(error);
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Failed to send edit request.",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    } 
+  };
+
+  const handleSubmitValidationProof = async () => {
+    if (!proofImage) {
+      toast({
+        title: "Missing proof image",
+        description: "Please upload a selfie proof image",
+        status: "warning",
+        duration: 3000,
+        isClosable: true
+      });
+      return;
+    }
+
+    if (!signature) {
+      toast({
+        title: "Missing signature",
+        description: "Please capture farmer's signature",
+        status: "warning",
+        duration: 3000,
+        isClosable: true
+      });
+      return;
+    }
+
+    if (!selectedResponse) {
+      toast({
+        title: "Error",
+        description: "No response selected",
+        status: "error",
+        duration: 3000,
+        isClosable: true
+      });
+      return;
+    }
+
+    try {
+      // Convert signature data URL to blob
+      const signatureBlob = await fetch(signature).then(r => r.blob());
+      const signatureFile = new File(
+        [signatureBlob], 
+        `signature_${selectedResponse.farmerInput._id}.png`, 
+        { type: 'image/png' }
+      );
+
+      // Create FormData
+      const formData = new FormData();
+      formData.append('farmerId', selectedResponse.farmerInput._id);
+      formData.append('proofImage', proofImage);
+      formData.append('signature', signatureFile);
+      formData.append('validatorEmployeeId', user.id);
+      formData.append('remarks', afterValidationRemarks);
+
+      // Check if any edit request values have been modified
+      const isNewlyPlanted = selectedResponse.cropRecord?.crop_stage === 'NEWLY PLANTED';
+      const isIndustrialCrop = selectedResponse.cropType?.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS';
+      
+      // Get original values for comparison
+      let hasChanges = false;
+      const updates = {};
+
+      if (isNewlyPlanted) {
+        if (isIndustrialCrop) {
+          const originalValue = selectedResponse?.farmerInput?.editConsent?.editRequestId?.total_area_planted ?? 
+                              selectedResponse.cropDetails?.total_area_planted;
+          const newValue = requestEditValues.total_area_planted;
+          
+          if (newValue !== undefined && newValue !== '' && String(newValue) !== String(originalValue)) {
+            updates.total_area_planted = Number(newValue);
+            hasChanges = true;
+          }
+        } else {
+          const originalValue = selectedResponse?.farmerInput?.editConsent?.editRequestId?.total_trees ?? 
+                              selectedResponse.cropDetails?.total_trees;
+          const newValue = requestEditValues.total_trees;
+          
+          if (newValue !== undefined && newValue !== '' && String(newValue) !== String(originalValue)) {
+            updates.total_trees = Number(newValue);
+            hasChanges = true;
+          }
+        }
+      } else {
+        // HARVESTING
+        const originalWeight = selectedResponse?.farmerInput?.editConsent?.editRequestId?.total_weight ?? 
+                              selectedResponse.cropDetails?.total_weight;
+        const newWeight = requestEditValues.total_weight;
+        
+        if (newWeight !== undefined && newWeight !== '' && String(newWeight) !== String(originalWeight)) {
+          updates.total_weight = Number(newWeight);
+          hasChanges = true;
+        }
+
+        if (isIndustrialCrop) {
+          const originalArea = selectedResponse?.farmerInput?.editConsent?.editRequestId?.total_area_harvested ?? 
+                              selectedResponse.cropDetails?.total_area_harvested;
+          const newArea = requestEditValues.total_area_harvested;
+          
+          if (newArea !== undefined && newArea !== '' && String(newArea) !== String(originalArea)) {
+            updates.total_area_harvested = Number(newArea);
+            hasChanges = true;
+          }
+        } else {
+          const originalTrees = selectedResponse?.farmerInput?.editConsent?.editRequestId?.trees_harvested ?? 
+                              selectedResponse.cropDetails?.trees_harvested;
+          const newTrees = requestEditValues.trees_harvested;
+          
+          if (newTrees !== undefined && newTrees !== '' && String(newTrees) !== String(originalTrees)) {
+            updates.trees_harvested = Number(newTrees);
+            hasChanges = true;
+          }
+        }
+      }
+
+      // Only append updates if there are changes
+      if (hasChanges) {
+        formData.append('updates', JSON.stringify(updates));
+      }
+
+      // Log FormData for debugging
+      for (const [key, value] of formData.entries()) {
+        if (value instanceof File) {
+          console.log(key, { name: value.name, size: value.size, type: value.type });
+        } else {
+          console.log(key, value);
+        }
+      }
+
+      const response = await setValidationVisitCompleted(formData);
+      console.log(formData);
+
+      toast({
+        title: "Success",
+        description: response.message || "Validation visit completed successfully",
+        status: "success",
+        duration: 5000,
+        isClosable: true
+      });
+
+      // Invalidate queries to refresh data
+      await queryClient.invalidateQueries({ queryKey: ['unvalidatedNewlyPlanted'] });
+      await queryClient.invalidateQueries({ queryKey: ['unvalidatedHarvesting'] });
+
+      // Reset states and close modal
+      setProofImage(null);
+      setProofImagePreview(null);
+      setSignature(null);
+      setRequestEditValues({});
+      onCloseConsentProof();
+      onClose();
+      setSelectedResponse(null);
+
+    } catch (error) {
+      console.error('Error submitting validation proof:', error);
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Failed to submit validation proof",
+        status: "error",
+        duration: 5000,
+        isClosable: true
+      });
+    }
+  };
+
+  const handleApproveValidationVisit = async () => {
+  if (!selectedResponse?.farmerInput?._id) {
+    toast({
+      title: "Error",
+      description: "No response selected.",
+      status: "error",
+      duration: 4000,
+      isClosable: true,
+    });
+    return;
+  }
+
+  try {
+    const response = await approveValidationVisitDetails({
+      farmerId: selectedResponse.farmerInput._id
+    });
+
+    toast({
+      title: "Approved",
+      description: response?.message || "Validation visit details approved successfully.",
+      status: "success",
+      duration: 5000,
+      isClosable: true,
+    });
+
+    // Refresh the data
+    queryClient.invalidateQueries({ queryKey: ['unvalidatedNewlyPlanted'] });
+    queryClient.invalidateQueries({ queryKey: ['unvalidatedHarvesting'] });
+
+    onCloseApproveVisit();
+    onClose();
+    onCloseConfirmApprove();
+    setSelectedResponse(null);
+
+  } catch (error) {
+    console.log(error);
+    toast({
+      title: "Error",
+      description: error.response?.data?.message || "Failed to approve validation visit details.",
+      status: "error",
+      duration: 5000,
+      isClosable: true,
+    });
+  }
+  };
+
+  const handleRejectValidationVisit = async () => {
+  if (!selectedResponse?.farmerInput?._id) {
+    toast({
+      title: "Error",
+      description: "No response selected.",
+      status: "error",
+      duration: 4000,
+      isClosable: true,
+    });
+    return;
+  }
+
+  try {
+    const response = await rejectValidationVisitDetails({
+      farmerId: selectedResponse.farmerInput._id
+    });
+
+    toast({
+      title: "Rejected",
+      description: response?.message || "Validation visit details rejected successfully.",
+      status: "success",
+      duration: 5000,
+      isClosable: true,
+    });
+
+    // Refresh the data
+    queryClient.invalidateQueries({ queryKey: ['unvalidatedNewlyPlanted'] });
+    queryClient.invalidateQueries({ queryKey: ['unvalidatedHarvesting'] });
+
+    onCloseApproveVisit();
+    onClose();
+    onCloseConfirmReject();
+    setSelectedResponse(null);
+
+  } catch (error) {
+    console.log(error);
+    toast({
+      title: "Error",
+      description: error.response?.data?.message || "Failed to reject validation visit details.",
+      status: "error",
+      duration: 5000,
+      isClosable: true,
+    });
+  }
+  };
+
+  const formatDate = (dateString) => {
+      if (!dateString) return '-';
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+  };
+
+  const formatTime = (dateString) => {
+    if (!dateString) return '-';
+    return new Date(dateString).toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: 'numeric',
+      hour12: true
+    });
+  };
+
+  const getImageUrl = (url) => {
+    if (!url) return null;
+    
+    // Extract file ID from the URL
+    const match = url.match(/[?&]id=([^&]+)/);
+    if (match && match[1]) {
+      const fileId = match[1];
+      // Use thumbnail format which works better for embedding
+      return `https://drive.google.com/thumbnail?id=${fileId}&sz=w1000`;
+    }
+    
+    return url;
+  };
+
   // ResponseDetailForm to allow editing only for flagged responses and only allowed fields
-  const ResponseDetailForm = React.memo(function ResponseDetailForm({ response, editable, onValuesChange }) {
+  const ResponseDetailForm = React.memo(function ResponseDetailForm({ response }) {
     const isNewlyPlanted = response.cropRecord?.crop_stage === 'NEWLY PLANTED';
     const isHarvesting = response.cropRecord?.crop_stage === 'HARVESTING';
     const isIndustrialCrop = response.cropType?.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS';
-
-    // Maintain a stable state reference that doesn't reset during re-renders
-    const [localFields, setLocalFields] = React.useState({});
-
-    useEffect(() => {
-      if (!response) {
-        setLocalFields({});
-        onValuesChange?.({});
-        return;
-      }
-
-      // Initialize form fields based on response data
-      let initialFields = {};
-      
-      if (isNewlyPlanted) {
-        if (isIndustrialCrop) {
-          initialFields = {
-            total_area_planted: response.cropDetails?.total_area_planted ?? ''
-          };
-        } else {
-          initialFields = {
-            total_trees: response.cropDetails?.total_trees ?? ''
-          };
-        }
-      } else if (isHarvesting) {
-        if (isIndustrialCrop) {
-          initialFields = {
-            total_weight: response.cropDetails?.total_weight ?? '',
-            total_area_harvested: response.cropDetails?.total_area_harvested ?? ''
-          };
-        } else {
-          initialFields = {
-            total_weight: response.cropDetails?.total_weight ?? '',
-            trees_harvested: response.cropDetails?.trees_harvested ?? ''
-          };
-        }
-      }
-      
-      // Only update local fields if they're different from current state
-      // This prevents field values from resetting during re-renders
-      setLocalFields(prev => {
-        // Keep existing values if they've been modified by user
-        const merged = { ...initialFields };
-        
-        // For each field that exists in both, prefer the current value if it's been changed
-        Object.keys(initialFields).forEach(key => {
-          if (prev[key] !== undefined && prev[key] !== initialFields[key]) {
-            merged[key] = prev[key];
-          }
-        });
-        
-        onValuesChange?.(merged);
-        return merged;
-      });
-    }, [response?.farmerInput?._id, isNewlyPlanted, isHarvesting, isIndustrialCrop]);
-
-    const handleLocalChange = (field, value) => {
-      setLocalFields(prev => {
-        const next = { ...prev, [field]: value };
-        onValuesChange?.(next);
-        return next;
-      });
-    };
-
-    // Non-focusable display to mimic Input appearance
-    const FakeInput = ({ value, addon }) => (
-      <Flex
-        borderWidth="1px"
-        borderColor="gray.200"
-        bg="gray.50"
-        borderRadius="md"
-        h="40px"
-        overflow="hidden" // prevents gap on right
-        align="center"
-        justify="space-between"
-        tabIndex={-1}
-      >
-        <Text noOfLines={1} px={3} flex="1">
-          {value ?? '-'}
-        </Text>
-
-        {addon ? (
-          <Box
-            borderLeftWidth="1px"
-            borderColor="gray.200"
-            bg="blue.100"
-            color="blue.800"
-            h="full"
-            display="flex"
-            alignItems="center"
-            px={3}
-          >
-            {addon}
-          </Box>
-        ) : null}
-      </Flex>
-    );
-
-
+    console.log(response);
     const formatDate = (dateString) => {
       if (!dateString) return '-';
       return new Date(dateString).toLocaleDateString('en-US', {
         year: 'numeric',
-        month: 'long',
+        month: 'short',
         day: 'numeric'
       });
     };
@@ -1033,8 +1652,136 @@ const Responses = () => {
       });
     };
 
-    return (
+    // Get edit consent status
+    const editConsentStatus = response.farmerInput?.editConsent?.status;
+    const requiredValidationVisits = response.farmerInput?.requiredValidationVisit;
+    const isSubmittedValidationVisitProof = response.farmerInput?.validationVisitDetails?.status;
+    const isValidationDetailsApproved = response.farmerInput?.validationVisitDetails?.isValidationVisitDetailsApproved;
+    const hasEditRequest = editConsentStatus && ['Pending', 'Granted', 'Denied', 'Completed'].includes(editConsentStatus) || requiredValidationVisits === true;
+    const successfullyUpdated = response.farmerInput?.successfullyUpdated;
+
+    return ( 
       <VStack spacing={6} align="stretch">
+
+        {/* Edit Consent Status Alert */}
+        {hasEditRequest && (
+          <>
+            <Alert
+              status={
+                editConsentStatus === 'Granted' || editConsentStatus === 'Completed' || isValidationDetailsApproved === true
+                  ? 'success' 
+                  : editConsentStatus === 'Denied' 
+                  ? 'error'
+                  : isSubmittedValidationVisitProof === 'Completed'
+                  ? 'info'
+                  : isSubmittedValidationVisitProof === 'Rejected'
+                  ? 'error'
+                  : 'info'
+              }
+              variant="left-accent"
+              borderRadius="md"
+            >
+              <AlertIcon />
+              <Box flex="1">
+                <AlertTitle fontSize="sm">
+                  {successfullyUpdated === true && 'Edit Successfully Applied'}
+                  {!successfullyUpdated && isValidationDetailsApproved === true && 'Validation Visit Details Approved'}
+                  {!successfullyUpdated && isSubmittedValidationVisitProof === 'Rejected' && !isValidationDetailsApproved && 'Validation Visit Details Rejected'}
+                  {!successfullyUpdated && isSubmittedValidationVisitProof === 'Completed' && !isValidationDetailsApproved && 'Validation Visit Proof Submitted'}
+                  {!successfullyUpdated && requiredValidationVisits === true && isSubmittedValidationVisitProof !== 'Completed' && isSubmittedValidationVisitProof !== 'Rejected' && !isValidationDetailsApproved && 'Validation Visit Made Required'}
+                  {!successfullyUpdated && editConsentStatus === 'Granted' && !requiredValidationVisits && !isValidationDetailsApproved && 'Farmer Granted Edit Permission'}
+                  {!successfullyUpdated && editConsentStatus === 'Denied' && !requiredValidationVisits && !isValidationDetailsApproved && 'Farmer Denied Edit Request'}
+                  {!successfullyUpdated && editConsentStatus === 'Pending' && !requiredValidationVisits && !isValidationDetailsApproved && 'Edit Request Pending'}
+                </AlertTitle>
+                <AlertDescription fontSize="xs">
+                  {successfullyUpdated === true && (
+                    <>
+                      The requested edits have been successfully applied to this response. The updated values are shown below.
+                    </>
+                  )}
+                  {!successfullyUpdated && isValidationDetailsApproved === true && (
+                    <>
+                      The validation visit details have been approved by the manager. You can now apply the requested changes to update this response.
+                      {response.farmerInput.validationVisitDetails.initialRemarks && (
+                        <Text mt={1} fontStyle="italic">
+                          Initial Remarks: {response.farmerInput.validationVisitDetails.initialRemarks}
+                        </Text>
+                      )}
+                      {response.farmerInput.validationVisitDetails.remarks && (
+                        <Text mt={1} fontStyle="italic">
+                          Final Remarks: {response.farmerInput.validationVisitDetails.remarks}
+                        </Text>
+                      )}
+                    </>
+                  )}
+                  {!successfullyUpdated && isSubmittedValidationVisitProof === 'Rejected' && !isValidationDetailsApproved && (
+                    <>
+                      The manager has rejected the validation visit proof. The submission was incomplete or inaccurate. Please review the requirements and resubmit the validation proof.
+                      {response.farmerInput.validationVisitDetails.initialRemarks && (
+                        <Text mt={1} fontStyle="italic">
+                          Initial Remarks: {response.farmerInput.validationVisitDetails.initialRemarks}
+                        </Text>
+                      )}
+                    </>
+                  )}
+                  {!successfullyUpdated && isSubmittedValidationVisitProof === 'Completed' && !isValidationDetailsApproved && (
+                    <>
+                      Validation proof submitted. Waiting for a manager to review and approve or reject the validation visit details.
+                      {response.farmerInput.validationVisitDetails.initialRemarks && (
+                        <Text mt={1} fontStyle="italic">
+                          Initial Remarks: {response.farmerInput.validationVisitDetails.initialRemarks}
+                        </Text>
+                      )}
+                      {response.farmerInput.validationVisitDetails.remarks && (
+                        <Text mt={1} fontStyle="italic">
+                          Final Remarks: {response.farmerInput.validationVisitDetails.remarks}
+                        </Text>
+                      )}
+                    </>
+                  )}
+                  {!successfullyUpdated && requiredValidationVisits === true && isSubmittedValidationVisitProof !== 'Completed' && isSubmittedValidationVisitProof !== 'Rejected' && !isValidationDetailsApproved && (
+                    <>
+                      A validation visit has been required to verify the requested edits.
+                      {response.farmerInput.validationVisitDetails.initialRemarks && (
+                        <Text mt={1} fontStyle="italic">
+                          Initial Remarks: {response.farmerInput.validationVisitDetails.initialRemarks}
+                        </Text>
+                      )}
+                    </>
+                  )}
+                  {!successfullyUpdated && editConsentStatus === 'Granted' && !requiredValidationVisits && !isSubmittedValidationVisitProof && !isValidationDetailsApproved && 
+                    `The farmer has granted permission to edit their response. You can now apply the requested changes or push the updated data to records.`
+                  }
+                  {!successfullyUpdated && editConsentStatus === 'Denied' && !requiredValidationVisits && !isValidationDetailsApproved && 
+                    `The farmer has denied the edit request for their response. No changes can be made without their consent. You may consider scheduling a validation visit to verify the data directly.`
+                  }
+                  {!successfullyUpdated && editConsentStatus === 'Pending' && !requiredValidationVisits && !isValidationDetailsApproved && 
+                    `Waiting for farmer's response to the edit request. An SMS notification has been sent. If it's taking too long, consider scheduling up a validation visit, reaching out to the farmer directly.`
+                  }
+                  {!successfullyUpdated && response.farmerInput?.editConsent?.reason && !requiredValidationVisits && !isSubmittedValidationVisitProof && !isValidationDetailsApproved && (
+                    <Text mt={1} fontStyle="italic">
+                      Reason: {response.farmerInput.editConsent.reason}
+                    </Text>
+                  )}
+                </AlertDescription>
+              </Box>
+            </Alert>
+          </>
+        )}
+
+        {/* No Phone Number Alert - Only show when edit requested or validation visit scheduled */}
+        {response.farmerInput.isForReview === true && !response.farmerInput?.farmer_account_id?.mobile_number && !response?.farmerInput?.validationVisitDetails?.status && (
+          <Alert status="warning" borderRadius="md" variant="left-accent">
+            <AlertIcon />
+              <Box flex="1">
+                <AlertTitle fontSize="sm">No Phone Number Registered</AlertTitle>
+                <AlertDescription fontSize="xs">
+                  SMS notification for edit request cannot be sent. Please update the farmer details on the system or conduct a site visit to request an edit.
+                </AlertDescription>
+              </Box>
+          </Alert>
+            )}
+
         {/* Farmer Information Section */}
         <Box p={5} borderRadius="md" borderWidth="1px" borderColor="gray.200" bg="white" boxShadow="sm">
           <Heading as="h3" size="md" mb={4} color="blue.600" fontWeight="600">
@@ -1047,27 +1794,29 @@ const Responses = () => {
           <SimpleGrid columns={{ base: 1, md: 2 }} spacing={5}>
             <FormControl>
               <FormLabel fontWeight="medium">Full Name</FormLabel>
-              <FakeInput
+              <Input
                 value={
                   `${response.farmerInput?.farmer_account_id?.first_name ?? ''} ${response.farmerInput?.farmer_account_id?.middle_name ? response.farmerInput?.farmer_account_id.middle_name + '.' : ''} ${response.farmerInput?.farmer_account_id?.surname ?? ''} ${response.farmerInput?.farmer_account_id?.suffix ?? ''}`.trim()
                 }
+                isReadOnly
+                bg="gray.50"
               />
             </FormControl>
             <FormControl>
               <FormLabel fontWeight="medium">Farm Location</FormLabel>
-              <FakeInput value={response.farmerInput?.farm_location ?? '-'} />
+              <Input value={response.farmerInput?.farm_location ?? '-'} isReadOnly bg="gray.50" />
             </FormControl>
             <FormControl>
               <FormLabel fontWeight="medium">Date of Submission</FormLabel>
-              <FakeInput value={formatDate(response.farmerInput?.createdAt)} />
+              <Input value={formatDate(response.farmerInput?.createdAt)} isReadOnly bg="gray.50" />
             </FormControl>
             <FormControl>
               <FormLabel fontWeight="medium">Time of Submission</FormLabel>
-              <FakeInput value={formatTime(response.farmerInput?.createdAt)} />
+              <Input value={formatTime(response.farmerInput?.createdAt)} isReadOnly bg="gray.50" />
             </FormControl>
             <FormControl>
               <FormLabel fontWeight="medium">Farmer ID</FormLabel>
-              <FakeInput value={response.farmerInput?.farmerId ?? '-'} />
+              <Input value={response.farmerInput?.farmerId ?? '-'} isReadOnly bg="gray.50" />
             </FormControl>
           </SimpleGrid>
         </Box>
@@ -1086,33 +1835,33 @@ const Responses = () => {
               <>
                 <FormControl>
                   <FormLabel fontWeight="medium">Crop Type</FormLabel>
-                  <FakeInput value="INDUSTRIAL" />
+                  <Input value="INDUSTRIAL" isReadOnly bg="gray.50" />
                 </FormControl>
                 <FormControl>
                   <FormLabel fontWeight="medium">Commodity</FormLabel>
-                  <FakeInput value={response.cropRecord?.crop_type ?? '-'} />
+                  <Input value={response.cropRecord?.crop_type ?? '-'} isReadOnly bg="gray.50" />
                 </FormControl>
                 <FormControl>
                   <FormLabel fontWeight="medium">Variety</FormLabel>
-                  <FakeInput value={response.cropRecord?.crop_variety ?? '-'} />
+                  <Input value={response.cropRecord?.crop_variety ?? '-'} isReadOnly bg="gray.50" />
                 </FormControl>
               </>
             ) : (
               <>
                 <FormControl>
                   <FormLabel fontWeight="medium">Crop Type</FormLabel>
-                  <FakeInput value={response.cropType?.crop_type ?? '-'} />
+                  <Input value={response.cropType?.crop_type ?? '-'} isReadOnly bg="gray.50" />
                 </FormControl>
                 <FormControl>
                   <FormLabel fontWeight="medium">Commodity</FormLabel>
-                  <FakeInput value={response.cropRecord?.crop_variety ?? '-'} />
+                  <Input value={response.cropRecord?.crop_variety ?? '-'} isReadOnly bg="gray.50" />
                 </FormControl>
               </>
             )}
           </SimpleGrid>
         </Box>
 
-        {/* Plantation Information */}
+        {/* Newlyplanted Information */}
         {isNewlyPlanted && (
           <Box p={5} borderRadius="md" borderWidth="1px" borderColor="gray.200" bg="white" boxShadow="sm">
             <Heading as="h3" size="md" mb={4} color="teal.600" fontWeight="600">
@@ -1125,18 +1874,20 @@ const Responses = () => {
             <SimpleGrid columns={{ base: 1, md: 2 }} spacing={5} mb={4}>
               <FormControl>
                 <FormLabel fontWeight="medium">Date of Plantation</FormLabel>
-                <FakeInput
+                <Input
                   value={
                     response.cropDetails?.plantation_start_date && response.cropDetails?.plantation_end_date
                       ? `${formatDate(response.cropDetails.plantation_start_date)} to ${formatDate(response.cropDetails.plantation_end_date)}`
                       : '-'
                   }
+                  isReadOnly
+                  bg="gray.50"
                 />
               </FormControl>
 
               <FormControl>
                 <FormLabel fontWeight="medium">Date of Harvesting</FormLabel>
-                <FakeInput
+                <Input
                   value={
                     response.cropDetails?.harvest_month_year
                       ? new Date(response.cropDetails.harvest_month_year).toLocaleDateString('en-US', {
@@ -1145,6 +1896,8 @@ const Responses = () => {
                         })
                       : '-'
                   }
+                  isReadOnly
+                  bg="gray.50"
                 />
               </FormControl>
             </SimpleGrid>
@@ -1153,25 +1906,15 @@ const Responses = () => {
               <Box p={4} borderRadius="md" borderWidth="1px" borderColor="blue.200" bg="blue.50" mt={5}>
                 <FormControl mb={1}>
                   <FormLabel fontWeight="medium">Total Area Planted (ha)</FormLabel>
-                  {editable ? (
-                    <InputGroup>
-                      <Input
-                        value={localFields.total_area_planted}
-                        bg="white"
-                        borderColor="gray.200"
-                        type="number"
-                        onChange={(e) => handleLocalChange('total_area_planted', e.target.value)}
-                      />
-                      <InputRightAddon children="hectares" bg="blue.100" color="blue.800" />
-                    </InputGroup>
-                  ) : (
-                    <FakeInput
-                      value={
-                        response.cropDetails?.total_area_planted != null ? response.cropDetails.total_area_planted : '-'
-                      }
-                      addon="hectares"
+                  <InputGroup>
+                    <Input
+                      value={`${response.cropDetails?.total_area_planted != null ? response.cropDetails.total_area_planted : '-'}${response?.farmerInput?.editConsent?.editRequestId?.total_area_planted != null && response?.farmerInput?.editConsent?.editRequestId?.resolved === false && !response?.farmerInput?.successfullyUpdated ? ' => ' + response.farmerInput.editConsent.editRequestId.total_area_planted : ''}`}
+                      isReadOnly
+                      bg="white"
+                      borderColor="gray.200"
                     />
-                  )}
+                    <InputRightAddon children="hectares" bg="blue.100" color="blue.800" />
+                  </InputGroup>
                 </FormControl>
               </Box>
             ) : (
@@ -1181,37 +1924,34 @@ const Responses = () => {
                     <FormLabel fontWeight="medium" color="gray.700">
                       Total Number of Trees
                     </FormLabel>
-                    {editable ? (
-                      <InputGroup>
-                        <Input
-                          value={localFields.total_trees}
-                          bg="white"
-                          borderColor="gray.300"
-                          type="number"
-                          onChange={(e) => handleLocalChange('total_trees', e.target.value)}
-                        />
-                        <InputRightAddon children="trees" bg="blue.100" color="blue.800" />
-                      </InputGroup>
-                    ) : (
-                      <FakeInput
-                        value={response.cropDetails?.total_trees != null ? response.cropDetails.total_trees : '-'}
-                        addon="trees"
+                    <InputGroup>
+                      <Input
+                        value={`${response.cropDetails?.total_trees != null ? response.cropDetails.total_trees : '-'}${response?.farmerInput?.editConsent?.editRequestId?.total_trees != null && response?.farmerInput?.editConsent?.editRequestId?.resolved === false && !response?.farmerInput?.successfullyUpdated ? ' => ' + response.farmerInput.editConsent.editRequestId.total_trees : ''}`}
+                        isReadOnly
+                        bg="white"
+                        borderColor="gray.300"
                       />
-                    )}
+                      <InputRightAddon children="trees" bg="blue.100" color="blue.800" />
+                    </InputGroup>
                   </FormControl>
 
                   <FormControl>
                     <FormLabel fontWeight="medium" color="gray.700">
                       Equivalent Area - {response.cropRecord?.crop_variety}
                     </FormLabel>
-                    <FakeInput
-                      value={
-                        response.cropDetails?.total_trees != null && response.cropRecord?.crop_variety
-                          ? `${numOfTreesToHectares(response.cropRecord.crop_variety, response.cropDetails.total_trees)?.toFixed(4) || 'invalid commodity'}`
-                          : '-'
-                      }
-                      addon="hectares"
-                    />
+                    <InputGroup>
+                      <Input
+                        value={
+                          response.cropDetails?.total_trees != null && response.cropRecord?.crop_variety
+                            ? `${numOfTreesToHectares(response.cropRecord.crop_variety, response.cropDetails.total_trees)?.toFixed(4) || 'invalid commodity'}`
+                            : '-'
+                        }
+                        isReadOnly
+                        bg="white"
+                        borderColor="gray.300"
+                      />
+                      <InputRightAddon children="hectares" bg="blue.100" color="blue.800" />
+                    </InputGroup>
                   </FormControl>
                 </SimpleGrid>
               </Box>
@@ -1232,39 +1972,33 @@ const Responses = () => {
             <SimpleGrid columns={{ base: 1, md: 2 }} spacing={5} mb={4}>
               <FormControl>
                 <FormLabel fontWeight="medium">Date of Harvest</FormLabel>
-                <FakeInput
+                <Input
                   value={
                     response.cropDetails?.harvest_start_date && response.cropDetails?.harvest_end_date
                       ? `${formatDate(response.cropDetails.harvest_start_date)} to ${formatDate(response.cropDetails.harvest_end_date)}`
                       : '-'
                   }
+                  isReadOnly
+                  bg="gray.50"
                 />
               </FormControl>
 
               <FormControl>
                 <FormLabel fontWeight="medium">Total Weight</FormLabel>
-                {editable ? (
-                  <InputGroup>
-                    <Input
-                      value={localFields.total_weight}
-                      bg="white"
-                      borderColor="gray.200"
-                      type="number"
-                      onChange={(e) => handleLocalChange('total_weight', e.target.value)}
-                    />
-                    <InputRightAddon children="kg" bg="blue.100" color="blue.800" />
-                  </InputGroup>
-                ) : (
-                  <FakeInput
-                    value={response.cropDetails?.total_weight != null ? response.cropDetails.total_weight : '-'}
-                    addon="kg"
+                <InputGroup>
+                  <Input
+                    value={`${response.cropDetails?.total_weight != null ? response.cropDetails.total_weight : '-'}${response?.farmerInput?.editConsent?.editRequestId?.total_weight != null && response?.farmerInput?.editConsent?.editRequestId?.resolved === false && !response?.farmerInput?.successfullyUpdated ? ' => ' + response.farmerInput.editConsent.editRequestId.total_weight : ''}`}
+                    isReadOnly
+                    bg="white"
+                    borderColor="gray.200"
                   />
-                )}
+                  <InputRightAddon children="kg" bg="blue.100" color="blue.800" />
+                </InputGroup>
               </FormControl>
 
               <FormControl>
                 <FormLabel fontWeight="medium">Crop Purpose</FormLabel>
-                <FakeInput value={response.cropDetails?.crop_purpose ?? '-'} />
+                <Input value={response.cropDetails?.crop_purpose ?? '-'} isReadOnly bg="gray.50" />
               </FormControl>
             </SimpleGrid>
 
@@ -1272,25 +2006,15 @@ const Responses = () => {
               <Box p={4} borderRadius="md" borderWidth="1px" borderColor="blue.200" bg="blue.50" mt={5}>
                 <FormControl mb={1}>
                   <FormLabel fontWeight="medium">Total Area Harvested (Ha)</FormLabel>
-                  {editable ? (
-                    <InputGroup>
-                      <Input
-                        value={localFields.total_area_harvested}
-                        bg="white"
-                        borderColor="gray.200"
-                        type="number"
-                        onChange={(e) => handleLocalChange('total_area_harvested', e.target.value)}
-                      />
-                      <InputRightAddon children="hectares" bg="blue.100" color="blue.800" />
-                    </InputGroup>
-                  ) : (
-                    <FakeInput
-                      value={
-                        response.cropDetails?.total_area_harvested != null ? response.cropDetails.total_area_harvested : '-'
-                      }
-                      addon="hectares"
+                  <InputGroup>
+                    <Input
+                      value={`${response.cropDetails?.total_area_harvested != null ? response.cropDetails.total_area_harvested : '-'}${response?.farmerInput?.editConsent?.editRequestId?.total_area_harvested != null && response?.farmerInput?.editConsent?.editRequestId?.resolved === false && !response?.farmerInput?.successfullyUpdated ? ' => ' + response.farmerInput.editConsent.editRequestId.total_area_harvested : ''}`}
+                      isReadOnly
+                      bg="white"
+                      borderColor="gray.200"
                     />
-                  )}
+                    <InputRightAddon children="hectares" bg="blue.100" color="blue.800" />
+                  </InputGroup>
                 </FormControl>
               </Box>
             ) : (
@@ -1300,37 +2024,34 @@ const Responses = () => {
                     <FormLabel fontWeight="medium" color="gray.700">
                       Total Number of Trees Harvested
                     </FormLabel>
-                    {editable ? (
-                      <InputGroup>
-                        <Input
-                          value={localFields.trees_harvested}
-                          bg="white"
-                          borderColor="gray.300"
-                          type="number"
-                          onChange={(e) => handleLocalChange('trees_harvested', e.target.value)}
-                        />
-                        <InputRightAddon children="trees" bg="blue.100" color="blue.800" />
-                      </InputGroup>
-                    ) : (
-                      <FakeInput
-                        value={response.cropDetails?.trees_harvested != null ? response.cropDetails.trees_harvested : '-'}
-                        addon="trees"
+                    <InputGroup>
+                      <Input
+                        value={`${response.cropDetails?.trees_harvested != null ? response.cropDetails.trees_harvested : '-'}${response?.farmerInput?.editConsent?.editRequestId?.trees_harvested != null && response?.farmerInput?.editConsent?.editRequestId?.resolved === false && !response?.farmerInput?.successfullyUpdated ? ' => ' + response.farmerInput.editConsent.editRequestId.trees_harvested : ''}`}
+                        isReadOnly
+                        bg="white"
+                        borderColor="gray.300"
                       />
-                    )}
+                      <InputRightAddon children="trees" bg="blue.100" color="blue.800" />
+                    </InputGroup>
                   </FormControl>
 
                   <FormControl>
                     <FormLabel fontWeight="medium" color="gray.700">
                       Equivalent Area - {response.cropRecord?.crop_variety}
                     </FormLabel>
-                    <FakeInput
-                      value={
-                        response.cropDetails?.trees_harvested != null && response.cropRecord?.crop_variety
-                          ? `${numOfTreesToHectares(response.cropRecord.crop_variety, response.cropDetails.trees_harvested)?.toFixed(4) || 'invalid commodity'}`
-                          : '-'
-                      }
-                      addon="hectares"
-                    />
+                    <InputGroup>
+                      <Input
+                        value={
+                          response.cropDetails?.trees_harvested != null && response.cropRecord?.crop_variety
+                            ? `${numOfTreesToHectares(response.cropRecord.crop_variety, response.cropDetails.trees_harvested)?.toFixed(4) || 'invalid commodity'}`
+                            : '-'
+                        }
+                        isReadOnly
+                        bg="white"
+                        borderColor="gray.300"
+                      />
+                      <InputRightAddon children="hectares" bg="blue.100" color="blue.800" />
+                    </InputGroup>
                   </FormControl>
                 </SimpleGrid>
               </Box>
@@ -1341,17 +2062,17 @@ const Responses = () => {
               <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mt={4}>
                 <FormControl>
                   <FormLabel fontWeight="medium">Destination</FormLabel>
-                  <FakeInput value={response.cropDetails?.destination ?? '-'} />
+                  <Input value={response.cropDetails?.destination ?? '-'} isReadOnly bg="gray.50" />
                 </FormControl>
 
                 <FormControl>
                   <FormLabel fontWeight="medium">Mode of Payment</FormLabel>
-                  <FakeInput value={response.cropDetails?.mode_of_payment ?? '-'} />
+                  <Input value={response.cropDetails?.mode_of_payment ?? '-'} isReadOnly bg="gray.50" />
                 </FormControl>
 
                 <FormControl>
                   <FormLabel fontWeight="medium">Mode of Delivery</FormLabel>
-                  <FakeInput value={response.cropDetails?.mode_of_delivery ?? '-'} />
+                  <Input value={response.cropDetails?.mode_of_delivery ?? '-'} isReadOnly bg="gray.50" />
                 </FormControl>
               </SimpleGrid>
             )}
@@ -1382,15 +2103,60 @@ const Responses = () => {
           p={4}
           bg="blue.50"
           borderRadius="md"
-          alignItems={{ base: "flex-start", md: "center" }}  // This is the key change
+          alignItems={{ base: "flex-start", md: "center" }}
+          gap={2}
         >
           <Button colorScheme={formButtonColor} size="sm" width={{ base: "full", md: "auto" }} onClick={handleFormToggle} isLoading={isUpdatingFormStatus}>
             <Icon as={isFormOpen ? FaCheck : FaStop} mr={2}/>
             {isFormOpen ? "Accepting Responses..." : "Not Accepting Responses"}
           </Button>
 
+          <Button 
+            colorScheme='blue' 
+            size="sm" 
+            width={{ base: "full", md: "auto" }} 
+            onClick={() => {
+              navigator.clipboard.writeText(`${FRONTEND_URL}/hvc/form/istcns`);
+              toast({
+                title: "Link Copied",
+                description: "The form link has been copied to your clipboard.",
+                status: "success",
+                duration: 3000,
+                isClosable: true,
+              });
+            }}
+            >
+            <Icon as={FaLink} mr={2}/>
+            Copy Form Link
+          </Button>
+
+          <Button 
+            colorScheme='blue' 
+            size="sm" 
+            width={{ base: "full", md: "auto" }} 
+            onClick={() => { window.open(`${FRONTEND_URL}/hvc/form/istcns`, '_blank') }} 
+            >
+            <Icon as={FaExternalLinkAlt} mr={2}/>
+            Open Form in New Tab
+          </Button>
+
+          <Spacer display={{ base: "none", md: "block" }} />
+
+          <Select 
+            value={viewMode} 
+            onChange={(e) => setViewMode(e.target.value)} 
+            size="sm" 
+            width={{ base: "full", md: "200px" }}
+            bg="white"
+            borderRadius={'md'}
+          >
+            <option value="unvalidated">Unvalidated Responses</option>
+            <option value="archived">Archived Responses</option>
+          </Select>
+
         </Flex>
     
+        {viewMode === 'unvalidated' ? (
         <>
           {/* NEWLY PLANTED SECTION */}
           <Box mb={8}>
@@ -1542,6 +2308,133 @@ const Responses = () => {
             </Flex>
           </Box>
         </>
+        ) : (
+          <>
+            {/* ARCHIVED NEWLY PLANTED SECTION */}
+            <Box mb={8}>
+              <Flex 
+                justify="space-between" 
+                align="center" 
+                mb={4}
+                bg="gray.50"
+                p={3}
+                height={"60px"}
+                borderRadius="md"
+                borderLeftWidth="4px"
+                borderLeftColor="gray.500"
+              >
+                <Heading as="h2" size="md" display="flex" alignItems="center">
+                  <Icon as={FaSeedling} mr={2} color="green.600" /> ARCHIVED NEWLY PLANTED RESPONSES
+                </Heading>
+              </Flex>
+            
+              {isLoadingNewlyPlantedArchived ? (
+                <Flex justifyContent="center" alignItems="center" minH="200px">
+                  <Spinner size="lg" color="green.500" thickness="3px" />
+                  <Text ml={5}>Loading archived newly planted responses...</Text>
+                </Flex>
+              ) : (
+              <Box overflowX="auto" >
+                <ResponseTable 
+                  data={archivedNewlyPlantedInputs.results} 
+                  status="NEWLY PLANTED" 
+                  selectedItems={[]}
+                  onSelectItem={() => {}}
+                  onSelectAll={() => {}}
+                />
+              </Box>
+              )}
+
+              {archivedNewlyPlantedError && (
+                <Box 
+                  overflow="hidden" 
+                  bg="white" 
+                  p={5} 
+                >
+                  <Alert status="error" borderRadius="md">
+                    <AlertIcon />
+                    <AlertTitle>Error loading data!</AlertTitle>
+                    <AlertDescription>
+                      {archivedNewlyPlantedError || "Unable to load archived newly planted responses."}
+                    </AlertDescription>
+                  </Alert>
+                </Box>
+              )}
+              
+              <Flex justifyContent="space-between" alignItems="center" mt={4}>
+                <PaginationControls 
+                  currentPage={newlyPlantedArchivedPage}
+                  setCurrentPage={setNewlyPlantedArchivedPage}
+                  totalPages={archivedNewlyPlantedInputs.totalPages}
+                  totalItems={archivedNewlyPlantedInputs.totalCount}
+                  colorScheme="green"
+                />
+              </Flex>
+            </Box>
+            
+            {/* ARCHIVED HARVESTING SECTION */}
+            <Box mb={8}>
+              <Flex 
+                justify="space-between" 
+                align="center" 
+                mb={4}
+                bg="gray.50"
+                p={3}
+                height={"60px"}
+                borderRadius="md"
+                borderLeftWidth="4px"
+                borderLeftColor="gray.500"
+              >
+                <Heading as="h2" size="md" display="flex" alignItems="center">
+                  <Icon as={FaBoxes} mr={2} color="orange.600" /> ARCHIVED HARVESTING RESPONSES
+                </Heading>
+              </Flex>
+            
+              {isLoadingHarvestingArchived ? (
+                <Flex justifyContent="center" alignItems="center" minH="200px">
+                  <Spinner size="lg" color="orange.500" thickness="3px" />
+                  <Text ml={5}>Loading archived harvesting responses...</Text>
+                </Flex>
+              ) : (
+              <Box overflowX="auto">
+                <ResponseTable 
+                  data={archivedHarvestingInputs.results} 
+                  status="HARVESTING" 
+                  selectedItems={[]}
+                  onSelectItem={() => {}}
+                  onSelectAll={() => {}}
+                />
+              </Box>
+              )}
+
+              {archivedHarvestingError && (
+                <Box 
+                  overflow="hidden" 
+                  bg="white" 
+                  p={5} 
+                >
+                  <Alert status="error" borderRadius="md">
+                    <AlertIcon />
+                    <AlertTitle>Error loading data!</AlertTitle>
+                    <AlertDescription>
+                      {archivedHarvestingError || "Unable to load archived harvesting responses."}
+                    </AlertDescription>
+                  </Alert>
+                </Box>
+              )}
+
+              <Flex justifyContent="space-between" alignItems="center" mt={4}>
+                <PaginationControls 
+                  currentPage={harvestingArchivedPage}
+                  setCurrentPage={setHarvestingArchivedPage}
+                  totalPages={archivedHarvestingInputs.totalPages}
+                  totalItems={archivedHarvestingInputs.totalCount}
+                  colorScheme="orange"
+                />
+              </Flex>
+            </Box>
+          </>
+        )}
             
       {/* Details Modal */}
       <Modal 
@@ -1552,15 +2445,12 @@ const Responses = () => {
         scrollBehavior="inside"
         isCentered
         motionPreset="none"
-        initialFocusRef={null}
-        autoFocus={false}
-        trapFocus={false}        
-        returnFocusOnClose={false}
+        blockScrollOnMount={false}
       >
         <ModalOverlay />
         <ModalContent borderRadius="lg" overflow="hidden">
           <ModalHeader 
-            bg={selectedResponse?.farmerInput?.isForReview === true ? "yellow.100" : "gray.50"}
+            bg={selectedResponse?.farmerInput?.isForReview === true ? "orange.50" : "gray.50"}
             borderBottomWidth="1px"
             borderColor="gray.200"
             py={4}
@@ -1569,6 +2459,7 @@ const Responses = () => {
           >
             <Icon 
               as={selectedResponse?.cropRecord?.crop_stage === 'NEWLY PLANTED' ? FaSeedling : FaBoxes} 
+              
               mr={2} 
               color={selectedResponse?.cropRecord?.crop_stage === 'NEWLY PLANTED' ? "green.600" : "orange.600"} 
             />
@@ -1590,83 +2481,203 @@ const Responses = () => {
             {selectedResponse && (
               <ResponseDetailForm 
                 response={selectedResponse}
-                editable={selectedResponse?.farmerInput?.isForReview === true}
-                onValuesChange={(vals) => { editValueRef.current = vals; }}
+                editable={false} // make details modal read-only
               />
             )}
           </ModalBody>
           
           <ModalFooter bg="gray.50" borderTopWidth="1px" borderColor="gray.200">
             
-            {selectedResponse?.farmerInput?.isForReview === true ? (
+            {selectedResponse?.farmerInput?.isArchived ? (
               <>
+                <Button variant="outline" mr={3} onClick={onClose} _hover={{ bg: "gray.100" }}>
+                  Close
+                </Button>
                 <Button 
-                  colorScheme="yellow" 
-                  onClick={() => handleUnsetForReview(selectedResponse)}
+                  colorScheme="blue" 
                   boxShadow="sm"
-                  _hover={{ boxShadow: "md", bg: "yellow.500" }}
-                  isLoading={isUpdatingForReview}
+                  _hover={{ boxShadow: "md", bg: "blue.600" }}
+                  onClick={() => handleUnarchiveResponse(selectedResponse)}
+                  isLoading={isUnarchivingResponse}
                 >
-                  Unflag for Review
+                  Unarchive Response
                 </Button>
               </>
             ) : (
-            <>
-              <Button 
-                colorScheme="yellow" 
-                onClick={() => handleSetForReview(selectedResponse)}
-                boxShadow="sm"
-                _hover={{ boxShadow: "md", bg: "yellow.500" }}
-                isLoading={isUpdatingForReview}
-              >
-                Flag for Review
-              </Button>
-            </>
-          )}
+              <>
+                {selectedResponse?.farmerInput?.isForReview === true ? (
+                  <>
+                    {selectedResponse?.farmerInput?.editConsent?.status === 'Pending' ? (
+                      <Tooltip label="You can't unflag a response for review if the edit request status is still pending." hasArrow placement='top'>
+                        <Button 
+                          colorScheme="orange" 
+                          onClick={() => handleUnsetForReview(selectedResponse)}
+                          boxShadow="sm"
+                          _hover={{ boxShadow: "md", bg: "orange.600" }}
+                          isLoading={isUpdatingForReview}
+                          isDisabled
+                        >
+                          Unflag for Review
+                        </Button>
+                      </Tooltip>
+                    ) : (
+                      <Button 
+                        colorScheme="orange" 
+                        onClick={() => handleUnsetForReview(selectedResponse)}
+                        boxShadow="sm"
+                        _hover={{ boxShadow: "md", bg: "orange.600" }}
+                        isLoading={isUpdatingForReview}
+                      >
+                        Unflag for Review
+                      </Button>
+                    )}
+                  </>
+                ) : (
+                <>
+                  <Button 
+                    colorScheme="yellow" 
+                    onClick={() => handleSetForReview(selectedResponse)}
+                    boxShadow="sm"
+                    _hover={{ boxShadow: "md", bg: "yellow.500" }}
+                    isLoading={isUpdatingForReview}
+                  >
+                    Flag for Review
+                  </Button>
+                </>
+              )}
 
 
-            <Spacer />
+                <Spacer />
 
-            
-            <Button variant="outline" mr={3} onClick={onClose} _hover={{ bg: "gray.100" }}>
-              Close
-            </Button>
-
-            {selectedResponse?.farmerInput?.isForReview === true && (
-              <Button 
-                colorScheme="red" 
-                boxShadow="sm"
-                mr={3}
-                _hover={{ boxShadow: "md", bg: "red.600" }}
-                onClick={onOpenWarningDelete}
-              >
-                Delete Response
-              </Button>
-            )}
-
-            {selectedResponse?.farmerInput?.isForReview === true && (
-              <Button 
-                colorScheme="blue" 
-                boxShadow="sm"
-                _hover={{ boxShadow: "md", bg: "blue.600" }}
-                onClick={handleUpdateFields}
-                isLoading={isUpdatingFields}
-              >
-                Update
-              </Button>
-            )}
-
-            {selectedResponse?.farmerInput?.isForReview === false && (
-              <Tooltip label="Cannot push responses that are flagged for review." placement="top" hasArrow isDisabled={!selectedResponse?.farmerInput?.isForReview === true}>
-                <Button 
-                  colorScheme="green" 
-                  onClick={onOpenWarning}
-                  boxShadow="sm"
-                  _hover={{ boxShadow: "md", bg: "green.600" }}
-                >
-                  Push
+                
+                <Button variant="outline" mr={3} onClick={onClose} _hover={{ bg: "gray.100" }}>
+                  Close
                 </Button>
-              </Tooltip>
+
+                {selectedResponse?.farmerInput?.isForReview === true && (
+                  <Button 
+                    colorScheme="yellow" 
+                    boxShadow="sm"
+                    mr={3}
+                    _hover={{ boxShadow: "md", bg: "yellow.500" }}
+                    onClick={onOpenArchive}
+                  >
+                    Archive Response
+                  </Button>
+                )}
+                
+
+                {/* MGA NAKAKAMATAY NA BUTTONS! */}
+                {selectedResponse?.farmerInput?.isForReview === true && (
+                  <>
+                    {/* Consent Proof Button - For staff to upload validation proof during visit */}
+                    {selectedResponse?.farmerInput?.requiredValidationVisit === true && 
+                    (selectedResponse?.farmerInput?.validationVisitDetails?.status === 'Pending' ||
+                    selectedResponse?.farmerInput?.validationVisitDetails?.status === 'Rejected') && (
+                      <Button 
+                        colorScheme="blue" 
+                        boxShadow="sm"
+                        _hover={{ boxShadow: "md", bg: "blue.600" }}
+                        onClick={onOpenConsentProof}
+                      >
+                        Consent Proof
+                      </Button>
+                    )}
+
+                    {/* View Consent Proof Button - For managers to review validation proof */}
+                    {user?.role === 'HVCM' && 
+                    selectedResponse?.farmerInput?.validationVisitDetails?.status === 'Completed' &&
+                    (selectedResponse?.farmerInput?.validationVisitDetails?.isValidationVisitDetailsApproved === false || 
+                      !selectedResponse?.farmerInput?.validationVisitDetails?.isValidationVisitDetailsApproved) && (
+                      <Button 
+                        colorScheme="purple" 
+                        boxShadow="sm"
+                        _hover={{ boxShadow: "md", bg: "purple.600" }}
+                        onClick={onOpenApproveVisit}
+                      >
+                        View Consent Proof
+                      </Button>
+                    )}
+
+                    {/* Update Button - Apply the approved changes */}
+                    {((selectedResponse?.farmerInput?.editConsent?.status === 'Granted') ||
+                      (selectedResponse?.farmerInput?.validationVisitDetails?.isValidationVisitDetailsApproved === true)) && (
+                      <Button 
+                        colorScheme="blue" 
+                        boxShadow="sm"
+                        _hover={{ boxShadow: "md", bg: "blue.600" }}
+                        onClick={handleUpdateResponseFields}
+                        isLoading={isUpdatingFarmerResponse}
+                      >
+                        Update
+                      </Button>
+                    )}
+
+                    {/* Options Button - For pending SMS requests */}
+                    {selectedResponse?.farmerInput?.editConsent?.status === 'Pending' && 
+                      selectedResponse?.farmerInput?.successfullyUpdated === false &&
+                    !selectedResponse?.farmerInput?.requiredValidationVisit &&
+                    (!selectedResponse?.farmerInput?.validationVisitDetails || selectedResponse?.farmerInput?.validationVisitDetails.isValidationVisitDetailsApproved === false) && (
+                      <Menu>
+                        <MenuButton
+                          as={Button}
+                          colorScheme="blue"
+                          boxShadow="sm"
+                          _hover={{ boxShadow: "md", bg: "blue.600" }}
+                        >
+                          Options
+                        </MenuButton>
+                        <MenuList>
+                          <MenuItem onClick={onOpenRequestEdit}>Update Request</MenuItem>
+                          <MenuItem onClick={onOpenScheduleVisit}>Require Validation Visit</MenuItem>
+                        </MenuList>
+                      </Menu>
+                    )}
+
+                    {/* Request Edit Button - Send SMS notification to farmer */}
+                    {(selectedResponse?.farmerInput?.editConsent?.status === 'Completed' ||
+                      !selectedResponse?.farmerInput?.editConsent?.status) && 
+                      selectedResponse?.farmerInput?.farmer_account_id?.mobile_number && (
+                      <Button 
+                        colorScheme="blue" 
+                        boxShadow="sm"
+                        _hover={{ boxShadow: "md", bg: "blue.600" }}
+                        onClick={onOpenRequestEdit}
+                      >
+                        Request Edit
+                      </Button>
+                    )}
+
+                    {/* Require Validation Visit Button - When no mobile number or no SMS request sent */}
+                    {((!selectedResponse?.farmerInput?.farmer_account_id?.mobile_number || 
+                       selectedResponse?.farmerInput?.editConsent?.status === 'Denied') && 
+                     (!selectedResponse?.farmerInput?.validationVisitDetails?.status || 
+                      selectedResponse?.farmerInput?.validationVisitDetails?.status === 'Rejected')) && (
+                      <Button 
+                        colorScheme="blue" 
+                        boxShadow="sm"
+                        _hover={{ boxShadow: "md", bg: "blue.600" }}
+                        onClick={onOpenScheduleVisit}
+                      >
+                        Require Validation Visit
+                      </Button>
+                    )}
+                  </>
+                )}
+
+                {selectedResponse?.farmerInput?.isForReview === false && (
+                  <Tooltip label="Cannot push responses that are flagged for review." placement="top" hasArrow isDisabled={!selectedResponse?.farmerInput?.isForReview === true}>
+                    <Button 
+                      colorScheme="green" 
+                      onClick={onOpenWarning}
+                      boxShadow="sm"
+                      _hover={{ boxShadow: "md", bg: "green.600" }}
+                    >
+                      Push
+                    </Button>
+                  </Tooltip>
+                )}
+              </>
             )}
           </ModalFooter>
         </ModalContent>
@@ -1710,49 +2721,6 @@ const Responses = () => {
                 w={"60%"}
             >
               Push To Records
-            </Button>
-            </Flex>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
-
-      <Modal isOpen={isOpenWarningDelete} size="xs" onClose={onCloseWarningDelete} closeOnOverlayClick={false} scrollBehavior="inside" isCentered  motionPreset="none">
-        <ModalOverlay/>
-        <ModalContent borderRadius="lg" overflow="hidden">
-          <ModalHeader
-            bg="red.50" 
-            borderBottomWidth="1px"
-            borderColor="gray.200"
-            py={4}
-            display="flex" 
-            alignItems="center"
-          >
-            <Icon as={GoAlertFill} mr={2} color="red.500" />
-            Warning!
-          </ModalHeader>
-
-          <ModalFooter bg="gray.50" borderTopWidth="1px" borderColor="gray.200">
-            <Flex w="100%">
-            <Button 
-              variant="outline" 
-              mr={3} 
-              onClick={onCloseWarningDelete}
-              size="md"
-              _hover={{ bg: "gray.100" }}
-              w={"40%"}
-            >
-              Cancel
-            </Button>
-            <Spacer/>
-            <Button 
-                colorScheme="red"
-                onClick={() => handleDeleteFarmerResponse(selectedResponse)}
-                size="md"
-                _hover={{ boxShadow: "md", bg: "red.600" }}
-                w={"60%"}
-                isLoading={isDeletingFarmerResponse}
-            >
-              Delete Response
             </Button>
             </Flex>
           </ModalFooter>
@@ -1808,24 +2776,1063 @@ const Responses = () => {
         </ModalContent>
       </Modal>
 
-      {/* Form Settings Modal - To be used, pag dumami na form settings*/}
-      {/* <Modal isOpen={isOpenFormSettings} onClose={onCloseFormSettings} size="md" isCentered motionPreset='none'>
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>Form Settings</ModalHeader>
-          <ModalBody>
-            <Text mb={4}>Customize the fields displayed in the response forms.</Text>
-            
-          </ModalBody>
-          <ModalFooter>
-            <Button colorScheme="blue" mr={3} onClick={onCloseFormSettings}>
-              Save Changes
+      <Modal isOpen={isOpenArchive} size="xs" onClose={onCloseArchive} closeOnOverlayClick={false} scrollBehavior="inside" isCentered  motionPreset="none">
+        <ModalOverlay/>
+        <ModalContent borderRadius="lg" overflow="hidden">
+          <ModalHeader
+            bg="yellow.50" 
+            borderBottomWidth="1px"
+            borderColor="gray.200"
+            py={4}
+            display="flex" 
+            alignItems="center"
+          >
+            <Icon as={GoAlertFill} mr={2} color="yellow.500" />
+            Archive Response?
+          </ModalHeader>
+
+          <ModalFooter bg="gray.50" borderTopWidth="1px" borderColor="gray.200">
+            <Flex w="100%">
+            <Button 
+              variant="outline" 
+              mr={3} 
+              onClick={onCloseArchive}
+              size="md"
+              _hover={{ bg: "gray.100" }}
+              w={"40%"}
+            >
+              Cancel
             </Button>
-            <Button variant="ghost" onClick={onCloseFormSettings}>Cancel</Button>
+            <Spacer/>
+            <Button 
+                colorScheme="yellow"
+                onClick={() => handleArchiveResponse(selectedResponse)}
+                size="md"
+                _hover={{ boxShadow: "md", bg: "yellow.600" }}
+                w={"60%"}
+                isLoading={isArchivingResponse}
+            >
+              Archive Response
+            </Button>
+            </Flex>
           </ModalFooter>
         </ModalContent>
-      </Modal> */}
+      </Modal>
+
+      {/* REQUEST EDIT MODAL */}
+      <Modal isOpen={isOpenRequestEdit} onClose={onCloseRequestEdit} size="md" isCentered motionPreset='none' closeOnOverlayClick={false} scrollBehavior="inside">
+        <ModalOverlay />
+        <ModalContent borderRadius="lg" overflow="hidden">
+          <ModalHeader
+            bg="gray.50"
+            borderBottomWidth="1px"
+            borderColor="gray.200"
+            py={4}
+            display="flex" 
+            alignItems="center"
+          >
+            Request Edit From Farmer
+          </ModalHeader>
+          <ModalBody py={6}>
+            {selectedResponse ? (
+              <VStack align="stretch" spacing={4}>
+
+                
+
+                {/* Heads-up when updating an existing pending request */}
+                {selectedResponse?.farmerInput?.editConsent?.status === 'Pending' && (
+                  <Alert status="warning" borderRadius="md" variant="left-accent">
+                    <AlertIcon />
+                    <Box flex="1">
+                      <AlertTitle fontSize="sm">Update will notify the farmer again</AlertTitle>
+                      <AlertDescription fontSize="xs">
+                        Updating this edit request will send another SMS notification to the farmer. If no changes are needed, consider waiting for the farmer’s response to the current request instead.
+                      </AlertDescription>
+                    </Box>
+                  </Alert>
+                )}
+
+                {(!selectedResponse?.farmerInput?.editConsent?.status || selectedResponse?.farmerInput?.editConsent?.status === 'Completed') && (
+                  <Alert status="info" borderRadius="md" variant="left-accent">
+                    <AlertIcon />
+                    <Box>
+                      <AlertTitle fontSize="sm">Request Edit from Farmer</AlertTitle>
+                      <AlertDescription fontSize="xs">
+                        Send an SMS notification to farmer where they can view the requested edits and grant them consent or not.
+                      </AlertDescription>
+                    </Box>
+                  </Alert>
+                )}
+
+                {/* Dynamic fields based on stage/type */}
+                {selectedResponse.cropRecord?.crop_stage === 'NEWLY PLANTED' ? (
+                  selectedResponse.cropType?.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS' ? (
+                    <FormControl>
+                      <FormLabel fontWeight="medium">Total Area Planted (ha)</FormLabel>
+                      <InputGroup>
+                        <Input
+                          type="number"
+                          value={requestEditValues.total_area_planted  ?? ''}
+                          onChange={(e) => setRequestEditValues(v => ({ ...v, total_area_planted: e.target.value }))
+                          }
+                        />
+                        <InputRightAddon children="hectares" />
+                      </InputGroup>
+                    </FormControl>
+                  ) : (
+                    <FormControl>
+                      <FormLabel fontWeight="medium">Total Number of Trees</FormLabel>
+                      <InputGroup>
+                        <Input
+                          type="number"
+                          value={requestEditValues.total_trees ?? ''}
+                          onChange={(e) => setRequestEditValues(v => ({ ...v, total_trees: e.target.value }))
+                          }
+                        />
+                        <InputRightAddon children="trees" />
+                      </InputGroup>
+                    </FormControl>
+                  )
+                ) : (
+                  // HARVESTING
+                  <>
+                    <FormControl>
+                      <FormLabel fontWeight="medium">Total Weight</FormLabel>
+                      <InputGroup>
+                        <Input
+                          type="number"
+                          value={requestEditValues.total_weight ?? ''}
+                          onChange={(e) => setRequestEditValues(v => ({ ...v, total_weight: e.target.value }))
+                          }
+                        />
+                        <InputRightAddon children="kg" />
+                      </InputGroup>
+                    </FormControl>
+
+                    {selectedResponse.cropType?.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS' ? (
+                      <FormControl>
+                        <FormLabel fontWeight="medium">Total Area Harvested (ha)</FormLabel>
+                        <InputGroup>
+                          <Input
+                            type="number"
+                            value={requestEditValues.total_area_harvested ?? ''}
+                            onChange={(e) => setRequestEditValues(v => ({ ...v, total_area_harvested: e.target.value }))
+                            }
+                          />
+                          <InputRightAddon children="hectares" />
+                        </InputGroup>
+                      </FormControl>
+                    ) : (
+                      <FormControl>
+                        <FormLabel fontWeight="medium">Total Number of Trees Harvested</FormLabel>
+                        <InputGroup>
+                          <Input
+                            type="number"
+                            value={requestEditValues.trees_harvested ?? ''}
+                            onChange={(e) => setRequestEditValues(v => ({ ...v, trees_harvested: e.target.value }))
+                            }
+                          />
+                          <InputRightAddon children="trees" />
+                        </InputGroup>
+                      </FormControl>
+                    )}
+                  </>
+                )}
+
+                <Divider />
+
+                <FormControl isRequired>
+                  <FormLabel fontWeight="medium">Reason for request</FormLabel>
+                  <Textarea
+                    placeholder="Explain why this edit is needed..."
+                    value={requestEditReason}
+                    onChange={(e) => setRequestEditReason(e.target.value)}
+                    minH="100px"
+                  />
+                </FormControl>
+              </VStack>
+            ) : null}
+          </ModalBody>
+          <ModalFooter bg="gray.50" borderTopWidth="1px" borderColor="gray.200">
+            <Flex w="100%" display={'flex'} justifyContent={'right'}>
+              <Button 
+                variant="outline" 
+                onClick={onCloseRequestEdit}
+                size="md"
+                _hover={{ bg: "gray.100" }}
+              >
+                Cancel
+              </Button>
+            
+              <Button
+                colorScheme="blue"
+                onClick={handleRequestConsent}
+                isLoading={isRequestingEdit}
+                isDisabled={!requestEditReason?.trim() || !hasRequestEditChanges}
+                size="md"
+                _hover={{ boxShadow: "md", bg: "blue.600" }}
+                ml={'3'}
+              >
+                Send Request
+              </Button>
+            </Flex>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* SCHEDULE VALIDATION VISIT MODAL */}
+      <Modal isOpen={isOpenScheduleVisit} onClose={onCloseScheduleVisit} size="md" isCentered motionPreset='none' closeOnOverlayClick={false} scrollBehavior="inside">
+        <ModalOverlay />
+        <ModalContent borderRadius="lg" overflow="hidden">
+          <ModalHeader
+            bg="gray.50"
+            borderBottomWidth="1px"
+            borderColor="gray.200"
+            py={4}
+            display="flex" 
+            alignItems="center"
+          >
+            Schedule Validation Visit
+          </ModalHeader>
+          <ModalBody py={6}>
+            <VStack align="stretch" spacing={4}>
+              <Alert status="info" borderRadius="md" variant="left-accent">
+                <AlertIcon />
+                <Box>
+                  <AlertTitle fontSize="sm">Field Validation Required</AlertTitle>
+                  <AlertDescription fontSize="xs">
+                    Require a validation visit to verify the requested edits on-site. Specify the corrected values below.
+                  </AlertDescription>
+                </Box>
+              </Alert>
+
+              {/* Dynamic Edit Fields Section */}
+              {selectedResponse && (
+                <>
+                  {selectedResponse.cropRecord?.crop_stage === 'NEWLY PLANTED' ? (
+                    selectedResponse.cropType?.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS' ? (
+                      <FormControl>
+                        <FormLabel fontWeight="medium">Total Area Planted (ha)</FormLabel>
+                        <InputGroup>
+                          <Input
+                            type="number"
+                            value={requestEditValues.total_area_planted ?? ''}
+                            onChange={(e) => setRequestEditValues(v => ({ ...v, total_area_planted: e.target.value }))}
+                          />
+                          <InputRightAddon children="hectares" />
+                        </InputGroup>
+                        <Text fontSize="xs" color="gray.600" mt={1}>
+                          Current value: <b>{selectedResponse.cropDetails?.total_area_planted ?? '-'}</b> hectares
+                        </Text>
+                      </FormControl>
+                    ) : (
+                      <FormControl>
+                        <FormLabel fontWeight="medium">Total Number of Trees</FormLabel>
+                        <InputGroup>
+                          <Input
+                            type="number"
+                            value={requestEditValues.total_trees ?? ''}
+                            onChange={(e) => setRequestEditValues(v => ({ ...v, total_trees: e.target.value }))}
+                          />
+                          <InputRightAddon children="trees" />
+                        </InputGroup>
+                        <Text fontSize="xs" color="gray.600" mt={1}>
+                          Current value: <b>{selectedResponse.cropDetails?.total_trees ?? '-'}</b> trees
+                        </Text>
+                      </FormControl>
+                    )
+                  ) : (
+                    // HARVESTING
+                    <>
+                      <FormControl>
+                        <FormLabel fontWeight="medium">Total Weight</FormLabel>
+                        <InputGroup>
+                          <Input
+                            type="number"
+                            value={requestEditValues.total_weight ?? ''}
+                            onChange={(e) => setRequestEditValues(v => ({ ...v, total_weight: e.target.value }))}
+                          />
+                          <InputRightAddon children="kg" />
+                        </InputGroup>
+                        <Text fontSize="xs" color="gray.600" mt={1}>
+                          Current value: <b>{selectedResponse.cropDetails?.total_weight ?? '-'}</b> kg
+                        </Text>
+                      </FormControl>
+
+                      {selectedResponse.cropType?.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS' ? (
+                        <FormControl>
+                          <FormLabel fontWeight="medium">Total Area Harvested (ha)</FormLabel>
+                          <InputGroup>
+                            <Input
+                              type="number"
+                              value={requestEditValues.total_area_harvested ?? ''}
+                              onChange={(e) => setRequestEditValues(v => ({ ...v, total_area_harvested: e.target.value }))}
+                            />
+                            <InputRightAddon children="hectares" />
+                          </InputGroup>
+                          <Text fontSize="xs" color="gray.600" mt={1}>
+                            Current value: <b>{selectedResponse.cropDetails?.total_area_harvested ?? '-'}</b> hectares
+                          </Text>
+                        </FormControl>
+                      ) : (
+                        <FormControl>
+                          <FormLabel fontWeight="medium">Total Number of Trees Harvested</FormLabel>
+                          <InputGroup>
+                            <Input
+                              type="number"
+                              value={requestEditValues.trees_harvested ?? ''}
+                              onChange={(e) => setRequestEditValues(v => ({ ...v, trees_harvested: e.target.value }))}
+                            />
+                            <InputRightAddon children="trees" />
+                          </InputGroup>
+                          <Text fontSize="xs" color="gray.600" mt={1}>
+                            Current value: <b>{selectedResponse.cropDetails?.trees_harvested ?? '-'}</b> trees
+                          </Text>
+                        </FormControl>
+                      )}
+                    </>
+                  )}
+                </>
+              )}
+
+              <Divider />
+
+              <FormControl>
+                <FormLabel fontWeight="medium">Initial Remarks (Optional)</FormLabel>
+                <Textarea
+                  placeholder="Add notes about why this validation visit is needed..."
+                  value={validationVisitRemarks}
+                  onChange={(e) => setValidationVisitRemarks(e.target.value)}
+                  minH="100px"
+                />
+                <Text fontSize="xs" color="gray.500" mt={1}>
+                  These remarks will be saved with the validation visit schedule
+                </Text>
+              </FormControl>
+            </VStack>
+          </ModalBody>
+          <ModalFooter bg="gray.50" borderTopWidth="1px" borderColor="gray.200">
+            <Flex w="100%" display={'flex'} justifyContent={'right'}>
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  onCloseScheduleVisit();
+                  setValidationVisitRemarks('');
+                  setRequestEditValues({});
+                }}
+                size="md"
+                _hover={{ bg: "gray.100" }}
+              >
+                Cancel
+              </Button>
+            
+              <Button
+                colorScheme="blue"
+                size="md"
+                _hover={{ boxShadow: "md", bg: "blue.600" }}
+                ml={'3'}
+                onClick={handleScheduleVisitSubmit}
+                isLoading={isCreatingValidationSchedule}
+              >
+                Require Validation Visit
+              </Button>
+            </Flex>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* CONSENT PROOF MODAL FOR VALIDATION VISITS */}
+      <Modal isOpen={isOpenConsentProof} onClose={onCloseConsentProof} size="3xl" isCentered motionPreset="none" closeOnOverlayClick={false} scrollBehavior="inside">
+        <ModalOverlay />
+        <ModalContent borderRadius="lg" overflow="hidden">
+          <ModalHeader
+            bg="gray.50"
+            borderBottomWidth="1px"
+            borderColor="gray.200"
+            py={4}
+            display="flex"
+            alignItems="center"
+          >
+            Upload Consent Proof
+          </ModalHeader>
+          <ModalBody py={6}>
+            <VStack align="stretch" spacing={6}>
+              <Alert status="info" borderRadius="md" variant="left-accent">
+                <AlertIcon />
+                <Box>
+                  <AlertTitle fontSize="sm">Validation Visit Completion</AlertTitle>
+                  <AlertDescription fontSize="xs">
+                    Upload a proof image and capture the farmer's signature to confirm consent for the requested edits.
+                  </AlertDescription>
+                </Box>
+              </Alert>
+
+              {/* Proof Image Upload Section */}
+              <Box>
+                <FormControl isRequired>
+                  <FormLabel display="flex" alignItems="center" gap={2}>
+                    <Icon as={FaCamera} color="blue.500" />
+                    Selfie Proof Image
+                  </FormLabel>
+                  <Text fontSize="sm" color="gray.600" mb={2}>
+                    Upload a clear photo showing the completed work
+                  </Text>
+                  
+                  {!proofImagePreview ? (
+                    <Box
+                      borderWidth={2}
+                      borderStyle="dashed"
+                      borderColor="gray.300"
+                      borderRadius="md"
+                      p={6}
+                      textAlign="center"
+                      bg="gray.50"
+                      position="relative"
+                      cursor="pointer"
+                      _hover={{ borderColor: "blue.400", bg: "blue.50" }}
+                      onClick={() => document.getElementById('proof-image-input').click()}
+                    >
+                      <Input
+                        id="proof-image-input"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageChange}
+                        display="none"
+                      />
+                      <Icon as={FaCamera} boxSize={10} color="gray.400" mb={2} />
+                      <Text color="gray.600" fontWeight="medium">
+                        Click to upload or drag and drop
+                      </Text>
+                      <Text fontSize="sm" color="gray.500">
+                        PNG, JPG, JPEG (max 5MB)
+                      </Text>
+                    </Box>
+                  ) : (
+                    <Box position="relative" borderRadius="md" overflow="hidden" borderWidth={1} borderColor="gray.200">
+                      <Image
+                        src={proofImagePreview}
+                        alt="Proof preview"
+                        maxH="300px"
+                        w="100%"
+                        objectFit="contain"
+                        bg="gray.100"
+                      />
+                      <Button
+                        position="absolute"
+                        top={2}
+                        right={2}
+                        size="sm"
+                        colorScheme="red"
+                        leftIcon={<CloseIcon />}
+                        onClick={handleClearImage}
+                      >
+                        Remove
+                      </Button>
+                    </Box>
+                  )}
+                </FormControl>
+              </Box>
+
+              {/* Signature Section */}
+              <Box>
+                <FormControl isRequired>
+                  <FormLabel display="flex" alignItems="center" gap={2}>
+                    <Icon as={FaSignature} color="purple.500" />
+                    Farmer Signature
+                  </FormLabel>
+                  <Text fontSize="sm" color="gray.600" mb={2}>
+                    Ask the farmer to sign below to confirm completion
+                  </Text>
+                  
+                  <Box
+                    ref={canvasContainerRef}
+                    borderWidth={2}
+                    borderColor={signature ? "green.400" : "gray.300"}
+                    borderRadius="md"
+                    bg="white"
+                    p={2}
+                    position="relative"
+                  >
+                    <Box
+                      borderWidth={1}
+                      borderColor="gray.200"
+                      borderRadius="md"
+                      overflow="hidden"
+                      position="relative"
+                    >
+                      <SignatureCanvas
+                        ref={signatureRef}
+                        canvasProps={{
+                          width: canvasSize.width,
+                          height: canvasSize.height,
+                          style: {
+                            display: 'block',
+                            touchAction: 'none',
+                            opacity: signature ? 0.5 : 1,
+                            pointerEvents: signature ? 'none' : 'auto'
+                          }
+                        }}
+                        backgroundColor="white"
+                      />
+                      {signature && (
+                        <Box
+                          position="absolute"
+                          top={0}
+                          left={0}
+                          right={0}
+                          bottom={0}
+                          bg="transparent"
+                          pointerEvents="none"
+                        />
+                      )}
+                    </Box>
+                    
+                    <HStack mt={2} spacing={2}>
+                      <Button
+                        size="sm"
+                        colorScheme="blue"
+                        onClick={handleSaveSignature}
+                        leftIcon={<FaSignature />}
+                        isDisabled={signature !== null}
+                      >
+                        Save Signature
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          handleClearSignature();
+                          if (signatureRef.current) {
+                            signatureRef.current.on();
+                          }
+                        }}
+                      >
+                        Clear
+                      </Button>
+                    </HStack>
+
+                    {signature && (
+                      <Alert status="success" mt={2} borderRadius="md">
+                        <AlertIcon />
+                        <Text fontSize="sm">Signature captured successfully</Text>
+                      </Alert>
+                    )}
+                  </Box>
+                </FormControl>
+              </Box>
+
+              {/* Remarks Section */}
+              <Box>
+                <FormControl>
+                  <FormLabel fontWeight="medium">Remarks (Optional)</FormLabel>
+                  <Textarea
+                    placeholder="Add any additional notes or observations from the validation visit..."
+                    value={afterValidationRemarks}
+                    onChange={(e) => setAfterValidationRemarks(e.target.value)}
+                    minH="100px"
+                    resize="vertical"
+                  />
+                  <Text fontSize="xs" color="gray.500" mt={1}>
+                    These final remarks will be saved with the validation visit details
+                  </Text>
+                </FormControl>
+              </Box>
+              <Divider />
+              {/* Dynamic Edit Fields Section */}
+              {selectedResponse && (
+                <Box>
+                  <Heading as="h4" size="sm" mb={3} color="gray.700">
+                    Confirm Values
+                  </Heading>
+                  <Alert status="warning" borderRadius="md" variant="left-accent" mb={4}>
+                    <AlertIcon />
+                    <Box>
+                      <AlertTitle fontSize="sm">Review and Adjust Values</AlertTitle>
+                      <AlertDescription fontSize="xs">
+                        The fields below show the current edit request values. If the farmer and staff agreed on different values during the validation visit, you can update them before submitting.
+                      </AlertDescription>
+                    </Box>
+                  </Alert>
+
+                  <VStack align="stretch" spacing={4}>
+                    {selectedResponse.cropRecord?.crop_stage === 'NEWLY PLANTED' ? (
+                      selectedResponse.cropType?.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS' ? (
+                        <FormControl>
+                          <FormLabel fontWeight="medium">Total Area Planted (ha)</FormLabel>
+                          <InputGroup>
+                            <Input
+                              type="number"
+                              value={requestEditValues.total_area_planted ?? ''}
+                              onChange={(e) => setRequestEditValues(v => ({ ...v, total_area_planted: e.target.value }))}
+                            />
+                            <InputRightAddon children="hectares" />
+                          </InputGroup>
+                          <Text fontSize="xs" color="gray.600" mt={1}>
+                            Current request: <b>{selectedResponse?.farmerInput?.editConsent?.editRequestId?.total_area_planted ?? selectedResponse.cropDetails?.total_area_planted ?? '-'}</b> hectares
+                          </Text>
+                        </FormControl>
+                      ) : (
+                        <FormControl>
+                          <FormLabel fontWeight="medium">Total Number of Trees</FormLabel>
+                          <InputGroup>
+                            <Input
+                              type="number"
+                              value={requestEditValues.total_trees ?? ''}
+                              onChange={(e) => setRequestEditValues(v => ({ ...v, total_trees: e.target.value }))}
+                            />
+                            <InputRightAddon children="trees" />
+                          </InputGroup>
+                          <Text fontSize="xs" color="gray.600" mt={1}>
+                            Current request: <b>{selectedResponse?.farmerInput?.editConsent?.editRequestId?.total_trees ?? selectedResponse.cropDetails?.total_trees ?? '-'}</b> trees
+                          </Text>
+                        </FormControl>
+                      )
+                    ) : (
+                      // HARVESTING
+                      <>
+                        <FormControl>
+                          <FormLabel fontWeight="medium">Total Weight</FormLabel>
+                          <InputGroup>
+                            <Input
+                              type="number"
+                              value={requestEditValues.total_weight ?? ''}
+                              onChange={(e) => setRequestEditValues(v => ({ ...v, total_weight: e.target.value }))}
+                            />
+                            <InputRightAddon children="kg" />
+                          </InputGroup>
+                          <Text fontSize="xs" color="gray.600" mt={1}>
+                            Current request: <b>{selectedResponse?.farmerInput?.editConsent?.editRequestId?.total_weight ?? selectedResponse.cropDetails?.total_weight ?? '-'}</b> kg
+                          </Text>
+                        </FormControl>
+
+                        {selectedResponse.cropType?.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS' ? (
+                          <FormControl>
+                            <FormLabel fontWeight="medium">Total Area Harvested (ha)</FormLabel>
+                            <InputGroup>
+                              <Input
+                                type="number"
+                                value={requestEditValues.total_area_harvested ?? ''}
+                                onChange={(e) => setRequestEditValues(v => ({ ...v, total_area_harvested: e.target.value }))}
+                              />
+                              <InputRightAddon children="hectares" />
+                            </InputGroup>
+                            <Text fontSize="xs" color="gray.600" mt={1}>
+                              Current request: <b>{selectedResponse?.farmerInput?.editConsent?.editRequestId?.total_area_harvested ?? selectedResponse.cropDetails?.total_area_harvested ?? '-'}</b> hectares
+                            </Text>
+                          </FormControl>
+                        ) : (
+                          <FormControl>
+                            <FormLabel fontWeight="medium">Total Number of Trees Harvested</FormLabel>
+                            <InputGroup>
+                              <Input
+                                type="number"
+                                value={requestEditValues.trees_harvested ?? ''}
+                                onChange={(e) => setRequestEditValues(v => ({ ...v, trees_harvested: e.target.value }))}
+                              />
+                              <InputRightAddon children="trees" />
+                            </InputGroup>
+                            <Text fontSize="xs" color="gray.600" mt={1}>
+                              Current request: <b>{selectedResponse?.farmerInput?.editConsent?.editRequestId?.trees_harvested ?? selectedResponse.cropDetails?.trees_harvested ?? '-'}</b> trees
+                            </Text>
+                          </FormControl>
+                        )}
+                      </>
+                    )}
+                  </VStack>
+                </Box>
+              )}
+
+            </VStack>
+          </ModalBody>
+          <ModalFooter bg="gray.50" borderTopWidth="1px" borderColor="gray.200">
+            <Flex w="100%" display="flex" justifyContent="right">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  onCloseConsentProof()
+                  setProofImage(null);
+                  setProofImagePreview(null);
+                  setSignature(null);
+                  setAfterValidationRemarks('');
+                  setRequestEditValues({});
+                }}
+                size="md"
+                _hover={{ bg: "gray.100" }}
+              >
+                Cancel
+              </Button>
+
+              <Button
+                colorScheme="blue"
+                size="md"
+                _hover={{ boxShadow: "md", bg: "blue.600" }}
+                ml="3"
+                onClick={handleSubmitValidationProof}
+                isDisabled={!proofImage || !signature}
+                isLoading={isSettingVisitCompleted}
+              >
+                Submit Consent Proof
+              </Button>
+            </Flex>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* APPROVE VALIDATION VISIT PROOF MODAL. */}
+      <Modal 
+        isOpen={isOpenApproveVisit} 
+        onClose={onCloseApproveVisit} 
+        size="4xl" 
+        closeOnOverlayClick={false} 
+        scrollBehavior="inside" 
+        isCentered 
+        motionPreset="none"
+      >
+        <ModalOverlay />
+        <ModalContent borderRadius="md" overflow="hidden">
+          <ModalHeader bg="blue.50" borderBottomWidth="1px" borderColor="gray.200" display="flex" alignItems="center">
+            <Icon as={FaCheckCircle} mr={3} color="blue.500" />
+            Review Validation Visit Details
+          </ModalHeader>
+
+          <ModalBody py={6}>
+            {selectedResponse?.farmerInput?.validationVisitDetails ? (
+              <VStack spacing={6} align="stretch">
+                {/* Validation Visit Information */}
+                <Box bg="blue.50" p={4} borderRadius="md">
+                  <Heading size="sm" mb={3}>Validation Visit Information</Heading>
+                  <SimpleGrid columns={{ base: 1, md: 2 }} spacing={3}>
+                    <Box>
+                      <Text fontWeight="bold" fontSize="sm" color="gray.600">Status</Text>
+                      <Badge colorScheme="green">
+                        {selectedResponse.farmerInput.validationVisitDetails.status}
+                      </Badge>
+                    </Box>
+                    <Box>
+                      <Text fontWeight="bold" fontSize="sm" color="gray.600">Completed Date</Text>
+                      <Text fontSize="md">
+                        {formatDate(selectedResponse.farmerInput.validationVisitDetails.completedAt)}
+                      </Text>
+                    </Box>
+                    <Box>
+                      <Text fontWeight="bold" fontSize="sm" color="gray.600">Completed Time</Text>
+                      <Text fontSize="md">
+                        {formatTime(selectedResponse.farmerInput.validationVisitDetails.completedAt)}
+                      </Text>
+                    </Box>
+                    <Box>
+                      <Text fontWeight="bold" fontSize="sm" color="gray.600">Validator Employee</Text>
+                      <Text fontSize="md">
+                        {selectedResponse.farmerInput.validationVisitDetails.first_name}{' '}
+                        {selectedResponse.farmerInput.validationVisitDetails.middle_name ? 
+                          selectedResponse.farmerInput.validationVisitDetails.middle_name.charAt(0).toUpperCase() + '. ' : ''}
+                        {selectedResponse.farmerInput.validationVisitDetails.last_name}{' '}
+                        {selectedResponse.farmerInput.validationVisitDetails.suffix || ''}
+                      </Text>
+                    </Box>
+                    <Box>
+                      <Text fontWeight="bold" fontSize="sm" color="gray.600">Validator Email</Text>
+                      <Text fontSize="md">
+                        {selectedResponse.farmerInput.validationVisitDetails.email || '-'}
+                      </Text>
+                    </Box>
+                    <Box>
+                      <Text fontWeight="bold" fontSize="sm" color="gray.600">Validator Phone</Text>
+                      <Text fontSize="md">
+                        {selectedResponse.farmerInput.validationVisitDetails.phone || '-'}
+                      </Text>
+                    </Box>
+                  </SimpleGrid>
+                </Box>
+
+                <Divider />
+
+                {/* Proof Images Section */}
+                <Box>
+                  <Heading size="sm" mb={4}>Validation Proof</Heading>
+                  <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
+                    {/* Selfie Proof */}
+                    <Box>
+                      <Text fontWeight="bold" fontSize="sm" color="gray.600" mb={2}>
+                        Selfie Proof Image
+                      </Text>
+                      {selectedResponse.farmerInput.validationVisitDetails.proofImageUrl ? (
+                        <AspectRatio ratio={4 / 3} borderRadius="md" overflow="hidden" border="1px" borderColor="gray.200">
+                          <Box
+                            as="img"
+                            src={getImageUrl(selectedResponse.farmerInput.validationVisitDetails.proofImageUrl)}
+                            alt="Validation Selfie Proof"
+                            objectFit="cover"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                              e.target.parentElement.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #f7fafc;"><span style="color: #718096;">Image not available</span></div>';
+                            }}
+                          />
+                        </AspectRatio>
+                      ) : (
+                        <Box
+                          bg="gray.100"
+                          borderRadius="md"
+                          p={8}
+                          textAlign="center"
+                          border="1px"
+                          borderColor="gray.200"
+                        >
+                          <Text color="gray.500">No proof image available</Text>
+                        </Box>
+                      )}
+                      {selectedResponse.farmerInput.validationVisitDetails.proofImageUrl && (
+                        <Button
+                          as="a"
+                          href={selectedResponse.farmerInput.validationVisitDetails.proofImageUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          size="sm"
+                          colorScheme="blue"
+                          variant="link"
+                          mt={2}
+                        >
+                          Open in new tab
+                        </Button>
+                      )}
+                    </Box>
+
+                    {/* Farmer Signature */}
+                    <Box>
+                      <Text fontWeight="bold" fontSize="sm" color="gray.600" mb={2}>
+                        Farmer Signature
+                      </Text>
+                      {selectedResponse.farmerInput.validationVisitDetails.signatureUrl ? (
+                        <AspectRatio ratio={4 / 3} borderRadius="md" overflow="hidden" border="1px" borderColor="gray.200">
+                          <Box
+                            as="img"
+                            src={getImageUrl(selectedResponse.farmerInput.validationVisitDetails.signatureUrl)}
+                            alt="Farmer Signature"
+                            objectFit="cover"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                              e.target.parentElement.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #f7fafc;"><span style="color: #718096;">Image not available</span></div>';
+                            }}
+                          />
+                        </AspectRatio>
+                      ) : (
+                        <Box
+                          bg="gray.100"
+                          borderRadius="md"
+                          p={8}
+                          textAlign="center"
+                          border="1px"
+                          borderColor="gray.200"
+                        >
+                          <Text color="gray.500">No signature available</Text>
+                        </Box>
+                      )}
+                      {selectedResponse.farmerInput.validationVisitDetails.signatureUrl && (
+                        <Button
+                          as="a"
+                          href={selectedResponse.farmerInput.validationVisitDetails.signatureUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          size="sm"
+                          colorScheme="blue"
+                          variant="link"
+                          mt={2}
+                        >
+                          Open in new tab
+                        </Button>
+                      )}
+                    </Box>
+                  </SimpleGrid>
+                </Box>
+
+                {/* Remarks Sections */}
+                <Divider />
+
+                
+              {selectedResponse.farmerInput.validationVisitDetails.initialRemarks && (
+                <Box>
+                  <FormControl>
+                    <FormLabel fontWeight="bold" fontSize="sm" color="gray.600">
+                      Initial Remarks
+                    </FormLabel>
+                    <Textarea
+                      value={selectedResponse.farmerInput.validationVisitDetails.initialRemarks}
+                      isReadOnly
+                      bg="gray.50"
+                      fontSize="sm"
+                      minH="80px"
+                      resize="none"
+                    />
+                  </FormControl>
+                </Box>
+              )}
+
+              {selectedResponse.farmerInput.validationVisitDetails.remarks && (
+                <Box>
+                  <FormControl>
+                    <FormLabel fontWeight="bold" fontSize="sm" color="gray.600">
+                      Final Remarks
+                    </FormLabel>
+                    <Textarea
+                      value={selectedResponse.farmerInput.validationVisitDetails.remarks}
+                      isReadOnly
+                      bg="gray.50"
+                      fontSize="sm"
+                      minH="80px"
+                      resize="none"
+                    />
+                  </FormControl>
+                </Box>
+              )}
+
+              </VStack>
+            ) : (
+              <VStack spacing={4} align="center" py={8}>
+                <Text color="gray.600" fontSize="sm">No validation visit details available</Text>
+              </VStack>
+            )}
+          </ModalBody>
+
+          <ModalFooter bg="gray.50" borderTopWidth="1px" borderColor="gray.200">
+            <Button 
+              variant="outline" 
+              mr={3} 
+              onClick={onCloseApproveVisit} 
+              _hover={{ bg: "gray.100" }}
+            >
+              Close
+            </Button>
+            <Button 
+              colorScheme="red" 
+              mr={3}
+              onClick={onOpenConfirmReject}
+            >
+              Reject
+            </Button>
+            <Button 
+              colorScheme="green"
+              onClick={onOpenConfirmApprove}
+            >
+              Approve
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
       
+      {/* CONFIRM APPROVE VALIDATION VISIT MODAL */}
+      <Modal 
+        isOpen={isOpenConfirmApprove} 
+        onClose={onCloseConfirmApprove} 
+        size="sm" 
+        isCentered 
+        motionPreset="none"
+        closeOnOverlayClick={false}
+      >
+        <ModalOverlay />
+        <ModalContent borderRadius="lg" overflow="hidden">
+          <ModalHeader
+            bg="green.50"
+            borderBottomWidth="1px"
+            borderColor="gray.200"
+            py={4}
+            display="flex"
+            alignItems="center"
+          >
+            <Icon as={FaCheckCircle} mr={2} color="green.500" />
+            Approve Validation Visit?
+          </ModalHeader>
+          {/* <ModalBody py={6}>
+            <VStack spacing={3} align="stretch">
+              <Text fontSize="sm">
+                Are you sure you want to approve this validation visit? This action will:
+              </Text>
+              <VStack align="stretch" spacing={2} pl={4}>
+                <Text fontSize="sm">• Mark the validation visit as approved</Text>
+                <Text fontSize="sm">• Allow the requested edits to be applied</Text>
+                <Text fontSize="sm">• Enable the response to be updated with new values</Text>
+              </VStack>
+            </VStack>
+          </ModalBody> */}
+          <ModalFooter bg="gray.50" borderTopWidth="1px" borderColor="gray.200">
+            <Button 
+              variant="outline" 
+              mr={3} 
+              onClick={onCloseConfirmApprove}
+              size="md"
+              _hover={{ bg: "gray.100" }}
+            >
+              Cancel
+            </Button>
+            <Button 
+              colorScheme="green"
+              onClick={handleApproveValidationVisit}
+              isLoading={isApprovingVisitDetails}
+              size="md"
+              _hover={{ boxShadow: "md", bg: "green.600" }}
+            >
+              Approve Details
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* CONFIRM REJECT VALIDATION VISIT MODAL */}
+      <Modal 
+        isOpen={isOpenConfirmReject} 
+        onClose={onCloseConfirmReject} 
+        size="sm" 
+        isCentered 
+        motionPreset="none"
+        closeOnOverlayClick={false}
+      >
+        <ModalOverlay />
+        <ModalContent borderRadius="lg" overflow="hidden">
+          <ModalHeader
+            bg="red.50"
+            borderBottomWidth="1px"
+            borderColor="gray.200"
+            py={4}
+            display="flex"
+            alignItems="center"
+          >
+            <Icon as={GoAlertFill} mr={2} color="red.500" />
+            Reject Validation Visit?
+          </ModalHeader>
+          <ModalBody py={6}>
+            <VStack spacing={3} align="stretch">
+              <Text fontSize="sm">
+                Are you sure you want to reject this validation visit? This action will:
+              </Text>
+              <VStack align="stretch" spacing={2} pl={4}>
+                <Text fontSize="sm">• Mark the validation visit as rejected</Text>
+                <Text fontSize="sm">• Reset the validation visit status to pending</Text>
+                <Text fontSize="sm">• Require the staff to submit new proof</Text>
+              </VStack>
+            </VStack>
+          </ModalBody>
+          <ModalFooter bg="gray.50" borderTopWidth="1px" borderColor="gray.200">
+            <Button 
+              variant="outline" 
+              mr={3} 
+              onClick={onCloseConfirmReject}
+              size="md"
+              _hover={{ bg: "gray.100" }}
+            >
+              Cancel
+            </Button>
+            <Button 
+              colorScheme="red"
+              onClick={handleRejectValidationVisit}
+              isLoading={isRejectingVisitDetails}
+              size="md"
+              _hover={{ boxShadow: "md", bg: "red.600" }}
+            >
+              Reject Details
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
     </Box>
   );
 };

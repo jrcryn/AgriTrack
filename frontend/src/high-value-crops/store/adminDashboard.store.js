@@ -2,11 +2,13 @@ import axios from 'axios';
 import { create } from 'zustand';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
+import { useAuthStore } from '../../auth/store/authStore';
+import { set } from 'lodash';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
 // React Query hooks for data fetching
-export const useUnvalidatedNewlyPlantedQuery = (page = 1, isPaused = false) => 
+export const useUnvalidatedNewlyPlantedQuery = (page = 1, isPaused = false, role) => 
   useQuery({
     queryKey: ['unvalidatedNewlyPlanted', page],
     queryFn: async () => {
@@ -16,9 +18,10 @@ export const useUnvalidatedNewlyPlantedQuery = (page = 1, isPaused = false) =>
     },
     staleTime: 0,
     refetchInterval: isPaused ? false : 1000, // Refetch every second unless paused
+    enabled: role === 'HVCM' || role === 'HVCS' 
   });
 
-export const useUnvalidatedHarvestingQuery = (page = 1, isPaused = false) => 
+export const useUnvalidatedHarvestingQuery = (page = 1, isPaused = false, role) => 
   useQuery({
     queryKey: ['unvalidatedHarvesting', page],
     queryFn: async () => {
@@ -28,6 +31,33 @@ export const useUnvalidatedHarvestingQuery = (page = 1, isPaused = false) =>
     },
     staleTime: 0,
     refetchInterval: isPaused ? false : 1000, // Refetch every second unless paused
+    enabled: role === 'HVCM' || role === 'HVCS' 
+  });
+
+export const useUnvalidatedNewlyPlantedArchivedQuery = (page = 1, isPaused = false, role) => 
+  useQuery({
+    queryKey: ['unvalidatedNewlyPlantedArchived', page],
+    queryFn: async () => {
+      const params = new URLSearchParams({ page, limit: 5, crop_stage: 'NEWLY PLANTED' });
+      const response = await axios.get(`${API_URL}/api/hvc/get-unvalidated-archived-inputs`, { params });
+      return response.data;
+    },
+    staleTime: 0,
+    refetchInterval: isPaused ? false : 1000, // Refetch every second unless paused
+    enabled: role === 'HVCM' || role === 'HVCS' 
+  });
+
+export const useUnvalidatedHarvestingArchivedQuery = (page = 1, isPaused = false, role) => 
+  useQuery({
+    queryKey: ['unvalidatedHarvestingArchived', page],
+    queryFn: async () => {
+      const params = new URLSearchParams({ page, limit: 5, crop_stage: 'HARVESTING' });
+      const response = await axios.get(`${API_URL}/api/hvc/get-unvalidated-archived-inputs`, { params });
+      return response.data;
+    },
+    staleTime: 0,
+    refetchInterval: isPaused ? false : 1000, // Refetch every second unless paused
+    enabled: role === 'HVCM' || role === 'HVCS' 
   });
 
 // export const useValidatedInputsQuery = () => 
@@ -61,7 +91,7 @@ export const useUnvalidatedHarvestingQuery = (page = 1, isPaused = false) =>
 // };
 
 
-export const useFarmerAccountsQuery = (searchParams = {}) => {
+export const useFarmerAccountsQuery = (searchParams = {}, role) => {
  
   return useQuery({
    queryKey: ['farmerAccounts', searchParams],
@@ -84,10 +114,37 @@ export const useFarmerAccountsQuery = (searchParams = {}) => {
     },
     staleTime: 0, // Data is always fresh
     keepPreviousData: true, // Keep previous data while loading new data
+    enabled: role === 'HVCM' || role === 'HVCS' 
   });
 };
 
-export const useUnifiedFarmerResponseYearQuery = () =>
+export const useArchivedFarmerAccountsQuery = (searchParams = {}, role) => {
+  return useQuery({
+   queryKey: ['archivedFarmerAccounts', searchParams],
+    queryFn: async () => {
+      //await new Promise(resolve => setTimeout(resolve, 5000));
+      const params = new URLSearchParams();
+
+      if (searchParams.farmerName) {
+        params.append('farmerName', searchParams.farmerName);
+      };
+
+      if (searchParams.page) {
+        params.append('page', searchParams.page);
+      }
+      params.append('limit', 10); // Set items per page
+
+
+      const response = await axios.get(`${API_URL}/api/hvc/get-archived-farmer-accounts`, { params });
+      return response.data;
+    },
+    staleTime: 0, // Data is always fresh
+    keepPreviousData: true, // Keep previous data while loading new data
+    enabled: role === 'HVCM' || role === 'HVCS' 
+  });
+};
+
+export const useUnifiedFarmerResponseYearQuery = (role) =>
   useQuery({
     queryKey: ['availableYears'],
     queryFn: async () => {
@@ -97,21 +154,22 @@ export const useUnifiedFarmerResponseYearQuery = () =>
       return response.data;
     },
     staleTime: 0, // Data is always fresh
-    refetchInterval: 1000 // Refetch every second
+    refetchInterval: 1000, // Refetch every second
+    enabled: role === 'HVCM' || role === 'HVCS' 
   });
 
-export const useUnifiedFarmerResponseMonthsQuery = (year) =>
+export const useUnifiedFarmerResponseMonthsQuery = (year, role) =>
   useQuery({
     queryKey: ['availableMonths', year],
     queryFn: async () => {
       const response = await axios.get(`${API_URL}/api/hvc/metrics/available-months/${year}`);
       return response.data;
     },
-    enabled: !!year, // Only run the query if year is provided
+    enabled: !!year && (role === 'HVCM' || role === 'HVCS'), // Only run the query if year is provided
     staleTime: 0, // Data is always fresh
   });
 
-  export const useMetricsForYearMonthQuery = (year, month, barangay, commodity) =>
+  export const useMetricsForYearMonthQuery = (year, month, barangay, commodity, role) =>
     useQuery({
       // Use 0 in the query key to represent "All Months" when month is null
       queryKey: ['metricsData', year, month ?? 0, barangay, commodity],
@@ -141,12 +199,12 @@ export const useUnifiedFarmerResponseMonthsQuery = (year) =>
         return response.data;
       },
       // Enable the query as long as a year is selected
-      enabled: !!year,
+      enabled: !!year && (role === 'HVCM' || role === 'HVCS'),
       staleTime: 0,
     });
 
 //for report generation, date ranges
-export const useDateRangesQuery = (year, month) => 
+export const useDateRangesQuery = (year, month, role) => 
   useQuery({
     queryKey: ['dateRanges', year, month],
     queryFn: async () => {
@@ -155,11 +213,11 @@ export const useDateRangesQuery = (year, month) =>
       const response = await axios.get(`${API_URL}/api/hvc/report-date-ranges/${year}/${month}`);
       return response.data;
     },
-    enabled: !!(year && month), // Only run if both year and month are provided
+    enabled: !!(year && month) && (role === 'HVCM' || role === 'HVCS'), // Only run if both year and month are provided
     staleTime: 0, // Data is always fresh
   });
 
-export const useAvailableBarangaysQuery = (year, month) => 
+export const useAvailableBarangaysQuery = (year, month, role) => 
   useQuery({
     queryKey: ['barangays', year, month],
     queryFn: async () => {
@@ -168,7 +226,7 @@ export const useAvailableBarangaysQuery = (year, month) =>
       const response = await axios.get(`${API_URL}/api/hvc/available-barangays/${year}/${month}`);
       return response.data;
     },
-    enabled: !!(year && month), // Only run if both year and month are provided
+    enabled: !!(year && month) && (role === 'HVCM' || role === 'HVCS'), // Only run if both year and month are provided
     staleTime: 0, // Data is always fresh
   });
 
@@ -177,32 +235,41 @@ export const useAvailableBarangaysQuery = (year, month) =>
 
 // Composite hook that combines React Query and Zustand
 export const useAdminDashboard = (searchParams = {}) => {
-
+  const { user } = useAuthStore()
+  const role = user?.role?.toString().toUpperCase();
+  
   const [selectedYear, setSelectedYear] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState(null);
   const [selectedBarangay, setSelectedBarangay] = useState('');
   const [selectedCommodity, setSelectedCommodity] = useState('');
-  const [error, setError] = useState(null);
   const [newlyPlantedPage, setNewlyPlantedPage] = useState(1);
   const [harvestingPage, setHarvestingPage] = useState(1);
+
+  const [newlyPlantedArchivedPage, setNewlyPlantedArchivedPage] = useState(1);
+  const [harvestingArchivedPage, setHarvestingArchivedPage] = useState(1);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const { data: newlyPlantedInputs = { results: [], totalPages: 1, totalCount: 0 }, isLoading: isLoadingNewlyPlanted, error: newlyPlantedError } = useUnvalidatedNewlyPlantedQuery(newlyPlantedPage, isModalOpen);
-  const { data: harvestingInputs = { results: [], totalPages: 1, totalCount: 0 }, isLoading: isLoadingHarvesting, error: harvestingError } = useUnvalidatedHarvestingQuery(harvestingPage, isModalOpen);
-  //const { data: validatedInputs = [], isLoading: isLoadingValidated, error: validatedError } = useValidatedInputsQuery();
-  //const { mutate: updateFarmerInput, isPending: isUpdating, error: updateError } = useUpdateFarmerInputMutation();
-  const { data: farmerAccounts = [], isLoading: isLoadingAccounts, error: farmerAccountsError } = useFarmerAccountsQuery(searchParams);
+  const { data: newlyPlantedInputs = { results: [], totalPages: 1, totalCount: 0 }, isLoading: isLoadingNewlyPlanted, error: newlyPlantedError } = useUnvalidatedNewlyPlantedQuery(newlyPlantedPage, isModalOpen, role);
+  const { data: harvestingInputs = { results: [], totalPages: 1, totalCount: 0 }, isLoading: isLoadingHarvesting, error: harvestingError } = useUnvalidatedHarvestingQuery(harvestingPage, isModalOpen, role);
 
-  const { data: availableYears = [], isLoading: isLoadingUFRY, error: ufrYearsError } = useUnifiedFarmerResponseYearQuery();
-  const { data: availableMonths = [], isLoading: isLoadingUFRM, error: ufrMonthsError } = useUnifiedFarmerResponseMonthsQuery(selectedYear);
+  const { data: archivedNewlyPlantedInputs = { results: [], totalPages: 1, totalCount: 0 }, isLoading: isLoadingNewlyPlantedArchived, error: archivedNewlyPlantedError } = useUnvalidatedNewlyPlantedArchivedQuery(newlyPlantedArchivedPage, isModalOpen, role);
+  const { data: archivedHarvestingInputs = { results: [], totalPages: 1, totalCount: 0 }, isLoading: isLoadingHarvestingArchived, error: archivedHarvestingError } = useUnvalidatedHarvestingArchivedQuery(harvestingArchivedPage, isModalOpen, role);
+
+  const { data: farmerAccounts = [], isLoading: isLoadingAccounts, error: farmerAccountsError } = useFarmerAccountsQuery(searchParams, role);
+  const { data: archivedFarmerAccounts = [], isLoading: isLoadingArchivedAccounts, error: archivedFarmerAccountsError } = useArchivedFarmerAccountsQuery(searchParams, role);
+
+  const { data: availableYears = [], isLoading: isLoadingUFRY, error: ufrYearsError } = useUnifiedFarmerResponseYearQuery(role);
+  const { data: availableMonths = [], isLoading: isLoadingUFRM, error: ufrMonthsError } = useUnifiedFarmerResponseMonthsQuery(selectedYear, role);
   const { data: metricsData, isLoading: isLoadingMetrics, error: metricsError } = useMetricsForYearMonthQuery(
     selectedYear, 
     selectedMonth,
     selectedBarangay || null,  // Pass as null if empty string
     selectedCommodity || null,  // Pass as null if empty string
+    role
   );
-  const { data: dateRanges = [], isLoading: isLoadingDateRanges, error: dateRangesError } = useDateRangesQuery(selectedYear, selectedMonth);
-  const { data: barangays = [], isLoading: isLoadingBarangays, error: barangaysError } = useAvailableBarangaysQuery(selectedYear, selectedMonth);
+  const { data: dateRanges = [], isLoading: isLoadingDateRanges, error: dateRangesError } = useDateRangesQuery(selectedYear, selectedMonth, role);
+  const { data: barangays = [], isLoading: isLoadingBarangays, error: barangaysError } = useAvailableBarangaysQuery(selectedYear, selectedMonth, role);
 
   const [isCreatingUnifiedResponse, setIsCreatingUnifiedResponse] = useState(false);
   const [isDeletingFarmerAccount, setIsDeletingFarmerAccount] = useState(false);
@@ -211,6 +278,16 @@ export const useAdminDashboard = (searchParams = {}) => {
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [isUpdatingFarmerAccount, setIsUpdatingFarmerAccount] = useState(false);
   const [isUpdatingFormStatus, setIsUpdatingFormStatus] = useState(false);
+  const [isArchivingResponse, setIsArchivingResponse] = useState(false);
+  const [isUnarchivingResponse, setIsUnarchivingResponse] = useState(false);
+  const [isRequestingEdit, setIsRequestingEdit] = useState(false);
+  const [isGettingEditRequestDetails, setIsGettingEditRequestDetails] = useState(false);
+  const [isHandlingConsent, setIsHandlingConsent] = useState(false);
+  const [isUpdatingFarmerResponse, setIsUpdatingFarmerResponse] = useState(false);
+  const [isCreatingValidationSchedule, setIsCreatingValidationSchedule] = useState(false);
+  const [isSettingVisitCompleted, setIsSettingVisitCompleted] = useState(false);
+  const [isApprovingVisitDetails, setIsApprovingVisitDetails] = useState(false);
+  const [isRejectingVisitDetails, setIsRejectingVisitDetails] = useState(false);
 
 
   useEffect(() => {
@@ -255,12 +332,24 @@ export const useAdminDashboard = (searchParams = {}) => {
     } finally {
       setIsFindingFarmerAccount(false);
     }
-  };////////////////////////////////////////////////////////////////////////////
+  };
 
-  const deleteFarmerAccount = async (farmerId) => {
+  const archiveFarmerAccount = async (farmerId) => {
     setIsDeletingFarmerAccount(true);
     try {
-      const response = await axios.post(`${API_URL}/api/hvc/delete-farmer-account`, farmerId );
+      const response = await axios.post(`${API_URL}/api/hvc/archive-farmer-account`, farmerId );
+      return response.data;
+    } catch (error) {
+      throw error;
+    } finally {
+      setIsDeletingFarmerAccount(false);
+    }
+  };
+  
+  const unarchiveFarmerAccount = async (farmerId) => {
+    setIsDeletingFarmerAccount(true);
+    try {
+      const response = await axios.post(`${API_URL}/api/hvc/unarchive-farmer-account`, farmerId );
       return response.data;
     } catch (error) {
       throw error;
@@ -357,17 +446,57 @@ export const useAdminDashboard = (searchParams = {}) => {
     }
   };
 
-  // Add updateFarmerResponseFields for flagged responses (partial update)
-  const updateFarmerResponseFields = async ({ farmerId, crop_stage, updates }) => {
+  // for granted consent requests (full update)
+  const updateFarmerResponseFields = async ({ farmerId }) => {
+    setIsUpdatingFarmerResponse(true);
     try {
-      const response = await axios.post(`${API_URL}/api/hvc/update-farmer-response-fields`, {
+      const response = await axios.post(`${API_URL}/api/hvc/update-farmer-response-fields/${farmerId}` );
+      return response.data;
+    } catch (error) {
+      throw error;
+    } finally {
+      setIsUpdatingFarmerResponse(false);
+    }
+  };
+
+  const requestEdit = async ({ farmerId, crop_stage, updates, reason }) => {
+    setIsRequestingEdit(true);
+    try {
+      const response = await axios.post(`${API_URL}/api/hvc/request-edit`, {
         farmerId,
         crop_stage,
-        updates
+        updates,
+        reason
       });
       return response.data;
     } catch (error) {
       throw error;
+    } finally {
+      setIsRequestingEdit(false);
+    }
+  };
+
+  const getEditRequestDetails = async (editRequestId) => {
+    setIsGettingEditRequestDetails(true);
+    try {
+      const response = await axios.get(`${API_URL}/api/hvc/get-edit-request-details-for-farmer-view/${editRequestId}`);
+      return response.data; // { editRequest, result: { farmerInput, cropType, cropRecord, cropDetails } }
+    } catch (error) {
+      throw error;
+    } finally {
+      setIsGettingEditRequestDetails(false);
+    }
+  };
+
+  const handleConsentForEditRequest = async ({ editRequestId, consent }) => {
+    setIsHandlingConsent(true);
+    try {
+      const response = await axios.post(`${API_URL}/api/hvc/handle-consent-for-edit-request`, { editRequestId, consent });
+      return response.data;
+    } catch (error) {
+      throw error;
+    } finally {
+      setIsHandlingConsent(false);
     }
   };
 
@@ -402,6 +531,84 @@ export const useAdminDashboard = (searchParams = {}) => {
     }
   };
 
+  const archiveResponse = async (inputId) => {
+    setIsArchivingResponse(true);
+    try {
+      const response = await axios.post(`${API_URL}/api/hvc/archive-response`, { inputId });
+      return response.data;
+    } catch (error) {
+      throw error;
+    } finally {
+      setIsArchivingResponse(false);
+    }
+  };
+
+  const unarchiveResponse = async (inputId) => {
+    setIsUnarchivingResponse(true);
+    try {
+      const response = await axios.post(`${API_URL}/api/hvc/unarchive-response`, { inputId });
+      return response.data;
+    } catch (error) {
+      throw error;
+    } finally {
+      setIsUnarchivingResponse(false);
+    }
+  };
+
+  const createValidationScheduleVisit = async (scheduleData) => {
+    setIsCreatingValidationSchedule(true);
+    try {
+      const response = await axios.post(`${API_URL}/api/hvc/create-validation-schedule-visit`, scheduleData);
+      return response.data;
+    } catch (error) {
+      throw error;
+    } finally {
+      setIsCreatingValidationSchedule(false);
+    }
+  };
+
+  const setValidationVisitCompleted = async (visitData) => {
+    setIsSettingVisitCompleted(true);
+    try {
+      const response = await axios.post(`${API_URL}/api/hvc/set-validation-visit-completed`, visitData, {
+        headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+      });
+      return response.data;
+    } catch (error) {
+      throw error;
+    } finally {
+      setIsSettingVisitCompleted(false);
+    }
+  };
+
+  const approveValidationVisitDetails = async (visitData) => {
+    setIsApprovingVisitDetails(true);
+    try {
+      const response = await axios.post(`${API_URL}/api/hvc/approve-validation-visit-details`, visitData);
+      return response.data;
+    } catch (error) {
+      throw error;
+    } finally {
+      setIsApprovingVisitDetails(false);
+    }
+  };
+
+  const rejectValidationVisitDetails = async (visitData) => {
+    setIsRejectingVisitDetails(true);
+    try {
+      const response = await axios.post(`${API_URL}/api/hvc/reject-validation-visit-details`, visitData);
+      return response.data;
+    } catch (error) {
+      throw error;
+    } finally {
+      setIsRejectingVisitDetails(false);
+    }
+  };
+
+  
+  
   // Combine errors from different sources
   // if (unvalidatedError) setError(unvalidatedError.message || 'Failed to fetch unvalidated inputs');
   // if (validatedError) setError(validatedError.message || 'Failed to fetch validated inputs');
@@ -414,6 +621,7 @@ export const useAdminDashboard = (searchParams = {}) => {
     newlyPlantedInputs,
     harvestingInputs,
     farmerAccounts,
+    archivedFarmerAccounts,
     getFarmerAccountById,
     availableYears,
     availableMonths,
@@ -428,19 +636,31 @@ export const useAdminDashboard = (searchParams = {}) => {
     setSelectedCommodity,
     dateRanges,
     barangays,
+    archivedNewlyPlantedInputs,
+    archivedHarvestingInputs,
 
     newlyPlantedPage,
     setNewlyPlantedPage,
     harvestingPage,
     setHarvestingPage,
+    setNewlyPlantedArchivedPage,
+    newlyPlantedArchivedPage,
+    setHarvestingArchivedPage,
+    harvestingArchivedPage,
+    isModalOpen,
+    setIsModalOpen,
+    getEditRequestDetails,
     
     // Loading states
-    isLoading: isLoadingAccounts || isLoadingMetrics || isLoadingDateRanges,
+    isLoading: isLoadingAccounts || isLoadingMetrics || isLoadingDateRanges || isLoadingArchivedAccounts,
     isLoadingNewlyPlanted,
     isLoadingHarvesting,
     isLoadingUFRY,
     isLoadingUFRM,
     isLoadingBarangays,
+    isLoadingNewlyPlantedArchived,
+    isLoadingHarvestingArchived,
+    isGettingEditRequestDetails,
 
     //isUpdating,
     isCreatingUnifiedResponse,
@@ -449,23 +669,36 @@ export const useAdminDashboard = (searchParams = {}) => {
     isGeneratingReport,
     isUpdatingFarmerAccount,
     isUpdatingFormStatus,
+    isArchivingResponse,
+    isUnarchivingResponse,
+    isRequestingEdit,
+    isHandlingConsent,
+    isUpdatingFarmerResponse,
+    isCreatingValidationSchedule,
+    isSettingVisitCompleted,
+    isApprovingVisitDetails,
+    isRejectingVisitDetails,
 
     // Error states
     newlyPlantedError, 
-    harvestingError, 
+    harvestingError,
     //validatedError, //not in use
     farmerAccountsError, 
+    archivedFarmerAccountsError,
     ufrYearsError, 
     ufrMonthsError, 
     metricsError, 
     dateRangesError, 
     barangaysError,
-    
+    archivedNewlyPlantedError,
+    archivedHarvestingError,
+
     // Actions
     //updateFarmerInput,
     createFarmerAccount,
     getFarmerAccountByNameUser,
-    deleteFarmerAccount,
+    archiveFarmerAccount,
+    unarchiveFarmerAccount,
     createUnifiedFarmerResponse,
     flagResponseForReview,
     unflagResponseForReview,
@@ -476,6 +709,14 @@ export const useAdminDashboard = (searchParams = {}) => {
     setIsModalOpen,
     deleteFarmerResponse,
     FormStatusEnable,
-    FormStatusDisable
+    FormStatusDisable,
+    archiveResponse,
+    unarchiveResponse,
+    requestEdit,
+    handleConsentForEditRequest,
+    createValidationScheduleVisit,
+    setValidationVisitCompleted,
+    approveValidationVisitDetails,
+    rejectValidationVisitDetails,
   };
 };

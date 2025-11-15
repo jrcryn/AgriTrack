@@ -1,11 +1,15 @@
 import express from 'express';
+import multer from 'multer';
 
 import { 
     getUnvalidatedFarmerInputs, 
     //getValidatedFarmerInputs, // not in use
     createFarmerAccount, //manipulate data
-    deleteFarmerAccount,
+    archiveFarmerAccount,
+    unarchiveFarmerAccount,
     getFarmerAccounts,
+    getArchivedFarmerAccounts,
+
     getFarmerAccountByNameUser, 
     //getFarmerAccountById, // not in use
     updateFarmerAccount, //manipulate data
@@ -15,11 +19,24 @@ import {
     getAvailableMetricsYears,
     getAvailableMonthsForYear,
     getMetricsForYearMonth,
-    updateFarmerResponseFields,
+
     deleteFarmerResponse,
     formStatusEnable,
     formStatusDisable,
-    checkFormStatus
+    checkFormStatus,
+    getUnvalidatedArchivedFarmerInputs,
+    archiveResponse,
+    unarchiveResponse,
+
+    requestEdit,
+    getRequestEditDetailsForFarmerView,
+    handleConsentForEditRequest,
+    updateFarmerResponseFields,
+
+    createValidationScheduleVisit,
+    setValidationVisitCompleted,
+    approveValidationVisitDetails,
+    rejectValidationVisitDetails,
  } from '../controller/high-value-crops/adminDashboard.controller.js'; 
 
 import { 
@@ -31,13 +48,16 @@ import {
 
 import {
     submitCompleteFarmerForm,
-    getFarmerAccountByName
 } from '../controller/high-value-crops/farmerForm.controller.js';
 
 import { verifyAuthToken } from '../middleware/verifyToken.js';
 import { verifyRole } from '../middleware/verifyRole.js';
 import { ensureHvcFormOpen } from '../middleware/verifyHVCFormStatus.js';
 
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+});
 
 const router = express.Router();
 
@@ -52,19 +72,48 @@ router.post('/unflag-response-for-review/:farmerId', verifyAuthToken, verifyRole
 router.post('/form-status-enable', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), formStatusEnable);
 router.post('/form-status-disable', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), formStatusDisable);
 
+router.post('/archive-response', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), archiveResponse);
+router.post('/unarchive-response', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), unarchiveResponse);
+router.get('/get-unvalidated-archived-inputs', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), getUnvalidatedArchivedFarmerInputs);
+
+router.post('/request-edit', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), requestEdit);
+
+router.get('/get-edit-request-details-for-farmer-view/:id', getRequestEditDetailsForFarmerView);
+router.post('/handle-consent-for-edit-request', handleConsentForEditRequest);
+router.post('/update-farmer-response-fields/:farmerId', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), updateFarmerResponseFields); //sa new responses page dapat ito
+
+router.post('/create-validation-schedule-visit', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), createValidationScheduleVisit);
+
+router.post(
+  '/set-validation-visit-completed', 
+  verifyAuthToken, 
+  verifyRole(['HVCM', 'HVCS']), 
+  upload.fields([
+    { name: 'proofImage', maxCount: 1 },
+    { name: 'signature', maxCount: 1 }
+  ]),
+  setValidationVisitCompleted
+);
+
+router.post('/approve-validation-visit-details', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), approveValidationVisitDetails);
+router.post('/reject-validation-visit-details', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), rejectValidationVisitDetails);
+
 
 //________________________________ DASHBOARD (FARMERS) PAGE ____________________________________
 
 
 router.post('/create-farmer-account', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), createFarmerAccount);
-router.post('/delete-farmer-account', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), deleteFarmerAccount);
+
+router.post('/archive-farmer-account', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), archiveFarmerAccount);
+router.post('/unarchive-farmer-account', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), unarchiveFarmerAccount);
+
 router.get('/get-farmer-accounts', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), getFarmerAccounts);
+router.get('/get-archived-farmer-accounts', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), getArchivedFarmerAccounts);
+
 router.post('/get-farmer-account-by-name-user', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), getFarmerAccountByNameUser);
 //router.post('/get-farmer-account', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), getFarmerAccountById);
 router.post('/create-unified-farmer-response', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), createUnifiedFarmerResponse);
 router.put('/farmer-accounts/update', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), updateFarmerAccount);
-router.post('/update-farmer-response-fields', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), updateFarmerResponseFields);
-router.post('/delete-farmer-response', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), deleteFarmerResponse);
 
 
 //________________________________ DASHBOARD (METRICS) PAGE ____________________________________
@@ -87,9 +136,9 @@ router.post('/generate-hvc-pr', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), g
 //________________________________ FARMER FORM PAGES ____________________________________
 
 
-router.post('/farmer-form-submission', ensureHvcFormOpen, submitCompleteFarmerForm);
-router.post('/get-farmer-account-by-name', ensureHvcFormOpen, getFarmerAccountByName);
+router.post('/farmer-form-submission', ensureHvcFormOpen, submitCompleteFarmerForm); // need ng way para ma-verify muna kung nahanap ba talaga (JWT probably again?) yung farmer bago magsubmit ng form, otherwise, reject ung submission. create middleware.
 router.get('/check-form-status', checkFormStatus);
+
 
 
 export default router;

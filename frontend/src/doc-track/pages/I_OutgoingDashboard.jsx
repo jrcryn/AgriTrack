@@ -223,7 +223,7 @@ const I_OutgoingDashboard = () => {
                           bg="white"
                         >
                           <Button
-                            size="sm"
+                            size="xs"
                             colorScheme='red'
                             leftIcon={<FaEye />}
                             onClick={() => handleOpenDetails(doc, { archived: true, disposal: false })}

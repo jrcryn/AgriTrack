@@ -59,6 +59,7 @@ const E_Farmers = () => {
   const [farmerNameSearch, setFarmerNameSearch] = useState(''); //name and resident barangay search
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [viewMode, setViewMode] = useState('active'); // Add this state
   const tableRef = useRef(null);
 
   const debouncedSetSearch = useMemo(
@@ -76,15 +77,19 @@ const E_Farmers = () => {
   const { 
     farmerAccounts,
     isCreatingFarmerAccount, 
-    deleteFarmerAccount,
+    archiveFarmerAccount,
+    unarchiveFarmerAccount,
     isDeletingFarmerAccount,
     error, 
     createFarmerAccount, 
     isLoading, 
     isUpdatingFarmerAccount, 
     updateFarmerAccount,
+    farmerAccountsError,
 
-    farmerAccountsError
+    archivedFarmerAccounts,
+    archivedFarmerAccountsError,
+
    } = useAdminDashboard({farmerName: debouncedSearch, page: currentPage});
 
   const [isEditMode, setIsEditMode] = useState(false);
@@ -95,7 +100,7 @@ const E_Farmers = () => {
   // Reset pagination when search terms change
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearch]);
+  }, [debouncedSearch, viewMode]); // Add viewMode to dependencies
 
   useEffect(() => {
     // Apply styles directly to the DOM
@@ -289,7 +294,7 @@ const E_Farmers = () => {
       
       // Refetch farmer accounts data
       queryClient.invalidateQueries({ queryKey: ['farmerAccounts'] });
-      
+      queryClient.invalidateQueries({ queryKey: ['archivedFarmerAccounts'] });
       onClose();
     } catch (error) {
       toast({
@@ -302,25 +307,53 @@ const E_Farmers = () => {
     }
   };
 
-  const handleFarmerAccountDeletion = async () => {
+  const handleFarmerAccountArchive = async () => {
     try {
-      await deleteFarmerAccount({farmerId: selectedFarmerId});
+      await archiveFarmerAccount({farmerId: selectedFarmerId});
       toast({
         title: "Success",
-        description: "Farmer account deleted successfully.",
+        description: "Farmer account archived successfully.",
         status: "success",
         duration: 5000,
         isClosable: true,
       });
       // Refetch farmer accounts data
-      queryClient.invalidateQueries({ queryKey: ['farmerAccounts'] });
+      await queryClient.invalidateQueries({ queryKey: ['farmerAccounts'] });
+      await queryClient.invalidateQueries({ queryKey: ['archivedFarmerAccounts'] });
       onClose();
       onDeleteClose();
       resetForm();
     } catch (error) {
       toast({
         title: "Error",
-        description: error.response?.data?.message || "Failed to delete farmer account.",
+        description: error.response?.data?.message || "Failed to archive farmer account.",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  };
+  
+  const handleFarmerAccountUnarchive = async () => {
+    try {
+      await unarchiveFarmerAccount({farmerId: selectedFarmerId});
+      toast({
+        title: "Success",
+        description: "Farmer account unarchived successfully.",
+        status: "success",
+        duration: 5000,
+        isClosable: true,
+      });
+      // Refetch farmer accounts data
+      await queryClient.invalidateQueries({ queryKey: ['farmerAccounts'] });
+      await queryClient.invalidateQueries({ queryKey: ['archivedFarmerAccounts'] });
+      onClose();
+      onDeleteClose();
+      resetForm();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Failed to unarchive farmer account.",
         status: "error",
         duration: 5000,
         isClosable: true,
@@ -382,9 +415,17 @@ const E_Farmers = () => {
   
   // Pagination calculation
   const itemsPerPage = 10;
-  const totalPages = farmerAccounts?.totalPages || 1;
-  const currentFarmers = farmerAccounts?.farmerAccounts || [];
   
+  // Conditionally select data based on viewMode
+  const isArchiveView = viewMode === 'archived';
+  const activeData = farmerAccounts || {};
+  const archivedData = archivedFarmerAccounts || {};
+  
+  const currentData = isArchiveView ? archivedData : activeData;
+  const totalPages = currentData?.totalPages || 1;
+  const currentFarmers = currentData?.farmerAccounts || [];
+  const currentError = isArchiveView ? archivedFarmerAccountsError : farmerAccountsError;
+
   // Format date
   const formatDate = (date) => {
     return date.toLocaleDateString('en-US', {
@@ -395,7 +436,7 @@ const E_Farmers = () => {
   };
 
   // Show error state
-  if (farmerAccountsError) {
+  if (currentError) {
     return (
       <Box 
         overflow="hidden" 
@@ -407,7 +448,7 @@ const E_Farmers = () => {
           <AlertIcon />
           <AlertTitle>Error loading data!</AlertTitle>
           <AlertDescription>
-            {error || "Unable to load registered farmers. Please try again later."}
+            {error || `Unable to load ${isArchiveView ? 'archived' : 'registered'} farmers. Please try again later.`}
           </AlertDescription>
         </Alert>
       </Box>
@@ -441,11 +482,13 @@ const E_Farmers = () => {
         bg="blue.50"
         borderRadius="md"
       >
-        <SimpleGrid columns={{ base: 1, md: 2 }} spacing={{ base: 4, md: 6 }} alignItems="flex-end">
+        <Flex 
+          direction={{ base: "column", lg: "row" }} 
+          gap={4}
+          align={{ base: "stretch", lg: "flex-end" }}
+        >
           {/* General Search */}
-          
-          <Box>
-            
+          <Box flex={{ base: "1", lg: "2" }}>
             <HStack
               spacing={2}
               mb={2}
@@ -457,10 +500,9 @@ const E_Farmers = () => {
               </Text>
             </HStack>
             
-            
             <InputGroup>
               <Input
-                placeholder="Name, Barangay, Farmer ID, or Contact Number..."
+                placeholder="Farmer Name, Barangay, Farmer ID, or Contact #..."
                 bg="white"
                 value={farmerNameSearch}
                 onChange={(e) => setFarmerNameSearch(e.target.value)}
@@ -472,6 +514,19 @@ const E_Farmers = () => {
             </InputGroup>
           </Box>
           
+          {/* View Mode Select */}
+          <FormControl width={{ base: "100%", lg: "auto" }} minW={{ lg: "200px" }}>
+            <Select
+              value={viewMode}
+              onChange={(e) => setViewMode(e.target.value)}
+              bg="white"
+              size="md"
+              height="40px"
+            >
+              <option value="active">Active Accounts</option>
+              <option value="archived">Archived Accounts</option>
+            </Select>
+          </FormControl>
           
           {/* Add Farmer Button */}
           <Button
@@ -479,12 +534,14 @@ const E_Farmers = () => {
             colorScheme="blue"
             onClick={onOpen}
             size="md"
-            alignSelf="flex-end"
             height="40px"
+            isDisabled={isArchiveView}
+            width={{ base: "100%", lg: "auto" }}
+            flexShrink={0}
           >
             Add New Farmer
           </Button>
-        </SimpleGrid>
+        </Flex>
       </Box>
       
       {/* Farmers List Section */}
@@ -493,14 +550,15 @@ const E_Farmers = () => {
           justify="space-between" 
           align="center" 
           mb={4}
-          bg="blue.50"
+          bg={isArchiveView ? "gray.50" : "blue.50"}
           p={3}
           borderRadius="md"
           borderLeftWidth="4px"
-          borderLeftColor="blue.500"
+          borderLeftColor={isArchiveView ? "gray.500" : "blue.500"}
         >
           <Heading as="h2" size="md" display="flex" alignItems="center">
-            <Icon as={FaUsers} mr={2} color="blue.600" /> REGISTERED FARMERS
+            <Icon as={FaUsers} mr={2} color={isArchiveView ? "gray.600" : "blue.600"} /> 
+            {isArchiveView ? 'ARCHIVED FARMERS' : 'REGISTERED FARMERS'}
           </Heading>
         </Flex>
         
@@ -531,14 +589,14 @@ const E_Farmers = () => {
                   {currentFarmers.length > 0 ? (
                     currentFarmers.map((farmers) => (
                       <Tr key={farmers._id}>
-                        <Td fontWeight="medium">{farmers.farmerId ? farmers.farmerId : '-'}</Td>
-                        <Td fontWeight="medium">
+                        <Td fontWeight="medium" fontSize={'sm'}>{farmers.farmerId ? farmers.farmerId : '-'}</Td>
+                        <Td fontWeight="medium" fontSize={'sm'}>
                           {`${farmers.first_name} ${farmers.middle_name ? farmers.middle_name +'.' : ''} ${farmers.surname} ${farmers.suffix ? farmers.suffix : ''}`.trim()}
                         </Td>
-                        <Td>{farmers.farmer_barangay ? farmers.farmer_barangay : '-'}</Td>
-                        <Td>{farmers.birthdate ? formatDate(new Date(farmers.birthdate)) : '-'}</Td>
-                        <Td>{farmers.mobile_number ? farmers.mobile_number : '-'}</Td>
-                        <Td>
+                        <Td fontSize={'sm'}>{farmers.farmer_barangay ? farmers.farmer_barangay : '-'}</Td>
+                        <Td fontSize={'sm'}>{farmers.birthdate ? formatDate(new Date(farmers.birthdate)) : '-'}</Td>
+                        <Td fontSize={'sm'}>{farmers.mobile_number ? farmers.mobile_number : '-'}</Td>
+                        <Td fontSize={'sm'}>
                           {farmers.facebook ? (
                             <Link
                               href={farmers.facebook.startsWith("http") ? farmers.facebook : `https://${farmers.facebook}`}
@@ -553,16 +611,31 @@ const E_Farmers = () => {
                         </Td>
                         <Td position={{ base: 'static', md: 'sticky' }} right={0} bg="white" zIndex={1}>
                           <HStack spacing={2} justifyContent="center">
-                            <Button
-                              size="sm"
-                              colorScheme="green"
-                              leftIcon={<FaEdit />}
-                              onClick={() => handleEditClick(farmers)}
-                              boxShadow="sm"
-                              _hover={{ boxShadow: "md", bg: "green.600" }}
-                            >
-                              Edit
-                            </Button>
+                            {isArchiveView ? (
+                              <Button
+                                size="xs"
+                                colorScheme="blue"
+                                onClick={() => {
+                                  setSelectedFarmerId(farmers.farmerId);
+                                  onDeleteOpen();
+                                }}
+                                boxShadow="sm"
+                                _hover={{ boxShadow: "md", bg: "blue.600" }}
+                              >
+                                Unarchive
+                              </Button>
+                            ) : (
+                              <Button
+                                size="xs"
+                                colorScheme="green"
+                                leftIcon={<FaEdit />}
+                                onClick={() => handleEditClick(farmers)}
+                                boxShadow="sm"
+                                _hover={{ boxShadow: "md", bg: "green.600" }}
+                              >
+                                Edit
+                              </Button>
+                            )}
                           </HStack>
                         </Td>
                       </Tr>
@@ -570,7 +643,7 @@ const E_Farmers = () => {
                   ) : (
                     <Tr>
                       <Td colSpan={8} textAlign="center" py={8}>
-                        <Text color="gray.500">No registered farmers found.</Text>
+                        <Text color="gray.500">No {isArchiveView ? 'archived' : 'registered'} farmers found.</Text>
                       </Td>
                     </Tr>
                   )}
@@ -590,7 +663,7 @@ const E_Farmers = () => {
             gap={{ base: 3, md: 0 }}
           >
             <Text color="gray.600">
-              Page {currentPage} of {totalPages || 1} ({farmerAccounts?.totalCount || 0} total)
+              Page {currentPage} of {totalPages || 1} ({currentData?.totalCount || 0} total)
             </Text>
             
             <HStack spacing={2}>
@@ -753,7 +826,7 @@ const E_Farmers = () => {
                   <FormControl isInvalid={formErrors.mobile_number}>
                     <FormLabel fontWeight="medium">Mobile Number</FormLabel>
                     <InputGroup>
-                      <InputLeftAddon bg="gray.100" color="gray.700">+63</InputLeftAddon>
+                      {/* <InputLeftAddon bg="gray.100" color="gray.700">+63</InputLeftAddon> */}
                       <Input 
                         type="tel"
                         maxLength={11}
@@ -822,14 +895,13 @@ const E_Farmers = () => {
             <Flex w='100%'>
             {isEditMode && (
               <Button
-                colorScheme="red"
+                colorScheme="yellow"
                 mr={3}
                 onClick={onDeleteOpen}
-                isLoading={isDeletingFarmerAccount}
                 size="md"
-                _hover={{ boxShadow: "md", bg: "red.600" }}
+                _hover={{ boxShadow: "md", bg: "yellow.600" }}
               >
-                Delete Record
+                Archive Record
               </Button>
             )}
             <Spacer />
@@ -859,22 +931,50 @@ const E_Farmers = () => {
         </ModalContent>
       </Modal>
       
-      {/* Delete Confirmation Modal */}
+      {/* Delete/Unarchive Confirmation Modal */}
       <Modal isOpen={isDeleteModalOpen} size="xs" onClose={onDeleteClose} closeOnOverlayClick={false} scrollBehavior="inside" isCentered  motionPreset="none">
         <ModalOverlay/>
         <ModalContent borderRadius="lg" overflow="hidden">
           <ModalHeader
-            bg="red.50" 
+            bg={isArchiveView ? "blue.50" : "yellow.50"} 
             borderBottomWidth="1px"
             borderColor="gray.200"
             py={4}
             display="flex" 
             alignItems="center"
           >
-            <Icon as={GoAlertFill} mr={2} color="red.500" />
-            Warning!
+            <Icon as={GoAlertFill} mr={2} color={isArchiveView ? "blue.500" : "yellow.500"} />
+            {isArchiveView ? 'Unarchive?' : 'Archive?'}
           </ModalHeader>
-
+          <ModalBody py={6}>
+            <VStack spacing={3} align="stretch">
+              {isArchiveView ? (
+                <>
+                  <Text fontSize="sm">
+                    Are you sure you want to unarchive this farmer record? This action will:
+                  </Text>
+                  <VStack align="stretch" spacing={2} pl={4}>
+                    <Text fontSize="sm">• Restore the farmer account to active status</Text>
+                    <Text fontSize="sm">• Allow them to submit High Value Crop Planting and Harvesting Reports</Text>
+                    <Text fontSize="sm">• Enable them to request Free Tractor Services (Ticket Request)</Text>
+                    <Text fontSize="sm" fontWeight="medium" color="blue.700">• Their account will be searchable again</Text>
+                  </VStack>
+                </>
+              ) : (
+                <>
+                  <Text fontSize="sm">
+                    Are you sure you want to archive this farmer record? This action will:
+                  </Text>
+                  <VStack align="stretch" spacing={2} pl={4}>
+                    <Text fontSize="sm">• Hide the farmer account from the system</Text>
+                    <Text fontSize="sm">• Prevent them from submitting High Value Crop Planting and Harvesting Reports</Text>
+                    <Text fontSize="sm">• Block them from requesting Free Tractor Services (Ticket Request)</Text>
+                    <Text fontSize="sm" fontWeight="medium" color="yellow.700">• Their account won't be found when searching</Text>
+                  </VStack>
+                </>
+              )}
+            </VStack>
+          </ModalBody>
           <ModalFooter bg="gray.50" borderTopWidth="1px" borderColor="gray.200">
             <Button 
               variant="outline" 
@@ -886,13 +986,13 @@ const E_Farmers = () => {
               Cancel
             </Button>
             <Button 
-                colorScheme="red"
-                onClick={handleFarmerAccountDeletion}
+                colorScheme={isArchiveView ? "blue" : "yellow"}
+                onClick={isArchiveView ? handleFarmerAccountUnarchive : handleFarmerAccountArchive}
                 isLoading={isDeletingFarmerAccount}
                 size="md"
-                _hover={{ boxShadow: "md", bg: "red.600" }}
+                _hover={{ boxShadow: "md", bg: isArchiveView ? "blue.600" : "yellow.600" }}
             >
-              Delete Farmer Record
+              {isArchiveView ? 'Unarchive Record' : 'Archive Record'}
             </Button>
           </ModalFooter>
         </ModalContent>

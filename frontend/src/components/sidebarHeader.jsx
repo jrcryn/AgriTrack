@@ -42,11 +42,12 @@ import {
   FiClock,
   FiSend,
   FiArchive,
-  FiBox
+  FiBox,
+  FiCalendar
 } from 'react-icons/fi'
 import { FaWpforms, FaUser, FaPowerOff, FaDoorOpen, FaBug  } from "react-icons/fa";
 import { IoSettingsSharp } from "react-icons/io5";
-
+import { Ticket, CornerDownLeft } from 'lucide-react';
 import { IoDocumentAttachOutline } from "react-icons/io5";
 import Logo from '../images/Calamba_Seal.png'
 import { useAuthStore } from '../auth/store/authStore.js'
@@ -70,9 +71,13 @@ const allLinkItems = [
   { name: 'Employees', icon: FiUsers, path : '/doc-track/employees', roles: ['DMM'] },
 
   //machineries
-  { name: 'Dashboard', icon: FiGrid, path: '/machineries/metrics', roles: ['MIS'] },
-  { name: 'Machinery Inventory', icon: FiBox, path: '/machineries/machine-inventory', roles: ['MIS'] },
-  { name: 'Generate Report', icon: FiDownload, path: '/machineries/gen-reports', roles: ['MIS'] },
+  { name: 'Dashboard', icon: FiGrid, path: '/machineries/metrics', roles: ['MIS', 'MIM'] },
+  { name: 'Machinery Management', icon: FiBox, path: '/machineries/machine-inventory', roles: ['MIS', 'MIM'] },
+  { name: 'Ticket Requests', icon: Ticket, path: '/machineries/ticket-requests', roles: ['MIS', 'MIM'] },
+  { name: 'Calendar', icon: FiCalendar, path: '/machineries/weekly-schedules', roles: ['MIS', 'MIM'] },
+  { name: 'Returns', icon: CornerDownLeft, path: '/machineries/trip-ticket-returns', roles: ['MIS', 'MIM'] },
+  { name: 'Usage Report', icon: FiDownload, path: '/machineries/gen-reports', roles: ['MIM'] },
+  { name: 'Operators', icon: FiUsers, path: '/machineries/operators', roles: ['MIM'] },
 ]
 
 const SidebarContent = ({ onClose, ...rest }) => {
@@ -279,6 +284,7 @@ const MobileNav = ({ onOpen, ...rest }) => {
         DMS: 'STAFF',
         DMM: 'MANAGER',
         MIS: 'STAFF',
+        MIM: 'MANAGER',
         HVCM: 'MANAGER',
         HVCS: 'STAFF',
       };

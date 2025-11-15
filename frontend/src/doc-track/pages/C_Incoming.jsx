@@ -135,7 +135,6 @@ const C_Incoming = () => {
             isClosable: true,
           });
         }
-        setHasScanned(false);
         return;
     }
 
@@ -344,7 +343,7 @@ const C_Incoming = () => {
                                     bg="white"
                                   >
                                     <Button
-                                      size="sm"
+                                      size="xs"
                                       colorScheme="green"
                                       onClick={() => handleReceive(doc)}
                                       isLoading={receivingDocId === doc._id}

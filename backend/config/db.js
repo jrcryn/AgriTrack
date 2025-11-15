@@ -6,12 +6,13 @@ const connections = {};
 export const connectDB = async() => {
     try {
         await mongoose.connect(process.env.MONGO_URI);
-        console.log(`MongoDB Connected: ${mongoose.connection.host}`);
+        //console.log(`MongoDB Connected: ${mongoose.connection.host}`);
         
         // Use different databases on the same connection
         connections.highValueCropsDb = mongoose.connection.useDb('high-value-crops');
         connections.docTrackDb = mongoose.connection.useDb('doc-track');
         connections.machineriesDb = mongoose.connection.useDb('machineries');
+        connections.globalDb = mongoose.connection.useDb('global');
         
     } catch (error) {
         console.error(`Error: ${error}`);

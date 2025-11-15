@@ -14,7 +14,7 @@ import Responses from '../high-value-crops/pages/D_Responses.jsx';
 import Farmers from '../high-value-crops/pages/E_Farmers.jsx';
 import ProfileSettings from '../components/profileSettings.jsx';
 
-import FormClosedPage from '../components/formClosedPage.jsx';
+import FormClosedPage from '../high-value-crops/formPages/FormClosedPage.jsx';
 
 // Form imports
 import Instructions from '../high-value-crops/formPages/Instructions.jsx';
@@ -29,7 +29,7 @@ import D2_bc_Other_fctHarvest from '../high-value-crops/formPages/D2_bc-other-fc
 import D2_bc_Other_fctNew from '../high-value-crops/formPages/D2_bc-other-fctNew.jsx';
 import SuccessPage from '../high-value-crops/formPages/E_successPage.jsx';
 
-import Maintenance from '../components/maintenance.jsx';
+import ConsentRequestPage from '../high-value-crops/formPages/ConsentRequestPage.jsx';
 
 //redirect authenticated users
 const ProtectedRoute = ({children}) => {
@@ -72,7 +72,7 @@ const CheckFormStatus = ({children}) => {
   return children;
 };
 
-axios.interceptors.response.use(
+axios.interceptors.response.use( //if unauthorized redirect to login
   response => response,
   error => {
     const currentPath = window.location.pathname;
@@ -80,7 +80,7 @@ axios.interceptors.response.use(
       error.response &&
       error.response.status === 401 &&
       !currentPath.startsWith('/auth') &&
-      !currentPath.startsWith('/hvc/form') // ignore 403 while on public form pages
+      !currentPath.startsWith('/hvc/form') // ignore 401 while on public form pages
     ) {
       window.location.href = '/auth/login';
     }
@@ -88,7 +88,7 @@ axios.interceptors.response.use(
   }
 );
 
-axios.interceptors.response.use(
+axios.interceptors.response.use( //if forbidden (form closed) redirect to form closed page
   response => response,
   error => {
     const currentPath = window.location.pathname;
@@ -129,6 +129,16 @@ const highValueCropsApp = () => {
     const isFormPath        = location.pathname.startsWith('/hvc/form/dpa') || location.pathname.startsWith('/hvc/form/a_fi') || location.pathname.startsWith('/hvc/form/b_ct') || location.pathname.startsWith('/hvc/form/c1_cri') || location.pathname.startsWith('/hvc/form/c2_cro') || location.pathname.startsWith('/hvc/form/d1_cih') || location.pathname.startsWith('/hvc/form/d1_cin') || location.pathname.startsWith('/hvc/form/d2_bc_ofh') || location.pathname.startsWith('/hvc/form/d2_bc_ofn') || location.pathname.startsWith('/hvc/form/success');
     const isInitialFormPath = location.pathname === '/hvc/form/istcns'
     
+    // Check if we're coming from the success page
+    const isComingFromSuccess = sessionStorage.getItem('hvc_form_completed');
+    
+    // If we're coming from success, force a full page reload to reset all state
+    if (isComingFromSuccess && (isFormPath && !location.pathname.startsWith('/hvc/form/success'))) {
+      sessionStorage.removeItem('hvc_form_completed');
+      window.location.reload();
+      return;
+    }
+    
     // only on a true browser POP (refresh/direct URL) AND if we've never clicked Next/Back yet, redirect home
     if (
       navigationType === 'POP' &&
@@ -140,14 +150,14 @@ const highValueCropsApp = () => {
     }
   }, [location.pathname, navigationType, navigate]);
 
-  const handleNext = (path, cropType) => {
-    hasInteractedRef.current = true; // Set the ref to true when navigating forward
-    window.scrollTo(0, 0); // Scroll to top
-    if (cropType) {
-      setSelectedCropType(cropType);
-    }
-    navigate('/hvc/form' + path);
-  };
+const handleNext = (path, cropType, options = {}) => {
+  hasInteractedRef.current = true; // Set the ref to true when navigating forward
+  window.scrollTo(0, 0); // Scroll to top
+  if (cropType) {
+    setSelectedCropType(cropType);
+  }
+  navigate('/hvc/form' + path, options);
+};
 
   const handleBack = () => {
     hasInteractedRef.current = true; // Set the ref to true when navigating back
@@ -177,6 +187,8 @@ const highValueCropsApp = () => {
           <Route path="profile-settings" element={<ProfileSettings />} />
           
         </Route>
+
+        <Route path="/consent-request/:editRequestId" element={<ConsentRequestPage />} />
 
         <Route path='/form/form-closed' element={<FormClosedPage />} />
         <Route path='/form/istcns' element={<Instructions onNext={() => handleNext('/dpa')} />} />

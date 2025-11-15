@@ -28,27 +28,49 @@ app.use(cors({
 import initHVC from './config/hvcAppInitializer.js';
 import initMachineries from './config/machineriesAppInitializer.js';
 import initDocTrack from './config/doc-trackAppInitializer.js';
+import initGlobal from './config/globalAppInitilizer.js';
 
 import highValueCropsRoutes from './routes/high-value-crops.routes.js';
 import machineriesRoutes from './routes/machineries.routes.js';
 import docTrackRoutes from './routes/doc-track.routes.js';
 import authRoutes from './routes/auth.routes.js';
+import globalRoutes from './routes/global.routes.js';
 import userSettingsRoutes from './routes/userSettings.route.js';
+
+import googleDriveRoutes from './routes/googleDrive.routes.js';
+
+import { updateScheduleStatus, disableEditingForTodayTickets } from './utils/scheduleUpdater.js'; 
+import { startScheduleStatusCron } from './utils/cronScheduleUpdater.js';
 
 async function startServer() {
     // Wait for all initializers to finish
     await Promise.all([
         initHVC(),
         initMachineries(),
-        initDocTrack()
+        initDocTrack(),
+        initGlobal(),
     ]);
+
+    try {
+        await updateScheduleStatus();
+        await disableEditingForTodayTickets();
+        console.log('Schedule status update completed at startup.');
+    } catch (err) {
+        console.error('Schedule updater failed at startup:', err);
+    }
+
+    // Start daily cron updater
+    startScheduleStatusCron();
 
     // Now that globals are set, add routes
     app.use("/api/hvc", highValueCropsRoutes);
     app.use("/api/machineries", machineriesRoutes);
     app.use("/api/doc-track", docTrackRoutes);
     app.use("/api/auth",authRoutes);
+    app.use("/api/global", globalRoutes);
     app.use("/api/user-settings", userSettingsRoutes);
+
+    app.use("/api/google", googleDriveRoutes);
 
     app.listen(process.env.PORT, () => {
         console.log(`Server running on port ${process.env.PORT}`);

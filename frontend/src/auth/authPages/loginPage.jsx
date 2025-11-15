@@ -75,14 +75,14 @@ const LoginPage = () => {
         const errorMessage = error.response?.data?.message;
         const userId = error.response?.data?.userId; 
 
-        if (errorMessage.includes('Account locked. Contact IT support to regain access.')) {
+        if (errorMessage?.includes('Account locked. Contact IT support to regain access.')) {
             setModalMessage(errorMessage);
             onOpen();
             return;
         }
           toast({
             title: 'Error',
-            description: errorMessage,
+            description: errorMessage || 'An error occurred during login.',
             status: 'error',
             duration: 5000,
             isClosable: true,
@@ -226,7 +226,12 @@ const LoginPage = () => {
             </Box>
           </ModalBody>
           <ModalFooter>
-            <Button onClick={onClose} colorScheme="red" variant="solid">
+            <Button onClick={() => {
+              onClose();
+              window.location.reload();
+            }} 
+            colorScheme="red" 
+            variant="solid">
               Close
             </Button>
           </ModalFooter>

@@ -92,24 +92,77 @@ const DataPrivacyAct = ({ onNext, onBack }) => {
                 borderLeftWidth="4px"
                 borderColor={accentColor}
                 overflowY="auto"
-                maxHeight="400px"
+                maxHeight="500px"
               >
                 <Text fontSize="md" fontWeight="bold" color="blue.600" mb={4}>
                   DATA PRIVACY NOTICE
                 </Text>
                 
-                <Text fontSize="sm" fontWeight="bold" mb={2}>Data Privacy Act of 2012 (Republic Act No. 10173)</Text>
-                <Text fontSize="sm" mb={3}>
-                Ang <b><i>City Agricultural Services Department (CASD)</i></b> ay sumusunod sa <b><i>Data Privacy Act of 2012</i></b> at nakatuon sa pagprotekta ng inyong privacy.  
-                Ang mga impormasyon na makakalap mula sa pagsasagot ng form na ito ay naglalayon na magamit ng CASD sa mga opisyal na pagdodokumento at pagre-report 
-                sa mga nangangailangang ahensya.
+                <Text fontSize="sm" mb={4}>
+                  Ang <b><i>City Agricultural Services Department (CASD)</i></b> ay sumusunod sa <b><i>Data Privacy Act of 2012 (RA 10173)</i></b> at sinisigurong protektado ang inyong personal na impormasyon.
                 </Text>
 
-                <Text fontSize="sm">
-                Sumagot ng <b>OO</b> kung kayo ay sumasang-ayon at <b>HINDI</b> naman kung hindi sumasang-ayon na ibahagi ang mga makokolektang data o impormasyon mula sa inyo.
+                <Text fontSize="sm" fontWeight="bold" mb={2}>📋 Mga Impormasyong Kinokolekta</Text>
+                <Text fontSize="sm" mb={3}>
+                  Maaaring hingin namin ang ilang detalye tulad ng:
                 </Text>
-                
-                
+                <Text fontSize="sm" mb={3} pl={4}>
+                  • Lawak ng inyong taniman<br />
+                  • Dami ng ani<br />
+                  • Lokasyon<br />
+                  • Mga petsa ng pagtatanim at pag-aani<br />
+                  • Iba pang impormasyong may kinalaman sa inyong sakahan
+                </Text>
+
+                <Text fontSize="sm" fontWeight="bold" mb={2}>🎯 Layunin ng Pagkolekta</Text>
+                <Text fontSize="sm" mb={3}>
+                  Ginagamit ang mga impormasyong ito para sa:
+                </Text>
+                <Text fontSize="sm" mb={3} pl={4}>
+                  • Opisyal na dokumentasyon at pag-uulat ng lungsod<br />
+                  • Pagpaplano at pagpapatupad ng mga programa sa agrikultura<br />
+                  • Pagsusuri at pagwawasto ng datos kung kinakailangan<br />
+                  • Pagkilala sa mga magsasakang kwalipikado sa mga benepisyo, ayuda, o interbensyon mula sa pamahalaan gaya ng binhi, pataba, makinarya, at iba pang tulong pang-agrikultura
+                </Text>
+
+                <Text fontSize="sm" fontWeight="bold" mb={2}>🔍 Pagberipika at Pagwawasto</Text>
+                <Text fontSize="sm" mb={3}>
+                  Sa pagpili ng <b>"SUMANG-AYON,"</b> pinapayagan ninyo ang CASD o mga kawani nito na:
+                </Text>
+                <Text fontSize="sm" mb={3} pl={4}>
+                  • I-verify o tingnan ang inyong sakahan kung may kailangang linawin sa datos<br />
+                  • Itama ang mga maling impormasyon kung mapatunayan na may pagkakamali
+                </Text>
+                <Text fontSize="sm" mb={3}>
+                  Kapag may binago sa inyong datos, ipapaalam ito sa inyo sa pamamagitan ng text o abiso mula sa aming tanggapan.
+                </Text>
+
+                <Text fontSize="sm" fontWeight="bold" mb={2}>🤝 Pagbabahagi ng Datos</Text>
+                <Text fontSize="sm" mb={3}>
+                  Ang inyong impormasyon (kasama ang mga binagong datos) ay maaaring ibahagi sa ibang ahensya ng pamahalaan kung kailangan para sa opisyal na gawain, pagpapatupad ng batas, o sa pagbibigay ng mga benepisyo at tulong sa mga magsasaka.
+                  Lahat ng ito ay ginagawa nang may pagsunod sa mga alituntunin ng proteksyon ng datos.
+                </Text>
+
+                <Text fontSize="sm" fontWeight="bold" mb={2}>🧑‍🌾 Karapatan ng Magsasaka (Data Owner)</Text>
+                <Text fontSize="sm" mb={3}>
+                  Mayroon kayong mga karapatan sa inyong impormasyon:
+                </Text>
+                <Text fontSize="sm" mb={3} pl={4}>
+                  • <b>Tingnan (Access):</b> Maaaring humingi ng kopya ng datos na hawak namin.<br />
+                  • <b>Magwasto (Rectify):</b> Maaaring ipabago ang maling impormasyon.<br />
+                  • <b>Tumanggi o Bawiin (Withdraw Consent):</b> Maaaring tumanggi o bawiin ang pahintulot sa paggamit ng datos.<br />
+                  • <b>Tutulan (Object):</b> Kung naniniwala kayong naaapektuhan ang inyong karapatan.<br />
+                  • <b>Ipahinto o I-block:</b> Maaaring hilingin na hindi muna gamitin ang inyong datos sa ilang sitwasyon.
+                </Text>
+
+                <Text fontSize="sm" fontWeight="bold" mb={2}>🔐 Seguridad ng Datos</Text>
+                <Text fontSize="sm">
+                  Ang inyong datos ay ligtas naming itatago hangga't kailangan, at protektado laban sa anumang hindi awtorisadong paggamit o paglabag.
+                </Text><br />
+
+                <Text fontSize="sm"  fontWeight={'semibold'}>
+                Kung may tanong o may gustong gawin sa inyong mga datos, maaari kayong makipag-ugnayan sa aming opisina.                
+                </Text>
               </Box>
 
               {/* Consent Form */}

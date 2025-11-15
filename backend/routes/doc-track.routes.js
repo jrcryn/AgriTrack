@@ -34,7 +34,7 @@ import {
 import { verifyAuthToken } from '../middleware/verifyToken.js';
 import { verifyRole } from '../middleware/verifyRole.js';
 
-const router = express.Router();
+const   router = express.Router();
 
 router.post('/create-document', verifyAuthToken, verifyRole(['DMM']), createDocument);
 router.post('/update-document-type', verifyAuthToken, verifyRole(['DMM']), updateDocumentType);

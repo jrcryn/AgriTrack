@@ -19,7 +19,7 @@ import {
   InputLeftAddon,
 } from '@chakra-ui/react';
 import { useFarmerFormStore } from '../store/farmerForm.store.js';
-import { usePublicFormStore } from '../store/farmerForm.store.js';
+import { usePublicFormStore } from '../../global/publicForm.store.js';
 import Barangays from '../../components/barangays.js';
 import { FaUserCheck, FaSearch } from 'react-icons/fa';
 

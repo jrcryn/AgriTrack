@@ -57,10 +57,7 @@ const Maintenance = () => {
           </Text>
           
           <VStack spacing={3} align="center">
-            <Flex align="center">
-              <Icon as={SettingsIcon} w={5} h={5} mr={2} color="green.500" />
-              <Text color={textColor}>We are working hard to complete the updates.</Text>
-            </Flex>
+
             <Flex align="center">
               <Icon as={TimeIcon} w={5} h={5} mr={2} color="green.500" />
               <Text color={textColor}>Estimated downtime: <strong>---</strong></Text>

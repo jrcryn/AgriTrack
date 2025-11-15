@@ -13,13 +13,25 @@ import {
   HStack,
   PinInput,
   PinInputField,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  useDisclosure,
 } from '@chakra-ui/react';
 import { useAuthStore } from '../store/authStore';
 import BackgroundImage from '../../images/bg.jpg';
+import { WarningIcon } from '@chakra-ui/icons';
 
 const Verify2FA = () => {
   const [token, setToken] = useState('');
   const { verify2FA, isLoading, user } = useAuthStore();
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const [modalMessage, setModalMessage] = useState('');
+  
+
   const location = useLocation();
   const navigate = useNavigate();
   const toast = useToast();
@@ -72,7 +84,7 @@ const Verify2FA = () => {
       
       const errorMessage = error.response?.data?.message;
 
-      if (errorMessage.includes('Account is now locked due to multiple failed 2FA attempts.') || errorMessage.includes('Too many 2FA verification attempts. Please try again after 15 minutes.')) {
+      if (errorMessage.includes('Account is now locked due to multiple failed 2FA attempts.') || errorMessage.includes('Too many 2FA verification attempts. Please try again after 15 minutes.') || errorMessage.includes('Unauthorized.')) {
         toast({
           title: 'Error',
           description: errorMessage,
@@ -83,7 +95,11 @@ const Verify2FA = () => {
         navigate('/auth/login');
         return;
       }
-
+      if (errorMessage?.includes('Account locked. Contact IT support to regain access.')) {
+            setModalMessage(errorMessage);
+            onOpen();
+            return;
+        }
       toast({
         title: 'Error',
         description: errorMessage,
@@ -138,13 +154,13 @@ const Verify2FA = () => {
             <FormControl>
               <FormLabel htmlFor="token" srOnly>Verification Code</FormLabel>
               <HStack justify="center">
-                <PinInput id="token" otp value={token} onChange={setToken}>
-                  <PinInputField boxShadow={"lg"}/>
-                  <PinInputField boxShadow={"lg"}/>
-                  <PinInputField boxShadow={"lg"}/>
-                  <PinInputField boxShadow={"lg"}/>
-                  <PinInputField boxShadow={"lg"}/>
-                  <PinInputField boxShadow={"lg"}/>
+                <PinInput id="token" otp value={token} onChange={setToken} type='number'>
+                  <PinInputField boxShadow={"lg"} inputMode='numeric' pattern="[0-9]*"/>
+                  <PinInputField boxShadow={"lg"} inputMode='numeric' pattern="[0-9]*"/>
+                  <PinInputField boxShadow={"lg"} inputMode='numeric' pattern="[0-9]*"/>
+                  <PinInputField boxShadow={"lg"} inputMode='numeric' pattern="[0-9]*"/>
+                  <PinInputField boxShadow={"lg"} inputMode='numeric' pattern="[0-9]*"/>
+                  <PinInputField boxShadow={"lg"} inputMode='numeric' pattern="[0-9]*"/>
                 </PinInput>
               </HStack>
             </FormControl>
@@ -167,6 +183,33 @@ const Verify2FA = () => {
           © {new Date().getFullYear()} City Agriculture Services Department. All rights reserved.
         </Text>
       </Box>
+
+      <Modal isOpen={isOpen} onClose={onClose} isCentered>
+        <ModalOverlay />
+        <ModalContent borderTop="6px solid red" borderRadius="md" bg="white">
+          <ModalHeader display="flex" alignItems="center" gap={2} color="red.600">
+            <WarningIcon boxSize={5} />
+            Account Locked
+          </ModalHeader>
+          <ModalBody>
+            <Box p={2} rounded="md" bg="red.50" border="1px solid" borderColor="red.200">
+              <Text fontSize="md" color="red.700" fontWeight="medium">
+                {modalMessage}
+              </Text>
+            </Box>
+          </ModalBody>
+          <ModalFooter>
+            <Button onClick={() => {
+              onClose(); 
+              navigate('/auth/login');
+            }} 
+            colorScheme="red" 
+            variant="solid">
+              Close
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </Box>
   );
 };

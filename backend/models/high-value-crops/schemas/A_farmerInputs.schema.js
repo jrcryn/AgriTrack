@@ -19,5 +19,42 @@ export const AFarmerInputsSchema = new mongoose.Schema({
   farm_location: { type: String, required: true, trim: true },
   isValidated: { type: Boolean, default: false },
   isForReview: { type: Boolean, default: false },
+  isArchived: { type: Boolean, default: false },
+
+  editConsent: {
+    status: { type: String, enum: ['Pending', 'Granted', 'Denied', 'Completed'] },
+    editRequestId: { type: mongoose.Schema.Types.ObjectId, ref: 'Edit_Request'},
+    grantedAt: { type: Date },
+    deniedAt: { type: Date },
+    reason: { type:String, trim: true }
+  },
+
+  requiredValidationVisit: { type: Boolean, default: false },
+  
+  successfullyUpdated: { type: Boolean, default: false },
+
+  validationVisitDetails: {
+    status: { type: String, enum: ['Pending', 'Completed', 'Rejected'] },
+    completedAt: { type: Date },
+    validatorEmployee: { type: mongoose.Schema.Types.ObjectId, ref: 'User_Account' },
+
+    first_name: String,
+    last_name: String,
+    middle_name: String,
+    suffix: String,
+    email: String,
+    phone: String,
+
+    initialRemarks: { type: String, trim: true },
+    remarks: { type: String, trim: true },
+
+    proofImageId: String,
+    proofImageUrl: String,
+    signatureId: String,
+    signatureUrl: String,
+
+    isValidationVisitDetailsApproved: { type: Boolean },
+  }
+
 }, { versionKey: false, timestamps: true });
 

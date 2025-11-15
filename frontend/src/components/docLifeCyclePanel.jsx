@@ -8,7 +8,6 @@ import {
 } from '@chakra-ui/react';
 import { CheckCircleIcon, ArrowForwardIcon, TimeIcon } from "@chakra-ui/icons";
 import { FaArchive, FaInfo } from "react-icons/fa";
-import { CiInboxOut } from "react-icons/ci";
 import { GrFolderCycle } from "react-icons/gr";
 import { TbRouteAltRight, TbFileShredder } from "react-icons/tb";
 import { MdOutgoingMail } from "react-icons/md";
@@ -18,7 +17,6 @@ import { RiMailDownloadFill } from "react-icons/ri";
 import { useAdminDashboard } from '../doc-track/store/adminDashboard.store';
 import { useAuthStore } from '../auth/store/authStore.js';
 import { useQueryClient } from '@tanstack/react-query';
-import { Form } from 'react-router-dom';
 
 
 const actionStyles = {
@@ -52,6 +50,7 @@ const DocumentLifeCycleModal = ({
   isDisposalPage
 }) => {
     const data = document;
+    console.log("DocumentLifeCycleModal data:", data);
     const toast = useToast();
     const queryClient = useQueryClient();
 
@@ -92,7 +91,7 @@ const DocumentLifeCycleModal = ({
       customDisposalMethod: '',
       customRetentionPeriod: ''
     });
-    const [releaseData, setReleaseData] = useState({ recipientOffice: '', recipientPerson: '', modeOfRelease: '', releaseRemarks: '', isCustomDoc: '' });
+    const [releaseData, setReleaseData] = useState({ recipientOffice: '', recipientPerson: '', modeOfRelease: '', releaseRemarks: ''});
 
     const handleForward = async () => {
       if (!data || !forwardData.forwardAccountId || !forwardData.forwardRemarks) {
@@ -171,7 +170,6 @@ const DocumentLifeCycleModal = ({
           recipientPerson,
           modeOfRelease,
           releaseRemarks,
-          isCustomDoc: data.documentName === 'N/A' ? true : false,
         });
         toast({ title: "Success", description: res.message, status: "success", duration: 5000, isClosable: true });
         setReleaseData({ recipientOffice: '', recipientPerson: '', modeOfRelease: '', releaseRemarks: '' });
@@ -183,6 +181,7 @@ const DocumentLifeCycleModal = ({
             queryClient.invalidateQueries({ queryKey: ['documentWorkload'] }),
         ])
       } catch (error) {
+        console.log(error);
         toast({ title: "Error", description: error.response?.data?.message || "Failed to release document.", status: "error", duration: 5000, isClosable: true });
       }
     };
@@ -421,7 +420,6 @@ const DocumentLifeCycleModal = ({
             <VStack spacing={4} align="stretch">
               {isPendingPage && (
                 <>
-                {/* Action Tabs */}
                 <Tabs colorScheme="yellow" variant="enclosed">
                   <TabList>
                     <Tab>Forward</Tab>
@@ -676,7 +674,7 @@ const DocumentLifeCycleModal = ({
                         </Flex>
                       </TabPanel>
                         </TabPanels>
-                      </Tabs>
+                  </Tabs>
 
                   <Divider my={2} />
                   </>
@@ -834,7 +832,7 @@ const DocumentLifeCycleModal = ({
                 <Tabs colorScheme="purple" variant="enclosed">
                   <TabList>
                     <Tab>Reroute</Tab>
-                    <Tab>Delete</Tab>
+                    <Tab>Remove</Tab>
                     <Tab>Download QR Code</Tab>
                   </TabList>
                   <TabPanels>
@@ -888,18 +886,18 @@ const DocumentLifeCycleModal = ({
 
                     {/* Delete */}
                     <TabPanel px={0} pt={4} pb={0}>
-                        <Box bg="red.50" p={3} borderRadius="md" mb={3} borderLeft="4px solid" borderLeftColor="red.400">
-                          <Text fontSize="sm" color="red.600">
-                            Deleting permanently removes the document from the system. This action cannot be undone.
-                          </Text>
+                        <Box bg="pink.50" p={3} borderRadius="md" mb={3} borderLeft="4px solid" borderLeftColor="pink.400">
+                        <Text fontSize="sm" color="pink.600">
+                          This will remove the document from the system. Useful for correcting registration errors (typos, wrong office, etc.) or removing unnecessary entries.
+                        </Text>
                         </Box>
                         <HStack justify="flex-end" align="center" spacing={2} mt={4}>
                           <FormControl display="flex" alignItems="center" gap={2}>
                             <FormLabel mb="0">I understand</FormLabel>
                             <Switch isChecked={isUnderstood} onChange={(e) => setIsUnderstood(e.target.checked)} />
                           </FormControl>
-                          <Button colorScheme="red" onClick={handleDeleteDocument} isLoading={isDeletingRegisteredDocument} pl={8} pr={8} isDisabled={!isUnderstood}>
-                            Delete Document
+                          <Button colorScheme="pink" onClick={handleDeleteDocument} isLoading={isDeletingRegisteredDocument} pl={8} pr={8} isDisabled={!isUnderstood}>
+                            Remove Document
                           </Button>
                         </HStack>
                     </TabPanel>
@@ -926,23 +924,23 @@ const DocumentLifeCycleModal = ({
                 <>
                   <Tabs colorScheme='green' variant='enclosed'>
                     <TabList>
-                      <Tab>Delete</Tab>
+                      <Tab>Remove</Tab>
                       <Tab>Download QR Code</Tab>
                     </TabList>
                     <TabPanels>
                       <TabPanel px={0} pt={4} pb={0}>
-                        <Box bg="red.50" p={3} borderRadius="md" mb={3} borderLeft="4px solid" borderLeftColor="red.400">
-                          <Text fontSize="sm" color="red.600">
-                            Deleting permanently removes the document from the system. This action cannot be undone.
-                          </Text>
+                        <Box bg="pink.50" p={3} borderRadius="md" mb={3} borderLeft="4px solid" borderLeftColor="pink.400">
+                        <Text fontSize="sm" color="pink.600">
+                          This will remove the document from the system. Useful for correcting registration errors (typos, wrong office, etc.) or removing unnecessary entries.
+                        </Text>
                         </Box>
                         <HStack justify="flex-end" align="center" spacing={2} mt={4}>
                           <FormControl display="flex" alignItems="center" gap={2}>
                             <FormLabel mb="0">I understand</FormLabel>
                             <Switch isChecked={isUnderstood} onChange={(e) => setIsUnderstood(e.target.checked)} />
                           </FormControl>
-                          <Button colorScheme="red" onClick={handleDeleteDocument} isLoading={isDeletingRegisteredDocument} pl={8} pr={8} isDisabled={!isUnderstood}>
-                            Delete Document
+                          <Button colorScheme="pink" onClick={handleDeleteDocument} isLoading={isDeletingRegisteredDocument} pl={8} pr={8} isDisabled={!isUnderstood}>
+                            Remove Document
                           </Button>
                         </HStack>
                       </TabPanel>
@@ -1044,7 +1042,7 @@ const DocumentLifeCycleModal = ({
                                 <Text fontWeight="bold">{event?.action || 'Event'}</Text>
                                 <Text fontSize="sm" color="gray.600">
                                   {event?.performedBy
-                                    ? `By: ${event.performedBy.first_name || ''} ${event.performedBy.last_name || ''} (${roleLabel(event.performedBy.office_position, event.performedBy.role)})`
+                                    ? `By: ${event.performedBy.first_name || ''} ${event.performedBy.last_name || ''} (${event.performedBy.office_position === null ? 'Manager' : event.performedBy.office_position})`
                                     : 'By: Unknown'}
                                 </Text>
                               </Box>
@@ -1054,7 +1052,7 @@ const DocumentLifeCycleModal = ({
                             {event?.action === "Forwarded" && event?.forwardDetails && (
                               <Box mt={2} p={3} bg="blue.50" borderRadius="md" borderLeftWidth="3px" borderLeftColor="blue.500">
                                 <Text fontSize="sm" fontWeight="bold">
-                                  {`Forwarded to: ${event.forwardDetails.first_name || ''} ${event.forwardDetails.last_name || ''} (${roleLabel(event.forwardDetails.office_position, event.forwardDetails.role)})`}
+                                  {`Forwarded to: ${event.forwardDetails.first_name || ''} ${event.forwardDetails.last_name || ''} (${event.performedBy.office_position === null ? 'Manager' : event.performedBy.office_position})`}
                                 </Text>
                                 {event.forwardDetails.forwardRemarks && (
                                   <Text fontSize="sm" mt={1}>
@@ -1067,7 +1065,7 @@ const DocumentLifeCycleModal = ({
                             {event?.action === "Unarchived" && event?.forwardDetails && (
                               <Box mt={2} p={3} bg="yellow.50" borderRadius="md" borderLeftWidth="3px" borderLeftColor="yellow.500">
                                 <Text fontSize="sm" fontWeight="bold">
-                                  {`Forwarded to: ${event.forwardDetails.first_name || ''} ${event.forwardDetails.last_name || ''} (${roleLabel(event.forwardDetails.office_position, event.forwardDetails.role)})`}
+                                  {`Forwarded to: ${event.forwardDetails.first_name || ''} ${event.forwardDetails.last_name || ''} (${event.performedBy.office_position === null ? 'Manager' : event.performedBy.office_position})`}
                                 </Text>
                                 {event.forwardDetails.forwardRemarks && (
                                   <Text fontSize="sm" mt={1}>
@@ -1080,7 +1078,7 @@ const DocumentLifeCycleModal = ({
                             {event?.action === "Rerouted" && event?.rerouteDetails && (
                               <Box mt={2} p={3} bg="blue.50" borderRadius="md" borderLeftWidth="3px" borderLeftColor="blue.500">
                                 <Text fontSize="sm" fontWeight="bold">
-                                  {`Rerouted to: ${event.rerouteDetails.first_name || ''} ${event.rerouteDetails.last_name || ''} (${roleLabel(event.rerouteDetails.office_position, event.rerouteDetails.role)})`}
+                                  {`Rerouted to: ${event.rerouteDetails.first_name || ''} ${event.rerouteDetails.last_name || ''} (${event.performedBy.office_position === null ? 'Manager' : event.performedBy.office_position})`}
                                 </Text>
                                 {event.rerouteDetails.rerouteRemarks && (
                                   <Text fontSize="sm" mt={1}>
@@ -1103,10 +1101,14 @@ const DocumentLifeCycleModal = ({
                               <Box mt={2} p={3} bg="yellow.50" borderRadius="md" borderLeftWidth="3px" borderLeftColor="yellow.500">
                                 <SimpleGrid columns={2} spacing={2} fontSize="sm">
                                   <Text fontWeight="bold">Disposal Method:</Text>
-                                  <Text>{event.archivalDetails.disposalMethod}</Text>
+                                  <Text>{event.archivalDetails.disposalMethod || 'Permanent'}</Text>
 
                                   <Text fontWeight="bold">Retention Period:</Text>
-                                  <Text>{event.archivalDetails.retentionPeriod} Month/s (Until {retentionUntil})</Text>
+                                  <Text>
+                                    {event.archivalDetails.retentionPeriod 
+                                      ? `${event.archivalDetails.retentionPeriod} Month/s (Until ${retentionUntil})` 
+                                      : 'Permanent'}
+                                  </Text>
 
                                   <Text fontWeight="bold">Document Medium:</Text>
                                   <Text>{event.archivalDetails.medium}</Text>
@@ -1195,7 +1197,7 @@ const DocumentLifeCycleModal = ({
                     <Text>
                     {(() => {
                         if (data.currentHandler && data.currentHandler?.first_name && data.currentHandler?.last_name) {
-                            return `${data.currentHandler.first_name} ${data.currentHandler.last_name} (${roleLabel(data.currentHandler.office_position, data.currentHandler.role)})`;
+                            return `${data.currentHandler.first_name} ${data.currentHandler.last_name} (${data.currentHandler.office_position === null ? 'Manager' : data.currentHandler.office_position})`;
                         }
                         return <i>No current handler, document may have been released or archived.</i>;
                     })()}

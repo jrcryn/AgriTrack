@@ -141,28 +141,6 @@ export const useFarmerFormStore = create((set, get) => ({
   })),
 }));
 
-export const usePublicFormStore = create((set) => ({
-  error: null,
-  
-  getFarmerAccountByName: async (farmerSurname, farmerName, farmerMiddleName, farmerSuffix, farmerLocation) => { //need location
-    try {
-      const response = await axios.post(`${API_URL}/api/hvc/get-farmer-account-by-name`, {
-        surname: farmerSurname,
-        first_name: farmerName,
-        middle_name: farmerMiddleName,
-        suffix: farmerSuffix,
-        farmer_barangay: farmerLocation
-      });
-      return response.data;
-    } catch (error) {
-      set({ error: error.message || 'Failed to fetch farmer account by name.' });
-      throw error;
-    }
-  },
-  
-  clearError: () => set({ error: null }),
-}));
-
 export const useFormStatusCheck = create((set, get) => ({
   isFormOpen: false,
   isCheckingFormStatus: false,

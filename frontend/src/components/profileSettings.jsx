@@ -48,12 +48,12 @@ const ProfileSettings = () => {
   } = useUserSettingsStore();
 
   const { user, availableRoles, switchRole, isLoading } = useAuthStore();
-  //console.log(availableRoles);
   const navigate = useNavigate();
   const roleToHome = {
     HVCM: '/hvc/metrics',
     HVCS: '/hvc/metrics',
     MIS: '/machineries/metrics',
+    MIM: '/machineries/metrics',
     DMS: '/doc-track/register-document',
     DMM: '/doc-track/metrics',
   };
@@ -337,22 +337,22 @@ const ProfileSettings = () => {
             ) : (
               <>
                 {(availableRoles || [])
-                  .filter(r => r.role !== user?.role)
+                  .filter(r => r !== user?.role)
                   .map(r => (
                     <Button
-                      key={r.role}
-                      onClick={() => handleSwitchSubsystem(r.role)}
+                      key={r}
+                      onClick={() => handleSwitchSubsystem(r)}
                       colorScheme="blue"
                       justifyContent="flex-start"
                     >
-                      {roleLabel(r.role)}
+                      {roleLabel(r)}
                     </Button>
                   ))
                 }
               </>
             )}
             
-            {(!availableRoles || availableRoles.filter(r => r.role !== user?.role).length === 0) && (
+            {(!availableRoles || availableRoles.filter(r => r !== user?.role).length === 0) && (
               <Text fontSize="sm" color="gray.500">No other subsystems available.</Text>
             )}
 
