@@ -750,6 +750,19 @@ export const requestEdit = async (req, res) => {
       return res.status(400).json({ message: 'farmerId, crop_stage, and updates are required.' });
     }
 
+    // Validate that updates object has at least one non-empty value
+    const hasValidUpdates = Object.values(updates).some(value => {
+      // Check if value exists and is not an empty string
+      return value !== null && value !== undefined && value !== '';
+    });
+
+    if (!hasValidUpdates) {
+      await session.abortTransaction();
+      return res.status(400).json({ 
+        message: 'At least one valid update value is required.' 
+      });
+    }
+
     // Check if the response is flagged for review
     const farmerInput = await global.highValueCropsModels.A_farmer_inputs.findById(farmerId).session(session);
     console.log(farmerInput);
@@ -1238,6 +1251,19 @@ export const createValidationScheduleVisit = async (req, res) => { // for schedu
       await session.abortTransaction();
       return res.status(400).json({ 
         message: 'farmerId, updates, and crop_stage are required.' 
+      });
+    }
+
+    // Validate that updates object has at least one non-empty value
+    const hasValidUpdates = Object.values(updates).some(value => {
+      // Check if value exists and is not an empty string
+      return value !== null && value !== undefined && value !== '';
+    });
+
+    if (!hasValidUpdates) {
+      await session.abortTransaction();
+      return res.status(400).json({ 
+        message: 'At least one valid update value is required.' 
       });
     }
 
