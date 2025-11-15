@@ -12,6 +12,7 @@ import {
   Radio,
   RadioGroup,
   Select,
+  useToast,
 } from '@chakra-ui/react';
 import Destination from '../../components/destinations.js';
 import ModeOfDelivery from '../../components/modeOfDelivery.js';
@@ -19,6 +20,7 @@ import DateMonthOptions from '../../components/dateMonthOptions.js';
 import { useFarmerFormStore } from '../store/farmerForm.store.js';
 
 const bc_other_fctHarvest = ({ onNext, onBack }) => {
+  const toast = useToast();
   const dateOptions = DateMonthOptions();
 
   // Create combined date options, initially apat kasi yung binibigay ni DateMonthOptions
@@ -91,6 +93,29 @@ const bc_other_fctHarvest = ({ onNext, onBack }) => {
   };
 
   const handleSubmit = async () => {
+    // Validate for negative numbers
+    if (parseFloat(localFormData.trees_harvested) < 0) {
+      toast({
+        title: 'Mali ang Input',
+        description: 'Hindi pwedeng negative ang kabuuang bilang ng punong inanihan.',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    if (parseFloat(localFormData.total_weight) < 0) {
+      toast({
+        title: 'Mali ang Input',
+        description: 'Hindi pwedeng negative ang kabuuang timbang ng naani.',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+      return;
+    }
+
     setSubmitting(true);
     
     const formDataToSubmit = { ...localFormData };
@@ -182,14 +207,32 @@ const bc_other_fctHarvest = ({ onNext, onBack }) => {
                 <FormLabel fontSize="sm" fontWeight="bold" color="gray.600" textTransform="uppercase" letterSpacing="wide" mb={4}>
                   TOTAL NUMBER OF TREES HARVESTED (ILAN ANG KABUUANG BILANG NG PUNO NA KINUHANAN NINYO NG ANI?)
                 </FormLabel>
-                <Input type="number" name="trees_harvested" value={localFormData.trees_harvested} onChange={handleChange} placeholder="Your answer" />
+                <Input 
+                  type="number" 
+                  name="trees_harvested" 
+                  value={localFormData.trees_harvested} 
+                  onChange={handleChange} 
+                  onWheel={(e) => e.target.blur()}
+                  min="0"
+                  step="1"
+                  placeholder="Your answer" 
+                />
               </FormControl>
 
               <FormControl id="totalWeightHarvested" isRequired>
                 <FormLabel fontSize="sm" fontWeight="bold" color="gray.600" textTransform="uppercase" letterSpacing="wide" mb={4}>
                   TOTAL WEIGHT OF HARVESTED CROPS (ILAN ANG KABUUANG TIMBANG NA INYONG NAANI?)
                 </FormLabel>
-                <Input type="number" name="total_weight" value={localFormData.total_weight} onChange={handleChange} placeholder="Your answer in kilograms" />
+                <Input 
+                  type="number" 
+                  name="total_weight" 
+                  value={localFormData.total_weight} 
+                  onChange={handleChange} 
+                  onWheel={(e) => e.target.blur()}
+                  min="0"
+                  step="0.01"
+                  placeholder="Your answer in kilograms" 
+                />
               </FormControl>
 
               <FormControl id="cropPurpose" isRequired>

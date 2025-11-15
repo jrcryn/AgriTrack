@@ -12,6 +12,7 @@ import {
   Radio,
   RadioGroup,
   Select,
+  useToast,
 } from '@chakra-ui/react';
 import Destination from '../../components/destinations.js';
 import ModeOfDelivery from '../../components/modeOfDelivery.js';
@@ -19,6 +20,7 @@ import DateMonthOptions from '../../components/dateMonthOptions.js';
 import { useFarmerFormStore } from '../store/farmerForm.store.js';
 
 const CropIndusHarvest = ({ onNext, onBack }) => {
+  const toast = useToast();
   const dateOptions = DateMonthOptions();
   const { formData, updateCropIndusHarvest, submitFarmerForm, isLoading } = useFarmerFormStore();
 
@@ -99,6 +101,29 @@ const CropIndusHarvest = ({ onNext, onBack }) => {
   };
 
   const handleSubmit = async () => {
+    // Validate for negative numbers
+    if (parseFloat(localFormData.total_area_harvested) < 0) {
+      toast({
+        title: 'Mali ang Input',
+        description: 'Hindi pwedeng negative ang kabuuang sukat na inanihan.',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    if (parseFloat(localFormData.total_weight) < 0) {
+      toast({
+        title: 'Mali ang Input',
+        description: 'Hindi pwedeng negative ang kabuuang timbang ng naani.',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+      return;
+    }
+
     setSubmitting(true);
     
     const formDataToSubmit = {...localFormData};
@@ -272,6 +297,9 @@ const CropIndusHarvest = ({ onNext, onBack }) => {
                   name="total_area_harvested"
                   value={localFormData.total_area_harvested}
                   onChange={handleChange}
+                  onWheel={(e) => e.target.blur()}
+                  min="0"
+                  step="0.01"
                   placeholder="Your answer" 
                 />
               </FormControl>
@@ -293,6 +321,9 @@ const CropIndusHarvest = ({ onNext, onBack }) => {
                   name="total_weight"
                   value={localFormData.total_weight}
                   onChange={handleChange}
+                  onWheel={(e) => e.target.blur()}
+                  min="0"
+                  step="0.01"
                   placeholder="Your answer in kilograms" 
                 />
               </FormControl>

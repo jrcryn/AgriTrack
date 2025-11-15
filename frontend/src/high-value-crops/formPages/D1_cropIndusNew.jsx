@@ -12,11 +12,13 @@ import {
   Radio,
   RadioGroup,
   Select,
+  useToast,
 } from '@chakra-ui/react';
 import DateMonthOptions from '../../components/dateMonthOptions.js';
 import { useFarmerFormStore } from '../store/farmerForm.store.js';
 
 const CropIndusNew = ({ onNext, onBack }) => {
+  const toast = useToast();
   const dateOptions = DateMonthOptions();
   const { formData, updateCropIndusNew, submitFarmerForm, isLoading } = useFarmerFormStore();
 
@@ -59,6 +61,19 @@ const CropIndusNew = ({ onNext, onBack }) => {
   // In your form submission handler function
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Validate for negative numbers
+    if (parseFloat(localFormData.total_area_planted) < 0) {
+      toast({
+        title: 'Mali ang Input',
+        description: 'Hindi pwedeng negative ang kabuuang sukat ng tinaniman.',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+      return;
+    }
+
     // Combine harvest_month and harvest_year into a date value
     const harvestDate = new Date(`${localFormData.harvest_year}-${localFormData.harvest_month}-01`);
     const formattedHarvestDate = harvestDate.toISOString().split('T')[0]; // Format as YYYY-MM-DD
@@ -250,6 +265,9 @@ const CropIndusNew = ({ onNext, onBack }) => {
                   name="total_area_planted"
                   value={localFormData.total_area_planted}
                   onChange={handleChange}
+                  onWheel={(e) => e.target.blur()}
+                  min="0"
+                  step="0.01"
                   placeholder="Your answer"
                 />
               </FormControl>
