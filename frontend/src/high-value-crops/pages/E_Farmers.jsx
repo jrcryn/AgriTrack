@@ -294,7 +294,7 @@ const E_Farmers = () => {
       
       // Refetch farmer accounts data
       queryClient.invalidateQueries({ queryKey: ['farmerAccounts'] });
-      
+      queryClient.invalidateQueries({ queryKey: ['archivedFarmerAccounts'] });
       onClose();
     } catch (error) {
       toast({
@@ -318,7 +318,8 @@ const E_Farmers = () => {
         isClosable: true,
       });
       // Refetch farmer accounts data
-      queryClient.invalidateQueries({ queryKey: ['farmerAccounts'] });
+      await queryClient.invalidateQueries({ queryKey: ['farmerAccounts'] });
+      await queryClient.invalidateQueries({ queryKey: ['archivedFarmerAccounts'] });
       onClose();
       onDeleteClose();
       resetForm();
@@ -344,7 +345,8 @@ const E_Farmers = () => {
         isClosable: true,
       });
       // Refetch farmer accounts data
-      queryClient.invalidateQueries({ queryKey: ['farmerAccounts'] });
+      await queryClient.invalidateQueries({ queryKey: ['farmerAccounts'] });
+      await queryClient.invalidateQueries({ queryKey: ['archivedFarmerAccounts'] });
       onClose();
       onDeleteClose();
       resetForm();
