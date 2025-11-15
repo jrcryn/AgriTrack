@@ -1852,6 +1852,29 @@ export const archiveFarmerAccount = async (req, res) => {
   }
 };
 
+export const unarchiveFarmerAccount = async (req, res) => {
+  const { farmerId } = req.body;
+  if (!farmerId) {
+    return res.status(400).json({ message: 'Farmer ID is required.' });
+  }
+  try {
+    const farmerAccount = await global.globalModels.FarmerAccount.findOne({ farmerId: farmerId });
+    if (!farmerAccount) {
+      return res.status(404).json({ message: 'Farmer account not found' });
+    }
+    
+    // Archive instead of delete
+    await global.globalModels.FarmerAccount.updateOne(
+      { farmerId: farmerId },
+      { $set: { isArchived: false } }
+    );
+    
+    return res.status(200).json({ message: 'Farmer account archived successfully.' });
+  } catch (error) {
+    return res.status(500).json({ message: 'Error archiving farmer account.', error: error.message });
+  }
+};
+
 
 // Get all farmer accounts
 export const getFarmerAccounts = async (req, res) => {
@@ -1861,7 +1884,12 @@ export const getFarmerAccounts = async (req, res) => {
     const skip = (page - 1) * limit;
 
     const { farmerName } = req.query;
-    let filter = {};
+    let filter = {
+      $or: [
+        { isArchived: false },
+        { isArchived: { $exists: false } }
+      ]
+    };
 
     if (farmerName && farmerName.trim() !== '') {
       // Split the search query into individual words
@@ -1878,13 +1906,21 @@ export const getFarmerAccounts = async (req, res) => {
       ];
 
       // Build an $and query where each word must be found in at least one of the fields
-      filter = {
+      const searchCondition = {
         $and: searchWords.map(word => {
           const orConditions = fieldsToSearch.map(field => ({
             [field]: { $regex: new RegExp(word, 'i') }
           }));
           return { $or: orConditions };
         })
+      };
+      
+      // Combine with archive filter
+      filter = {
+        $and: [
+          filter,
+          searchCondition
+        ]
       };
     }
 
@@ -1920,6 +1956,86 @@ export const getFarmerAccounts = async (req, res) => {
     res.status(500).json({ message: 'Error fetching farmer accounts', error: error.message });
   }
 };
+
+// Get all archived farmer accounts
+export const getArchivedFarmerAccounts = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const { farmerName } = req.query;
+    let filter = {
+      isArchived: true
+    };
+
+    if (farmerName && farmerName.trim() !== '') {
+      // Split the search query into individual words
+      const searchWords = farmerName.trim().split(/\s+/);
+      
+      const fieldsToSearch = [
+        'first_name', 
+        'middle_name', 
+        'surname', 
+        'suffix', 
+        'farmer_barangay', 
+        'mobile_number', 
+        'farmerId'
+      ];
+
+      // Build an $and query where each word must be found in at least one of the fields
+      const searchCondition = {
+        $and: searchWords.map(word => {
+          const orConditions = fieldsToSearch.map(field => ({
+            [field]: { $regex: new RegExp(word, 'i') }
+          }));
+          return { $or: orConditions };
+        })
+      };
+      
+      // Combine with archive filter
+      filter = {
+        $and: [
+          filter,
+          searchCondition
+        ]
+      };
+    }
+
+    const totalCount = await global.globalModels.FarmerAccount.countDocuments(filter);
+    const farmerAccounts = await global.globalModels.FarmerAccount.aggregate([
+          { $match: filter },
+          { 
+            $addFields: {
+              // Extract the numeric part after the last dash
+              numericPart: { 
+                $toInt: { 
+                  $arrayElemAt: [
+                    { $split: ["$farmerId", "-"] }, 
+                    -1
+                  ] 
+                } 
+              }
+            }
+          },
+          { $sort: { numericPart: 1 } }, // Sort by the extracted numeric value
+          { $skip: skip },
+          { $limit: limit },
+          { $project: { numericPart: 0 } } // Remove the temporary field
+        ]);   
+         
+    res.json({ 
+      farmerAccounts, 
+      totalCount,
+      totalPages: Math.ceil(totalCount / limit),
+      currentPage: page 
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching archived farmer accounts', error: error.message });
+  }
+};
+
+
 
 
 // Get a single farmer account by ID

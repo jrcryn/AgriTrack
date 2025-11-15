@@ -2148,6 +2148,7 @@ const Responses = () => {
             size="sm" 
             width={{ base: "full", md: "200px" }}
             bg="white"
+            borderRadius={'md'}
           >
             <option value="unvalidated">Unvalidated Responses</option>
             <option value="archived">Archived Responses</option>

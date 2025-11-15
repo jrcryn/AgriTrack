@@ -118,6 +118,32 @@ export const useFarmerAccountsQuery = (searchParams = {}, role) => {
   });
 };
 
+export const useArchivedFarmerAccountsQuery = (searchParams = {}, role) => {
+  return useQuery({
+   queryKey: ['archivedFarmerAccounts', searchParams],
+    queryFn: async () => {
+      //await new Promise(resolve => setTimeout(resolve, 5000));
+      const params = new URLSearchParams();
+
+      if (searchParams.farmerName) {
+        params.append('farmerName', searchParams.farmerName);
+      };
+
+      if (searchParams.page) {
+        params.append('page', searchParams.page);
+      }
+      params.append('limit', 10); // Set items per page
+
+
+      const response = await axios.get(`${API_URL}/api/hvc/get-archived-farmer-accounts`, { params });
+      return response.data;
+    },
+    staleTime: 0, // Data is always fresh
+    keepPreviousData: true, // Keep previous data while loading new data
+    enabled: role === 'HVCM' || role === 'HVCS' 
+  });
+};
+
 export const useUnifiedFarmerResponseYearQuery = (role) =>
   useQuery({
     queryKey: ['availableYears'],
@@ -231,6 +257,7 @@ export const useAdminDashboard = (searchParams = {}) => {
   const { data: archivedHarvestingInputs = { results: [], totalPages: 1, totalCount: 0 }, isLoading: isLoadingHarvestingArchived, error: archivedHarvestingError } = useUnvalidatedHarvestingArchivedQuery(harvestingArchivedPage, isModalOpen, role);
 
   const { data: farmerAccounts = [], isLoading: isLoadingAccounts, error: farmerAccountsError } = useFarmerAccountsQuery(searchParams, role);
+  const { data: archivedFarmerAccounts = [], isLoading: isLoadingArchivedAccounts, error: archivedFarmerAccountsError } = useArchivedFarmerAccountsQuery(searchParams, role);
 
   const { data: availableYears = [], isLoading: isLoadingUFRY, error: ufrYearsError } = useUnifiedFarmerResponseYearQuery(role);
   const { data: availableMonths = [], isLoading: isLoadingUFRM, error: ufrMonthsError } = useUnifiedFarmerResponseMonthsQuery(selectedYear, role);
@@ -311,6 +338,18 @@ export const useAdminDashboard = (searchParams = {}) => {
     setIsDeletingFarmerAccount(true);
     try {
       const response = await axios.post(`${API_URL}/api/hvc/archive-farmer-account`, farmerId );
+      return response.data;
+    } catch (error) {
+      throw error;
+    } finally {
+      setIsDeletingFarmerAccount(false);
+    }
+  };
+  
+  const unarchiveFarmerAccount = async (farmerId) => {
+    setIsDeletingFarmerAccount(true);
+    try {
+      const response = await axios.post(`${API_URL}/api/hvc/unarchive-farmer-account`, farmerId );
       return response.data;
     } catch (error) {
       throw error;
@@ -582,6 +621,7 @@ export const useAdminDashboard = (searchParams = {}) => {
     newlyPlantedInputs,
     harvestingInputs,
     farmerAccounts,
+    archivedFarmerAccounts,
     getFarmerAccountById,
     availableYears,
     availableMonths,
@@ -612,7 +652,7 @@ export const useAdminDashboard = (searchParams = {}) => {
     getEditRequestDetails,
     
     // Loading states
-    isLoading: isLoadingAccounts || isLoadingMetrics || isLoadingDateRanges,
+    isLoading: isLoadingAccounts || isLoadingMetrics || isLoadingDateRanges || isLoadingArchivedAccounts,
     isLoadingNewlyPlanted,
     isLoadingHarvesting,
     isLoadingUFRY,
@@ -644,6 +684,7 @@ export const useAdminDashboard = (searchParams = {}) => {
     harvestingError,
     //validatedError, //not in use
     farmerAccountsError, 
+    archivedFarmerAccountsError,
     ufrYearsError, 
     ufrMonthsError, 
     metricsError, 
@@ -657,6 +698,7 @@ export const useAdminDashboard = (searchParams = {}) => {
     createFarmerAccount,
     getFarmerAccountByNameUser,
     archiveFarmerAccount,
+    unarchiveFarmerAccount,
     createUnifiedFarmerResponse,
     flagResponseForReview,
     unflagResponseForReview,

@@ -6,7 +6,10 @@ import {
     //getValidatedFarmerInputs, // not in use
     createFarmerAccount, //manipulate data
     archiveFarmerAccount,
+    unarchiveFarmerAccount,
     getFarmerAccounts,
+    getArchivedFarmerAccounts,
+
     getFarmerAccountByNameUser, 
     //getFarmerAccountById, // not in use
     updateFarmerAccount, //manipulate data
@@ -100,13 +103,17 @@ router.post('/reject-validation-visit-details', verifyAuthToken, verifyRole(['HV
 
 
 router.post('/create-farmer-account', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), createFarmerAccount);
+
 router.post('/archive-farmer-account', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), archiveFarmerAccount);
+router.post('/unarchive-farmer-account', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), unarchiveFarmerAccount);
+
 router.get('/get-farmer-accounts', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), getFarmerAccounts);
+router.get('/get-archived-farmer-accounts', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), getArchivedFarmerAccounts);
+
 router.post('/get-farmer-account-by-name-user', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), getFarmerAccountByNameUser);
 //router.post('/get-farmer-account', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), getFarmerAccountById);
 router.post('/create-unified-farmer-response', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), createUnifiedFarmerResponse);
 router.put('/farmer-accounts/update', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), updateFarmerAccount);
-router.post('/delete-farmer-response', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), deleteFarmerResponse);
 
 
 //________________________________ DASHBOARD (METRICS) PAGE ____________________________________
