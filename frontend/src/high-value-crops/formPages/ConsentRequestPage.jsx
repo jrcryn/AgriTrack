@@ -39,6 +39,7 @@ const ConsentRequestPage = () => {
   const [editRequestData, setEditRequestData] = useState(null);
   const [error, setError] = useState(null);
   const [isProcessed, setIsProcessed] = useState(false);
+  const [consentStatus, setConsentStatus] = useState(null);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -71,6 +72,9 @@ const ConsentRequestPage = () => {
         editRequestId,
         consent,
       });
+
+      const newStatus = consent === 'granted' ? 'Granted' : 'Denied';
+      setConsentStatus(newStatus);
 
       toast({
         title: "Success",
@@ -119,26 +123,32 @@ const ConsentRequestPage = () => {
   if (!editRequestData && !isGettingEditRequestDetails) {
     return (
       <Container maxW="container.md" py={10}>
-        <Alert status="warning" borderRadius="md">
-          <AlertIcon />
-          <Box flex="1">
-            <AlertTitle>Hindi Nahanap</AlertTitle>
-            <AlertDescription>Pasensya na. Hindi mahanap ang kahilingan. Maaring problema ito sa parte namin.</AlertDescription>
-          </Box>
-        </Alert>
-      </Container>
-    );
-  }
-
-  if (error) {
-    return (
-      <Container maxW="container.md" py={10}>
-        <Alert status="error" borderRadius="md">
-          <AlertIcon />
-          <Box flex="1">
-            <AlertTitle>Error!</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
-          </Box>
+        <Alert 
+          status="warning" 
+          borderRadius="md"
+          flexDirection="column"
+          alignItems="flex-start"
+          p={6}
+        >
+          <HStack mb={3}>
+            <AlertIcon boxSize={6} />
+            <AlertTitle fontSize="lg">Hindi Nahanap ang Kahilingan</AlertTitle>
+          </HStack>
+          <AlertDescription>
+            <VStack align="stretch" spacing={3} fontSize="md">
+              <Text>
+                Ang kahilingan ng pagbabago ay hindi mahanap. Maaaring dahil sa mga sumusunod na dahilan:
+              </Text>
+              <Box pl={4}>
+                <Text>• Mali ang link na inyong pinindot</Text>
+                <Text>• Tapos na at naproseso na ang inyong tugon sa kahilingan</Text>
+                <Text>• May problema sa aming sistema</Text>
+              </Box>
+              <Text mt={2} fontWeight="medium" color="orange.700">
+                Kung sa tingin ninyo ito ay mali o may problema, mangyaring makipag-ugnayan sa aming mga staff para sa tulong.
+              </Text>
+            </VStack>
+          </AlertDescription>
         </Alert>
       </Container>
     );
@@ -169,7 +179,7 @@ const ConsentRequestPage = () => {
           {/* Already Processed Alert */}
           {isProcessed && (
             <Alert
-              status={farmerInput?.editConsent?.status === 'Granted' || farmerInput?.editConsent?.status === 'Completed' ? 'success' : 'warning'}
+              status={(consentStatus || farmerInput?.editConsent?.status) === 'Granted' || (consentStatus || farmerInput?.editConsent?.status) === 'Completed' ? 'success' : 'warning'}
               borderRadius="md"
               flexDirection={{ base: "column", sm: "row" }}
               alignItems={{ base: "flex-start", sm: "center" }}
@@ -179,7 +189,7 @@ const ConsentRequestPage = () => {
               <AlertIcon mb={{ base: 2, sm: 0 }} />
               <Box flex="1">
                 <AlertTitle fontSize={{ base: "sm", md: "md" }}>
-                  {(farmerInput?.editConsent?.status === 'Granted' || farmerInput?.editConsent?.status === 'Completed') ? 'Pumayag na sa Pagbabago' : 'Tumanggi na sa Pagbabago'}
+                  {((consentStatus || farmerInput?.editConsent?.status) === 'Granted' || (consentStatus || farmerInput?.editConsent?.status) === 'Completed') ? 'Pumayag na sa Pagbabago' : 'Tumanggi na sa Pagbabago'}
                 </AlertTitle>
                 <AlertDescription fontSize={{ base: "xs", md: "sm" }}>
                   Ang kahilingang ito ay naproseso na.
