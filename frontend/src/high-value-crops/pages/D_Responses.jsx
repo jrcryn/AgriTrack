@@ -881,10 +881,15 @@ const Responses = () => {
                                   ? 'green.400'
                                   : response.farmerInput?.editConsent?.status === 'Denied'
                                   ? 'red.400'
-                                  : response.farmerInput?.validationVisitDetails?.status === 'Completed'
+                                  : (response.farmerInput?.validationVisitDetails?.status === 'Completed' &&
+                                     !response.farmerInput?.validationVisitDetails?.isValidationVisitDetailsApproved)
                                   ? 'blue.400'
                                   : response.farmerInput?.validationVisitDetails?.status === 'Rejected'
                                   ? 'red.400'
+                                   // color for manager-approved validation (for staff)
+                                  : (response.farmerInput?.validationVisitDetails?.status === 'Completed' &&
+                                     response.farmerInput?.validationVisitDetails?.isValidationVisitDetailsApproved === true)
+                                  ? 'green.400'
                                   : undefined
                               }
                             >
@@ -908,7 +913,10 @@ const Responses = () => {
                                 !response.farmerInput?.successfullyUpdated && (
                                   (response.farmerInput?.editConsent?.status === 'Granted') ||
                                   (response.farmerInput?.editConsent?.status === 'Denied') ||
-                                  response.farmerInput?.validationVisitDetails?.status === 'Rejected'
+                                  response.farmerInput?.validationVisitDetails?.status === 'Rejected' ||
+                                  // show notification for staff when manager HAS approved validation visit details
+                                  (response.farmerInput?.validationVisitDetails?.status === 'Completed' &&
+                                   response.farmerInput?.validationVisitDetails?.isValidationVisitDetailsApproved === true)
                                 )
                               }
                               dotColor={
@@ -919,6 +927,10 @@ const Responses = () => {
                                   ? 'red.400'
                                   : response.farmerInput?.validationVisitDetails?.status === 'Rejected'
                                   ? 'red.400'
+                                  // color for manager-approved validation (for staff)
+                                  : (response.farmerInput?.validationVisitDetails?.status === 'Completed' &&
+                                     response.farmerInput?.validationVisitDetails?.isValidationVisitDetailsApproved === true)
+                                  ? 'green.400'
                                   : undefined
                               }
                             >
