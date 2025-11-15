@@ -239,8 +239,8 @@ export const updateFarmerResponseFields = async (req, res) => {
       return res.status(404).json({ message: 'Edit request not found.' });
     }
 
-    // Get updates from the editRequest document
     const editRequest = farmerInput.editConsent.editRequestId;
+    const editRequestId = editRequest._id; // Store the ID for deletion
     const updates = {};
 
     // Extract only non-null/undefined fields from editRequest
@@ -347,6 +347,9 @@ export const updateFarmerResponseFields = async (req, res) => {
       },
       { session }
     );
+
+    // Delete the edit request document
+    await global.highValueCropsModels.EditRequest.findByIdAndDelete(editRequestId, { session });
 
     await session.commitTransaction();
 
