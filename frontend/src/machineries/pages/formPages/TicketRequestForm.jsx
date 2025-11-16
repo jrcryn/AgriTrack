@@ -480,6 +480,7 @@ const TicketRequestForm = ({ onNext, onBack }) => {
                             e.preventDefault();
                           }
                         }}
+                        inputMode='numeric'
                       />
                     </InputGroup>
                   </FormControl>

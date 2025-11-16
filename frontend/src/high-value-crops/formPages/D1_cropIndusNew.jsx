@@ -266,6 +266,7 @@ const CropIndusNew = ({ onNext, onBack }) => {
                   value={localFormData.total_area_planted}
                   onChange={handleChange}
                   onWheel={(e) => e.target.blur()}
+                  inputMode='numeric'
                   min="0"
                   step="0.01"
                   placeholder="Your answer"

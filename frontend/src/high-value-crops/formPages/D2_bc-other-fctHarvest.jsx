@@ -213,6 +213,7 @@ const bc_other_fctHarvest = ({ onNext, onBack }) => {
                   value={localFormData.trees_harvested} 
                   onChange={handleChange} 
                   onWheel={(e) => e.target.blur()}
+                  inputMode='numeric'
                   min="0"
                   step="1"
                   placeholder="Your answer" 
@@ -229,6 +230,7 @@ const bc_other_fctHarvest = ({ onNext, onBack }) => {
                   value={localFormData.total_weight} 
                   onChange={handleChange} 
                   onWheel={(e) => e.target.blur()}
+                  inputMode='numeric'
                   min="0"
                   step="0.01"
                   placeholder="Your answer in kilograms" 
