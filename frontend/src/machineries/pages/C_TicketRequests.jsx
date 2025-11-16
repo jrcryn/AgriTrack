@@ -33,11 +33,13 @@ import { FaEye } from 'react-icons/fa';
 
 import { useAdminDashboard } from '../store/adminDashboard.store.js';
 import TicketRequestPanel from '../../components/ticketRequestPanel.jsx';
+import { useAuthStore } from '../../auth/store/authStore.js';
 
 const TicketRequests = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const toast = useToast(); // Initialize toast
   const MAX_SELECTIONS = 5; // Set maximum number of ticket selections
+  const { user } = useAuthStore();
 
   const [pendingPage, setPendingPage] = useState(1);
   const [ongoingPage, setOngoingPage] = useState(1);
@@ -47,7 +49,7 @@ const TicketRequests = () => {
   const [reopenScheduleId, setReopenScheduleId] = useState(null);
 
   
-  const [pageType, setPageType] = useState('pending'); // 'pending', 'ongoing', 'scheduled', 'declined'
+  const [pageType, setPageType] = useState(user?.role === 'MIM' ? 'pending' : 'scheduled'); // 'pending', 'ongoing', 'scheduled', 'declined'
   const [isViewingDetails, setIsViewingDetails] = useState(false)
 
   const {
@@ -282,10 +284,20 @@ const TicketRequests = () => {
               value={pageType}
               onChange={(e) => setPageType(e.target.value)}
             >
-              <option value="pending">Pending Tickets</option>
-              <option value="scheduled">Scheduled Tickets</option>
-              <option value="ongoing">Ongoing Tickets</option>
-              <option value="declined">Declined Tickets</option>
+              {user?.role === 'MIM' && (
+                <>
+                  <option value="pending">Pending Tickets</option>
+                  <option value="scheduled">Scheduled Tickets</option>
+                  <option value="ongoing">Ongoing Tickets</option>
+                  <option value="declined">Declined Tickets</option>
+                </>
+              )}
+              {user?.role !== 'MIM' && (
+                <>
+                  <option value="scheduled">Scheduled Tickets</option>
+                  <option value="ongoing">Ongoing Tickets</option>
+                </>
+              )}
             </Select>
           </FormControl>
         </Flex>

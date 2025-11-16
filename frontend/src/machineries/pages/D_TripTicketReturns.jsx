@@ -35,6 +35,7 @@ const TripTicketReturns = () => {
   const [ongoingPage, setOngoingPage] = useState(1);
   const [reopenScheduleId, setReopenScheduleId] = useState(null);
   const { user } = useAuthStore();
+
   const {
     inProgressWeeklySchedules,
     isLoadingInProgressWeeklySchedules,
@@ -43,7 +44,7 @@ const TripTicketReturns = () => {
     { ongoingPage },
     { searchQuery }
   );
-
+  console.log(inProgressWeeklySchedules);
   useEffect(() => {
     setOngoingPage(1);
   }, [searchQuery]);
@@ -56,6 +57,20 @@ const TripTicketReturns = () => {
   const inProgressSchedulesTotalPages = inProgressWeeklySchedules?.data?.totalPages || 1;
   const inProgressSchedulesCurrentPage = inProgressWeeklySchedules?.data?.currentPage || 1;
   const inProgressSchedulesTotalItems = inProgressWeeklySchedules?.data?.totalCount || 0;
+
+  // Filter schedules based on user role - staff only see schedules they're assigned to
+  const filteredInProgressSchedules = user?.role === 'MIS' 
+    ? inProgressWeeklySchedulesList.filter(schedule => 
+        schedule.ticketRequests.some(ticket => 
+          ticket?.ticketDetails?.assignedOperator?.assignedOperatorId === user?.id
+        )
+      )
+    : inProgressWeeklySchedulesList;
+
+
+  const filteredTotalItems = user?.role === 'MIS' 
+    ? filteredInProgressSchedules.length 
+    : inProgressSchedulesTotalItems;
 
   const PaginationControls = ({ currentPage, setCurrentPage, totalPages, totalItems, colorScheme }) => (
     <Flex
@@ -180,7 +195,7 @@ const TripTicketReturns = () => {
           <Center p={10}>
             <Spinner size="lg" color={'purple.500'} />
           </Center>
-        ) : inProgressWeeklySchedulesList.length > 0 ? (
+        ) : filteredInProgressSchedules.length > 0 ? (
           <Box overflowX="auto">
             <TableContainer>
               <Table variant="simple" size="md">
@@ -207,7 +222,7 @@ const TripTicketReturns = () => {
                   </Tr>
                 </Thead>
                 <Tbody>
-                  {inProgressWeeklySchedulesList.map((schedule) => {
+                  {filteredInProgressSchedules.map((schedule) => {
                     return (
                       <Tr key={schedule._id} fontSize="sm">
                         <Td fontWeight={'semibold'}>{schedule?.refNumber || '—'}</Td>
@@ -335,7 +350,7 @@ const TripTicketReturns = () => {
             currentPage={inProgressSchedulesCurrentPage}
             setCurrentPage={setOngoingPage}
             totalPages={inProgressSchedulesTotalPages}
-            totalItems={inProgressSchedulesTotalItems}
+            totalItems={filteredTotalItems}
             colorScheme='purple'
           />
         </Flex>

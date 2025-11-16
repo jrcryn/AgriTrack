@@ -1191,12 +1191,19 @@ export const undeclineTicketRequest = async (req, res) => {
 import { uploadFileToDrive } from '../googleDrive.controller.js';
 
 export const setRequestTicketToComplete = async (req, res) => {
-    const { ticketRequestId, extensionRequest, areaServiced, remainingArea, remarks } = req.body;
+    const { ticketRequestId, extensionRequest, areaServiced, remainingArea, remarks, operatorId } = req.body;
 
     if (!ticketRequestId) {
         return res.status(400).json({
             success: false,
             message: "Please provide the ticket request ID."
+        });
+    }
+
+    if (!operatorId) {
+        return res.status(400).json({
+            success: false,
+            message: "Please provide the operator ID."
         });
     }
 
@@ -1256,6 +1263,21 @@ export const setRequestTicketToComplete = async (req, res) => {
             });
         }
 
+        const operator = await global.globalModels.EmployeeAccount.findById(operatorId).lean();
+        if (!operator) {
+            return res.status(404).json({
+                success: false,
+                message: "Operator account not found. If issue persists, please contact IT."
+            });
+        }
+
+        if (!operator.roles || !operator.roles.includes('MIS')) {
+            return res.status(400).json({
+                success: false,
+                message: "The provided user is not an authorized operator."
+            });
+        }
+
         const proofImageFile = req.files.proofImage[0];
         const signatureFile = req.files.signature[0];
 
@@ -1286,6 +1308,16 @@ export const setRequestTicketToComplete = async (req, res) => {
                 signatureId: signatureResult.id,
                 signatureUrl: `https://drive.google.com/uc?id=${signatureResult.id}`,
                 completedAt: new Date()
+            },
+            completedBy: {
+                operatorId: operator._id,
+                first_name: operator.first_name,
+                last_name: operator.last_name,
+                middle_name: operator.middle_name,
+                suffix: operator.suffix,
+                email: operator.email,
+                phone: operator.phone,
+                completedAt: completedAt
             },
             disabledForEditing: true
         };

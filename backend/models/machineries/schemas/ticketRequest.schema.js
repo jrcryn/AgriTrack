@@ -120,7 +120,19 @@ export const ticketRequestSchema = new mongoose.Schema({
     barangay: {type: String, required: true},
     estimatedArea: { type: Number, required: true},
     dateRequested: {type: Date, required: true},
-    status: { type: String, enum: ['Pending', 'Scheduled', 'Ongoing' , 'Completed', 'Declined'] },
+    status: { 
+        type: String, 
+        enum: [
+            'Pending', 
+            'Approved', 
+            'Scheduled', 
+            'Ongoing', 
+            'Completed', 
+            'Declined', 
+            'No Proof Submitted', 
+            'Completed (Delayed Submission)'
+        ],
+    },
     disabledForEditing: Boolean,
 
     declinedBy: {
@@ -169,6 +181,20 @@ export const ticketRequestSchema = new mongoose.Schema({
         signatureId: String,
         signatureUrl: String,
         completedAt: Date,
+    },
+
+    completedBy: {
+        operatorId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Staff_Account',
+        },
+        first_name: String,
+        last_name: String,
+        middle_name: String,
+        suffix: String,
+        email: String,
+        phone: String,
+        completedAt: Date
     },
 
     extensionNeeded: Boolean,

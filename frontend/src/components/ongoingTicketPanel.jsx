@@ -12,6 +12,7 @@ import { useAdminDashboard } from '../machineries/store/adminDashboard.store.js'
 import { useQueryClient } from '@tanstack/react-query';
 import ReturnTicketPanel from './returnTicketPanel.jsx';
 import TicketRequestCompletedDetailsPanel from './ticketRequestCompletedDetailsPanel.jsx';
+import { useAuthStore } from '../auth/store/authStore.js';
 
 const OngoingTicketPanel = ({
   isOpen,
@@ -21,6 +22,7 @@ const OngoingTicketPanel = ({
 }) => {
   const toast = useToast();
   const queryClient = useQueryClient();
+  const { user } = useAuthStore();
 
   const { isOpen: isOpenReturnModal, onOpen: onOpenReturnModal, onClose: onCloseReturnModal } = useDisclosure();
   const [selectedTicketForReturn, setSelectedTicketForReturn] = useState(null);
@@ -73,10 +75,10 @@ const OngoingTicketPanel = ({
       <Modal isOpen={isOpen} onClose={onClose} size="6xl" closeOnOverlayClick={false} scrollBehavior="inside" isCentered motionPreset='none' blockScrollOnMount={false}>
         <ModalOverlay />
         <ModalContent borderRadius="md" overflow="hidden">
-          <ModalHeader bg="purple.50" borderBottomWidth="1px" borderColor="gray.200" display="flex" alignItems="center">
-            <FaCalendarAlt style={{ marginRight: 12, color: 'purple' }} />
-            Manage Ongoing Schedule
-          </ModalHeader>
+            <ModalHeader bg="purple.50" borderBottomWidth="1px" borderColor="gray.200" display="flex" alignItems="center">
+              <FaCalendarAlt style={{ marginRight: 12, color: 'purple' }} />
+              Manage Ongoing Schedule
+            </ModalHeader>
 
           <ModalBody py={6}>
             {selectedWeeklySchedule ? (
