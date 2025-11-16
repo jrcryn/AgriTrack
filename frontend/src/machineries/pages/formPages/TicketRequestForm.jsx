@@ -469,11 +469,18 @@ const TicketRequestForm = ({ onNext, onBack }) => {
                         value={localFormData.estimated_area || ''}
                         onChange={handleChange}
                         type="number"
-                        min="0.1"
-                        step="0.1"
                         placeholder="Enter area"
                         borderRadius="md"
                         focusBorderColor={accentColor}
+                        min="0"
+                        step="0.01"
+                        onWheel={(e) => e.target.blur()}
+                        onKeyDown={(e) => {
+                          if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+                            e.preventDefault();
+                          }
+                        }}
+                        inputMode='numeric'
                       />
                     </InputGroup>
                   </FormControl>

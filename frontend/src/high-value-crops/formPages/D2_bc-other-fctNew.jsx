@@ -251,6 +251,7 @@ const bc_other_fctNew = ({ onNext, onBack }) => {
                   value={localFormData.total_trees}
                   onChange={handleChange}
                   onWheel={(e) => e.target.blur()}
+                  inputMode='numeric'
                   min="0"
                   step="1"
                   placeholder="Your answer"

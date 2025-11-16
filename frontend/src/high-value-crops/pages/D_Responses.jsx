@@ -1227,7 +1227,7 @@ const Responses = () => {
 
   // Check for changes in request-edit values
   useEffect(() => {
-    if (!selectedResponse || !isOpenRequestEdit) return;
+    if (!selectedResponse || (!isOpenRequestEdit && !isOpenScheduleVisit)) return;
 
     const hasChanges = Object.keys(requestEditValues).some(key => {
       const currentValue = String(requestEditValues[key] ?? '');
@@ -1236,10 +1236,37 @@ const Responses = () => {
     });
 
     setHasRequestEditChanges(hasChanges);
-  }, [requestEditValues, selectedResponse, isOpenRequestEdit]);
+  }, [requestEditValues, selectedResponse, isOpenRequestEdit, isOpenScheduleVisit]);
 
-  // Handler for requesting farmer consent for data change (moved to Request Edit modal)
-  // ...existing code...
+  // Initialize request-edit values when the Schedule Visit modal opens
+  useEffect(() => {
+    if (!isOpenScheduleVisit || !selectedResponse) return;
+
+    const isNewlyPlanted = selectedResponse.cropRecord?.crop_stage === 'NEWLY PLANTED';
+    const isHarvesting = selectedResponse.cropRecord?.crop_stage === 'HARVESTING';
+    const isIndustrialCrop = selectedResponse.cropType?.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS';
+
+    let initial = {};
+    if (isNewlyPlanted) {
+      initial = isIndustrialCrop
+        ? { total_area_planted: selectedResponse.cropDetails?.total_area_planted ?? '' }
+        : { total_trees: selectedResponse.cropDetails?.total_trees ?? '' };
+    } else if (isHarvesting) {
+      initial = isIndustrialCrop
+        ? {
+            total_weight: selectedResponse.cropDetails?.total_weight ?? '',
+            total_area_harvested: selectedResponse.cropDetails?.total_area_harvested ?? '',
+          }
+        : {
+            total_weight: selectedResponse.cropDetails?.total_weight ?? '',
+            trees_harvested: selectedResponse.cropDetails?.trees_harvested ?? '',
+          };
+    }
+    setRequestEditValues(initial);
+    setValidationVisitRemarks('');
+    setHasRequestEditChanges(false);
+  }, [isOpenScheduleVisit, selectedResponse]);
+
   const handleRequestConsent = async () => {
     if (!selectedResponse) return;
 
@@ -2849,8 +2876,6 @@ const Responses = () => {
             {selectedResponse ? (
               <VStack align="stretch" spacing={4}>
 
-                
-
                 {/* Heads-up when updating an existing pending request */}
                 {selectedResponse?.farmerInput?.editConsent?.status === 'Pending' && (
                   <Alert status="warning" borderRadius="md" variant="left-accent">
@@ -2858,7 +2883,7 @@ const Responses = () => {
                     <Box flex="1">
                       <AlertTitle fontSize="sm">Update will notify the farmer again</AlertTitle>
                       <AlertDescription fontSize="xs">
-                        Updating this edit request will send another SMS notification to the farmer. If no changes are needed, consider waiting for the farmer’s response to the current request instead.
+                        Updating this edit request will send another SMS notification to the farmer. If no changes are needed, consider waiting for the farmer's response to the current request instead.
                       </AlertDescription>
                     </Box>
                   </Alert>
@@ -2886,7 +2911,6 @@ const Responses = () => {
                           type="number"
                           min="0"
                           step="0.01"
-                          value={requestEditValues.total_area_planted  ?? ''}
                           onChange={(e) => {
                             const value = e.target.value;
                             if (value === '' || parseFloat(value) >= 0) {
@@ -2902,6 +2926,9 @@ const Responses = () => {
                         />
                         <InputRightAddon children="hectares" />
                       </InputGroup>
+                      <Text fontSize="xs" color="gray.600" mt={1}>
+                        Current value: <b>{selectedResponse.cropDetails?.total_area_planted ?? '-'}</b> hectares
+                      </Text>
                     </FormControl>
                   ) : (
                     <FormControl>
@@ -2911,7 +2938,6 @@ const Responses = () => {
                           type="number"
                           min="0"
                           step="1"
-                          value={requestEditValues.total_trees ?? ''}
                           onChange={(e) => {
                             const value = e.target.value;
                             if (value === '' || parseFloat(value) >= 0) {
@@ -2927,6 +2953,9 @@ const Responses = () => {
                         />
                         <InputRightAddon children="trees" />
                       </InputGroup>
+                      <Text fontSize="xs" color="gray.600" mt={1}>
+                        Current value: <b>{selectedResponse.cropDetails?.total_trees ?? '-'}</b> trees
+                      </Text>
                     </FormControl>
                   )
                 ) : (
@@ -2939,7 +2968,6 @@ const Responses = () => {
                           type="number"
                           min="0"
                           step="0.01"
-                          value={requestEditValues.total_weight ?? ''}
                           onChange={(e) => {
                             const value = e.target.value;
                             if (value === '' || parseFloat(value) >= 0) {
@@ -2955,6 +2983,9 @@ const Responses = () => {
                         />
                         <InputRightAddon children="kg" />
                       </InputGroup>
+                      <Text fontSize="xs" color="gray.600" mt={1}>
+                        Current value: <b>{selectedResponse.cropDetails?.total_weight ?? '-'}</b> kg
+                      </Text>
                     </FormControl>
 
                     {selectedResponse.cropType?.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS' ? (
@@ -2965,7 +2996,6 @@ const Responses = () => {
                             type="number"
                             min="0"
                             step="0.01"
-                            value={requestEditValues.total_area_harvested ?? ''}
                             onChange={(e) => {
                               const value = e.target.value;
                               if (value === '' || parseFloat(value) >= 0) {
@@ -2981,6 +3011,9 @@ const Responses = () => {
                           />
                           <InputRightAddon children="hectares" />
                         </InputGroup>
+                        <Text fontSize="xs" color="gray.600" mt={1}>
+                          Current value: <b>{selectedResponse.cropDetails?.total_area_harvested ?? '-'}</b> hectares
+                        </Text>
                       </FormControl>
                     ) : (
                       <FormControl>
@@ -2990,7 +3023,6 @@ const Responses = () => {
                             type="number"
                             min="0"
                             step="1"
-                            value={requestEditValues.trees_harvested ?? ''}
                             onChange={(e) => {
                               const value = e.target.value;
                               if (value === '' || parseFloat(value) >= 0) {
@@ -3006,6 +3038,9 @@ const Responses = () => {
                           />
                           <InputRightAddon children="trees" />
                         </InputGroup>
+                        <Text fontSize="xs" color="gray.600" mt={1}>
+                          Current value: <b>{selectedResponse.cropDetails?.trees_harvested ?? '-'}</b> trees
+                        </Text>
                       </FormControl>
                     )}
                   </>
@@ -3090,7 +3125,6 @@ const Responses = () => {
                             type="number"
                             min="0"
                             step="0.01"
-                            value={requestEditValues.total_area_planted ?? ''}
                             onChange={(e) => {
                               const value = e.target.value;
                               if (value === '' || parseFloat(value) >= 0) {
@@ -3118,7 +3152,6 @@ const Responses = () => {
                             type="number"
                             min="0"
                             step="1"
-                            value={requestEditValues.total_trees ?? ''}
                             onChange={(e) => {
                               const value = e.target.value;
                               if (value === '' || parseFloat(value) >= 0) {
@@ -3149,7 +3182,6 @@ const Responses = () => {
                             type="number"
                             min="0"
                             step="0.01"
-                            value={requestEditValues.total_weight ?? ''}
                             onChange={(e) => {
                               const value = e.target.value;
                               if (value === '' || parseFloat(value) >= 0) {
@@ -3178,7 +3210,6 @@ const Responses = () => {
                               type="number"
                               min="0"
                               step="0.01"
-                              value={requestEditValues.total_area_harvested ?? ''}
                               onChange={(e) => {
                                 const value = e.target.value;
                                 if (value === '' || parseFloat(value) >= 0) {
@@ -3206,17 +3237,17 @@ const Responses = () => {
                               type="number"
                               min="0"
                               step="1"
-                              value={requestEditValues.trees_harvested ?? ''}
-                              onChange={(e) => {
-                                const value = e.target.value;
-                                if (value === '' || parseFloat(value) >= 0) {
-                                  setRequestEditValues(v => ({ ...v, trees_harvested: value }));
-                                }
-                              }}
+                              
                               onWheel={(e) => e.target.blur()}
                               onKeyDown={(e) => {
                                 if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '.') {
                                   e.preventDefault();
+                                }
+                              }}
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                if (value === '' || parseFloat(value) >= 0) {
+                                  setRequestEditValues(v => ({ ...v, trees_harvested: value }));
                                 }
                               }}
                             />
@@ -3270,6 +3301,7 @@ const Responses = () => {
                 ml={'3'}
                 onClick={handleScheduleVisitSubmit}
                 isLoading={isCreatingValidationSchedule}
+                isDisabled={!hasRequestEditChanges}
               >
                 Require Validation Visit
               </Button>
