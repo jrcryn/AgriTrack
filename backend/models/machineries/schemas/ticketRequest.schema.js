@@ -6,13 +6,11 @@ export const extensionTicketSchema = new mongoose.Schema({
     areaServiced: { type: Number, required: true },
     remainingArea: { type: Number, required: true },
     extensionReason: String,
-    requestedDate: { type: Date, default: Date.now },
-    
+
     status: { 
         type: String, 
         enum: [
             'Pending', 
-            'Approved', 
             'Scheduled', 
             'Ongoing', 
             'Completed', 
@@ -86,7 +84,7 @@ export const extensionTicketSchema = new mongoose.Schema({
     },
 
     remarks: String,
-}, { _id: true, timestamps: true });
+}, { _id: true, timestamps: false });
 
 
 
@@ -123,14 +121,14 @@ export const ticketRequestSchema = new mongoose.Schema({
     status: { 
         type: String, 
         enum: [
-            'Pending', 
-            'Approved', 
+            'Pending',  
             'Scheduled', 
             'Ongoing', 
             'Completed', 
             'Declined', 
             'No Proof Submitted', 
-            'Completed (Delayed Submission)'
+            'Completed (Delayed Submission)',
+            'Partially Completed'
         ],
     },
     disabledForEditing: Boolean,
@@ -194,15 +192,11 @@ export const ticketRequestSchema = new mongoose.Schema({
         suffix: String,
         email: String,
         phone: String,
-        completedAt: Date
     },
 
     extensionNeeded: Boolean,
     
-    extensionDetails: {
-        areaServiced: Number,
-        remainingArea: Number
-    },
+
 
     remarks: String,
 

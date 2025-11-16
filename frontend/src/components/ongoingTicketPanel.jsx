@@ -141,8 +141,11 @@ const OngoingTicketPanel = ({
                           <Tbody>
                             {selectedWeeklySchedule.ticketRequests.map((tr) => {
                               const ticket = tr.ticketDetails;
+                              const hasExtensionRequest = ticket.extensionNeeded === true;
+                              const rowBgColor = hasExtensionRequest ? 'orange.100' : (ticket.status === 'Completed' ? 'green.100' : null);
+                              
                               return (
-                                <Tr key={tr.ticketRequestId} bgColor={ticket.status === 'Completed' ? 'green.100' : null}>
+                                <Tr key={tr.ticketRequestId} bgColor={rowBgColor}>
                                   <Td fontWeight="semibold" fontSize={'xs'} >{ticket.refNumber}</Td>
                                   <Td fontSize={'xs'}>{`${ticket.requestorFarmer?.first_name} ${ticket.requestorFarmer?.surname}`}</Td>
                                   <Td fontSize={'xs'}>{ticket.barangay}</Td>
@@ -158,22 +161,33 @@ const OngoingTicketPanel = ({
                                     {ticket.assignedMachineUnit?.plateNumber || '-'}
                                   </Td>
                                   <Td>
-                                    {ticket.status === 'Completed' ? (
+                                    {hasExtensionRequest ? (
                                       <>
-                                      <Badge colorScheme='green' fontSize='10px' pl={4} borderRadius='md'>
-                                        Completed
-                                      </Badge>
-                                      <Button 
-                                        size={'xs'} 
-                                        colorScheme='green' 
-                                        ml={1}
-                                        onClick={() => {
-                                          setSelectedCompletedTicket(ticket);
-                                          onOpenCompletedDetails();
-                                        }}
-                                      >
-                                        View Details
-                                      </Button>
+                                        <Button 
+                                          size={'xs'} 
+                                          colorScheme='orange' 
+                                          ml={1}
+                                          onClick={() => {
+                                            setSelectedCompletedTicket(ticket);
+                                            onOpenCompletedDetails();
+                                          }}
+                                        >
+                                          View Details
+                                        </Button>
+                                      </>
+                                    ) : ticket.status === 'Completed' ? (
+                                      <>
+                                        <Button 
+                                          size={'xs'} 
+                                          colorScheme='green' 
+                                          ml={1}
+                                          onClick={() => {
+                                            setSelectedCompletedTicket(ticket);
+                                            onOpenCompletedDetails();
+                                          }}
+                                        >
+                                          View Details
+                                        </Button>
                                       </>
                                     ) : (
                                       <Button
@@ -188,7 +202,6 @@ const OngoingTicketPanel = ({
                                         Update Ticket
                                       </Button>
                                     )}
-                                    
                                   </Td>
                                 </Tr>
                               );

@@ -1317,23 +1317,44 @@ export const setRequestTicketToComplete = async (req, res) => {
                 suffix: operator.suffix,
                 email: operator.email,
                 phone: operator.phone,
-                completedAt: completedAt
             },
             disabledForEditing: true
         };
 
-        // Add remarks if provided
-        if (remarks && remarks.trim()) {
-            updateData.remarks = remarks.trim();
-        }
-
-        // Add extension details if extension is requested
+        // Handle extension request
         if (extensionRequest === 'true') {
-            updateData.extensionDetails = {
+            // Generate extension ticket reference number
+            // const now = new Date();
+            // const yyyy = now.getFullYear();
+            // const mm = String(now.getMonth() + 1).padStart(2, '0');
+            // const dd = String(now.getDate()).padStart(2, '0');
+            // const datePart = `${yyyy}${mm}${dd}`;
+            // const extSeq = await getNextCounterSeq(`EXT-${datePart}`);
+            // const extensionRefNumber = `EXT-${datePart}-${String(extSeq).padStart(4, '0')}`;
+
+            const extensionRefNumber = ticket.refNumber.replace(/^TR-/, 'EXT-');
+
+            // Create extension ticket object
+            const extensionTicket = {
+                refNumber: extensionRefNumber,
                 areaServiced: parseFloat(areaServiced),
-                remainingArea: parseFloat(remainingArea)
+                remainingArea: parseFloat(remainingArea),
+                extensionReason: remarks && remarks.trim() ? remarks.trim() : undefined,
+                status: 'Pending'
             };
+
+            // Add extension ticket to the array
+            updateData.$push = {
+                extensionTickets: extensionTicket
+            };
+
+            // Mark that extension is needed
             updateData.extensionNeeded = true;
+        } else {
+            // If no extension, add remarks to the main document
+            if (remarks && remarks.trim()) {
+                updateData.remarks = remarks.trim();
+            }
         }
 
         // Update ticket with completion details
@@ -1877,6 +1898,12 @@ export const getPlannedWeeklySchedules = async (req, res) => { //planned or sche
                 };
             });
 
+            enhancedTickets.sort((a, b) => {
+                const dateA = new Date(a.assignedDate || 0);
+                const dateB = new Date(b.assignedDate || 0);
+                return dateA - dateB;
+            });
+
             return {
                 ...schedule,
                 ticketRequests: enhancedTickets
@@ -1962,6 +1989,13 @@ export const getInProgressWeeklySchedules = async (req, res) => { //in progress 
                     ...tr,
                     ticketDetails: fullTicket || null
                 };
+            });
+
+            // Sort tickets by assigned date (earliest first)
+            enhancedTickets.sort((a, b) => {
+                const dateA = new Date(a.assignedDate || 0);
+                const dateB = new Date(b.assignedDate || 0);
+                return dateA - dateB;
             });
 
             return {
