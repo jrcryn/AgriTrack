@@ -21,6 +21,7 @@ import {
   Spinner,
   TableContainer,
   useDisclosure,
+  Checkbox,
 } from '@chakra-ui/react';
 import { FiSearch, FiInbox } from 'react-icons/fi';
 import { LuLogs } from "react-icons/lu";
@@ -34,6 +35,7 @@ const TripTicketReturns = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [ongoingPage, setOngoingPage] = useState(1);
   const [reopenScheduleId, setReopenScheduleId] = useState(null);
+  const [showOnlyMySchedules, setShowOnlyMySchedules] = useState(false);
   const { user } = useAuthStore();
 
   const {
@@ -58,8 +60,8 @@ const TripTicketReturns = () => {
   const inProgressSchedulesCurrentPage = inProgressWeeklySchedules?.data?.currentPage || 1;
   const inProgressSchedulesTotalItems = inProgressWeeklySchedules?.data?.totalCount || 0;
 
-  // Filter schedules based on user role - staff only see schedules they're assigned to
-  const filteredInProgressSchedules = user?.role === 'MIS' 
+  // Filter schedules based on checkbox selection and user role
+  const filteredInProgressSchedules = (showOnlyMySchedules && user?.role === 'MIS')
     ? inProgressWeeklySchedulesList.filter(schedule => 
         schedule.ticketRequests.some(ticket => 
           ticket?.ticketDetails?.assignedOperator?.assignedOperatorId === user?.id
@@ -67,8 +69,7 @@ const TripTicketReturns = () => {
       )
     : inProgressWeeklySchedulesList;
 
-
-  const filteredTotalItems = user?.role === 'MIS' 
+  const filteredTotalItems = (showOnlyMySchedules && user?.role === 'MIS')
     ? filteredInProgressSchedules.length 
     : inProgressSchedulesTotalItems;
 
@@ -181,13 +182,24 @@ const TripTicketReturns = () => {
             </InputGroup>
           </FormControl>
         </Flex>
+
+        {/* Show checkbox only for operators (MIS role) */}
+        {user?.role === 'MIS' && (
+          <Checkbox
+            isChecked={showOnlyMySchedules}
+            onChange={(e) => setShowOnlyMySchedules(e.target.checked)}
+            colorScheme="purple"
+          >
+            Show only schedules I'm assigned to
+          </Checkbox>
+        )}
       </Flex>
 
       {/* Ongoing Schedules Section */}
       <Box mb={8}>
         <Flex justify="space-between" align="center" mb={4} bg={'purple.50'} p={3} borderRadius="md" borderLeftWidth="4px" borderLeftColor={'purple.500'}>
           <Heading as="h2" size="md" display="flex" alignItems="center">
-            <Icon as={LuLogs} mr={2} color={'purple.500'} /> ONGOING SCHEDULES
+            <Icon as={LuLogs} mr={2} color={'purple.500'} /> ONGOING SCHEDULES 
           </Heading>
         </Flex>
 
@@ -340,7 +352,7 @@ const TripTicketReturns = () => {
               No ongoing schedules found
             </Text>
             <Text fontSize="sm" color="gray.400">
-              Try adjusting your search.
+              {showOnlyMySchedules ? "You are not assigned to any schedules." : "Try adjusting your search."}
             </Text>
           </Center>
         )};
