@@ -763,6 +763,13 @@ export const requestEdit = async (req, res) => {
       });
     }
 
+    const editRequest = farmerInput.editConsent.editRequestId;
+    const editRequestId = editRequest._id; // Store the ID for deletion
+
+    if (editRequest) {
+      await global.highValueCropsModels.EditRequest.findByIdAndDelete(editRequestId, { session });
+    };
+
     // Check if the response is flagged for review
     const farmerInput = await global.highValueCropsModels.A_farmer_inputs.findById(farmerId).session(session);
     console.log(farmerInput);
@@ -858,7 +865,6 @@ export const requestEdit = async (req, res) => {
           editRequestId: editDoc[0]._id,
           reason: reason
         },
-        isCurrentlyEditRequest: true
       },
       { session }
     );
