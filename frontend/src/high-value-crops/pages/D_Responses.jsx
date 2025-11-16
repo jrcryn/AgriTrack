@@ -3237,16 +3237,17 @@ const Responses = () => {
                               type="number"
                               min="0"
                               step="1"
-                              onChange={(e) => {
-                                const value = e.target.value;
-                                if (value === '' || parseFloat(value) >= 0) {
-                                  setRequestEditValues(v => ({ ...v, trees_harvested: value }));
-                                }
-                              }}
+                              
                               onWheel={(e) => e.target.blur()}
                               onKeyDown={(e) => {
                                 if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '.') {
                                   e.preventDefault();
+                                }
+                              }}
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                if (value === '' || parseFloat(value) >= 0) {
+                                  setRequestEditValues(v => ({ ...v, trees_harvested: value }));
                                 }
                               }}
                             />
