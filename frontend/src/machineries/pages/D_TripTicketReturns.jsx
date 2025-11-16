@@ -25,6 +25,7 @@ import {
 import { FiSearch, FiInbox } from 'react-icons/fi';
 import { LuLogs } from "react-icons/lu";
 import { FaEye } from 'react-icons/fa';
+import { useAuthStore } from '../../auth/store/authStore.js';
 
 import { useAdminDashboard } from '../store/adminDashboard.store.js';
 import OngoingTicketPanel from '../../components/ongoingTicketPanel.jsx';
@@ -33,7 +34,7 @@ const TripTicketReturns = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [ongoingPage, setOngoingPage] = useState(1);
   const [reopenScheduleId, setReopenScheduleId] = useState(null);
-
+  const { user } = useAuthStore();
   const {
     inProgressWeeklySchedules,
     isLoadingInProgressWeeklySchedules,
