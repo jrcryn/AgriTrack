@@ -10,7 +10,16 @@ export const extensionTicketSchema = new mongoose.Schema({
     
     status: { 
         type: String, 
-        enum: ['Pending', 'Approved', 'Scheduled', 'Ongoing', 'Completed', 'Declined'],
+        enum: [
+            'Pending', 
+            'Approved', 
+            'Scheduled', 
+            'Ongoing', 
+            'Completed', 
+            'Declined', 
+            'No Proof Submitted', 
+            'Completed (Delayed Submission)'
+        ],
         default: 'Pending'
     },
 
