@@ -50,6 +50,8 @@ const TripTicketReturns = () => {
     setOngoingPage(1);
   }, [searchQuery]);
 
+  console.log('In-Progress Weekly Schedules:', inProgressWeeklySchedules);
+
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [selectedWeeklySchedule, setSelectedWeeklySchedule] = useState(null);
 
@@ -257,11 +259,10 @@ const TripTicketReturns = () => {
                   {filteredInProgressSchedules.map((schedule) => {
                     //Check if any ticket has extension request with pending status
                     const hasExtensionRequest = schedule.ticketRequests.some(
-                      ticket => 
+                      ticket =>
                         ticket?.ticketDetails?.extensionNeeded === true &&
-                        ticket?.ticketDetails?.extensionTickets?.some(
-                          ext => ext.status === 'Pending'
-                        )
+                        ticket?.ticketDetails?.extensionTicketId &&
+                        ticket?.ticketDetails?.extensionTicketId.status === 'Pending'
                     );
 
                     return (
@@ -276,6 +277,7 @@ const TripTicketReturns = () => {
                               {schedule.ticketRequests.map((ticket) => (
                                 <Flex key={ticket._id} align='center' justify="space-between" gap={2}>
                                   <Flex direction='column'>
+                                    {exte}
                                     <Text fontWeight='medium'>{ticket.ticketDetails?.refNumber}</Text>
                                   </Flex>
                                 </Flex>

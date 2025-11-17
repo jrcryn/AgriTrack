@@ -86,7 +86,8 @@ console.log('Selected Ticket in CompletedDetailsPanel:', selectedTicket);
     try {
       await approveExtensionRequest({
         ticketRequestId: selectedTicket._id,
-        extensionTicketId: selectedExtension._id,
+        extensionTicketId: selectedTicket.extensionTicketId._id,
+        requestTicketId: selectedTicket._id,
         employeeId: user?.id,
         assignedOperatorId: extensionUpdateData.assignedOperatorId,
         assignedMachineUnitId: extensionUpdateData.assignedMachineUnitId,
@@ -112,8 +113,9 @@ console.log('Selected Ticket in CompletedDetailsPanel:', selectedTicket);
     }
   };
 
-  const handleDeclineExtension = () => {
-    setSelectedExtension(selectedTicket.extensionTicketId._id);
+  // FIX: Update handleDeclineExtension to accept the extension object
+  const handleDeclineExtension = (extension) => {
+    setSelectedExtension(extension);
     setIsDeclineModalOpen(true);
   };
 
@@ -324,14 +326,16 @@ console.log('Selected Ticket in CompletedDetailsPanel:', selectedTicket);
                             <Button
                               size="sm"
                               colorScheme="red"
-                              onClick={() => handleDeclineExtension(selectedTicket.extensionId, 0)}
+                              // FIX: Pass the correct extension object
+                              onClick={() => handleDeclineExtension(selectedTicket.extensionTicketId)}
                             >
                               Decline
                             </Button>
                             <Button
                               size="sm"
                               colorScheme="green"
-                              onClick={() => handleApproveExtension(selectedTicket.extensionId, 0)}
+                              // FIX: Pass the correct extension object
+                              onClick={() => handleApproveExtension(selectedTicket.extensionTicketId, 0)}
                             >
                               Approve
                             </Button>
@@ -492,11 +496,8 @@ console.log('Selected Ticket in CompletedDetailsPanel:', selectedTicket);
         </ModalHeader>
         <ModalBody py={6}>
           <VStack spacing={4} align="stretch">
-            <Text fontSize="sm" fontWeight="medium">
-              Are you sure you want to approve this extension request?
-            </Text>
             
-            <Box bg="blue.50" p={3} borderRadius="md">
+            <Box bg="blue.50" p={3} borderRadius="md" borderWidth="1px" borderColor="blue.200">
               <Text fontSize="sm" fontWeight="bold" mb={2} color="blue.700">
                 Schedule Impact:
               </Text>
@@ -583,7 +584,7 @@ console.log('Selected Ticket in CompletedDetailsPanel:', selectedTicket);
                           >
                             {(unitsByType[selectedTicket?.requestedMachineType?.requestedMachineTypeId] || []).map(unit => (
                               <option key={unit._id} value={unit._id}>
-                                {unit.plateNumber} - {unit.machineryTypeId?.equipmentType}
+                                {unit.unitNumber} - {unit.machineryTypeId?.equipmentType}
                               </option>
                             ))}
                           </Select>
@@ -621,10 +622,6 @@ console.log('Selected Ticket in CompletedDetailsPanel:', selectedTicket);
         </ModalHeader>
         <ModalBody py={6}>
           <VStack spacing={4} align="stretch">
-            <Text fontSize="sm" fontWeight="medium">
-              Are you sure you want to decline this extension request?
-            </Text>
-            
             <Box bg="orange.50" p={3} borderRadius="md" borderWidth="1px" borderColor="orange.200">
               <Text fontSize="sm" fontWeight="bold" mb={2} color="orange.700">
                 Impact of Declining:

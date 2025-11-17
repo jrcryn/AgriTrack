@@ -1495,7 +1495,7 @@ export const setRequestTicketToComplete = async (req, res) => { //kapag work don
 
 
 export const approveExtensionRequest = async (req, res) => {
-    const { extensionTicketId, employeeId, assignedOperatorId, assignedMachineUnitId } = req.body;
+    const { extensionTicketId, employeeId, assignedOperatorId, assignedMachineUnitId, requestTicketId } = req.body;
 
     if (!extensionTicketId || !employeeId) {
         return res.status(400).json({
@@ -1544,7 +1544,7 @@ export const approveExtensionRequest = async (req, res) => {
         }
 
         // 3. Load parent ticket
-        const parentTicket = await global.machineriesModels.TicketRequest.findById(extensionTicket.parentTicketId);
+        const parentTicket = await global.machineriesModels.TicketRequest.findById(requestTicketId);
         if (!parentTicket) {
             return res.status(404).json({ success: false, message: "Parent ticket request not found." });
         }
@@ -2700,6 +2700,7 @@ export const getPlannedWeeklySchedules = async (req, res) => { //planned or sche
         // Fetch all ticket requests with populated data
         let ticketRequests = await global.machineriesModels.TicketRequest
             .find({ _id: { $in: ticketIds } })
+            .populate('extensionTicketId')
             .lean();
 
         // If searchQuery is present, filter tickets using buildTicketSearchMatch
@@ -2778,27 +2779,33 @@ export const getInProgressWeeklySchedules = async (req, res) => { //in progress 
         const totalCount = await global.machineriesModels.WeeklySchedule
             .countDocuments(matchCriteria);
 
-        // Extract all ticket IDs from the schedules
+        // Extract all ticket and extension IDs from the schedules
         const ticketIds = [];
+        const extensionIds = [];
         schedules.forEach(schedule => {
             schedule.ticketRequests.forEach(tr => {
-                if (tr.ticketRequestId) {
-                    ticketIds.push(tr.ticketRequestId);
-                }
+                if (tr.ticketRequestId) ticketIds.push(tr.ticketRequestId);
+                if (tr.extensionRequestId) extensionIds.push(tr.extensionRequestId);
             });
         });
 
-        // Fetch all ticket requests with populated extension ticket data
+        // Fetch all ticket requests and extension tickets
         let ticketRequests = await global.machineriesModels.TicketRequest
             .find({ _id: { $in: ticketIds } })
             .populate('extensionTicketId')
             .lean();
 
+        let extensionTickets = [];
+        if (extensionIds.length > 0) {
+            extensionTickets = await global.machineriesModels.ExtensionTicket
+                .find({ _id: { $in: extensionIds } })
+                .lean();
+        }
+
         // If searchQuery is present, filter tickets using buildTicketSearchMatch
         if (ticketSearchMatch) {
             ticketRequests = await global.machineriesModels.TicketRequest
                 .find({ _id: { $in: ticketIds }, ...ticketSearchMatch })
-                .populate('extensionTicketId')
                 .lean();
         }
 
@@ -2806,14 +2813,30 @@ export const getInProgressWeeklySchedules = async (req, res) => { //in progress 
         const enhancedSchedules = schedules.map(schedule => {
             // Map ticket requests to include their details
             const enhancedTickets = schedule.ticketRequests.map(tr => {
-                const fullTicket = ticketRequests.find(
-                    t => t._id.toString() === tr.ticketRequestId.toString()
-                );
+                let ticketDetails = null;
+                let extensionDetails = null;
+
+                if (tr.ticketRequestId) {
+                    ticketDetails = ticketRequests.find(
+                        t => t._id && t._id.toString() === tr.ticketRequestId.toString()
+                    );
+                }
+                if (tr.extensionRequestId) {
+                    extensionDetails = extensionTickets.find(
+                        ext => ext._id && ext._id.toString() === tr.extensionRequestId.toString()
+                    );
+                }
+
                 return {
                     ...tr,
-                    ticketDetails: fullTicket || null
+                    ticketDetails: ticketDetails || null,
+                    extensionDetails: extensionDetails || null
                 };
-            }).filter(tr => !ticketSearchMatch || tr.ticketDetails); // filter if searching
+            }).filter(tr => {
+                // If searching, only include tickets with details
+                if (ticketSearchMatch) return tr.ticketDetails;
+                return true;
+            });
 
             // Sort tickets by assigned date (earliest first)
             enhancedTickets.sort((a, b) => {

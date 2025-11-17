@@ -44,7 +44,6 @@ export const disableEditingForTodayTickets = async () => {
         const tickets = await global.machineriesModels.TicketRequest.find({
             status: 'Ongoing',
             assignedDate: {
-                $gte: startOfDay,
                 $lte: endOfDay
             },
             $or: [
