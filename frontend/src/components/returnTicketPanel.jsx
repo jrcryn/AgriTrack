@@ -3,14 +3,15 @@ import {
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter,
   Box, VStack, Text, Heading, SimpleGrid, Badge, Flex, Button,
   FormControl, FormLabel, Input, useToast, Icon, Image, HStack,
-  Alert, AlertIcon, AlertTitle, AlertDescription, Center, Switch, NumberInput, NumberInputField, Textarea
+  Alert, AlertIcon, AlertTitle, AlertDescription, Center, Switch, NumberInput, NumberInputField, Textarea,
+  useDisclosure,
 } from '@chakra-ui/react';
 import { FaCheckCircle, FaCamera, FaSignature } from "react-icons/fa";
-import { CloseIcon } from '@chakra-ui/icons';
+import { CloseIcon, WarningIcon } from '@chakra-ui/icons';
 import SignatureCanvas from 'react-signature-canvas';
 import { useAdminDashboard } from '../machineries/store/adminDashboard.store.js';
 import { useQueryClient } from '@tanstack/react-query';
-import { add } from 'lodash';
+import { useAuthStore } from '../auth/store/authStore.js';
 
 const ReturnTicketPanel = ({
   isOpen,
@@ -23,12 +24,18 @@ const ReturnTicketPanel = ({
   const queryClient = useQueryClient();
   const signatureRef = useRef(null);
   const canvasContainerRef = useRef(null);
+
+  console.log('Selected Ticket in ReturnTicketPanel:', selectedTicket);
   
   const [proofImage, setProofImage] = useState(null);
   const [proofImagePreview, setProofImagePreview] = useState(null);
   const [signature, setSignature] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 200 });
+
+  const { isOpen: isOpenCompletionWarning, onOpen: onOpenCompletionWarning, onClose: onCloseCompletionWarning } = useDisclosure();
+  const { user } = useAuthStore();
+  console.log('Current User in ReturnTicketPanel:', user);
 
   const [additionalInfoData, setAdditionalInfoData] = useState({
     extensionRequest: false, 
@@ -177,6 +184,7 @@ const ReturnTicketPanel = ({
       formData.append('ticketRequestId', selectedTicket._id);
       formData.append('proofImage', proofImage);
       formData.append('signature', signatureFile);
+      formData.append('operatorId', selectedTicket.assignedOperator.assignedOperatorId);
       
       // Add extension data if requesting extension
       if (additionalInfoData.extensionRequest) {
@@ -256,6 +264,7 @@ const ReturnTicketPanel = ({
   };
 
   return (
+    <>
     <Modal 
       isOpen={isOpen} 
       onClose={handleClose} 
@@ -278,7 +287,7 @@ const ReturnTicketPanel = ({
           {selectedTicket ? (
             <VStack spacing={6} align="stretch">
               {/* Alert Info */}
-              <Alert status="info" borderRadius="md">
+              <Alert status="info" borderRadius="md" variant="left-accent">
                 <AlertIcon />
                 <Box>
                   <AlertTitle fontSize="sm">Completion Requirements</AlertTitle>
@@ -309,6 +318,10 @@ const ReturnTicketPanel = ({
                   <Box>
                     <Text fontWeight="bold" fontSize="sm" color="gray.600">Farm Location</Text>
                     <Text fontSize="md">{selectedTicket?.barangay || 'N/A'}</Text>
+                  </Box>
+                  <Box>
+                    <Text fontWeight="bold" fontSize="sm" color="gray.600">Estimated Area</Text>
+                    <Text fontSize="md">{selectedTicket?.estimatedArea || 'N/A'}</Text>
                   </Box>
                   <Box>
                     <Text fontWeight="bold" fontSize="sm" color="gray.600">Machine Type</Text>
@@ -513,10 +526,17 @@ const ReturnTicketPanel = ({
                           onChange={(valueString) =>
                             setAdditionalInfoData(d => ({ ...d, areaServiced: valueString }))
                           }
-                          min={0}
-                          precision={2}
-                          step={0.1}
+                          type="number"
+                          min="0"
+                          step="1"
                           bg='white'
+                          onWheel={(e) => e.target.blur()}
+                          onKeyDown={(e) => {
+                            if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+                              e.preventDefault();
+                            }
+                          }}
+                          inputMode="numeric"
                         >
                           <NumberInputField placeholder="Enter area serviced" />
                         </NumberInput>
@@ -529,10 +549,17 @@ const ReturnTicketPanel = ({
                           onChange={(valueString) =>
                             setAdditionalInfoData(d => ({ ...d, remainingArea: valueString }))
                           }
-                          min={0}
-                          precision={2}
-                          step={0.1}
+                          type="number"
+                          min="0"
+                          step="1"
                           bg='white'
+                          onWheel={(e) => e.target.blur()}
+                          onKeyDown={(e) => {
+                            if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+                              e.preventDefault();
+                            }
+                          }}
+                          inputMode="numeric"
                         >
                           <NumberInputField placeholder="Enter remaining area" />
                         </NumberInput>
@@ -590,7 +617,7 @@ const ReturnTicketPanel = ({
           </Button>
           <Button
             colorScheme={additionalInfoData.extensionRequest ? "orange" : "green"}
-            onClick={handleSubmit}
+            onClick={selectedTicket?.assignedOperator?.assignedOperatorId !== user.id ? onOpenCompletionWarning : handleSubmit}
             isLoading={isSubmitting || isSettingTicketToComplete}
             isDisabled={!proofImage || !signature || (additionalInfoData.extensionRequest && (!additionalInfoData.areaServiced || !additionalInfoData.remainingArea))}
             size="md"
@@ -600,6 +627,64 @@ const ReturnTicketPanel = ({
         </ModalFooter>
       </ModalContent>
     </Modal>
+    
+    <Modal isOpen={isOpenCompletionWarning} onClose={onCloseCompletionWarning} size="md" isCentered motionPreset='none'>
+      <ModalOverlay bg="blackAlpha.600" />
+      <ModalContent borderRadius="md" overflow="hidden">
+        <ModalHeader bg="orange.500" color="white" display="flex" alignItems="center" gap={2} borderBottomWidth="1px">
+          <WarningIcon />
+          Operator Assignment Warning
+        </ModalHeader>
+        <ModalBody py={6}>
+          <VStack spacing={4} align="stretch">
+            <Alert status="warning" borderRadius="md" variant="left-accent">
+              <AlertIcon />
+              <Box>
+                <AlertTitle fontSize="md">You are not the assigned operator</AlertTitle>
+                <AlertDescription fontSize="sm">
+                  This action will be recorded and visible to management.
+                </AlertDescription>
+              </Box>
+            </Alert>
+
+            <Box bg="gray.50" p={4} borderRadius="md">
+              <VStack spacing={2} align="stretch">
+                <Flex>
+                  <Text fontWeight="bold" fontSize="sm" color="gray.600" mr={3}>Your Name:</Text>
+                  <Text fontSize="sm">{user?.first_name || ''} {user?.last_name || ''}</Text>
+                </Flex>
+                <Flex>
+                  <Text fontWeight="bold" fontSize="sm" color="gray.600" mr={3}>Assigned Operator:</Text>
+                  <Text fontSize="sm" color="orange.600" fontWeight="medium">
+                      {selectedTicket?.assignedOperator?.first_name || ''} {selectedTicket?.assignedOperator?.last_name || ''}
+                  </Text>
+                </Flex>
+              </VStack>
+            </Box>
+
+            <Alert status="info" borderRadius="md" variant="left-accent">
+              <AlertIcon />
+              <Text fontSize="sm">
+                Your manager will be able to see who completed this ticket and when it was submitted. <b>Only do this if the assigned operator suddenly became unavailable and you have explicit permission from management.</b>
+              </Text>
+            </Alert>
+
+            <Text fontSize="sm" color="gray.600">
+              Are you sure you want to proceed with marking this ticket as completed?
+            </Text>
+          </VStack>
+        </ModalBody>
+        <ModalFooter bg="gray.50">
+          <Button variant="outline" onClick={onCloseCompletionWarning} mr={3}>
+            Cancel
+          </Button>
+          <Button colorScheme="orange">
+            Yes, I Understand
+          </Button>
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
+    </>
   );
 };
 

@@ -6,6 +6,10 @@ const tr = new mongoose.Schema({
         ref: 'Ticket_Request',
         required: true
     },
+    extensionRequestId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Extension_Ticket',
+    },
     assignedDate: { type: Date, required: true }
 }, { _id: false });
 

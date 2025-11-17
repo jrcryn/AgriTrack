@@ -7,6 +7,7 @@ import {
 import { FaCalendarAlt } from 'react-icons/fa';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAdminDashboard } from '../machineries/store/adminDashboard.store.js';
+import { useAuthStore } from '../auth/store/authStore.js';
 
 const AddTicketPanel = ({
   isOpen,
@@ -17,6 +18,7 @@ const AddTicketPanel = ({
 }) => {
   const toast = useToast();
   const queryClient = useQueryClient();
+  const { user } = useAuthStore();
 
   // Pagination for pending tickets in modal
   const [addModalPendingPage, setAddModalPendingPage] = useState(1);
@@ -119,6 +121,18 @@ const AddTicketPanel = ({
   };
 
   const handleAddTicketsToSchedule = async () => {
+
+    if (user?.role !== 'MIM') {
+      toast({
+        title: "Permission denied",
+        description: "You do not have permission to update the schedule.",
+        status: "warning",
+        duration: 4000,
+        isClosable: true
+      });
+      return;
+    }
+    
     if (!selectedWeeklySchedule?._id) return;
 
     if (addTicketsData.length === 0) {

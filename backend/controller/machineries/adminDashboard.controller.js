@@ -493,7 +493,12 @@ export const updateMachineryUnit = async (req, res) => {
     }
 }; 
 
-export const createWeeklySchedule = async (req, res) => {
+
+
+
+
+
+export const createWeeklySchedule = async (req, res) => { //pang consolidate ng multiple request ticktets into a weekly schedule
     const { weekStart, weekEnd, tickets } = req.body;
 
     // Validation
@@ -641,6 +646,8 @@ export const createWeeklySchedule = async (req, res) => {
             );
         }
 
+        
+
         const updatedTickets = await Promise.all(updateOperations);
 
         return res.status(201).json({ success: true, message: "Weekly schedule created successfully.",
@@ -655,7 +662,7 @@ export const createWeeklySchedule = async (req, res) => {
     }
 };
 
-export const updateWeeklySchedule = async (req, res) => {
+export const updateWeeklySchedule = async (req, res) => { //pang update ng assigned dates, operators, machines sa existing weekly schedule
     const { scheduleId, tickets } = req.body;
 
     if (!scheduleId || !Array.isArray(tickets) || tickets.length === 0) {
@@ -902,7 +909,7 @@ export const removeTicketRequestFromSchedule = async (req, res) => {
     }
 };
 
-export const moveTicketRequestToASchedule = async (req, res) => {
+export const moveTicketRequestToASchedule = async (req, res) => { //pang move ng ticket requests from one schedule to another
     const { targetScheduleId, tickets } = req.body;
 
     // Validate input
@@ -1191,12 +1198,19 @@ export const undeclineTicketRequest = async (req, res) => {
 import { uploadFileToDrive } from '../googleDrive.controller.js';
 
 export const setRequestTicketToComplete = async (req, res) => {
-    const { ticketRequestId, extensionRequest, areaServiced, remainingArea, remarks } = req.body;
+    const { ticketRequestId, extensionRequest, areaServiced, remainingArea, remarks, operatorId } = req.body;
 
     if (!ticketRequestId) {
         return res.status(400).json({
             success: false,
             message: "Please provide the ticket request ID."
+        });
+    }
+
+    if (!operatorId) {
+        return res.status(400).json({
+            success: false,
+            message: "Please provide the operator ID."
         });
     }
 
@@ -1256,6 +1270,21 @@ export const setRequestTicketToComplete = async (req, res) => {
             });
         }
 
+        const operator = await global.globalModels.EmployeeAccount.findById(operatorId).lean();
+        if (!operator) {
+            return res.status(404).json({
+                success: false,
+                message: "Operator account not found. If issue persists, please contact IT."
+            });
+        }
+
+        if (!operator.roles || !operator.roles.includes('MIS') && !operator.roles.includes('MIM')) {
+            return res.status(400).json({
+                success: false,
+                message: "The provided user is not an authorized operator."
+            });
+        }
+
         const proofImageFile = req.files.proofImage[0];
         const signatureFile = req.files.signature[0];
 
@@ -1279,7 +1308,7 @@ export const setRequestTicketToComplete = async (req, res) => {
 
         // Build update data
         const updateData = {
-            status: 'Completed',
+            status: extensionRequest === 'true' ? 'Partially Completed' : 'Completed',
             completionProof: {
                 proofImageId: proofImageResult.id,
                 proofImageUrl: `https://drive.google.com/uc?id=${proofImageResult.id}`,
@@ -1287,21 +1316,44 @@ export const setRequestTicketToComplete = async (req, res) => {
                 signatureUrl: `https://drive.google.com/uc?id=${signatureResult.id}`,
                 completedAt: new Date()
             },
+            completedBy: {
+                operatorId: operator._id,
+                first_name: operator.first_name,
+                last_name: operator.last_name,
+                middle_name: operator.middle_name,
+                suffix: operator.suffix,
+                email: operator.email,
+                phone: operator.phone,
+            },
             disabledForEditing: true
         };
 
-        // Add remarks if provided
-        if (remarks && remarks.trim()) {
-            updateData.remarks = remarks.trim();
-        }
-
-        // Add extension details if extension is requested
+        // Handle extension request
         if (extensionRequest === 'true') {
-            updateData.extensionDetails = {
+
+            const extensionRefNumber = ticket.refNumber.replace(/^TR-/, 'EXT-');
+
+            // Create extension ticket object
+            const extensionTicket = {
+                refNumber: extensionRefNumber,
                 areaServiced: parseFloat(areaServiced),
-                remainingArea: parseFloat(remainingArea)
+                remainingArea: parseFloat(remainingArea),
+                extensionReason: remarks && remarks.trim() ? remarks.trim() : undefined,
+                status: 'Pending'
             };
+
+            // Add extension ticket to the array
+            updateData.$push = {
+                extensionTickets: extensionTicket
+            };
+
+            // Mark that extension is needed
             updateData.extensionNeeded = true;
+        } else {
+            // If no extension, add remarks to the main document
+            if (remarks && remarks.trim()) {
+                updateData.remarks = remarks.trim();
+            }
         }
 
         // Update ticket with completion details
@@ -1350,6 +1402,379 @@ export const setRequestTicketToComplete = async (req, res) => {
         });
     }
 };
+
+
+export const approveExtensionRequest = async (req, res) => { //pang approve ng extension request
+    const { ticketRequestId, extensionTicketId, employeeId, assignedOperatorId, assignedMachineUnitId } = req.body;
+
+    if (!ticketRequestId || !extensionTicketId || !employeeId) {
+        return res.status(400).json({
+            success: false,
+            message: "Please provide ticket request ID, extension ticket ID, and employee ID."
+        });
+    }
+
+    if (!assignedOperatorId || !assignedMachineUnitId) {
+        return res.status(400).json({
+            success: false,
+            message: "Please provide assignedOperatorId and assignedMachineUnitId."
+        });
+    }
+
+    try {
+        // 1. Validate approver
+        const employee = await global.globalModels.EmployeeAccount.findById(employeeId).lean();
+        if (!employee) {
+            return res.status(404).json({ success: false, message: "Employee account not found." });
+        }
+        if (!employee.roles || !employee.roles.includes('MIM')) {
+            return res.status(400).json({ success: false, message: "The provided user is not an authorized manager." });
+        }
+
+        // Validate operator and machine unit to be assigned to the extension
+        const operatorDoc = await global.globalModels.EmployeeAccount.findById(assignedOperatorId).lean();
+        if (!operatorDoc || !Array.isArray(operatorDoc.roles) || !operatorDoc.roles.includes('MIS')) {
+            return res.status(404).json({ success: false, message: "Operator not found or does not have a valid role." });
+        }
+        const machineDoc = await global.machineriesModels.MachineriesUnit.findById(assignedMachineUnitId).lean();
+        if (!machineDoc) {
+            return res.status(404).json({ success: false, message: "Machine unit not found." });
+        }
+
+        // 2. Load main ticket and extension subdocument
+        const ticket = await global.machineriesModels.TicketRequest.findById(ticketRequestId);
+        if (!ticket) {
+            return res.status(404).json({ success: false, message: "Ticket request not found." });
+        }
+
+        const extensionTicket = ticket.extensionTickets.id(extensionTicketId);
+        if (!extensionTicket) {
+            return res.status(404).json({ success: false, message: "Extension ticket not found." });
+        }
+        if (extensionTicket.status !== 'Pending') {
+            return res.status(400).json({
+                success: false,
+                message: "Only pending extension requests can be approved."
+            });
+        }
+
+        if (!ticket.scheduleId || !ticket.assignedDate) {
+            return res.status(400).json({
+                success: false,
+                message: "Ticket must be assigned to a schedule with an assigned date before approving extension."
+            });
+        }
+
+        // 3. Load schedule
+        const schedule = await global.machineriesModels.WeeklySchedule.findById(ticket.scheduleId).lean();
+        if (!schedule) {
+            return res.status(404).json({ success: false, message: "Original schedule not found." });
+        }
+
+        const addDays = (d, n) => {
+            const r = new Date(d);
+            r.setDate(r.getDate() + n);
+            return r;
+        };
+
+        const originalAssignedDate = new Date(ticket.assignedDate);
+        const extensionDate = addDays(originalAssignedDate, 1);
+
+        // 4. Load all tickets in this schedule (full docs) and sort by assignedDate
+        const scheduleTicketIds = (schedule.ticketRequests || []).map(tr => tr.ticketRequestId);
+        let scheduleTickets = await global.machineriesModels.TicketRequest.find({
+            _id: { $in: scheduleTicketIds }
+        }).lean();
+
+        // Keep only those with assignedDate, sort ascending
+        scheduleTickets = scheduleTickets
+            .filter(t => t.assignedDate)
+            .sort((a, b) => new Date(a.assignedDate) - new Date(b.assignedDate));
+
+        // 5. If there are already 5 or more tickets, free the last one
+        if (scheduleTickets.length >= 5) {
+            const lastTicket = scheduleTickets[scheduleTickets.length - 1];
+
+            // Remove from schedule.ticketRequests
+            await global.machineriesModels.WeeklySchedule.findByIdAndUpdate(
+                schedule._id,
+                { $pull: { ticketRequests: { ticketRequestId: lastTicket._id } } }
+            );
+
+            // Unset schedule & assignment from that ticket, set to Pending
+            await global.machineriesModels.TicketRequest.findByIdAndUpdate(
+                lastTicket._id,
+                {
+                    $unset: {
+                        scheduleId: "",
+                        assignedDate: "",
+                        assignedMachineUnit: "",
+                        assignedOperator: ""
+                    },
+                    status: "Pending"
+                }
+            );
+
+            // Remove from local array so we work only with remaining ones
+            scheduleTickets = scheduleTickets.filter(t => t._id.toString() !== lastTicket._id.toString());
+        }
+
+        // 6. Shift all future tickets (assigned on or after extensionDate) one day forward
+        const shiftUpdates = [];
+        for (const t of scheduleTickets) {
+            const tDate = new Date(t.assignedDate);
+            if (tDate >= extensionDate) {
+                const newDate = addDays(tDate, 1);
+
+                // Update TicketRequest
+                shiftUpdates.push(
+                    global.machineriesModels.TicketRequest.findByIdAndUpdate(
+                        t._id,
+                        { assignedDate: newDate },
+                        { new: true }
+                    )
+                );
+
+                // Update WeeklySchedule.ticketRequests assignedDate for this ticket
+                shiftUpdates.push(
+                    global.machineriesModels.WeeklySchedule.updateOne(
+                        {
+                            _id: schedule._id,
+                            "ticketRequests.ticketRequestId": t._id
+                        },
+                        {
+                            $set: {
+                                "ticketRequests.$.assignedDate": newDate
+                            }
+                        }
+                    )
+                );
+            }
+        }
+
+        await Promise.all(shiftUpdates);
+
+        // Build nested assignment details for the extension
+        const assignedMachineUnit = {
+            assignedMachineUnitId: machineDoc._id,
+            plateNumber: machineDoc.plateNumber,
+            engineBrand: machineDoc.engineBrand,
+            engineHorsepower: machineDoc.engineHorsepower
+        };
+        const assignedOperator = {
+            assignedOperatorId: operatorDoc._id,
+            first_name: operatorDoc.first_name,
+            last_name: operatorDoc.last_name,
+            middle_name: operatorDoc.middle_name,
+            suffix: operatorDoc.suffix,
+            email: operatorDoc.email,
+            phone: operatorDoc.phone
+        };
+
+        // 7. Mark extension subdocument as approved & scheduled with provided operator/machine; auto next-day date
+        extensionTicket.status = "Scheduled";
+        extensionTicket.approvedBy = {
+            employeeId: employee._id,
+            first_name: employee.first_name,
+            last_name: employee.last_name,
+            middle_name: employee.middle_name,
+            suffix: employee.suffix,
+            email: employee.email,
+            phone: employee.phone,
+            approvedAt: new Date()
+        };
+        extensionTicket.scheduleId = schedule._id;
+        extensionTicket.assignedDate = extensionDate;
+        extensionTicket.assignedMachineUnit = assignedMachineUnit;
+        extensionTicket.assignedOperator = assignedOperator;
+
+        await ticket.save();
+
+        // 8. Add the extension into the schedule’s ticketRequests list
+        await global.machineriesModels.WeeklySchedule.findByIdAndUpdate(
+            schedule._id,
+            {
+                $push: {
+                    ticketRequests: {
+                        ticketRequestId,
+                        assignedDate: extensionDate,
+                        isExtension: true,
+                        extensionTicketId
+                    }
+                }
+            }
+        );
+
+        return res.status(200).json({
+            success: true,
+            message: "Extension request approved and scheduled successfully.",
+            data: {
+                extensionTicket,
+                assignedDate: extensionDate,
+                scheduleId: schedule._id
+            }
+        });
+    } catch (error) {
+        console.error("Error approving extension request:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Error approving extension request.",
+            error: error.message
+        });
+    }
+};
+
+export const declineExtensionRequest = async (req, res) => {
+    const { ticketRequestId, extensionTicketId, employeeId, reason } = req.body;
+
+    if (!ticketRequestId || !extensionTicketId || !employeeId) {
+        return res.status(400).json({
+            success: false,
+            message: "Please provide ticket request ID, extension ticket ID, and employee ID."
+        });
+    }
+
+    if (!reason || !reason.trim()) {
+        return res.status(400).json({
+            success: false,
+            message: "Please provide a reason for declining the extension request."
+        });
+    }
+
+    try {
+        // Validate employee
+        const employee = await global.globalModels.EmployeeAccount.findById(employeeId).lean();
+        if (!employee) {
+            return res.status(404).json({ 
+                success: false, 
+                message: "Employee account not found." 
+            });
+        }
+        if (!employee.roles || !employee.roles.includes('MIM')) {
+            return res.status(400).json({ 
+                success: false, 
+                message: "The provided user is not an authorized manager." 
+            });
+        }
+
+        // Load main ticket
+        const ticket = await global.machineriesModels.TicketRequest.findById(ticketRequestId);
+        if (!ticket) {
+            return res.status(404).json({ 
+                success: false, 
+                message: "Ticket request not found." 
+            });
+        }
+
+        // Find extension subdocument
+        const extensionTicket = ticket.extensionTickets.id(extensionTicketId);
+        if (!extensionTicket) {
+            return res.status(404).json({ 
+                success: false, 
+                message: "Extension ticket not found." 
+            });
+        }
+
+        // Validate extension ticket status
+        if (extensionTicket.status !== 'Pending') {
+            return res.status(400).json({
+                success: false,
+                message: "Only pending extension requests can be declined."
+            });
+        }
+
+        // Update extension ticket status to Declined
+        extensionTicket.status = 'Declined';
+        extensionTicket.declinedBy = {
+            employeeId: employee._id,
+            first_name: employee.first_name,
+            last_name: employee.last_name,
+            middle_name: employee.middle_name,
+            suffix: employee.suffix,
+            email: employee.email,
+            phone: employee.phone,
+            declinedAt: new Date()
+        };
+        extensionTicket.declineReason = reason.trim();
+
+        await ticket.save();
+
+        return res.status(200).json({
+            success: true,
+            message: "Extension request declined successfully.",
+            data: {
+                extensionTicket
+            }
+        });
+    } catch (error) {
+        console.error("Error declining extension request:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Error declining extension request.",
+            error: error.message
+        });
+    }
+};
+
+export const deleteScheduleAndTickets = async (req, res) => {//for testing purposes
+    const { scheduleId } = req.params;
+
+    if (!scheduleId) {
+        return res.status(400).json({
+            success: false,
+            message: "Please provide the schedule ID."
+        });
+    }
+
+    try {
+        // Find the schedule
+        const schedule = await global.machineriesModels.WeeklySchedule.findById(scheduleId).lean();
+        
+        if (!schedule) {
+            return res.status(404).json({
+                success: false,
+                message: "Weekly schedule not found."
+            });
+        }
+
+        // Extract all ticket IDs from the schedule
+        const ticketIds = schedule.ticketRequests.map(tr => tr.ticketRequestId);
+
+        if (ticketIds.length > 0) {
+            // Delete all tickets associated with this schedule
+            await global.machineriesModels.TicketRequest.deleteMany({
+                _id: { $in: ticketIds }
+            });
+        }
+
+        // Delete the schedule itself
+        await global.machineriesModels.WeeklySchedule.findByIdAndDelete(scheduleId);
+
+        return res.status(200).json({
+            success: true,
+            message: "Weekly schedule and all associated tickets deleted successfully.",
+            data: {
+                deletedScheduleId: scheduleId,
+                deletedTicketsCount: ticketIds.length
+            }
+        });
+    } catch (error) {
+        console.error("Error deleting schedule and tickets:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Error deleting schedule and tickets.",
+            error: error.message
+        });
+    }
+};
+
+
+
+
+
+
+
+
 
 //FETCH CONTROLLERS
 export const formGetAvailableMachineryTypes = async (req, res) => {
@@ -1504,7 +1929,7 @@ export const getMachineryUnitsForDropDown = async (req, res) => {
 
         const projection = {
             _id: 1,
-            plateNumber: 1,
+            unitNumber: 1,
         };
 
         const filter = { status: "Available" };
@@ -1845,6 +2270,12 @@ export const getPlannedWeeklySchedules = async (req, res) => { //planned or sche
                 };
             });
 
+            enhancedTickets.sort((a, b) => {
+                const dateA = new Date(a.assignedDate || 0);
+                const dateB = new Date(b.assignedDate || 0);
+                return dateA - dateB;
+            });
+
             return {
                 ...schedule,
                 ticketRequests: enhancedTickets
@@ -1932,6 +2363,13 @@ export const getInProgressWeeklySchedules = async (req, res) => { //in progress 
                 };
             });
 
+            // Sort tickets by assigned date (earliest first)
+            enhancedTickets.sort((a, b) => {
+                const dateA = new Date(a.assignedDate || 0);
+                const dateB = new Date(b.assignedDate || 0);
+                return dateA - dateB;
+            });
+
             return {
                 ...schedule,
                 ticketRequests: enhancedTickets
@@ -1954,6 +2392,31 @@ export const getInProgressWeeklySchedules = async (req, res) => { //in progress 
             success: false, 
             message: "Error fetching in progress weekly schedules.", 
             error: error.message 
+        });
+    }
+};
+
+export const getPendingExtensionRequestsCount = async (req, res) => {
+    try {
+        // Find all tickets with pending extension requests
+        const count = await global.machineriesModels.TicketRequest.countDocuments({
+            extensionNeeded: true,
+            'extensionTickets.status': 'Pending'
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: "Pending extension requests count retrieved successfully.",
+            data: {
+                count
+            }
+        });
+    } catch (error) {
+        console.error("Error fetching pending extension requests count:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Error fetching pending extension requests count.",
+            error: error.message
         });
     }
 };

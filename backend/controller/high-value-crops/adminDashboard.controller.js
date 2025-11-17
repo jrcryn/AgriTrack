@@ -775,6 +775,13 @@ export const requestEdit = async (req, res) => {
       return res.status(400).json({ message: 'Only flagged responses can be requested for edit.' });
     }
 
+    if (farmerInput.editConsent?.editRequestId) {
+      await global.highValueCropsModels.EditRequest.findByIdAndDelete(
+        farmerInput.editConsent.editRequestId, 
+        { session }
+      );
+    }
+
     // Find crop type and crop record
     const cropType = await global.highValueCropsModels.B_crop_types.findOne({ farmer_input_id: farmerId }).session(session).lean();
     if (!cropType) {
@@ -858,7 +865,6 @@ export const requestEdit = async (req, res) => {
           editRequestId: editDoc[0]._id,
           reason: reason
         },
-        isCurrentlyEditRequest: true
       },
       { session }
     );

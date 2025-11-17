@@ -21,6 +21,7 @@ import {
   Spinner,
   TableContainer,
   useDisclosure,
+  Checkbox,
 } from '@chakra-ui/react';
 import { FiSearch, FiInbox } from 'react-icons/fi';
 import { LuLogs } from "react-icons/lu";
@@ -34,7 +35,9 @@ const TripTicketReturns = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [ongoingPage, setOngoingPage] = useState(1);
   const [reopenScheduleId, setReopenScheduleId] = useState(null);
+  const [showOnlyMySchedules, setShowOnlyMySchedules] = useState(false);
   const { user } = useAuthStore();
+
   const {
     inProgressWeeklySchedules,
     isLoadingInProgressWeeklySchedules,
@@ -43,7 +46,7 @@ const TripTicketReturns = () => {
     { ongoingPage },
     { searchQuery }
   );
-
+  console.log('In-Progress Weekly Schedules:', inProgressWeeklySchedules);
   useEffect(() => {
     setOngoingPage(1);
   }, [searchQuery]);
@@ -56,6 +59,19 @@ const TripTicketReturns = () => {
   const inProgressSchedulesTotalPages = inProgressWeeklySchedules?.data?.totalPages || 1;
   const inProgressSchedulesCurrentPage = inProgressWeeklySchedules?.data?.currentPage || 1;
   const inProgressSchedulesTotalItems = inProgressWeeklySchedules?.data?.totalCount || 0;
+
+  // Filter schedules based on checkbox selection and user role
+  const filteredInProgressSchedules = (showOnlyMySchedules && user?.role === 'MIS')
+    ? inProgressWeeklySchedulesList.filter(schedule => 
+        schedule.ticketRequests.some(ticket => 
+          ticket?.ticketDetails?.assignedOperator?.assignedOperatorId === user?.id
+        )
+      )
+    : inProgressWeeklySchedulesList;
+
+  const filteredTotalItems = (showOnlyMySchedules && user?.role === 'MIS')
+    ? filteredInProgressSchedules.length 
+    : inProgressSchedulesTotalItems;
 
   const PaginationControls = ({ currentPage, setCurrentPage, totalPages, totalItems, colorScheme }) => (
     <Flex
@@ -134,6 +150,28 @@ const TripTicketReturns = () => {
     }
   }, [reopenScheduleId, isLoadingInProgressWeeklySchedules, inProgressWeeklySchedules]);
 
+  const ButtonWithNotification = ({ children, showNotification, dotColor }) => {
+    return (
+      <Box position="relative" display="inline-block">
+        {children}
+        {showNotification && (
+          <Box
+            position="absolute"
+            top="-5px"
+            right="-5px"
+            width="12px"
+            height="12px"
+            bg={dotColor}
+            borderRadius="full"
+            boxShadow="0 0 0 2px white"
+            zIndex={1}
+          />
+        )}
+      </Box>
+    );
+  };
+
+
   return (
     <Box overflow="hidden" bg="white" p={5} minH="100vh">
       <Heading as="h1" size="xl" mb={2}>
@@ -166,13 +204,24 @@ const TripTicketReturns = () => {
             </InputGroup>
           </FormControl>
         </Flex>
+
+        {/* Show checkbox only for operators (MIS role) */}
+        {user?.role === 'MIS' && (
+          <Checkbox
+            isChecked={showOnlyMySchedules}
+            onChange={(e) => setShowOnlyMySchedules(e.target.checked)}
+            colorScheme="purple"
+          >
+            Show only schedules I'm assigned to
+          </Checkbox>
+        )}
       </Flex>
 
       {/* Ongoing Schedules Section */}
       <Box mb={8}>
         <Flex justify="space-between" align="center" mb={4} bg={'purple.50'} p={3} borderRadius="md" borderLeftWidth="4px" borderLeftColor={'purple.500'}>
           <Heading as="h2" size="md" display="flex" alignItems="center">
-            <Icon as={LuLogs} mr={2} color={'purple.500'} /> ONGOING SCHEDULES
+            <Icon as={LuLogs} mr={2} color={'purple.500'} /> ONGOING SCHEDULES 
           </Heading>
         </Flex>
 
@@ -180,7 +229,7 @@ const TripTicketReturns = () => {
           <Center p={10}>
             <Spinner size="lg" color={'purple.500'} />
           </Center>
-        ) : inProgressWeeklySchedulesList.length > 0 ? (
+        ) : filteredInProgressSchedules.length > 0 ? (
           <Box overflowX="auto">
             <TableContainer>
               <Table variant="simple" size="md">
@@ -207,7 +256,16 @@ const TripTicketReturns = () => {
                   </Tr>
                 </Thead>
                 <Tbody>
-                  {inProgressWeeklySchedulesList.map((schedule) => {
+                  {filteredInProgressSchedules.map((schedule) => {
+                    //Check if any ticket has extension request with pending status
+                    const hasExtensionRequest = schedule.ticketRequests.some(
+                      ticket => 
+                        ticket?.ticketDetails?.extensionNeeded === true &&
+                        ticket?.ticketDetails?.extensionTickets?.some(
+                          ext => ext.status === 'Pending'
+                        )
+                    );
+
                     return (
                       <Tr key={schedule._id} fontSize="sm">
                         <Td fontWeight={'semibold'}>{schedule?.refNumber || '—'}</Td>
@@ -291,17 +349,22 @@ const TripTicketReturns = () => {
                           zIndex={1}
                           bg="white"
                         >
-                          <Button
-                            size="xs"
-                            colorScheme='purple'
-                            leftIcon={<FaEye />}
-                            onClick={() => {
-                              setSelectedWeeklySchedule(schedule); 
-                              onOpen();
-                            }}
+                          <ButtonWithNotification
+                            showNotification={hasExtensionRequest}
+                            dotColor="orange.500"
                           >
-                            Details
-                          </Button>
+                            <Button
+                              size="xs"
+                              colorScheme='purple'
+                              leftIcon={<FaEye />}
+                              onClick={() => {
+                                setSelectedWeeklySchedule(schedule); 
+                                onOpen();
+                              }}
+                            >
+                              Details
+                            </Button>
+                          </ButtonWithNotification>
                         </Td>
                       </Tr>
                     );
@@ -325,7 +388,7 @@ const TripTicketReturns = () => {
               No ongoing schedules found
             </Text>
             <Text fontSize="sm" color="gray.400">
-              Try adjusting your search.
+              {showOnlyMySchedules ? "You are not assigned to any schedules." : "Try adjusting your search."}
             </Text>
           </Center>
         )};
@@ -335,7 +398,7 @@ const TripTicketReturns = () => {
             currentPage={inProgressSchedulesCurrentPage}
             setCurrentPage={setOngoingPage}
             totalPages={inProgressSchedulesTotalPages}
-            totalItems={inProgressSchedulesTotalItems}
+            totalItems={filteredTotalItems}
             colorScheme='purple'
           />
         </Flex>

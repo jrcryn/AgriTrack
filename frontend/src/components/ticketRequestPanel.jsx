@@ -272,6 +272,18 @@ const TicketRequestPanel = ({
   };
 
   const handleRemoveFromSchedule = async (ticketRequestId) => {
+
+    if (user?.role !== 'MIM') {
+      toast({
+        title: "Permission denied",
+        description: "You do not have permission to update the schedule.",
+        status: "warning",
+        duration: 4000,
+        isClosable: true
+      });
+      return;
+    }
+
     try {
       const response = await removeFromSchedule(ticketRequestId);
       
@@ -391,6 +403,17 @@ const TicketRequestPanel = ({
   };
   
   const handleUpdateSchedule = async () => {
+
+    if (user?.role !== 'MIM') {
+      toast({
+        title: "Permission denied",
+        description: "You do not have permission to update the schedule.",
+        status: "warning",
+        duration: 4000,
+        isClosable: true
+      });
+      return;
+    }
     // Filter to only changed tickets
     const changedTickets = ticketUpdateData.tickets.filter((current, index) => {
       const initial = initialTicketData[index];
@@ -599,17 +622,32 @@ const TicketRequestPanel = ({
         )}
         
         {isScheduledPage && !isViewingDetails && (
-          <ModalHeader bg="green.50" borderBottomWidth="1px" borderColor="gray.200" display="flex" alignItems="center">
-            <FaCalendarAlt style={{ marginRight: 12, color: 'green' }} />
-            Manage Scheduled Tickets
-          </ModalHeader>
+          user?.role === 'MIM' ? (
+            <ModalHeader bg="green.50" borderBottomWidth="1px" borderColor="gray.200" display="flex" alignItems="center">
+              <FaCalendarAlt style={{ marginRight: 12, color: 'green' }} />
+              Manage Scheduled Tickets
+            </ModalHeader>
+          ) : (
+            <ModalHeader bg="green.50" borderBottomWidth="1px" borderColor="gray.200" display="flex" alignItems="center">
+              <FaCalendarAlt style={{ marginRight: 12, color: 'green' }} />
+              View Scheduled Tickets
+            </ModalHeader>
+          )
         )}
         
         {isOngoingPage && !isViewingDetails && (
-          <ModalHeader bg="purple.50" borderBottomWidth="1px" borderColor="gray.200" display="flex" alignItems="center">
-            <FaCalendarAlt style={{ marginRight: 12, color: 'purple' }} />
-            Manage Ongoing Tickets
-          </ModalHeader>
+          user?.role === 'MIM' ? (
+            <ModalHeader bg="purple.50" borderBottomWidth="1px" borderColor="gray.200" display="flex" alignItems="center">
+              <FaCalendarAlt style={{ marginRight: 12, color: 'purple' }} />
+              Manage Ongoing Tickets
+            </ModalHeader>
+          ) : (
+            <ModalHeader bg="purple.50" borderBottomWidth="1px" borderColor="gray.200" display="flex" alignItems="center">
+              <FaCalendarAlt style={{ marginRight: 12, color: 'purple' }} />
+              View Ongoing Tickets
+            </ModalHeader>
+          )
+
         )}
         
         {isDeclinedPage && !isViewingDetails && (
@@ -680,7 +718,7 @@ const TicketRequestPanel = ({
                           
                           <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
                             <FormControl isRequired>
-                              <FormLabel>Week Start</FormLabel>
+                              <FormLabel>Start Day</FormLabel>
                               <Input
                                 type="date"
                                 value={scheduleData.weekStart}
@@ -689,7 +727,7 @@ const TicketRequestPanel = ({
                             </FormControl>
                             
                             <FormControl isRequired>
-                              <FormLabel>Week End</FormLabel>
+                              <FormLabel>End Day</FormLabel>
                               <Input
                                 type="date"
                                 value={scheduleData.weekEnd}
@@ -774,7 +812,7 @@ const TicketRequestPanel = ({
                                         >
                                           {unitsForType.map(unit => (
                                             <option key={unit._id} value={unit._id}>
-                                              {unit.plateNumber} - {unit.machineryTypeId?.equipmentType}
+                                              {unit.unitNumber} - {unit.machineryTypeId?.equipmentType}
                                             </option>
                                           ))}
                                         </Select>
@@ -901,7 +939,7 @@ const TicketRequestPanel = ({
                                     <Th>Assigned Date</Th>
                                     <Th width={'170px'}>Assigned Operator</Th>
                                     <Th width={'120px'}>Machine Unit</Th>
-                                    <Th></Th>
+                                    {user?.role === 'MIM' && <Th></Th>}
                                   </Tr>
                                 </Thead>
                                 <Tbody>
@@ -935,67 +973,81 @@ const TicketRequestPanel = ({
                                         <Td fontSize={'xs'}>{ticket.requestedMachineType?.equipmentType}</Td>
                                         <Td fontSize={'xs'}>{ticket.estimatedArea}</Td>
                                         <Td>
-                                          <Input
-                                            type="date"
-                                            size="xs"
-                                            value={updateTicket?.assignedDate || ''}
-                                            onChange={(e) => updateTicketInUpdateData(
-                                              tr.ticketRequestId, 
-                                              'assignedDate', 
-                                              e.target.value
-                                            )}  
-                                            min={selectedWeeklySchedule.weekStart || undefined}
-                                            max={selectedWeeklySchedule.weekEnd || undefined}
-                                          />
+                                          {user?.role === 'MIM' ? (
+                                            <Input
+                                              type="date"
+                                              size="xs"
+                                              value={updateTicket?.assignedDate || ''}
+                                              onChange={(e) => updateTicketInUpdateData(
+                                                tr.ticketRequestId, 
+                                                'assignedDate', 
+                                                e.target.value
+                                              )}  
+                                              min={selectedWeeklySchedule.weekStart || undefined}
+                                              max={selectedWeeklySchedule.weekEnd || undefined}
+                                            />
+                                          ) : (
+                                            <Text fontSize={'xs'}>{formatDate(ticket.assignedDate) || '-'}</Text>
+                                          )}
                                         </Td>
                                         <Td>
-                                          <Select
-                                            size="xs"
-                                            placeholder={tr.assignedOperator} //needs changing !!!!
-                                            value={updateTicket?.assignedOperatorId || ''}
-                                            onChange={(e) => updateTicketInUpdateData(
-                                              tr.ticketRequestId,
-                                              'assignedOperatorId',
-                                              e.target.value
-                                            )}
-                                            isDisabled={isLoadingOperatorsList}
-                                          >
-                                            {sortedOperators.map(op => (
-                                              <option key={op._id} value={op._id}>
-                                                {`${op.first_name} ${op.last_name}`}
-                                              </option>
-                                            ))}
-                                          </Select>
+                                          {user?.role === 'MIM' ? (
+                                            <Select
+                                              size="xs"
+                                              placeholder={tr.assignedOperator}
+                                              value={updateTicket?.assignedOperatorId || ''}
+                                              onChange={(e) => updateTicketInUpdateData(
+                                                tr.ticketRequestId,
+                                                'assignedOperatorId',
+                                                e.target.value
+                                              )}
+                                              isDisabled={isLoadingOperatorsList}
+                                            >
+                                              {sortedOperators.map(op => (
+                                                <option key={op._id} value={op._id}>
+                                                  {`${op.first_name} ${op.last_name}`}
+                                                </option>
+                                              ))}
+                                            </Select>
+                                          ) : (
+                                            <Text fontSize={'xs'}>{ticket.assignedOperator?.first_name || '-'} {ticket.assignedOperator?.last_name || ''}</Text>
+                                          )}
                                         </Td>
                                         <Td>
-                                          <Select
-                                            size="xs"
-                                            placeholder={tr.assignedMachineUnit} 
-                                            value={updateTicket?.assignedMachineUnitId || ''}
-                                            onChange={(e) => updateTicketInUpdateData(
-                                              tr.ticketRequestId,
-                                              'assignedMachineUnitId',
-                                              e.target.value
-                                            )}
-                                            isDisabled={!typeId || !unitsForType.length}
-                                          >
-                                            {sortedUnits.map(unit => (
-                                              <option key={unit._id} value={unit._id}>
-                                                {unit.plateNumber} - {unit.machineryTypeId?.equipmentType}
-                                              </option>
-                                            ))}
-                                          </Select>
+                                          {user?.role === 'MIM' ? (
+                                            <Select
+                                              size="xs"
+                                              placeholder={tr.assignedMachineUnit} 
+                                              value={updateTicket?.assignedMachineUnitId || ''}
+                                              onChange={(e) => updateTicketInUpdateData(
+                                                tr.ticketRequestId,
+                                                'assignedMachineUnitId',
+                                                e.target.value
+                                              )}
+                                              isDisabled={!typeId || !unitsForType.length}
+                                            >
+                                              {sortedUnits.map(unit => (
+                                                <option key={unit._id} value={unit._id}>
+                                                  {unit.plateNumber} - {unit.machineryTypeId?.equipmentType}
+                                                </option>
+                                              ))}
+                                            </Select>
+                                          ) : (
+                                            <Text fontSize={'xs'}>{ticket.assignedMachineUnit?.plateNumber || '-'}</Text>
+                                          )}
                                         </Td>
-                                        <Td>
-                                          <Button
-                                            colorScheme='red'
-                                            size={'xs'}
-                                            mr={5}
-                                            onClick={() => {onOpenRemoveModal(); setSelectedTicketForRemoval(tr.ticketRequestId)}}
-                                          >
-                                            <IoIosRemoveCircle />
-                                          </Button>
-                                        </Td>
+                                        {user?.role === 'MIM' && (
+                                          <Td>
+                                            <Button
+                                              colorScheme='red'
+                                              size={'xs'}
+                                              mr={5}
+                                              onClick={() => {onOpenRemoveModal(); setSelectedTicketForRemoval(tr.ticketRequestId)}}
+                                            >
+                                              <IoIosRemoveCircle />
+                                            </Button>
+                                          </Td>
+                                        )}
                                       </Tr>
                                     );
                                   })}
@@ -1003,7 +1055,7 @@ const TicketRequestPanel = ({
                               </Table>
                             </Box>
                         </Box>
-                        {selectedWeeklySchedule?.ticketRequests?.length < 5 && (
+                        {user?.role === 'MIM' && selectedWeeklySchedule?.ticketRequests?.length < 5 && (
                           <Flex justify="flex-end" mt={7}>
                             <Button
                               colorScheme="blue"
@@ -1075,7 +1127,9 @@ const TicketRequestPanel = ({
                               <Th>Assigned Date</Th>
                               <Th width={'170px'}>Assigned Operator</Th>
                               <Th width={'120px'}>Machine Unit</Th>
-                              <Th></Th>
+                              {user?.role === 'MIM' && (
+                                <Th></Th>
+                              )}
                             </Tr>
                           </Thead>
                           <Tbody>
@@ -1184,8 +1238,9 @@ const TicketRequestPanel = ({
                                       </>
                                     )}
                                   </Td>
-                                  <Td>
-                                    <Button
+                                    {user?.role === 'MIM' && (
+                                      <Td>
+                                      <Button
                                       colorScheme='red'
                                       size={'xs'}
                                       mr={5}
@@ -1194,7 +1249,8 @@ const TicketRequestPanel = ({
                                     >
                                       <IoIosRemoveCircle />
                                     </Button>
-                                  </Td>
+                                    </Td>
+                                    )}
                                 </Tr>
                               );
                             })}
@@ -1203,7 +1259,8 @@ const TicketRequestPanel = ({
                       </Box>
                     </Box>
                     {selectedWeeklySchedule?.ticketRequests?.length < 5 && (
-                      <Flex justify="flex-end" mt={7}>
+                      user?.role === 'MIM' && (
+                        <Flex justify="flex-end" mt={7}>
                         <Button
                           colorScheme="blue"
                           onClick={onOpenAddModal}
@@ -1212,6 +1269,7 @@ const TicketRequestPanel = ({
                           Add Ticket/s
                         </Button>
                       </Flex>
+                      )
                     )}
                   </TabPanel>
                 </TabPanels>

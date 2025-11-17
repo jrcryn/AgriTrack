@@ -6,7 +6,7 @@ export const MachineriesUnitSchema = new mongoose.Schema({
         ref: 'Machine_Type',
         required: true
     },
-    plateNumber: {type: String, required: true},
+    unitNumber: {type: String, required: true},
     engineBrand: {type: String},
     engineHorsepower: {type: String, required: true},
     modeOfAcquisition: {type: String, required: true},

@@ -5,23 +5,24 @@ export const extensionTicketSchema = new mongoose.Schema({
     refNumber: { type: String, required: true },
     areaServiced: { type: Number, required: true },
     remainingArea: { type: Number, required: true },
+    assignedDate: Date,
     extensionReason: String,
-    requestedDate: { type: Date, default: Date.now },
-    
+
     status: { 
         type: String, 
         enum: [
             'Pending', 
-            'Approved', 
             'Scheduled', 
             'Ongoing', 
-            'Completed', 
-            'Declined', 
+            'Completed',  
+            'Declined',
             'No Proof Submitted', 
             'Completed (Delayed Submission)'
         ],
         default: 'Pending'
     },
+
+    declineReason: String,
 
     approvedBy: {
         employeeId: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee_Account' },
@@ -86,7 +87,7 @@ export const extensionTicketSchema = new mongoose.Schema({
     },
 
     remarks: String,
-}, { _id: true, timestamps: true });
+}, { _id: true, timestamps: false });
 
 
 
@@ -120,8 +121,21 @@ export const ticketRequestSchema = new mongoose.Schema({
     barangay: {type: String, required: true},
     estimatedArea: { type: Number, required: true},
     dateRequested: {type: Date, required: true},
-    status: { type: String, enum: ['Pending', 'Scheduled', 'Ongoing' , 'Completed', 'Declined'] },
+    status: { 
+        type: String, 
+        enum: [
+            'Pending',  
+            'Scheduled', 
+            'Ongoing', 
+            'Completed', 
+            'Declined', 
+            'No Proof Submitted', 
+            'Completed (Delayed Submission)',
+            'Partially Completed'
+        ],
+    },
     disabledForEditing: Boolean,
+    removedOutOfScheduleDueToExtension: Boolean,
 
     declinedBy: {
         employeeId: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee_Account' },
@@ -171,14 +185,25 @@ export const ticketRequestSchema = new mongoose.Schema({
         completedAt: Date,
     },
 
-    extensionNeeded: Boolean,
-    
-    extensionDetails: {
-        areaServiced: Number,
-        remainingArea: Number
+    completedBy: {
+        operatorId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Staff_Account',
+        },
+        first_name: String,
+        last_name: String,
+        middle_name: String,
+        suffix: String,
+        email: String,
+        phone: String,
     },
+
+    extensionNeeded: Boolean,
 
     remarks: String,
 
-    extensionTickets: [extensionTicketSchema],
+    extensionTicketId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Extension_Ticket',
+    },
 }, { versionKey: false, timestamps: true });

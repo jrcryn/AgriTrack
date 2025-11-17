@@ -25,7 +25,13 @@ import {
     updateWeeklySchedule,
     getInProgressWeeklySchedules,
     undeclineTicketRequest, // added
-    setRequestTicketToComplete
+    setRequestTicketToComplete,
+
+    getPendingExtensionRequestsCount,
+    approveExtensionRequest,
+    declineExtensionRequest,
+
+    deleteScheduleAndTickets
 } from '../controller/machineries/adminDashboard.controller.js';
 
 import { generateMachineryExcelReport } from '../controller/machineries/genReports.controller.js';
@@ -79,4 +85,10 @@ router.post('/ticket-request-complete',
 // Public API routes
 router.get('/get-available-machinery-types', formGetAvailableMachineryTypes); //working
 router.post('/submit-ticket-request', createTicketRequestForm); //working
+
+router.get('/pending-extension-count', getPendingExtensionRequestsCount);
+router.post('/approve-extension-request', approveExtensionRequest);
+router.post('/decline-extension-request', declineExtensionRequest);
+
+router.post('/delete-schedule-and-tickets/:scheduleId', deleteScheduleAndTickets);
 export default router;

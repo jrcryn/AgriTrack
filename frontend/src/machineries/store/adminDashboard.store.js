@@ -120,6 +120,16 @@ const useInProgressWeeklySchedulesQuery = (page = 1, searchQuery = {}, role) =>
         enabled: role === 'MIM' || role === 'MIS',
     });
 
+export const usePendingExtensionRequestsCountQuery = (role) =>
+    useQuery({
+        queryKey: ['pendingExtensionCount'],
+        queryFn: async () => {
+            const response = await axios.get(`${API_URL}/api/machineries/pending-extension-count`);
+            return response.data;
+        },
+        enabled: role === 'MIM' || role === 'MIS',
+});
+
 // Exported store
 export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
     const { user } = useAuthStore();
@@ -164,6 +174,9 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
     const { data: inProgressWeeklySchedules = [], isLoading: isLoadingInProgressWeeklySchedules, error: inProgressWeeklySchedulesError } =
         useInProgressWeeklySchedulesQuery(schedulesPage, searchQuery, role);
 
+    const { data: pendingExtensionCount = 0, isLoading: isLoadingPendingExtensionCount, error: pendingExtensionCountError } =
+        usePendingExtensionRequestsCountQuery(role);
+
     // Action flags
     const [isCreatingMachineryType, setIsCreatingMachineryType] = useState(false);
     const [isUpdatingMachineryType, setIsUpdatingMachineryType] = useState(false);
@@ -179,6 +192,8 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
     const [isUpdatingWeeklySchedule, setIsUpdatingWeeklySchedule] = useState(false); 
     const [isUndecliningTicketRequest, setIsUndecliningTicketRequest] = useState(false); 
     const [isSettingTicketToComplete, setIsSettingTicketToComplete] = useState(false);
+    const [isApprovingExtensionRequest, setIsApprovingExtensionRequest] = useState(false);
+    const [isDecliningExtensionRequest, setIsDecliningExtensionRequest] = useState(false);
 
     // Actions
     const createMachineryType = async (data) => {
@@ -370,6 +385,30 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         }
     };
 
+    const approveExtensionRequest = async (data) => {
+        setIsApprovingExtensionRequest(true);
+        try {
+            const res = await axios.post(`${API_URL}/api/machineries/approve-extension-request`, data);
+            return res.data;
+        } catch (error) {
+            throw error;
+        } finally {
+            setIsApprovingExtensionRequest(false);
+        }
+    };
+
+    const declineExtensionRequest = async (data) => {
+        setIsDecliningExtensionRequest(true);
+        try {
+            const res = await axios.post(`${API_URL}/api/machineries/decline-extension-request`, data);
+            return res.data;
+        } catch (error) {
+            throw error;
+        } finally {
+            setIsDecliningExtensionRequest(false);
+        }
+    };
+
     return {
         // query data
         machineryTypes,
@@ -382,6 +421,7 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         operatorsList,
         plannedWeeklySchedules, 
         inProgressWeeklySchedules,
+        pendingExtensionCount,
 
         // actions
         createMachineryType,
@@ -399,6 +439,8 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         getMachineryUnitsForDropDownByType,
         updateWeeklySchedule, 
         setTicketToComplete,
+        approveExtensionRequest,
+        declineExtensionRequest,
 
         // loading states (queries)
         isLoadingMachineryTypes,
@@ -411,6 +453,7 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         isLoadingOperatorsList,
         isLoadingPlannedWeeklySchedules, 
         isLoadingInProgressWeeklySchedules,
+        isLoadingPendingExtensionCount,
 
         // action flags
         isCreatingMachineryType,
@@ -427,6 +470,8 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         isUpdatingWeeklySchedule,  
         isUndecliningTicketRequest, 
         isSettingTicketToComplete,
+        isApprovingExtensionRequest,
+        isDecliningExtensionRequest,
 
         // error states
         machineryTypesError,
@@ -439,5 +484,6 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         operatorsListError,
         plannedWeeklySchedulesError, 
         inProgressWeeklySchedulesError,
+        pendingExtensionCountError
     };
 };

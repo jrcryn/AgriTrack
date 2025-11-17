@@ -12,6 +12,7 @@ import { useAdminDashboard } from '../machineries/store/adminDashboard.store.js'
 import { useQueryClient } from '@tanstack/react-query';
 import ReturnTicketPanel from './returnTicketPanel.jsx';
 import TicketRequestCompletedDetailsPanel from './ticketRequestCompletedDetailsPanel.jsx';
+import { useAuthStore } from '../auth/store/authStore.js';
 
 const OngoingTicketPanel = ({
   isOpen,
@@ -21,6 +22,7 @@ const OngoingTicketPanel = ({
 }) => {
   const toast = useToast();
   const queryClient = useQueryClient();
+  const { user } = useAuthStore();
 
   const { isOpen: isOpenReturnModal, onOpen: onOpenReturnModal, onClose: onCloseReturnModal } = useDisclosure();
   const [selectedTicketForReturn, setSelectedTicketForReturn] = useState(null);
@@ -73,10 +75,10 @@ const OngoingTicketPanel = ({
       <Modal isOpen={isOpen} onClose={onClose} size="6xl" closeOnOverlayClick={false} scrollBehavior="inside" isCentered motionPreset='none' blockScrollOnMount={false}>
         <ModalOverlay />
         <ModalContent borderRadius="md" overflow="hidden">
-          <ModalHeader bg="purple.50" borderBottomWidth="1px" borderColor="gray.200" display="flex" alignItems="center">
-            <FaCalendarAlt style={{ marginRight: 12, color: 'purple' }} />
-            Manage Ongoing Schedule
-          </ModalHeader>
+            <ModalHeader bg="purple.50" borderBottomWidth="1px" borderColor="gray.200" display="flex" alignItems="center">
+              <FaCalendarAlt style={{ marginRight: 12, color: 'purple' }} />
+              Manage Ongoing Schedule
+            </ModalHeader>
 
           <ModalBody py={6}>
             {selectedWeeklySchedule ? (
@@ -139,8 +141,11 @@ const OngoingTicketPanel = ({
                           <Tbody>
                             {selectedWeeklySchedule.ticketRequests.map((tr) => {
                               const ticket = tr.ticketDetails;
+                              const hasExtensionRequest = ticket.extensionNeeded === true;
+                              const rowBgColor = hasExtensionRequest ? 'orange.100' : (ticket.status === 'Completed' ? 'green.100' : null);
+                              
                               return (
-                                <Tr key={tr.ticketRequestId} bgColor={ticket.status === 'Completed' ? 'green.100' : null}>
+                                <Tr key={tr.ticketRequestId} bgColor={rowBgColor}>
                                   <Td fontWeight="semibold" fontSize={'xs'} >{ticket.refNumber}</Td>
                                   <Td fontSize={'xs'}>{`${ticket.requestorFarmer?.first_name} ${ticket.requestorFarmer?.surname}`}</Td>
                                   <Td fontSize={'xs'}>{ticket.barangay}</Td>
@@ -156,22 +161,33 @@ const OngoingTicketPanel = ({
                                     {ticket.assignedMachineUnit?.plateNumber || '-'}
                                   </Td>
                                   <Td>
-                                    {ticket.status === 'Completed' ? (
+                                    {hasExtensionRequest ? (
                                       <>
-                                      <Badge colorScheme='green' fontSize='10px' pl={4} borderRadius='md'>
-                                        Completed
-                                      </Badge>
-                                      <Button 
-                                        size={'xs'} 
-                                        colorScheme='green' 
-                                        ml={1}
-                                        onClick={() => {
-                                          setSelectedCompletedTicket(ticket);
-                                          onOpenCompletedDetails();
-                                        }}
-                                      >
-                                        View Details
-                                      </Button>
+                                        <Button 
+                                          size={'xs'} 
+                                          colorScheme='orange' 
+                                          ml={1}
+                                          onClick={() => {
+                                            setSelectedCompletedTicket(ticket);
+                                            onOpenCompletedDetails();
+                                          }}
+                                        >
+                                          View Details
+                                        </Button>
+                                      </>
+                                    ) : ticket.status === 'Completed' ? (
+                                      <>
+                                        <Button 
+                                          size={'xs'} 
+                                          colorScheme='green' 
+                                          ml={1}
+                                          onClick={() => {
+                                            setSelectedCompletedTicket(ticket);
+                                            onOpenCompletedDetails();
+                                          }}
+                                        >
+                                          View Details
+                                        </Button>
                                       </>
                                     ) : (
                                       <Button
@@ -186,7 +202,6 @@ const OngoingTicketPanel = ({
                                         Update Ticket
                                       </Button>
                                     )}
-                                    
                                   </Td>
                                 </Tr>
                               );
