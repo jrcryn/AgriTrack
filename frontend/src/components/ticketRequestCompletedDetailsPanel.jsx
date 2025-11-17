@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter,
-  Box, VStack, Text, Heading, SimpleGrid, Badge, Button, Divider, AspectRatio, HStack, Alert, AlertIcon
+  Box, VStack, Text, Heading, SimpleGrid, Badge, Button, Divider, AspectRatio, HStack, Alert, AlertIcon,
+  Table, Thead, Tbody, Tr, Th, Td, Select, Input
 } from '@chakra-ui/react';
 import { FaCheckCircle } from "react-icons/fa";
 import { useAuthStore } from '../auth/store/authStore.js';
+import { useAdminDashboard } from '../machineries/store/adminDashboard.store.js';
 
 const TicketRequestCompletedDetailsPanel = ({ 
     isOpen, 
@@ -16,6 +18,17 @@ const TicketRequestCompletedDetailsPanel = ({
   const [isApproveModalOpen, setIsApproveModalOpen] = useState(false);
   const [isDeclineModalOpen, setIsDeclineModalOpen] = useState(false);
   const [selectedExtension, setSelectedExtension] = useState(null);
+  const [unitsByType, setUnitsByType] = useState({});
+  const [extensionUpdateData, setExtensionUpdateData] = useState({
+    assignedOperatorId: '',
+    assignedMachineUnitId: ''
+  });
+
+  const {
+    operatorsList,
+    isLoadingOperatorsList,
+    getMachineryUnitsForDropDownByType,
+  } = useAdminDashboard();
 
   const formatDate = (dateString) => {
     if (!dateString) return 'Not assigned';
@@ -44,6 +57,10 @@ const TicketRequestCompletedDetailsPanel = ({
 
   const handleApproveExtension = (extension, index) => {
     setSelectedExtension(extension);
+    setExtensionUpdateData({
+      assignedOperatorId: extension.assignedOperator?._id || '',
+      assignedMachineUnitId: extension.assignedMachineUnit?._id || ''
+    });
     setIsApproveModalOpen(true);
   };
 
@@ -55,12 +72,35 @@ const TicketRequestCompletedDetailsPanel = ({
   const onApproveModalClose = () => {
     setIsApproveModalOpen(false);
     setSelectedExtension(null);
+    setExtensionUpdateData({
+      assignedOperatorId: '',
+      assignedMachineUnitId: ''
+    });
   };
 
   const onDeclineModalClose = () => {
     setIsDeclineModalOpen(false);
     setSelectedExtension(null);
   };
+
+  // Fetch units for the selected extension's machine type
+  useEffect(() => {
+    if (!selectedExtension || !isApproveModalOpen) return;
+
+    const typeId = selectedTicket?.requestedMachineType?.requestedMachineTypeId;
+    if (!typeId || unitsByType[typeId]) return;
+
+    const fetchUnits = async () => {
+      try {
+        const res = await getMachineryUnitsForDropDownByType(typeId);
+        setUnitsByType(prev => ({ ...prev, [typeId]: res?.data || [] }));
+      } catch (e) {
+        console.error('Failed to load units for type', typeId, e);
+      }
+    };
+
+    fetchUnits();
+  }, [selectedExtension, isApproveModalOpen, selectedTicket]);
 
   return (
     <>
@@ -370,7 +410,7 @@ const TicketRequestCompletedDetailsPanel = ({
     </Modal>
 
     {/* Approve Extension Modal */}
-    <Modal isOpen={isApproveModalOpen} onClose={onApproveModalClose} size="md" isCentered motionPreset='none'>
+    <Modal isOpen={isApproveModalOpen} onClose={onApproveModalClose} size="5xl" isCentered motionPreset='none'>
       <ModalOverlay />
       <ModalContent borderRadius="md" overflow="hidden">
         <ModalHeader bg="green.50" borderBottomWidth="1px" borderColor="gray.200">
@@ -388,11 +428,11 @@ const TicketRequestCompletedDetailsPanel = ({
               </Text>
               <VStack align="stretch" spacing={2} pl={2}>
                 <Text fontSize="sm">
-                  • If current scheduled tickets are <Text as="span" fontWeight="bold">are 5</Text>, 
+                  • If current scheduled tickets are <Text as="span" fontWeight="bold">5</Text>, 
                   the last scheduled ticket will be moved back to pending status to accommodate this extension request
                 </Text>
                 <Text fontSize="sm">
-                  • If current scheduled tickets are <Text as="span" fontWeight="bold"> 4 or less than 5</Text>, 
+                  • If current scheduled tickets are <Text as="span" fontWeight="bold">4 or less than 5</Text>, 
                   this extension ticket will be scheduled for the next available day
                 </Text>
                 <Text fontSize="sm" fontWeight="medium" color="blue.700">
@@ -402,11 +442,76 @@ const TicketRequestCompletedDetailsPanel = ({
             </Box>
 
             {selectedExtension && (
-              <Box bg="gray.50" p={3} borderRadius="md">
-                <Text fontSize="xs" fontWeight="bold" mb={1} color="gray.600">Extension Details:</Text>
-                <Text fontSize="xs">Ref: {selectedExtension.refNumber}</Text>
-                <Text fontSize="xs">Remaining Area: {selectedExtension.remainingArea} ha</Text>
-              </Box>
+              <>
+                <Divider />
+                <Heading size="sm" mb={2}>Extension Ticket Details</Heading>
+                <Box overflowX="auto">
+                  <Table variant="simple" size="sm">
+                    <Thead bg="gray.50">
+                      <Tr>
+                        <Th>Reference #</Th>
+                        <Th>Requestor Farmer</Th>
+                        <Th>Farm Location</Th>
+                        <Th>Machine Type</Th>
+                        <Th>Remaining Area (ha)</Th>
+                        <Th>Assigned Date</Th>
+                        <Th>Assigned Operator</Th>
+                        <Th>Machine Unit</Th>
+                      </Tr>
+                    </Thead>
+                    <Tbody>
+                      <Tr>
+                        <Td fontWeight="semibold" fontSize="xs">{selectedExtension.refNumber}</Td>
+                        <Td fontSize="xs">
+                          {`${selectedTicket?.requestorFarmer?.first_name || ''} ${selectedTicket?.requestorFarmer?.surname || ''}`}
+                        </Td>
+                        <Td fontSize="xs">{selectedTicket?.barangay || 'N/A'}</Td>
+                        <Td fontSize="xs">{selectedTicket?.requestedMachineType?.equipmentType || 'N/A'}</Td>
+                        <Td fontSize="xs">{selectedExtension.remainingArea}</Td>
+                        <Td fontSize="xs">
+                          <Text>{formatDate(selectedExtension.assignedDate) || 'Auto-assigned'}</Text>
+                        </Td>
+                        <Td>
+                          <Select
+                            size="xs"
+                            placeholder="Select operator"
+                            value={extensionUpdateData.assignedOperatorId}
+                            onChange={(e) => setExtensionUpdateData(prev => ({
+                              ...prev,
+                              assignedOperatorId: e.target.value
+                            }))}
+                            isDisabled={isLoadingOperatorsList}
+                          >
+                            {operatorsList?.data?.map(op => (
+                              <option key={op._id} value={op._id}>
+                                {`${op.first_name} ${op.last_name}`}
+                              </option>
+                            ))}
+                          </Select>
+                        </Td>
+                        <Td>
+                          <Select
+                            size="xs"
+                            placeholder="Select machine"
+                            value={extensionUpdateData.assignedMachineUnitId}
+                            onChange={(e) => setExtensionUpdateData(prev => ({
+                              ...prev,
+                              assignedMachineUnitId: e.target.value
+                            }))}
+                            isDisabled={!selectedTicket?.requestedMachineType?.requestedMachineTypeId || !unitsByType[selectedTicket?.requestedMachineType?.requestedMachineTypeId]}
+                          >
+                            {(unitsByType[selectedTicket?.requestedMachineType?.requestedMachineTypeId] || []).map(unit => (
+                              <option key={unit._id} value={unit._id}>
+                                {unit.plateNumber} - {unit.machineryTypeId?.equipmentType}
+                              </option>
+                            ))}
+                          </Select>
+                        </Td>
+                      </Tr>
+                    </Tbody>
+                  </Table>
+                </Box>
+              </>
             )}
           </VStack>
         </ModalBody>
@@ -414,7 +519,10 @@ const TicketRequestCompletedDetailsPanel = ({
           <Button variant="outline" mr={3} onClick={onApproveModalClose}>
             Cancel
           </Button>
-          <Button colorScheme="green">
+          <Button 
+            colorScheme="green"
+            isDisabled={!extensionUpdateData.assignedOperatorId || !extensionUpdateData.assignedMachineUnitId}
+          >
             Confirm Approval
           </Button>
         </ModalFooter>

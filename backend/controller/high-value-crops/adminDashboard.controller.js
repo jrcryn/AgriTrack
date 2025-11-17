@@ -763,13 +763,6 @@ export const requestEdit = async (req, res) => {
       });
     }
 
-    if (farmerInput.editConsent?.editRequestId) {
-      await global.highValueCropsModels.EditRequest.findByIdAndDelete(
-        farmerInput.editConsent.editRequestId, 
-        { session }
-      );
-    }
-
     // Check if the response is flagged for review
     const farmerInput = await global.highValueCropsModels.A_farmer_inputs.findById(farmerId).session(session);
     console.log(farmerInput);
@@ -780,6 +773,13 @@ export const requestEdit = async (req, res) => {
     if (farmerInput.isForReview !== true) {
       await session.abortTransaction();
       return res.status(400).json({ message: 'Only flagged responses can be requested for edit.' });
+    }
+
+    if (farmerInput.editConsent?.editRequestId) {
+      await global.highValueCropsModels.EditRequest.findByIdAndDelete(
+        farmerInput.editConsent.editRequestId, 
+        { session }
+      );
     }
 
     // Find crop type and crop record

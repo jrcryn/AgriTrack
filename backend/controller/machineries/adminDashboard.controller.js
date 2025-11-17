@@ -1415,7 +1415,7 @@ export const approveExtensionRequest = async (req, res) => {
     }
 
     try {
-        // Find approver
+        // 1. Validate approver
         const employee = await global.globalModels.EmployeeAccount.findById(employeeId).lean();
         if (!employee) {
             return res.status(404).json({ success: false, message: "Employee account not found." });
@@ -1424,281 +1424,121 @@ export const approveExtensionRequest = async (req, res) => {
             return res.status(400).json({ success: false, message: "The provided user is not an authorized manager." });
         }
 
-        // Load ticket and extension subdoc
+        // 2. Load main ticket and extension subdocument
         const ticket = await global.machineriesModels.TicketRequest.findById(ticketRequestId);
-        if (!ticket) return res.status(404).json({ success: false, message: "Ticket request not found." });
-
-        const extensionTicket = ticket.extensionTickets.id(extensionTicketId);
-        if (!extensionTicket) return res.status(404).json({ success: false, message: "Extension ticket not found." });
-        if (extensionTicket.status !== 'Pending') {
-            return res.status(400).json({ success: false, message: "Only pending extension requests can be approved." });
+        if (!ticket) {
+            return res.status(404).json({ success: false, message: "Ticket request not found." });
         }
 
-        // Must belong to a schedule
-        const originalSchedule = await global.machineriesModels.WeeklySchedule.findById(ticket.scheduleId).lean();
-        if (!originalSchedule) return res.status(404).json({ success: false, message: "Original schedule not found." });
+        const extensionTicket = ticket.extensionTickets.id(extensionTicketId);
+        if (!extensionTicket) {
+            return res.status(404).json({ success: false, message: "Extension ticket not found." });
+        }
+        if (extensionTicket.status !== 'Pending') {
+            return res.status(400).json({
+                success: false,
+                message: "Only pending extension requests can be approved."
+            });
+        }
 
-        // Helpers
-        const toDateKey = (d) => new Date(d).toISOString().split('T')[0];
-        const addDays = (d, n) => { const r = new Date(d); r.setDate(r.getDate() + n); return r; };
+        if (!ticket.scheduleId || !ticket.assignedDate) {
+            return res.status(400).json({
+                success: false,
+                message: "Ticket must be assigned to a schedule with an assigned date before approving extension."
+            });
+        }
 
-        // Determine extension target date: next day after original ticket assignedDate
-        const originalAssignedDate = ticket.assignedDate ? new Date(ticket.assignedDate) : new Date();
+        // 3. Load schedule
+        const schedule = await global.machineriesModels.WeeklySchedule.findById(ticket.scheduleId).lean();
+        if (!schedule) {
+            return res.status(404).json({ success: false, message: "Original schedule not found." });
+        }
+
+        const addDays = (d, n) => {
+            const r = new Date(d);
+            r.setDate(r.getDate() + n);
+            return r;
+        };
+
+        const originalAssignedDate = new Date(ticket.assignedDate);
         const extensionDate = addDays(originalAssignedDate, 1);
-        const weekStart = new Date(originalSchedule.weekStart);
-        const weekEnd = new Date(originalSchedule.weekEnd);
 
-        // Load all tickets in this schedule (full docs) and sort by assignedDate ascending
-        const scheduleTicketIds = (originalSchedule.ticketRequests || []).map(tr => tr.ticketRequestId);
-        const scheduleTickets = await global.machineriesModels.TicketRequest.find({ _id: { $in: scheduleTicketIds } }).lean();
-        const scheduledWithDates = scheduleTickets
+        // 4. Load all tickets in this schedule (full docs) and sort by assignedDate
+        const scheduleTicketIds = (schedule.ticketRequests || []).map(tr => tr.ticketRequestId);
+        let scheduleTickets = await global.machineriesModels.TicketRequest.find({
+            _id: { $in: scheduleTicketIds }
+        }).lean();
+
+        // Keep only those with assignedDate, sort ascending
+        scheduleTickets = scheduleTickets
             .filter(t => t.assignedDate)
             .sort((a, b) => new Date(a.assignedDate) - new Date(b.assignedDate));
 
-        // Build map dateKey -> ticketDoc
-        const occupied = new Map();
-        scheduledWithDates.forEach(t => occupied.set(toDateKey(t.assignedDate), t));
+        // 5. If there are already 5 or more tickets, free the last one
+        if (scheduleTickets.length >= 5) {
+            const lastTicket = scheduleTickets[scheduleTickets.length - 1];
 
-        // If schedule currently has 5 tickets, remove the last ticket and set it to Pending (free a slot)
-        if (scheduledWithDates.length >= 5) {
-            const lastTicket = scheduledWithDates[scheduledWithDates.length - 1];
-            // remove from week schedule
+            // Remove from schedule.ticketRequests
             await global.machineriesModels.WeeklySchedule.findByIdAndUpdate(
-                originalSchedule._id,
+                schedule._id,
                 { $pull: { ticketRequests: { ticketRequestId: lastTicket._id } } }
             );
-            // unset schedule info on the ticket and mark Pending
+
+            // Unset schedule & assignment from that ticket, set to Pending
             await global.machineriesModels.TicketRequest.findByIdAndUpdate(
                 lastTicket._id,
                 {
-                    $unset: { scheduleId: "", assignedDate: "", assignedMachineUnit: "", assignedOperator: "" },
-                    status: 'Pending'
+                    $unset: {
+                        scheduleId: "",
+                        assignedDate: "",
+                        assignedMachineUnit: "",
+                        assignedOperator: ""
+                    },
+                    status: "Pending"
                 }
             );
-            // remove from occupied map
-            occupied.delete(toDateKey(lastTicket.assignedDate));
-            // also update our local arrays
-            scheduledWithDates.pop();
+
+            // Remove from local array so we work only with remaining ones
+            scheduleTickets = scheduleTickets.filter(t => t._id.toString() !== lastTicket._id.toString());
         }
 
-        // Now we need to insert the extension on extensionDate.
-        // If extensionDate is within this week and free -> schedule extension here.
-        // If occupied -> shift forward (cascade). If cascade spills beyond weekEnd, move the last spilled ticket to a next week (or create one).
-        // Build list of dates from extensionDate to weekEnd inclusive
-        const dateKeys = [];
-        for (let d = new Date(extensionDate); d <= weekEnd; d = addDays(d, 1)) {
-            dateKeys.push(toDateKey(d));
-        }
+        // 6. Shift all future tickets (assigned on or after extensionDate) one day forward
+        const shiftUpdates = [];
+        for (const t of scheduleTickets) {
+            const tDate = new Date(t.assignedDate);
+            if (tDate >= extensionDate) {
+                const newDate = addDays(tDate, 1);
 
-        // Find the first free date within the week starting at extensionDate
-        let firstFreeKey = null;
-        for (const dk of dateKeys) {
-            if (!occupied.has(dk)) { firstFreeKey = dk; break; }
-        }
-
-        // If found within week, we will shift tickets between extensionDate and firstFreeKey -1 forward by 1
-        const updatesToApply = []; // { ticketId, newDate }
-        let scheduleToPush = originalSchedule._id; // target schedule id for extension
-
-        if (firstFreeKey) {
-            // Cascade shift: starting from the date just before firstFreeKey down to extensionDate
-            // Collect tickets that need to be moved forward by 1 day.
-            for (let i = dateKeys.indexOf(firstFreeKey) - 1; i >= 0; i--) {
-                const currentKey = dateKeys[i];
-                const currentTicket = occupied.get(currentKey);
-                if (currentTicket) {
-                    const newDate = addDays(new Date(currentTicket.assignedDate), 1);
-                    updatesToApply.push({ ticketId: currentTicket._id, newDate });
-                    // update occupied map to reflect moved ticket
-                    occupied.delete(currentKey);
-                    occupied.set(toDateKey(newDate), currentTicket);
-                }
-            }
-            // Apply updates within this schedule
-            for (const u of updatesToApply) {
-                await global.machineriesModels.TicketRequest.findByIdAndUpdate(
-                    u.ticketId,
-                    { assignedDate: u.newDate },
-                    { new: true }
-                );
-                // update the weekly schedule entry date
-                await global.machineriesModels.WeeklySchedule.updateOne(
-                    { _id: originalSchedule._id, 'ticketRequests.ticketRequestId': u.ticketId },
-                    { $set: { 'ticketRequests.$.assignedDate': u.newDate } }
-                );
-            }
-            // extension will go to extensionDate (now free because we shifted)
-        } else {
-            // No free date in this week -> need to move last ticket(s) to next week(s) to make space.
-            // We'll move the ticket on the last date of week to the next available date in next weeks (or create next week).
-            // Then shift others forward by 1 within current week.
-            // Step 1: find lastTicket in this week (if any)
-            const lastTicket = scheduledWithDates[scheduledWithDates.length - 1];
-            if (lastTicket) {
-                // find or create next schedule that has a free slot
-                const nextWeekSchedules = await global.machineriesModels.WeeklySchedule.find({
-                    weekStart: { $gt: weekEnd },
-                    status: { $in: ['Planned', 'In Progress'] }
-                }).sort({ weekStart: 1 }).lean();
-
-                let placed = false;
-                for (const nextSch of nextWeekSchedules) {
-                    // fetch tickets in that schedule and their occupied dates
-                    const nextIds = (nextSch.ticketRequests || []).map(tr => tr.ticketRequestId);
-                    const nextTickets = await global.machineriesModels.TicketRequest.find({ _id: { $in: nextIds } }).lean();
-                    const nextOccupied = new Set(nextTickets.filter(t => t.assignedDate).map(t => toDateKey(t.assignedDate)));
-                    // find first free date in that week's range
-                    for (let d = new Date(nextSch.weekStart); d <= new Date(nextSch.weekEnd); d = addDays(d, 1)) {
-                        const dk = toDateKey(d);
-                        if (!nextOccupied.has(dk)) {
-                            // move lastTicket here
-                            await global.machineriesModels.TicketRequest.findByIdAndUpdate(
-                                lastTicket._id,
-                                { scheduleId: nextSch._id, assignedDate: d },
-                                { new: true }
-                            );
-                            // remove from original schedule and add to next schedule
-                            await global.machineriesModels.WeeklySchedule.findByIdAndUpdate(
-                                originalSchedule._id,
-                                { $pull: { ticketRequests: { ticketRequestId: lastTicket._id } } }
-                            );
-                            await global.machineriesModels.WeeklySchedule.findByIdAndUpdate(
-                                nextSch._id,
-                                { $push: { ticketRequests: { ticketRequestId: lastTicket._id, assignedDate: d } } }
-                            );
-                            placed = true;
-                            break;
-                        }
-                    }
-                    if (placed) break;
-                }
-
-                if (!placed) {
-                    // create new week starting the day after current weekEnd
-                    const newWeekStart = addDays(weekEnd, 1);
-                    const newWeekEnd = addDays(newWeekStart, 6);
-                    const now = new Date();
-                    const yyyy = now.getFullYear();
-                    const mm = String(now.getMonth() + 1).padStart(2, '0');
-                    const dd = String(now.getDate()).padStart(2, '0');
-                    const datePart = `${yyyy}${mm}${dd}`;
-                    const sSeq = await getNextScheduleCounterSeq(`SC-${datePart}`);
-                    const scheduleRefNumber = `SC-${datePart}-${String(sSeq).padStart(4, '0')}`;
-                    const newSchedule = await global.machineriesModels.WeeklySchedule.create({
-                        weekStart: newWeekStart,
-                        weekEnd: newWeekEnd,
-                        refNumber: scheduleRefNumber,
-                        status: 'Planned',
-                        ticketRequests: []
-                    });
-                    // move lastTicket to newWeekStart
-                    await global.machineriesModels.TicketRequest.findByIdAndUpdate(
-                        lastTicket._id,
-                        { scheduleId: newSchedule._id, assignedDate: newWeekStart },
+                // Update TicketRequest
+                shiftUpdates.push(
+                    global.machineriesModels.TicketRequest.findByIdAndUpdate(
+                        t._id,
+                        { assignedDate: newDate },
                         { new: true }
-                    );
-                    await global.machineriesModels.WeeklySchedule.findByIdAndUpdate(
-                        originalSchedule._id,
-                        { $pull: { ticketRequests: { ticketRequestId: lastTicket._id } } }
-                    );
-                    await global.machineriesModels.WeeklySchedule.findByIdAndUpdate(
-                        newSchedule._id,
-                        { $push: { ticketRequests: { ticketRequestId: lastTicket._id, assignedDate: newWeekStart } } }
-                    );
-                }
-            }
+                    )
+                );
 
-            // After moving last ticket out, shift all tickets from extensionDate..weekEnd-1 forward by 1
-            for (let d = new Date(weekEnd); d >= extensionDate; d = addDays(d, -1)) {
-                const key = toDateKey(d);
-                const tkt = occupied.get(key);
-                if (tkt) {
-                    const newDate = addDays(new Date(tkt.assignedDate), 1);
-                    // if newDate > weekEnd, we already moved last ticket out so this should remain inside; but safeguard by placing in next week start if needed
-                    if (newDate > weekEnd) {
-                        // find/create next week and place on its earliest free date
-                        const nextWeekSchedules = await global.machineriesModels.WeeklySchedule.find({
-                            weekStart: { $gt: weekEnd },
-                            status: { $in: ['Planned', 'In Progress'] }
-                        }).sort({ weekStart: 1 }).lean();
-
-                        let placed = false;
-                        for (const nextSch of nextWeekSchedules) {
-                            const nextIds = (nextSch.ticketRequests || []).map(tr => tr.ticketRequestId);
-                            const nextTickets = await global.machineriesModels.TicketRequest.find({ _id: { $in: nextIds } }).lean();
-                            const nextOccupied = new Set(nextTickets.filter(t => t.assignedDate).map(t => toDateKey(t.assignedDate)));
-                            for (let nd = new Date(nextSch.weekStart); nd <= new Date(nextSch.weekEnd); nd = addDays(nd, 1)) {
-                                const ndk = toDateKey(nd);
-                                if (!nextOccupied.has(ndk)) {
-                                    await global.machineriesModels.TicketRequest.findByIdAndUpdate(
-                                        tkt._id,
-                                        { scheduleId: nextSch._id, assignedDate: nd }
-                                    );
-                                    await global.machineriesModels.WeeklySchedule.findByIdAndUpdate(
-                                        nextSch._id,
-                                        { $push: { ticketRequests: { ticketRequestId: tkt._id, assignedDate: nd } } }
-                                    );
-                                    await global.machineriesModels.WeeklySchedule.findByIdAndUpdate(
-                                        originalSchedule._id,
-                                        { $pull: { ticketRequests: { ticketRequestId: tkt._id } } }
-                                    );
-                                    placed = true;
-                                    break;
-                                }
+                // Update WeeklySchedule.ticketRequests assignedDate for this ticket
+                shiftUpdates.push(
+                    global.machineriesModels.WeeklySchedule.updateOne(
+                        {
+                            _id: schedule._id,
+                            "ticketRequests.ticketRequestId": t._id
+                        },
+                        {
+                            $set: {
+                                "ticketRequests.$.assignedDate": newDate
                             }
-                            if (placed) break;
                         }
-                        if (!placed) {
-                            // create new week and place it on its start
-                            const newWeekStart = addDays(weekEnd, 1);
-                            const newWeekEnd = addDays(newWeekStart, 6);
-                            const now = new Date();
-                            const yyyy = now.getFullYear();
-                            const mm = String(now.getMonth() + 1).padStart(2, '0');
-                            const dd = String(now.getDate()).padStart(2, '0');
-                            const datePart = `${yyyy}${mm}${dd}`;
-                            const sSeq = await getNextScheduleCounterSeq(`SC-${datePart}`);
-                            const scheduleRefNumber = `SC-${datePart}-${String(sSeq).padStart(4, '0')}`;
-                            const newSchedule = await global.machineriesModels.WeeklySchedule.create({
-                                weekStart: newWeekStart,
-                                weekEnd: newWeekEnd,
-                                refNumber: scheduleRefNumber,
-                                status: 'Planned',
-                                ticketRequests: []
-                            });
-                            await global.machineriesModels.TicketRequest.findByIdAndUpdate(
-                                tkt._id,
-                                { scheduleId: newSchedule._id, assignedDate: newWeekStart }
-                            );
-                            await global.machineriesModels.WeeklySchedule.findByIdAndUpdate(
-                                newSchedule._id,
-                                { $push: { ticketRequests: { ticketRequestId: tkt._id, assignedDate: newWeekStart } } }
-                            );
-                            await global.machineriesModels.WeeklySchedule.findByIdAndUpdate(
-                                originalSchedule._id,
-                                { $pull: { ticketRequests: { ticketRequestId: tkt._id } } }
-                            );
-                        }
-                    } else {
-                        // move inside same schedule
-                        await global.machineriesModels.TicketRequest.findByIdAndUpdate(
-                            tkt._id,
-                            { assignedDate: newDate },
-                            { new: true }
-                        );
-                        await global.machineriesModels.WeeklySchedule.updateOne(
-                            { _id: originalSchedule._id, 'ticketRequests.ticketRequestId': tkt._id },
-                            { $set: { 'ticketRequests.$.assignedDate': newDate } }
-                        );
-                    }
-                }
+                    )
+                );
             }
-            // At this point extensionDate should be free
         }
 
-        // Finally set extension subdoc metadata and push into the schedule ticketRequests
-        // Update extension subdoc inside the ticket document
-        extensionTicket.status = 'Scheduled';
+        await Promise.all(shiftUpdates);
+
+        // 7. Mark extension subdocument as approved & scheduled
+        extensionTicket.status = "Scheduled";
         extensionTicket.approvedBy = {
             employeeId: employee._id,
             first_name: employee.first_name,
@@ -1709,23 +1549,23 @@ export const approveExtensionRequest = async (req, res) => {
             phone: employee.phone,
             approvedAt: new Date()
         };
-        extensionTicket.scheduleId = originalSchedule._id;
+        extensionTicket.scheduleId = schedule._id;
         extensionTicket.assignedDate = extensionDate;
         extensionTicket.assignedMachineUnit = ticket.assignedMachineUnit || undefined;
         extensionTicket.assignedOperator = ticket.assignedOperator || undefined;
 
         await ticket.save();
 
-        // Push extension entry into the weekly schedule (use the same schedule id)
+        // 8. Add the extension into the schedule’s ticketRequests list
         await global.machineriesModels.WeeklySchedule.findByIdAndUpdate(
-            originalSchedule._id,
+            schedule._id,
             {
                 $push: {
                     ticketRequests: {
-                        ticketRequestId: ticketRequestId,
+                        ticketRequestId,
                         assignedDate: extensionDate,
                         isExtension: true,
-                        extensionTicketId: extensionTicketId
+                        extensionTicketId
                     }
                 }
             }
@@ -1737,7 +1577,7 @@ export const approveExtensionRequest = async (req, res) => {
             data: {
                 extensionTicket,
                 assignedDate: extensionDate,
-                scheduleId: originalSchedule._id
+                scheduleId: schedule._id
             }
         });
     } catch (error) {
