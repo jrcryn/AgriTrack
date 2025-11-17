@@ -1,15 +1,21 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter,
-  Box, VStack, Text, Heading, SimpleGrid, Badge, Button, Divider, AspectRatio, HStack
+  Box, VStack, Text, Heading, SimpleGrid, Badge, Button, Divider, AspectRatio, HStack, Alert, AlertIcon
 } from '@chakra-ui/react';
 import { FaCheckCircle } from "react-icons/fa";
+import { useAuthStore } from '../auth/store/authStore.js';
 
 const TicketRequestCompletedDetailsPanel = ({ 
     isOpen, 
     onClose, 
     selectedTicket
  }) => {
+
+  const { user } = useAuthStore();
+  const [isApproveModalOpen, setIsApproveModalOpen] = useState(false);
+  const [isDeclineModalOpen, setIsDeclineModalOpen] = useState(false);
+  const [selectedExtension, setSelectedExtension] = useState(null);
 
   const formatDate = (dateString) => {
     if (!dateString) return 'Not assigned';
@@ -37,16 +43,27 @@ const TicketRequestCompletedDetailsPanel = ({
   };
 
   const handleApproveExtension = (extension, index) => {
-    // TODO: Implement approve extension logic
-    console.log('Approve extension:', extension);
+    setSelectedExtension(extension);
+    setIsApproveModalOpen(true);
   };
 
   const handleDeclineExtension = (extension, index) => {
-    // TODO: Implement decline extension logic
-    console.log('Decline extension:', extension);
+    setSelectedExtension(extension);
+    setIsDeclineModalOpen(true);
+  };
+
+  const onApproveModalClose = () => {
+    setIsApproveModalOpen(false);
+    setSelectedExtension(null);
+  };
+
+  const onDeclineModalClose = () => {
+    setIsDeclineModalOpen(false);
+    setSelectedExtension(null);
   };
 
   return (
+    <>
     <Modal isOpen={isOpen} onClose={onClose} size="4xl" closeOnOverlayClick={false} scrollBehavior="inside" isCentered motionPreset='none'>
       <ModalOverlay />
       <ModalContent borderRadius="md" overflow="hidden">
@@ -126,8 +143,9 @@ const TicketRequestCompletedDetailsPanel = ({
                     <Heading size="sm" mb={4}>Extension Requests</Heading>
                     <VStack spacing={4} align="stretch">
                       {selectedTicket.extensionTickets.map((extension, index) => {
-                        const isLatest = index === selectedTicket.extensionTickets.length - 1;
-                        const isPending = extension.status === 'Pending';
+                        //const isLatest = index === selectedTicket.extensionTickets.length - 1;
+                        const Status = extension.status;
+                        const isAdmin = user?.role === 'MIM';
                         
                         return (
                           <Box key={extension._id || index} bg="orange.50" p={4} borderRadius="md" borderWidth="1px" borderColor="orange.200">
@@ -185,29 +203,29 @@ const TicketRequestCompletedDetailsPanel = ({
                               </>
                             )}
 
-                            {/* Action Buttons for Latest Pending Extension */}
-                            {isLatest && isPending && (
-                              <>
-                                
-                                <HStack spacing={3} justify="flex-end">
-                                  <Button
-                                    size="sm"
-                                    colorScheme="red"
-                                    //variant="outline"
-                                    onClick={() => handleDeclineExtension(extension, index)}
-                                  >
-                                    Decline
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    colorScheme="green"
-                                    onClick={() => handleApproveExtension(extension, index)}
-                                  >
-                                    Approve
-                                  </Button>
-                                </HStack>
-                              </>
-                            )}
+                                {isAdmin ? (
+                                  <HStack spacing={3} justify="flex-end">
+                                    <Button
+                                      size="sm"
+                                      colorScheme="red"
+                                      onClick={() => handleDeclineExtension(extension, index)}
+                                    >
+                                      Decline
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      colorScheme="green"
+                                      onClick={() => handleApproveExtension(extension, index)}
+                                    >
+                                      Approve
+                                    </Button>
+                                  </HStack>
+                                ) : (
+                                  <Alert status="info" borderRadius="md" mt={3} variant="left-accent">
+                                    <AlertIcon />
+                                    <Text fontSize="sm">Waiting for managers' response</Text>
+                                  </Alert>
+                                )}
                           </Box>
                         );
                       })}
@@ -317,15 +335,20 @@ const TicketRequestCompletedDetailsPanel = ({
               </Box>
 
               {/* Additional Notes if available */}
-              {selectedTicket.completionNotes && (
+              {(selectedTicket.remarks || (selectedTicket.extensionNeeded && selectedTicket.extensionTickets?.[0]?.extensionReason)) && (
                 <>
                   <Divider />
                   <Box>
                     <Text fontWeight="bold" fontSize="sm" color="gray.600" mb={2}>
-                      Completion Notes
+                      {selectedTicket.extensionNeeded ? 'Extension Reason' : 'Completion Notes'}
                     </Text>
                     <Box bg="gray.50" p={3} borderRadius="md">
-                      <Text fontSize="sm">{selectedTicket.completionNotes}</Text>
+                      <Text fontSize="sm">
+                        {selectedTicket.extensionNeeded 
+                          ? (selectedTicket.extensionTickets?.[0]?.extensionReason || 'No extension reason provided')
+                          : selectedTicket.remarks
+                        }
+                      </Text>
                     </Box>
                   </Box>
                 </>
@@ -345,6 +368,118 @@ const TicketRequestCompletedDetailsPanel = ({
         </ModalFooter>
       </ModalContent>
     </Modal>
+
+    {/* Approve Extension Modal */}
+    <Modal isOpen={isApproveModalOpen} onClose={onApproveModalClose} size="md" isCentered motionPreset='none'>
+      <ModalOverlay />
+      <ModalContent borderRadius="md" overflow="hidden">
+        <ModalHeader bg="green.50" borderBottomWidth="1px" borderColor="gray.200">
+          Approve Extension Request
+        </ModalHeader>
+        <ModalBody py={6}>
+          <VStack spacing={4} align="stretch">
+            <Text fontSize="sm" fontWeight="medium">
+              Are you sure you want to approve this extension request?
+            </Text>
+            
+            <Box bg="blue.50" p={3} borderRadius="md">
+              <Text fontSize="sm" fontWeight="bold" mb={2} color="blue.700">
+                Schedule Impact:
+              </Text>
+              <VStack align="stretch" spacing={2} pl={2}>
+                <Text fontSize="sm">
+                  • If current scheduled tickets are <Text as="span" fontWeight="bold">are 5</Text>, 
+                  the last scheduled ticket will be moved back to pending status to accommodate this extension request
+                </Text>
+                <Text fontSize="sm">
+                  • If current scheduled tickets are <Text as="span" fontWeight="bold"> 4 or less than 5</Text>, 
+                  this extension ticket will be scheduled for the next available day
+                </Text>
+                <Text fontSize="sm" fontWeight="medium" color="blue.700">
+                  • All future scheduled tickets will be adjusted accordingly
+                </Text>
+              </VStack>
+            </Box>
+
+            {selectedExtension && (
+              <Box bg="gray.50" p={3} borderRadius="md">
+                <Text fontSize="xs" fontWeight="bold" mb={1} color="gray.600">Extension Details:</Text>
+                <Text fontSize="xs">Ref: {selectedExtension.refNumber}</Text>
+                <Text fontSize="xs">Remaining Area: {selectedExtension.remainingArea} ha</Text>
+              </Box>
+            )}
+          </VStack>
+        </ModalBody>
+        <ModalFooter bg="gray.50" borderTopWidth="1px" borderColor="gray.200">
+          <Button variant="outline" mr={3} onClick={onApproveModalClose}>
+            Cancel
+          </Button>
+          <Button colorScheme="green">
+            Confirm Approval
+          </Button>
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
+
+    {/* Decline Extension Modal */}
+    <Modal isOpen={isDeclineModalOpen} onClose={onDeclineModalClose} size="md" isCentered motionPreset='none'>
+      <ModalOverlay />
+      <ModalContent borderRadius="md" overflow="hidden">
+        <ModalHeader bg="red.50" borderBottomWidth="1px" borderColor="gray.200">
+          Decline Extension Request
+        </ModalHeader>
+        <ModalBody py={6}>
+          <VStack spacing={4} align="stretch">
+            <Text fontSize="sm" fontWeight="medium">
+              Are you sure you want to decline this extension request?
+            </Text>
+            
+            <Box bg="orange.50" p={3} borderRadius="md" borderWidth="1px" borderColor="orange.200">
+              <Text fontSize="sm" fontWeight="bold" mb={2} color="orange.700">
+                Impact of Declining:
+              </Text>
+              <VStack align="stretch" spacing={2} pl={2}>
+                <Text fontSize="sm">
+                  • The parent ticket will be <Text as="span" fontWeight="bold">forced to completed status</Text>
+                </Text>
+                <Text fontSize="sm">
+                  • This extension request will be permanently declined
+                </Text>
+                <Text fontSize="sm">
+                  • The remaining area ({selectedExtension?.remainingArea || 0} ha) will not be serviced
+                </Text>
+                <Text fontSize="sm" fontWeight="medium" color="orange.700">
+                  • The weekly schedule will continue as is without any adjustments
+                </Text>
+              </VStack>
+            </Box>
+
+            {selectedExtension && (
+              <Box bg="gray.50" p={3} borderRadius="md">
+                <Text fontSize="xs" fontWeight="bold" mb={1} color="gray.600">Extension Details:</Text>
+                <Text fontSize="xs">Ref: {selectedExtension.refNumber}</Text>
+                <Text fontSize="xs">Area Serviced: {selectedExtension.areaServiced} ha</Text>
+                <Text fontSize="xs">Remaining Area: {selectedExtension.remainingArea} ha</Text>
+              </Box>
+            )}
+
+            <Alert status="warning" borderRadius="md" variant="left-accent">
+              <AlertIcon />
+              <Text fontSize="xs">This action cannot be undone</Text>
+            </Alert>
+          </VStack>
+        </ModalBody>
+        <ModalFooter bg="gray.50" borderTopWidth="1px" borderColor="gray.200">
+          <Button variant="outline" mr={3} onClick={onDeclineModalClose}>
+            Cancel
+          </Button>
+          <Button colorScheme="red">
+            Confirm Decline
+          </Button>
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
+    </>
   );
 };
 

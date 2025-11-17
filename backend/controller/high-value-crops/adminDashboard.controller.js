@@ -763,12 +763,12 @@ export const requestEdit = async (req, res) => {
       });
     }
 
-    const editRequest = farmerInput.editConsent.editRequestId;
-    const editRequestId = editRequest._id; // Store the ID for deletion
-
-    if (editRequest) {
-      await global.highValueCropsModels.EditRequest.findByIdAndDelete(editRequestId, { session });
-    };
+    if (farmerInput.editConsent?.editRequestId) {
+      await global.highValueCropsModels.EditRequest.findByIdAndDelete(
+        farmerInput.editConsent.editRequestId, 
+        { session }
+      );
+    }
 
     // Check if the response is flagged for review
     const farmerInput = await global.highValueCropsModels.A_farmer_inputs.findById(farmerId).session(session);

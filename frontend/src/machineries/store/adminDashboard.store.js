@@ -120,6 +120,16 @@ const useInProgressWeeklySchedulesQuery = (page = 1, searchQuery = {}, role) =>
         enabled: role === 'MIM' || role === 'MIS',
     });
 
+export const usePendingExtensionRequestsCountQuery = (role) =>
+    useQuery({
+        queryKey: ['pendingExtensionCount'],
+        queryFn: async () => {
+            const response = await axios.get(`${API_URL}/api/machineries/pending-extension-count`);
+            return response.data;
+        },
+        enabled: role === 'MIM' || role === 'MIS',
+});
+
 // Exported store
 export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
     const { user } = useAuthStore();
@@ -163,6 +173,9 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
 
     const { data: inProgressWeeklySchedules = [], isLoading: isLoadingInProgressWeeklySchedules, error: inProgressWeeklySchedulesError } =
         useInProgressWeeklySchedulesQuery(schedulesPage, searchQuery, role);
+
+    const { data: pendingExtensionCount = 0, isLoading: isLoadingPendingExtensionCount, error: pendingExtensionCountError } =
+        usePendingExtensionRequestsCountQuery(role);
 
     // Action flags
     const [isCreatingMachineryType, setIsCreatingMachineryType] = useState(false);
@@ -382,6 +395,7 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         operatorsList,
         plannedWeeklySchedules, 
         inProgressWeeklySchedules,
+        pendingExtensionCount,
 
         // actions
         createMachineryType,
@@ -411,6 +425,7 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         isLoadingOperatorsList,
         isLoadingPlannedWeeklySchedules, 
         isLoadingInProgressWeeklySchedules,
+        isLoadingPendingExtensionCount,
 
         // action flags
         isCreatingMachineryType,
@@ -439,5 +454,6 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         operatorsListError,
         plannedWeeklySchedulesError, 
         inProgressWeeklySchedulesError,
+        pendingExtensionCountError
     };
 };

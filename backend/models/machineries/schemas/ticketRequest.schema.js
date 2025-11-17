@@ -5,6 +5,7 @@ export const extensionTicketSchema = new mongoose.Schema({
     refNumber: { type: String, required: true },
     areaServiced: { type: Number, required: true },
     remainingArea: { type: Number, required: true },
+    assignedDate: Date,
     extensionReason: String,
 
     status: { 
@@ -132,6 +133,7 @@ export const ticketRequestSchema = new mongoose.Schema({
         ],
     },
     disabledForEditing: Boolean,
+    removedOutOfScheduleDueToExtension: Boolean,
 
     declinedBy: {
         employeeId: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee_Account' },

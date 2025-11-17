@@ -52,7 +52,8 @@ import { IoDocumentAttachOutline } from "react-icons/io5";
 import Logo from '../images/Calamba_Seal.png'
 import { useAuthStore } from '../auth/store/authStore.js'
 import ProfileSettings from './profileSettings.jsx';
-import { useAdminDashboard } from '../doc-track/store/adminDashboard.store.js';
+import { useAdminDashboard as useDocTrackDashboard } from '../doc-track/store/adminDashboard.store.js';
+import { useAdminDashboard as  useMachineriesDashboard } from '../machineries/store/adminDashboard.store.js';
 
 const allLinkItems = [
   // high-value-crops
@@ -105,11 +106,17 @@ const SidebarContent = ({ onClose, ...rest }) => {
     forwardedDocuments,
     pendingDocuments,
     outgoingDocuments,
-  } = useAdminDashboard();
+  } = useDocTrackDashboard();
+
+  const { pendingExtensionCount } = useMachineriesDashboard();
+
+  const extensionCount = pendingExtensionCount?.data?.count ?? 0;
 
   const incomingCount = forwardedDocuments?.data?.totalCount ?? 0;
   const pendingCount = pendingDocuments?.data?.totalCount ?? 0;
   const outgoingCount = outgoingDocuments?.data?.totalCount ?? 0;
+
+
 
   // close drawer on mobile after clicking a link
   const isMobile = useBreakpointValue({ base: true, md: false });
@@ -155,6 +162,7 @@ const SidebarContent = ({ onClose, ...rest }) => {
             link.name === 'Incoming' ? incomingCount :
             link.name === 'Pending' ? pendingCount :
             link.name === 'Forwarded' ? outgoingCount :
+            link.name === 'Returns' ? extensionCount :
             undefined
           }
           linkName={link.name}
@@ -199,6 +207,8 @@ const NavItem = ({ icon, children, path, linkName, onClick, ...rest }) => {
         return { bg: "yellow.500", color: "white" };
       case 'Forwarded':
         return { bg: "red.500", color: "white" };
+      case 'Returns':
+        return { bg: "orange.500", color: "white" };
       default:
         return { bg: "gray.500", color: "white" };
     }
@@ -236,7 +246,7 @@ const NavItem = ({ icon, children, path, linkName, onClick, ...rest }) => {
             as={icon} />
         )}
         <Text flex="1">{children}</Text>
-        {count !== undefined && (
+        {count !== undefined && count > 0 && (
           <Badge
             bg={badgeStyles.bg}
             color={badgeStyles.color}

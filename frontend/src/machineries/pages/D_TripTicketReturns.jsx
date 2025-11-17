@@ -46,7 +46,7 @@ const TripTicketReturns = () => {
     { ongoingPage },
     { searchQuery }
   );
-  console.log(inProgressWeeklySchedules);
+  console.log('In-Progress Weekly Schedules:', inProgressWeeklySchedules);
   useEffect(() => {
     setOngoingPage(1);
   }, [searchQuery]);
@@ -150,6 +150,28 @@ const TripTicketReturns = () => {
     }
   }, [reopenScheduleId, isLoadingInProgressWeeklySchedules, inProgressWeeklySchedules]);
 
+  const ButtonWithNotification = ({ children, showNotification, dotColor }) => {
+    return (
+      <Box position="relative" display="inline-block">
+        {children}
+        {showNotification && (
+          <Box
+            position="absolute"
+            top="-5px"
+            right="-5px"
+            width="12px"
+            height="12px"
+            bg={dotColor}
+            borderRadius="full"
+            boxShadow="0 0 0 2px white"
+            zIndex={1}
+          />
+        )}
+      </Box>
+    );
+  };
+
+
   return (
     <Box overflow="hidden" bg="white" p={5} minH="100vh">
       <Heading as="h1" size="xl" mb={2}>
@@ -235,6 +257,15 @@ const TripTicketReturns = () => {
                 </Thead>
                 <Tbody>
                   {filteredInProgressSchedules.map((schedule) => {
+                    //Check if any ticket has extension request with pending status
+                    const hasExtensionRequest = schedule.ticketRequests.some(
+                      ticket => 
+                        ticket?.ticketDetails?.extensionNeeded === true &&
+                        ticket?.ticketDetails?.extensionTickets?.some(
+                          ext => ext.status === 'Pending'
+                        )
+                    );
+
                     return (
                       <Tr key={schedule._id} fontSize="sm">
                         <Td fontWeight={'semibold'}>{schedule?.refNumber || '—'}</Td>
@@ -318,17 +349,22 @@ const TripTicketReturns = () => {
                           zIndex={1}
                           bg="white"
                         >
-                          <Button
-                            size="xs"
-                            colorScheme='purple'
-                            leftIcon={<FaEye />}
-                            onClick={() => {
-                              setSelectedWeeklySchedule(schedule); 
-                              onOpen();
-                            }}
+                          <ButtonWithNotification
+                            showNotification={hasExtensionRequest}
+                            dotColor="orange.500"
                           >
-                            Details
-                          </Button>
+                            <Button
+                              size="xs"
+                              colorScheme='purple'
+                              leftIcon={<FaEye />}
+                              onClick={() => {
+                                setSelectedWeeklySchedule(schedule); 
+                                onOpen();
+                              }}
+                            >
+                              Details
+                            </Button>
+                          </ButtonWithNotification>
                         </Td>
                       </Tr>
                     );
