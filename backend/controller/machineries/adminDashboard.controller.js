@@ -731,13 +731,18 @@ export const updateWeeklySchedule = async (req, res) => { //pang update ng assig
         // Helper to normalize dates (same as createWeeklySchedule)
         const toDateKey = (d) => new Date(d).toISOString().split('T')[0];
 
-        // Build a map of ticketId -> current assigned date in schedule
-        const currentScheduleDates = new Map(
-            (schedule.ticketRequests || []).map(tr => [
-                tr.ticketRequestId.toString(), 
-                toDateKey(tr.assignedDate)
-            ])
-        );
+
+        // Build map of schedule id -> assigned date for both ticketRequestId and extensionRequestId
+        const currentScheduleDates = new Map();
+        (schedule.ticketRequests || []).forEach(tr => {
+            const dateKey = toDateKey(tr.assignedDate);
+            if (tr.ticketRequestId) {
+                currentScheduleDates.set(tr.ticketRequestId.toString(), dateKey);
+            }
+            if (tr.extensionRequestId) {
+                currentScheduleDates.set(tr.extensionRequestId.toString(), dateKey);
+            }
+        });
 
         // Validate tickets being updated
         const ticketIds = tickets.map(t => t.ticketId);
