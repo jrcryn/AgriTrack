@@ -1,3 +1,5 @@
+import mongoose from 'mongoose';
+
 // Helper: atomic daily counter via Counter collection to generate unique TR-YYYYMMDD-#### refs
 const getNextCounterSeq = async (counterId) => {
     const doc = await global.machineriesModels.TRCounter.findOneAndUpdate(
@@ -1919,6 +1921,162 @@ export const deleteScheduleAndTickets = async (req, res) => {//for testing purpo
 };
 
 
+export const setExtenstionTicketToComplete = async (req, res) => {
+    const { extensionTicketId, operatorId, remarks } = req.body;
+
+    if (!extensionTicketId) {
+        return res.status(400).json({ success: false, message: "Please provide the extension ticket ID." });
+    }
+    if (!operatorId) {
+        return res.status(400).json({ success: false, message: "Please provide the operator ID." });
+    }
+    if (!req.files || !req.files.proofImage || !req.files.signature) {
+        return res.status(400).json({
+            success: false,
+            message: "Please provide both proof image and signature."
+        });
+    }
+
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+        // Load extension ticket
+        const extTicket = await global.machineriesModels.ExtensionTicket.findById(extensionTicketId).session(session);
+        if (!extTicket) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(404).json({ success: false, message: "Extension ticket not found." });
+        }
+
+        // Only allow completion for ongoing extension tickets
+        if (extTicket.status !== 'Ongoing') {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(400).json({
+                success: false,
+                message: "Only ongoing extension tickets can be marked as completed."
+            });
+        }
+
+        // Validate assigned date is today
+        if (extTicket.assignedDate) {
+            const toDateKey = (d) => {
+            const date = new Date(d);
+            return date.getFullYear() + '-' + 
+                    String(date.getMonth() + 1).padStart(2, '0') + '-' + 
+                    String(date.getDate()).padStart(2, '0');
+            };
+            const todayKey = toDateKey(new Date());
+            const assignedDateKey = toDateKey(extTicket.assignedDate);
+            if (assignedDateKey !== todayKey) {
+                await session.abortTransaction();
+                session.endSession();
+                return res.status(400).json({
+                    success: false,
+                    message: "Extension ticket can only be marked as completed on its assigned date."
+                });
+            }
+        }
+
+        // Validate operator
+        const operator = await global.globalModels.EmployeeAccount.findById(operatorId).lean();
+        if (!operator) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(404).json({ success: false, message: "Operator account not found." });
+        }
+        if (!operator.roles || (!operator.roles.includes('MIS') && !operator.roles.includes('MIM'))) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(400).json({ success: false, message: "The provided user is not an authorized operator." });
+        }
+
+        const proofImageFile = req.files.proofImage[0];
+        const signatureFile = req.files.signature[0];
+
+        // Upload proof image to Google Drive
+        const proofImageName = `proof_ext_${extTicket.refNumber}`;
+        const proofImageResult = await uploadFileToDrive(
+            proofImageFile.buffer,
+            proofImageName,
+            proofImageFile.mimetype,
+            process.env.GOOGLE_DRIVE_FOLDER_ID_SELFIE_PROOFS_MACHINERIES
+        );
+
+        // Upload signature to Google Drive
+        const signatureName = `signature_ext_${extTicket.refNumber}`;
+        const signatureResult = await uploadFileToDrive(
+            signatureFile.buffer,
+            signatureName,
+            signatureFile.mimetype,
+            process.env.GOOGLE_DRIVE_FOLDER_ID_FARMER_SIGNATURES_MACHINERIES
+        );
+
+        // Update extension ticket completion proof and status
+        extTicket.completionProof = {
+            proofImageId: proofImageResult.id,
+            proofImageUrl: `https://drive.google.com/uc?id=${proofImageResult.id}`,
+            signatureId: signatureResult.id,
+            signatureUrl: `https://drive.google.com/uc?id=${signatureResult.id}`,
+            completedAt: new Date()
+        };
+        if (remarks && remarks.trim()) extTicket.remarks = remarks.trim();
+        extTicket.status = 'Completed';
+
+        await extTicket.save({ session });
+
+        // Update parent ticket: mark Completed if currently Partially Completed
+        const parentTicketId = extTicket.parentRequestTicketId;
+        const parentTicket = await global.machineriesModels.TicketRequest.findById(parentTicketId).session(session);
+        if (!parentTicket) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(404).json({
+                success: false,
+                message: "Parent ticket not found. Aborting operation.",
+                data: { extensionTicket: extTicket }
+            });
+        }
+
+        if (parentTicket.status !== 'Partially Completed') {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(400).json({
+                success: false,
+                message: "Parent ticket must be in 'Partially Completed' status to be marked as completed."
+            });
+        }
+
+        parentTicket.status = 'Completed';
+        parentTicket.disabledForEditing = true;
+        if (!parentTicket.extensionTicketId) parentTicket.extensionTicketId = extTicket._id;
+
+        await parentTicket.save({ session });
+
+        await session.commitTransaction();
+        session.endSession();
+
+        return res.status(200).json({
+            success: true,
+            message: "Extension ticket and parent ticket marked as completed successfully.",
+            data: {
+                extensionTicket: extTicket,
+                parentTicket
+            }
+        });
+
+    } catch (error) {
+        await session.abortTransaction();
+        session.endSession();
+        console.error("Error marking extension ticket as completed:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Error marking extension ticket as completed.",
+            error: error.message
+        });
+    }
+};
 
 
 

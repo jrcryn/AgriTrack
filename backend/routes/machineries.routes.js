@@ -30,6 +30,7 @@ import {
     getPendingExtensionRequestsCount,
     approveExtensionRequest,
     declineExtensionRequest,
+    setExtenstionTicketToComplete,
 
     deleteScheduleAndTickets
 } from '../controller/machineries/adminDashboard.controller.js';
@@ -89,6 +90,13 @@ router.post('/submit-ticket-request', createTicketRequestForm); //working
 router.get('/pending-extension-count', getPendingExtensionRequestsCount);
 router.post('/approve-extension-request', approveExtensionRequest);
 router.post('/decline-extension-request', declineExtensionRequest);
+router.post('/extension-ticket-complete', 
+  upload.fields([
+    { name: 'proofImage', maxCount: 1 },
+    { name: 'signature', maxCount: 1 }
+  ]),
+  setExtenstionTicketToComplete
+);
 
 router.post('/delete-schedule-and-tickets/:scheduleId', deleteScheduleAndTickets);
 export default router;

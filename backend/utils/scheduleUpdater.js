@@ -4,6 +4,7 @@ export const updateScheduleStatus = async () => {
         const now = new Date();
 
         const tickets = await global.machineriesModels.TicketRequest.find({ status: 'Scheduled', scheduleId: { $ne: null } }).populate('scheduleId', '_id weekStart weekEnd status');
+        const extTickets = await global.machineriesModels.ExtensionTicket.find({ status: 'Scheduled', scheduleId: { $ne: null } }).populate('scheduleId', '_id weekStart weekEnd status');
 
         const updatedSchedules = new Set();
 
@@ -20,12 +21,35 @@ export const updateScheduleStatus = async () => {
                 }
 
                 // Update ticket
-                if (tr.status !== 'Ongoing') {
+                if (tr.status !== 'Ongoing' && !tr.updatedToOngoing) {
                     tr.status = 'Ongoing';
+                    tr.updatedToOngoing = true;
                     await tr.save();
                 }
             }
         }
+
+        for (const tr of extTickets) {
+            const schedule = tr.scheduleId;
+            if (!schedule || !schedule.weekStart) continue;
+
+            if (now >= new Date(schedule.weekStart) && now <= new Date(schedule.weekEnd)) {
+                const scheduleIdStr = String(schedule._id);
+                if (schedule.status !== 'In Progress' && !updatedSchedules.has(scheduleIdStr)) {
+                    schedule.status = 'In Progress';
+                    await schedule.save();
+                    updatedSchedules.add(scheduleIdStr);
+                }
+
+                // Update ticket
+                if (tr.status !== 'Ongoing' && !tr.updatedToOngoing) {
+                    tr.status = 'Ongoing';
+                    tr.updatedToOngoing = true;
+                    await tr.save();
+                }
+            }
+        }
+
         console.log('Schedule status update completed.');
     } catch (error) {
         console.error('Error updating schedule status:', error);

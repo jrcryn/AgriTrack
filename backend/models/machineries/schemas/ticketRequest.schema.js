@@ -8,6 +8,12 @@ export const extensionTicketSchema = new mongoose.Schema({
     assignedDate: Date,
     extensionReason: String,
 
+    parentRequestTicketId: {
+        ref: 'Ticket_Request',
+        type: mongoose.Schema.Types.ObjectId,
+        required: true
+    },
+
     status: { 
         type: String, 
         enum: [
@@ -22,7 +28,7 @@ export const extensionTicketSchema = new mongoose.Schema({
     },
 
     declineReason: String,
-
+    updatedToOngoing: {type: Boolean, default: false},
     approvedBy: {
         employeeId: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee_Account' },
         first_name: String,
@@ -151,7 +157,7 @@ export const ticketRequestSchema = new mongoose.Schema({
     },
     disabledForEditing: Boolean,
     removedOutOfScheduleDueToExtension: Boolean,
-
+    updatedToOngoing: {type: Boolean, default: false},
     declinedBy: {
         employeeId: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee_Account' },
         first_name: String,

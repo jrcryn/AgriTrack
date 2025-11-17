@@ -278,7 +278,7 @@ const TripTicketReturns = () => {
                                 <Flex key={ticket._id} align='center' justify="space-between" gap={2}>
                                   <Flex direction='column'>
                                     {ticket?.extensionRequestId ? (
-                                      <Text fontWeight='medium' color={'orange'}>{ticket.extensionDetails?.refNumber}</Text>
+                                      <Text fontWeight='medium' color={'orange.500'}>{ticket.extensionDetails?.refNumber}</Text>
                                     ) : (
                                       <Text fontWeight='medium'>{ticket.ticketDetails?.refNumber}</Text>
                                     )}

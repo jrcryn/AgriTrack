@@ -18,13 +18,15 @@ const ReturnTicketPanel = ({
   onClose,
   selectedTicket = null,
   onRequestReopenSchedule,
-  scheduleId
+  scheduleId,
+  isExtensionTicket
 }) => {
   const toast = useToast();
   const queryClient = useQueryClient();
   const signatureRef = useRef(null);
   const canvasContainerRef = useRef(null);
-
+  console.log('Selected Ticket in ReturnTicketPanel:', selectedTicket);
+  console.log('Is Extension Ticket:', isExtensionTicket);
   
   const [proofImage, setProofImage] = useState(null);
   const [proofImagePreview, setProofImagePreview] = useState(null);
@@ -43,7 +45,10 @@ const ReturnTicketPanel = ({
   });
   const {
     setTicketToComplete,
-    isSettingTicketToComplete
+    isSettingTicketToComplete,
+
+    setExtensionTicketToComplete,
+    isSettingExtensionTicketToComplete,
   } = useAdminDashboard();
 
   // Calculate canvas size based on container width
@@ -168,7 +173,7 @@ const ReturnTicketPanel = ({
       });
       return;
     }
-
+    console.log('handleSubmit');
     setIsSubmitting(true);
 
     try {
@@ -233,6 +238,83 @@ const ReturnTicketPanel = ({
     }
   };
 
+  const handleSubmitExtensionTicket = async () => {
+    if (!proofImage) {
+      toast({
+        title: "Missing proof image",
+        description: "Please upload a selfie proof image",
+        status: "warning",
+        duration: 3000,
+        isClosable: true
+      });
+      return;
+    }
+
+    if (!signature) {
+      toast({
+        title: "Missing signature",
+        description: "Please capture farmer's signature",
+        status: "warning",
+        duration: 3000,
+        isClosable: true
+      });
+      return;
+    }
+
+    // Only remarks is required by backend, but we can send proof image and signature if needed
+    setIsSubmitting(true);
+
+    try {
+      // Convert signature data URL to blob
+      const signatureBlob = await fetch(signature).then(r => r.blob());
+      const signatureFile = new File([signatureBlob], `signature_${selectedTicket.refNumber}.png`, { type: 'image/png' });
+      console.log('handleSubmitExtensionTicket');
+      // Create FormData
+      const formData = new FormData();
+      formData.append('extensionTicketId', selectedTicket._id);
+      formData.append('operatorId', selectedTicket.assignedOperator.assignedOperatorId);
+      formData.append('remarks', additionalInfoData.remarks.trim() || '');
+
+      formData.append('proofImage', proofImage);
+      formData.append('signature', signatureFile);
+
+      for (const [key, value] of formData.entries()) {
+        if (value instanceof File) {
+          console.log(key, { name: value.name, size: value.size, type: value.type });
+        } else {
+          console.log(key, value);
+        }
+      }
+
+      const response = await setExtensionTicketToComplete(formData);
+
+      toast({
+        title: "Success",
+        description: response.message || "Extension ticket marked as completed successfully",
+        status: "success",
+        duration: 5000,
+        isClosable: true
+      });
+
+      await queryClient.invalidateQueries({ queryKey: ['inProgressWeeklySchedules'] });
+
+      onRequestReopenSchedule?.(scheduleId);
+
+      handleClose();
+    } catch (error) {
+      console.error('Error submitting extension ticket completion:', error);
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Failed to submit extension ticket completion",
+        status: "error",
+        duration: 5000,
+        isClosable: true
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleClose = () => {
     setProofImage(null);
     setProofImagePreview(null);
@@ -276,24 +358,51 @@ const ReturnTicketPanel = ({
     >
       <ModalOverlay />
       <ModalContent borderRadius="md" overflow="hidden">
-        <ModalHeader bg="green.50" borderBottomWidth="1px" borderColor="gray.200" display="flex" alignItems="center">
-          <FaCheckCircle style={{ marginRight: 12, color: '#38a169' }} />
-          Mark Ticket as Completed
-        </ModalHeader>
+        {!isExtensionTicket ? (
+          <>
+          <ModalHeader bg="green.50" borderBottomWidth="1px" borderColor="gray.200" display="flex" alignItems="center">
+            <FaCheckCircle style={{ marginRight: 12, color: '#38a169' }} />
+            Mark Ticket as Completed
+          </ModalHeader>
+          </>
+        ) : (
+          <ModalHeader bg="green.50" borderBottomWidth="1px" borderColor="gray.200" display="flex" alignItems="center">
+            <FaCheckCircle style={{ marginRight: 12, color: '#38a169' }} />
+            Mark Extension Ticket as Completed
+          </ModalHeader>
+        )}
+
 
         <ModalBody py={6}>
           {selectedTicket ? (
             <VStack spacing={6} align="stretch">
               {/* Alert Info */}
-              <Alert status="info" borderRadius="md" variant="left-accent">
-                <AlertIcon />
-                <Box>
-                  <AlertTitle fontSize="sm">Completion Requirements</AlertTitle>
-                  <AlertDescription fontSize="sm">
-                    Please upload a selfie proof image and capture the farmer's signature to complete or ask for an extension for this ticket.
-                  </AlertDescription>
-                </Box>
-              </Alert>
+              {!isExtensionTicket ? (
+                <>
+                <Alert status="info" borderRadius="md" variant="left-accent">
+                  <AlertIcon />
+                  <Box>
+                    <AlertTitle fontSize="sm">Completion Requirements</AlertTitle>
+                    <AlertDescription fontSize="sm">
+                      Please upload a selfie proof image and capture the farmer's signature to complete or ask for an extension for this ticket.
+                    </AlertDescription>
+                  </Box>
+                </Alert>
+                </>
+              ) : (
+                <>
+                <Alert status="info" borderRadius="md" variant="left-accent">
+                  <AlertIcon />
+                  <Box>
+                    <AlertTitle fontSize="sm">Extension Completion Requirements</AlertTitle>
+                    <AlertDescription fontSize="sm">
+                      Please upload a selfie proof image and capture the farmer's signature to complete this extention and the parent ticket.
+                    </AlertDescription>
+                  </Box>
+                </Alert>
+                </>
+              )}
+              
 
               {/* Ticket Details Section */}
               <Box bg="purple.50" p={4} borderRadius="md">
@@ -307,20 +416,37 @@ const ReturnTicketPanel = ({
                     <Text fontWeight="bold" fontSize="sm" color="gray.600">Status</Text>
                     <Badge colorScheme="purple">{selectedTicket?.status || 'N/A'}</Badge>
                   </Box>
-                  <Box>
+                  {!isExtensionTicket && (
+                    <>
+                    <Box>
                     <Text fontWeight="bold" fontSize="sm" color="gray.600">Farmer</Text>
                     <Text fontSize="md">
                       {`${selectedTicket?.requestorFarmer?.first_name || ''} ${selectedTicket?.requestorFarmer?.surname || ''}`}
                     </Text>
-                  </Box>
-                  <Box>
-                    <Text fontWeight="bold" fontSize="sm" color="gray.600">Farm Location</Text>
-                    <Text fontSize="md">{selectedTicket?.barangay || 'N/A'}</Text>
-                  </Box>
-                  <Box>
-                    <Text fontWeight="bold" fontSize="sm" color="gray.600">Estimated Area</Text>
-                    <Text fontSize="md">{selectedTicket?.estimatedArea || 'N/A'}</Text>
-                  </Box>
+                    </Box>
+                    <Box>
+                      <Text fontWeight="bold" fontSize="sm" color="gray.600">Farm Location</Text>
+                      <Text fontSize="md">{selectedTicket?.barangay || 'N/A'}</Text>
+                    </Box>
+                  </>
+                  )}
+                  
+                  {!isExtensionTicket ? (
+                    <>
+                      <Box>
+                        <Text fontWeight="bold" fontSize="sm" color="gray.600">Estimated Area</Text>
+                        <Text fontSize="md">{selectedTicket?.estimatedArea || 'N/A'}</Text>
+                      </Box>
+                    </>
+                  ) : (
+                    <>
+                      <Box>
+                        <Text fontWeight="bold" fontSize="sm" color="gray.600">Remaining Area</Text>
+                        <Text fontSize="md">{selectedTicket?.remainingArea || 'N/A'}</Text>
+                      </Box>
+                    </>
+                  )}
+
                   <Box>
                     <Text fontWeight="bold" fontSize="sm" color="gray.600">Machine Type</Text>
                     <Text fontSize="md">{selectedTicket?.requestedMachineType?.equipmentType || 'N/A'}</Text>
@@ -496,83 +622,88 @@ const ReturnTicketPanel = ({
                   </Box>
                 </FormControl>
               </Box>
+              
+              {!isExtensionTicket && (
+                <>
+                  <Box>
+                    <Flex alignItems="center" mb={additionalInfoData.extensionRequest ? 4 : 0}>
+                      <Text fontWeight="bold" mr={2}>Request Extension for Unfinished Work</Text>
+                      <Switch
+                        isChecked={additionalInfoData.extensionRequest}
+                        onChange={(e) =>
+                          setAdditionalInfoData(d => ({ 
+                            ...d, 
+                            extensionRequest: e.target.checked, 
+                            areaServiced: '', 
+                            remainingArea: '' 
+                          }))
+                        }
+                        colorScheme="orange"
+                      />
+                    </Flex>
 
-              <Box>
-                <Flex alignItems="center" mb={additionalInfoData.extensionRequest ? 4 : 0}>
-                  <Text fontWeight="bold" mr={2}>Request Extension for Unfinished Work</Text>
-                  <Switch
-                    isChecked={additionalInfoData.extensionRequest}
-                    onChange={(e) =>
-                      setAdditionalInfoData(d => ({ 
-                        ...d, 
-                        extensionRequest: e.target.checked, 
-                        areaServiced: '', 
-                        remainingArea: '' 
-                      }))
-                    }
-                    colorScheme="orange"
-                  />
-                </Flex>
+                    {additionalInfoData.extensionRequest && (
+                      <Box mt={4} p={4} bg="orange.50" borderRadius="md" borderWidth={1} borderColor="orange.200">
+                        <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+                          <FormControl isRequired>
+                            <FormLabel fontSize="sm">Area Serviced (ha)</FormLabel>
+                            <NumberInput
+                              value={additionalInfoData.areaServiced}
+                              onChange={(valueString) =>
+                                setAdditionalInfoData(d => ({ ...d, areaServiced: valueString }))
+                              }
+                              type="number"
+                              min="0"
+                              step="1"
+                              bg='white'
+                              onWheel={(e) => e.target.blur()}
+                              onKeyDown={(e) => {
+                                if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+                                  e.preventDefault();
+                                }
+                              }}
+                              inputMode="numeric"
+                            >
+                              <NumberInputField placeholder="Enter area serviced" />
+                            </NumberInput>
+                          </FormControl>
 
-                {additionalInfoData.extensionRequest && (
-                  <Box mt={4} p={4} bg="orange.50" borderRadius="md" borderWidth={1} borderColor="orange.200">
-                    <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-                      <FormControl isRequired>
-                        <FormLabel fontSize="sm">Area Serviced (ha)</FormLabel>
-                        <NumberInput
-                          value={additionalInfoData.areaServiced}
-                          onChange={(valueString) =>
-                            setAdditionalInfoData(d => ({ ...d, areaServiced: valueString }))
-                          }
-                          type="number"
-                          min="0"
-                          step="1"
-                          bg='white'
-                          onWheel={(e) => e.target.blur()}
-                          onKeyDown={(e) => {
-                            if (e.key === '-' || e.key === 'e' || e.key === 'E') {
-                              e.preventDefault();
-                            }
-                          }}
-                          inputMode="numeric"
-                        >
-                          <NumberInputField placeholder="Enter area serviced" />
-                        </NumberInput>
-                      </FormControl>
+                          <FormControl isRequired>
+                            <FormLabel fontSize="sm">Remaining Area (ha)</FormLabel>
+                            <NumberInput
+                              value={additionalInfoData.remainingArea}
+                              onChange={(valueString) =>
+                                setAdditionalInfoData(d => ({ ...d, remainingArea: valueString }))
+                              }
+                              type="number"
+                              min="0"
+                              step="1"
+                              bg='white'
+                              onWheel={(e) => e.target.blur()}
+                              onKeyDown={(e) => {
+                                if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+                                  e.preventDefault();
+                                }
+                              }}
+                              inputMode="numeric"
+                            >
+                              <NumberInputField placeholder="Enter remaining area" />
+                            </NumberInput>
+                          </FormControl>
+                        </SimpleGrid>
 
-                      <FormControl isRequired>
-                        <FormLabel fontSize="sm">Remaining Area (ha)</FormLabel>
-                        <NumberInput
-                          value={additionalInfoData.remainingArea}
-                          onChange={(valueString) =>
-                            setAdditionalInfoData(d => ({ ...d, remainingArea: valueString }))
-                          }
-                          type="number"
-                          min="0"
-                          step="1"
-                          bg='white'
-                          onWheel={(e) => e.target.blur()}
-                          onKeyDown={(e) => {
-                            if (e.key === '-' || e.key === 'e' || e.key === 'E') {
-                              e.preventDefault();
-                            }
-                          }}
-                          inputMode="numeric"
-                        >
-                          <NumberInputField placeholder="Enter remaining area" />
-                        </NumberInput>
-                      </FormControl>
-                    </SimpleGrid>
-
-                    <Alert status="info" mt={3} borderRadius="md" size="sm">
-                      <AlertIcon />
-                      <Text fontSize="xs">
-                        Extension request will be submitted for admin approval along with the completion proof.
-                      </Text>
-                    </Alert>
+                        <Alert status="info" mt={3} borderRadius="md" size="sm">
+                          <AlertIcon />
+                          <Text fontSize="xs">
+                            Extension request will be submitted for admin approval along with the completion proof.
+                          </Text>
+                        </Alert>
+                      </Box>
+                    )}
                   </Box>
-                )}
-              </Box>
+                </>
+              )}
+
 
               {/* Remarks Section */}
               <Box>
@@ -601,6 +732,7 @@ const ReturnTicketPanel = ({
                   />
                 </FormControl>
               </Box>
+                    
             </VStack>
           ) : (
             <Center py={8}>
@@ -615,12 +747,32 @@ const ReturnTicketPanel = ({
           </Button>
           <Button
             colorScheme={additionalInfoData.extensionRequest ? "orange" : "green"}
-            onClick={selectedTicket?.assignedOperator?.assignedOperatorId !== user.id ? onOpenCompletionWarning : handleSubmit}
-            isLoading={isSubmitting || isSettingTicketToComplete}
-            isDisabled={!proofImage || !signature || (additionalInfoData.extensionRequest && (!additionalInfoData.areaServiced || !additionalInfoData.remainingArea))}
+            onClick={
+              selectedTicket?.assignedOperator?.assignedOperatorId !== user.id
+                ? onOpenCompletionWarning
+                : isExtensionTicket
+                  ? handleSubmitExtensionTicket
+                  : handleSubmit
+            }
+            isLoading={
+              isExtensionTicket
+                ? isSubmitting || isSettingExtensionTicketToComplete
+                : isSubmitting || isSettingTicketToComplete
+            }
+            isDisabled={
+              !proofImage ||
+              !signature ||
+              (!isExtensionTicket &&
+                additionalInfoData.extensionRequest &&
+                (!additionalInfoData.areaServiced || !additionalInfoData.remainingArea))
+            }
             size="md"
           >
-            {additionalInfoData.extensionRequest ? 'Request Extension' : 'Mark as Completed'}
+            {isExtensionTicket
+              ? 'Mark Extension as Completed'
+              : additionalInfoData.extensionRequest
+                ? 'Request Extension'
+                : 'Mark as Completed'}
           </Button>
         </ModalFooter>
       </ModalContent>
@@ -676,7 +828,15 @@ const ReturnTicketPanel = ({
           <Button variant="outline" onClick={onCloseCompletionWarning} mr={3}>
             Cancel
           </Button>
-          <Button colorScheme="orange" onClick={handleSubmit} isLoading={isSubmitting || isSettingTicketToComplete}>
+          <Button 
+          colorScheme="orange" 
+          onClick={isExtensionTicket ? handleSubmitExtensionTicket : handleSubmit}
+          isLoading={
+            isExtensionTicket
+              ? isSubmitting || isSettingExtensionTicketToComplete
+              : isSubmitting || isSettingTicketToComplete
+          }
+          >
             Yes, I Understand
           </Button>
         </ModalFooter>

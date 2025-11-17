@@ -194,6 +194,7 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
     const [isSettingTicketToComplete, setIsSettingTicketToComplete] = useState(false);
     const [isApprovingExtensionRequest, setIsApprovingExtensionRequest] = useState(false);
     const [isDecliningExtensionRequest, setIsDecliningExtensionRequest] = useState(false);
+    const [isSettingExtensionTicketToComplete, setIsSettingExtensionTicketToComplete] = useState(false);
 
     // Actions
     const createMachineryType = async (data) => {
@@ -384,6 +385,22 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
             setIsSettingTicketToComplete(false);
         }
     };
+    
+    const setExtensionTicketToComplete = async (formData) => {
+        setIsSettingExtensionTicketToComplete(true);
+        try {
+            const res = await axios.post(`${API_URL}/api/machineries/extension-ticket-complete`, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                }
+            });
+            return res.data;
+        } catch (error) {
+            throw error;
+        } finally {
+            setIsSettingExtensionTicketToComplete(false);
+        }
+    };
 
     const approveExtensionRequest = async (data) => {
         setIsApprovingExtensionRequest(true);
@@ -441,6 +458,7 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         setTicketToComplete,
         approveExtensionRequest,
         declineExtensionRequest,
+        setExtensionTicketToComplete,
 
         // loading states (queries)
         isLoadingMachineryTypes,
@@ -472,6 +490,7 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         isSettingTicketToComplete,
         isApprovingExtensionRequest,
         isDecliningExtensionRequest,
+        isSettingExtensionTicketToComplete,
 
         // error states
         machineryTypesError,
