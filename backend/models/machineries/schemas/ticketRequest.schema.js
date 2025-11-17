@@ -77,6 +77,23 @@ export const extensionTicketSchema = new mongoose.Schema({
         phone: String
     },
 
+    statusTimeline: [{
+        status: { type: String, enum: ['In Transit', 'Arrived On Site', 'Completion Proof Submitted', 'Machine Returned'] },
+        timestamp: { type: Date, default: Date.now },
+        updatedBy: {
+            operatorId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Staff_Account',
+        },
+            first_name: String,
+            last_name: String,
+            middle_name: String,
+            suffix: String,
+            email: String,
+            phone: String,
+        }
+    }],
+
     completionProof: {
         proofImageId: String,
         proofImageUrl: String,
@@ -86,7 +103,7 @@ export const extensionTicketSchema = new mongoose.Schema({
     },
 
     remarks: String,
-}, { _id: true, timestamps: false });
+}, { _id: true, timestamps: false, versionKey: false });
 
 
 
@@ -174,6 +191,23 @@ export const ticketRequestSchema = new mongoose.Schema({
         email: String,
         phone: String
     },
+
+    statusTimeline: [{
+        status: { type: String, enum: ['In Transit', 'Arrived On Site', 'Completion Proof Submitted', 'Machine Returned'] },
+        timestamp: { type: Date, default: Date.now },
+        updatedBy: {
+            operatorId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Staff_Account',
+        },
+            first_name: String,
+            last_name: String,
+            middle_name: String,
+            suffix: String,
+            email: String,
+            phone: String,
+        }
+    }],
 
     completionProof: {
         proofImageId: String,

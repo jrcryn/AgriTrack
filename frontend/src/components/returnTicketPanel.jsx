@@ -25,7 +25,6 @@ const ReturnTicketPanel = ({
   const signatureRef = useRef(null);
   const canvasContainerRef = useRef(null);
 
-  console.log('Selected Ticket in ReturnTicketPanel:', selectedTicket);
   
   const [proofImage, setProofImage] = useState(null);
   const [proofImagePreview, setProofImagePreview] = useState(null);
@@ -35,7 +34,6 @@ const ReturnTicketPanel = ({
 
   const { isOpen: isOpenCompletionWarning, onOpen: onOpenCompletionWarning, onClose: onCloseCompletionWarning } = useDisclosure();
   const { user } = useAuthStore();
-  console.log('Current User in ReturnTicketPanel:', user);
 
   const [additionalInfoData, setAdditionalInfoData] = useState({
     extensionRequest: false, 
@@ -43,7 +41,6 @@ const ReturnTicketPanel = ({
     remainingArea: '',
     remarks: ''
   });
-  console.log('additionalInfoData:', additionalInfoData);
   const {
     setTicketToComplete,
     isSettingTicketToComplete

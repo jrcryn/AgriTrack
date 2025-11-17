@@ -1280,8 +1280,8 @@ export const moveTicketRequestToASchedule = async (req, res) => { //pang move ng
 import { uploadFileToDrive } from '../googleDrive.controller.js';
 
 
-export const setRequestTicketToComplete = async (req, res) => {
-    const { ticketRequestId, extensionRequest, areaServiced, remainingArea, remarks, operatorId } = req.body;
+export const setRequestTicketToComplete = async (req, res) => { //kapag work done na
+    const { ticketRequestId, extensionRequest, areaServiced, remainingArea, remarks, operatorId } = req.body; 
 
     if (!ticketRequestId) {
         return res.status(400).json({
@@ -1424,25 +1424,21 @@ export const setRequestTicketToComplete = async (req, res) => {
 
         // Handle extension request
         if (extensionRequest === 'true') {
-
             const extensionRefNumber = ticket.refNumber.replace(/^TR-/, 'EXT-');
-
-            // Create extension ticket object
-            const extensionTicket = {
+            
+            // Create new ExtensionTicket document
+            const extensionTicket = await global.machineriesModels.ExtensionTicket.create({
                 refNumber: extensionRefNumber,
+                parentTicketId: ticket._id,
                 areaServiced: parseFloat(areaServiced),
                 remainingArea: parseFloat(remainingArea),
                 extensionReason: remarks && remarks.trim() ? remarks.trim() : undefined,
                 status: 'Pending'
-            };
-
-            // Add extension ticket to the array
-            updateData.$push = {
-                extensionTickets: extensionTicket
-            };
+            });
 
             // Mark that extension is needed
             updateData.extensionNeeded = true;
+            updateData.extensionTicketId = extensionTicket._id;
         } else {
             // If no extension, add remarks to the main document
             if (remarks && remarks.trim()) {
@@ -1819,17 +1815,8 @@ export const declineExtensionRequest = async (req, res) => {
             });
         }
 
-        // Load main ticket
-        const ticket = await global.machineriesModels.TicketRequest.findById(ticketRequestId);
-        if (!ticket) {
-            return res.status(404).json({ 
-                success: false, 
-                message: "Ticket request not found." 
-            });
-        }
-
-        // Find extension subdocument
-        const extensionTicket = ticket.extensionTickets.id(extensionTicketId);
+        // Load extension ticket document directly
+        const extensionTicket = await global.machineriesModels.ExtensionTicket.findById(extensionTicketId);
         if (!extensionTicket) {
             return res.status(404).json({ 
                 success: false, 
@@ -1859,7 +1846,7 @@ export const declineExtensionRequest = async (req, res) => {
         };
         extensionTicket.declineReason = reason.trim();
 
-        await ticket.save();
+        await extensionTicket.save();
 
         return res.status(200).json({
             success: true,
@@ -1877,6 +1864,7 @@ export const declineExtensionRequest = async (req, res) => {
         });
     }
 };
+
 
 export const deleteScheduleAndTickets = async (req, res) => {//for testing purposes
     const { scheduleId } = req.params;
@@ -1933,6 +1921,310 @@ export const deleteScheduleAndTickets = async (req, res) => {//for testing purpo
 
 
 
+
+
+
+
+export const setTicketToInTransit = async (req, res) => { //future use
+    const { ticketRequestId, operatorId } = req.body;
+
+    if (!ticketRequestId || !operatorId) {
+        return res.status(400).json({
+            success: false,
+            message: "Please provide ticket request ID and operator ID."
+        });
+    }
+
+    try {
+        // Find the ticket request
+        const ticket = await global.machineriesModels.TicketRequest.findById(ticketRequestId);
+        
+        if (!ticket) {
+            return res.status(404).json({
+                success: false,
+                message: "Ticket request not found."
+            });
+        }
+
+        // Validate ticket status
+        if (ticket.status !== 'Scheduled') {
+            return res.status(400).json({
+                success: false,
+                message: "Only scheduled tickets can be set to in transit."
+            });
+        }
+
+        // Validate operator
+        const operator = await global.globalModels.EmployeeAccount.findById(operatorId).lean();
+        if (!operator) {
+            return res.status(404).json({
+                success: false,
+                message: "Operator account not found."
+            });
+        }
+
+        if (!operator.roles || (!operator.roles.includes('MIS') && !operator.roles.includes('MIM'))) {
+            return res.status(400).json({
+                success: false,
+                message: "The provided user is not an authorized operator."
+            });
+        }
+
+        // Validate assigned date is today
+        const toDateKey = (d) => new Date(d).toISOString().split('T')[0];
+        const todayKey = toDateKey(new Date());
+        const assignedDateKey = toDateKey(ticket.assignedDate);
+
+        if (assignedDateKey !== todayKey) {
+            return res.status(400).json({
+                success: false,
+                message: "Ticket can only be set to in transit on its assigned date."
+            });
+        }
+
+        // Check if already in transit
+        if (ticket.statusTimeline?.inTransit) {
+            return res.status(400).json({
+                success: false,
+                message: "Ticket is already marked as in transit."
+            });
+        }
+
+        // Update ticket
+        const updatedTicket = await global.machineriesModels.TicketRequest.findByIdAndUpdate(
+            ticketRequestId,
+            {
+                $set: {
+                    'statusTimeline.inTransit': new Date()
+                }
+            },
+            { new: true }
+        );
+
+        return res.status(200).json({
+            success: true,
+            message: "Ticket marked as in transit successfully.",
+            data: updatedTicket
+        });
+
+    } catch (error) {
+        console.error("Error setting ticket to in transit:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Error setting ticket to in transit.",
+            error: error.message
+        });
+    }
+};
+
+export const setTicketToArrivedOnSite = async (req, res) => { //future use
+    const { ticketRequestId, operatorId } = req.body;
+
+    if (!ticketRequestId || !operatorId) {
+        return res.status(400).json({
+            success: false,
+            message: "Please provide ticket request ID and operator ID."
+        });
+    }
+
+    try {
+        // Find the ticket request
+        const ticket = await global.machineriesModels.TicketRequest.findById(ticketRequestId);
+        
+        if (!ticket) {
+            return res.status(404).json({
+                success: false,
+                message: "Ticket request not found."
+            });
+        }
+
+        // Validate ticket status
+        if (ticket.status !== 'Scheduled') {
+            return res.status(400).json({
+                success: false,
+                message: "Only scheduled tickets can be set to arrived on site."
+            });
+        }
+
+        // Validate operator
+        const operator = await global.globalModels.EmployeeAccount.findById(operatorId).lean();
+        if (!operator) {
+            return res.status(404).json({
+                success: false,
+                message: "Operator account not found."
+            });
+        }
+
+        if (!operator.roles || (!operator.roles.includes('MIS') && !operator.roles.includes('MIM'))) {
+            return res.status(400).json({
+                success: false,
+                message: "The provided user is not an authorized operator."
+            });
+        }
+
+        // Validate assigned date is today
+        const toDateKey = (d) => new Date(d).toISOString().split('T')[0];
+        const todayKey = toDateKey(new Date());
+        const assignedDateKey = toDateKey(ticket.assignedDate);
+
+        if (assignedDateKey !== todayKey) {
+            return res.status(400).json({
+                success: false,
+                message: "Ticket can only be set to arrived on site on its assigned date."
+            });
+        }
+
+        // Check if in transit timestamp exists
+        if (!ticket.statusTimeline?.inTransit) {
+            return res.status(400).json({
+                success: false,
+                message: "Ticket must be in transit before arriving on site."
+            });
+        }
+
+        // Check if already arrived
+        if (ticket.statusTimeline?.arrivedOnSite) {
+            return res.status(400).json({
+                success: false,
+                message: "Ticket is already marked as arrived on site."
+            });
+        }
+
+        // Update ticket status to Ongoing and set arrivedOnSite timestamp
+        const updatedTicket = await global.machineriesModels.TicketRequest.findByIdAndUpdate(
+            ticketRequestId,
+            {
+                status: 'Ongoing',
+                $set: {
+                    'statusTimeline.arrivedOnSite': new Date()
+                }
+            },
+            { new: true }
+        );
+
+        // Update schedule status to In Progress if not already
+        if (ticket.scheduleId) {
+            await global.machineriesModels.WeeklySchedule.findByIdAndUpdate(
+                ticket.scheduleId,
+                { status: 'In Progress' }
+            );
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: "Ticket marked as arrived on site successfully.",
+            data: updatedTicket
+        });
+
+    } catch (error) {
+        console.error("Error setting ticket to arrived on site:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Error setting ticket to arrived on site.",
+            error: error.message
+        });
+    }
+};
+
+export const setTicketToMachineReturned = async (req, res) => { //future use
+    const { ticketRequestId, operatorId } = req.body;
+
+    if (!ticketRequestId || !operatorId) {
+        return res.status(400).json({
+            success: false,
+            message: "Please provide ticket request ID and operator ID."
+        });
+    }
+
+    try {
+        // Find the ticket request
+        const ticket = await global.machineriesModels.TicketRequest.findById(ticketRequestId);
+        
+        if (!ticket) {
+            return res.status(404).json({
+                success: false,
+                message: "Ticket request not found."
+            });
+        }
+
+        // Validate ticket status
+        if (ticket.status !== 'Ongoing') {
+            return res.status(400).json({
+                success: false,
+                message: "Only ongoing or completed tickets can be set to machine returned."
+            });
+        }
+
+        // Validate operator
+        const operator = await global.globalModels.EmployeeAccount.findById(operatorId).lean();
+        if (!operator) {
+            return res.status(404).json({
+                success: false,
+                message: "Operator account not found."
+            });
+        }
+
+        if (!operator.roles || (!operator.roles.includes('MIS') && !operator.roles.includes('MIM'))) {
+            return res.status(400).json({
+                success: false,
+                message: "The provided user is not an authorized operator."
+            });
+        }
+
+        // Validate assigned date is today
+        const toDateKey = (d) => new Date(d).toISOString().split('T')[0];
+        const todayKey = toDateKey(new Date());
+        const assignedDateKey = toDateKey(ticket.assignedDate);
+
+        if (assignedDateKey !== todayKey) {
+            return res.status(400).json({
+                success: false,
+                message: "Ticket can only be set to machine returned on its assigned date."
+            });
+        }
+
+        // Check if arrived on site timestamp exists
+        if (!ticket.statusTimeline?.arrivedOnSite) {
+            return res.status(400).json({
+                success: false,
+                message: "Ticket must have arrived on site before machine can be returned."
+            });
+        }
+
+        // Check if already returned
+        if (ticket.statusTimeline?.machineReturned) {
+            return res.status(400).json({
+                success: false,
+                message: "Machine is already marked as returned."
+            });
+        }
+
+        // Update ticket
+        const updatedTicket = await global.machineriesModels.TicketRequest.findByIdAndUpdate(
+            ticketRequestId,
+            {
+                $set: {
+                    'statusTimeline.machineReturned': new Date()
+                }
+            },
+            { new: true }
+        );
+
+        return res.status(200).json({
+            success: true,
+            message: "Machine marked as returned successfully.",
+            data: updatedTicket
+        });
+
+    } catch (error) {
+        console.error("Error setting ticket to machine returned:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Error setting ticket to machine returned.",
+            error: error.message
+        });
+    }
+};
 
 
 
@@ -2380,20 +2672,12 @@ export const getPlannedWeeklySchedules = async (req, res) => { //planned or sche
 
         // Build match criteria for search
         let matchCriteria = { status: 'Planned' };
-        
-        if (searchQuery && searchQuery.trim() !== '') {
-            const words = searchQuery.trim().split(/\s+/);
-            const searchConditions = words.map((word) => ({
-                $or: [
-                    { refNumber: { $regex: word, $options: 'i' } },
-                    { status: { $regex: word, $options: 'i' } }
-                ],
-            }));
-            matchCriteria = { $and: [ { status: 'Planned' }, ...searchConditions ] };
-        }
+
+        // Use buildTicketSearchMatch for searching assigned operators and ticket details
+        const ticketSearchMatch = buildTicketSearchMatch(searchQuery);
 
         // Find schedules with pagination
-        const schedules = await global.machineriesModels.WeeklySchedule
+        let schedules = await global.machineriesModels.WeeklySchedule
             .find(matchCriteria)
             .sort({ weekStart: -1 })
             .skip(skip)
@@ -2414,9 +2698,16 @@ export const getPlannedWeeklySchedules = async (req, res) => { //planned or sche
         });
 
         // Fetch all ticket requests with populated data
-        const ticketRequests = await global.machineriesModels.TicketRequest
+        let ticketRequests = await global.machineriesModels.TicketRequest
             .find({ _id: { $in: ticketIds } })
             .lean();
+
+        // If searchQuery is present, filter tickets using buildTicketSearchMatch
+        if (ticketSearchMatch) {
+            ticketRequests = await global.machineriesModels.TicketRequest
+                .find({ _id: { $in: ticketIds }, ...ticketSearchMatch })
+                .lean();
+        }
 
         // Enhance schedules with ticket details
         const enhancedSchedules = schedules.map(schedule => {
@@ -2425,12 +2716,11 @@ export const getPlannedWeeklySchedules = async (req, res) => { //planned or sche
                 const fullTicket = ticketRequests.find(
                     t => t._id.toString() === tr.ticketRequestId.toString()
                 );
-                
                 return {
                     ...tr,
                     ticketDetails: fullTicket || null
                 };
-            });
+            }).filter(tr => !ticketSearchMatch || tr.ticketDetails); // filter if searching
 
             enhancedTickets.sort((a, b) => {
                 const dateA = new Date(a.assignedDate || 0);
@@ -2442,7 +2732,7 @@ export const getPlannedWeeklySchedules = async (req, res) => { //planned or sche
                 ...schedule,
                 ticketRequests: enhancedTickets
             };
-        });
+        }).filter(sch => sch.ticketRequests.length > 0 || !ticketSearchMatch); // filter schedules if searching
 
         return res.status(200).json({
             success: true,
@@ -2464,7 +2754,7 @@ export const getPlannedWeeklySchedules = async (req, res) => { //planned or sche
     }
 };
 
-export const getInProgressWeeklySchedules = async (req, res) => { //in progress or ongoing weekly schedules
+export const getInProgressWeeklySchedules = async (req, res) => { //in progress weekly schedules or ongoing schedules in the dashboard
     const { searchQuery } = req.query;
     try {
         const page = parseInt(req.query.page) || 1;
@@ -2474,19 +2764,11 @@ export const getInProgressWeeklySchedules = async (req, res) => { //in progress 
         // Build match criteria for search
         let matchCriteria = { status: 'In Progress' };
 
-        if (searchQuery && searchQuery.trim() !== '') {
-            const words = searchQuery.trim().split(/\s+/);
-            const searchConditions = words.map((word) => ({
-                $or: [
-                    { refNumber: { $regex: word, $options: 'i' } },
-                    { status: { $regex: word, $options: 'i' } }
-                ],
-            }));
-            matchCriteria = { $and: [ { status: 'In Progress' }, ...searchConditions ] };
-        }
+        // Use buildTicketSearchMatch for searching assigned operators and ticket details
+        const ticketSearchMatch = buildTicketSearchMatch(searchQuery);
 
         // Find schedules with pagination
-        const schedules = await global.machineriesModels.WeeklySchedule
+        let schedules = await global.machineriesModels.WeeklySchedule
             .find(matchCriteria)
             .sort({ weekStart: -1 })
             .skip(skip)
@@ -2506,10 +2788,19 @@ export const getInProgressWeeklySchedules = async (req, res) => { //in progress 
             });
         });
 
-        // Fetch all ticket requests with populated data
-        const ticketRequests = await global.machineriesModels.TicketRequest
+        // Fetch all ticket requests with populated extension ticket data
+        let ticketRequests = await global.machineriesModels.TicketRequest
             .find({ _id: { $in: ticketIds } })
+            .populate('extensionTicketId')
             .lean();
+
+        // If searchQuery is present, filter tickets using buildTicketSearchMatch
+        if (ticketSearchMatch) {
+            ticketRequests = await global.machineriesModels.TicketRequest
+                .find({ _id: { $in: ticketIds }, ...ticketSearchMatch })
+                .populate('extensionTicketId')
+                .lean();
+        }
 
         // Enhance schedules with ticket details
         const enhancedSchedules = schedules.map(schedule => {
@@ -2518,12 +2809,11 @@ export const getInProgressWeeklySchedules = async (req, res) => { //in progress 
                 const fullTicket = ticketRequests.find(
                     t => t._id.toString() === tr.ticketRequestId.toString()
                 );
-                
                 return {
                     ...tr,
                     ticketDetails: fullTicket || null
                 };
-            });
+            }).filter(tr => !ticketSearchMatch || tr.ticketDetails); // filter if searching
 
             // Sort tickets by assigned date (earliest first)
             enhancedTickets.sort((a, b) => {
@@ -2536,7 +2826,7 @@ export const getInProgressWeeklySchedules = async (req, res) => { //in progress 
                 ...schedule,
                 ticketRequests: enhancedTickets
             };
-        });
+        }).filter(sch => sch.ticketRequests.length > 0 || !ticketSearchMatch); // filter schedules if searching
 
         return res.status(200).json({
             success: true,

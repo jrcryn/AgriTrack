@@ -46,14 +46,12 @@ const TripTicketReturns = () => {
     { ongoingPage },
     { searchQuery }
   );
-  console.log('In-Progress Weekly Schedules:', inProgressWeeklySchedules);
   useEffect(() => {
     setOngoingPage(1);
   }, [searchQuery]);
 
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [selectedWeeklySchedule, setSelectedWeeklySchedule] = useState(null);
-  console.log(selectedWeeklySchedule);
 
   const inProgressWeeklySchedulesList = inProgressWeeklySchedules?.data?.relevantSchedules || [];
   const inProgressSchedulesTotalPages = inProgressWeeklySchedules?.data?.totalPages || 1;
