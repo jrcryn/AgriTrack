@@ -188,9 +188,9 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
     const [isMovingToSchedule, setIsMovingToSchedule] = useState(false);
     const [isSubmittingTicketRequest, setIsSubmittingTicketRequest] = useState(false);
     const [isArchivingTicketRequest, setIsArchivingTicketRequest] = useState(false);
-    const [isDecliningTicketRequests, setIsDecliningTicketRequests] = useState(false); 
+    //const [isDecliningTicketRequests, setIsDecliningTicketRequests] = useState(false); 
     const [isUpdatingWeeklySchedule, setIsUpdatingWeeklySchedule] = useState(false); 
-    const [isUndecliningTicketRequest, setIsUndecliningTicketRequest] = useState(false); 
+    //const [isUndecliningTicketRequest, setIsUndecliningTicketRequest] = useState(false); 
     const [isSettingTicketToComplete, setIsSettingTicketToComplete] = useState(false);
     const [isApprovingExtensionRequest, setIsApprovingExtensionRequest] = useState(false);
     const [isDecliningExtensionRequest, setIsDecliningExtensionRequest] = useState(false);
@@ -321,29 +321,29 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         }
     };
 
-    const declineTicketRequests = async (data) => {
-        setIsDecliningTicketRequests(true);
-        try {
-            const res = await axios.post(`${API_URL}/api/machineries/decline-ticket-requests`, data);
-            return res.data;
-        } catch (error) {
-            throw error;
-        } finally {
-            setIsDecliningTicketRequests(false);
-        }
-    };
+    // const declineTicketRequests = async (data) => {
+    //     setIsDecliningTicketRequests(true);
+    //     try {
+    //         const res = await axios.post(`${API_URL}/api/machineries/decline-ticket-requests`, data);
+    //         return res.data;
+    //     } catch (error) {
+    //         throw error;
+    //     } finally {
+    //         setIsDecliningTicketRequests(false);
+    //     }
+    // };
 
-    const undeclineTicketRequest = async (data) => {
-        setIsUndecliningTicketRequest(true);
-        try {
-            const res = await axios.post(`${API_URL}/api/machineries/undecline-ticket-request`, data);
-            return res.data;
-        } catch (error) {
-            throw error;
-        } finally {
-            setIsUndecliningTicketRequest(false);
-        }
-    };
+    // const undeclineTicketRequest = async (data) => {
+    //     setIsUndecliningTicketRequest(true);
+    //     try {
+    //         const res = await axios.post(`${API_URL}/api/machineries/undecline-ticket-request`, data);
+    //         return res.data;
+    //     } catch (error) {
+    //         throw error;
+    //     } finally {
+    //         setIsUndecliningTicketRequest(false);
+    //     }
+    // };
 
     const updateWeeklySchedule = async (data) => {
         setIsUpdatingWeeklySchedule(true);
@@ -434,8 +434,8 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         moveToSchedule,
         submitTicketRequest,
         archiveTicketRequest,
-        declineTicketRequests, 
-        undeclineTicketRequest, 
+        //declineTicketRequests, 
+        //undeclineTicketRequest, 
         getMachineryUnitsForDropDownByType,
         updateWeeklySchedule, 
         setTicketToComplete,
@@ -466,9 +466,9 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         isMovingToSchedule,
         isSubmittingTicketRequest,
         isArchivingTicketRequest,
-        isDecliningTicketRequests, 
+        //isDecliningTicketRequests, 
         isUpdatingWeeklySchedule,  
-        isUndecliningTicketRequest, 
+        //isUndecliningTicketRequest, 
         isSettingTicketToComplete,
         isApprovingExtensionRequest,
         isDecliningExtensionRequest,

@@ -70,6 +70,22 @@ const OngoingTicketPanel = ({
     });
   };
 
+  const isToday = (dateString) => {
+    if (!dateString) return false;
+    const today = new Date();
+    const assignedDate = new Date(dateString);
+    return today.toDateString() === assignedDate.toDateString();
+  };
+
+  const isTodayOrPast = (dateString) => {
+    if (!dateString) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const assignedDate = new Date(dateString);
+    assignedDate.setHours(0, 0, 0, 0);
+    return assignedDate <= today;
+  };
+
   return (
     <>
       <Modal isOpen={isOpen} onClose={onClose} size="6xl" closeOnOverlayClick={false} scrollBehavior="inside" isCentered motionPreset='none' blockScrollOnMount={false}>
@@ -158,7 +174,7 @@ const OngoingTicketPanel = ({
                                     {ticket.assignedOperator?.first_name || '-'} {ticket.assignedOperator?.last_name || ''}
                                   </Td>
                                   <Td fontSize={'xs'}>
-                                    {ticket.assignedMachineUnit?.plateNumber || '-'}
+                                    {ticket.assignedMachineUnit?.unitNumber || '-'}
                                   </Td>
                                   <Td>
                                     {hasExtensionRequest ? (
@@ -197,7 +213,7 @@ const OngoingTicketPanel = ({
                                         onClick={() => {
                                           handleOpenReturnModal(ticket);
                                         }}
-                                        isDisabled={ticket.disabledForEditing === false}
+                                        isDisabled={ticket.disabledForEditing === false || !isTodayOrPast(ticket.assignedDate)}
                                       >
                                         Update Ticket
                                       </Button>

@@ -20,11 +20,11 @@ import {
     getOperatorsList,
     getMachineryUnitsForDropDown,
     archiveTicketRequest,
-    declineTicketRequest,
+    //declineTicketRequest,
     getPlannedWeeklySchedules,
     updateWeeklySchedule,
     getInProgressWeeklySchedules,
-    undeclineTicketRequest, // added
+    //undeclineTicketRequest, // added
     setRequestTicketToComplete,
 
     getPendingExtensionRequestsCount,
@@ -67,12 +67,12 @@ router.get('/get-planned-weekly-schedules', getPlannedWeeklySchedules); //workin
 router.get('/get-in-progress-weekly-schedules', getInProgressWeeklySchedules);
 
 router.post('/archive-ticket-request', archiveTicketRequest);
-router.post('/decline-ticket-requests', declineTicketRequest); //working frontend
+//router.post('/decline-ticket-requests', declineTicketRequest); //working frontend
 router.post('/create-weekly-schedule', createWeeklySchedule); //working frontend
 router.post('/remove-from-schedule/:ticketRequestId', removeTicketRequestFromSchedule); //working frontend
 router.post('/move-to-schedule', moveTicketRequestToASchedule);  // working frontend
 router.post('/update-weekly-schedule', updateWeeklySchedule); // for review
-router.post('/undecline-ticket-request', undeclineTicketRequest); // new route
+//router.post('/undecline-ticket-request', undeclineTicketRequest); // new route
 router.post('/ticket-request-complete', 
   upload.fields([
     { name: 'proofImage', maxCount: 1 },

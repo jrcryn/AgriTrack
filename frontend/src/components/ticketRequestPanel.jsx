@@ -47,7 +47,7 @@ const TicketRequestPanel = ({
   const isPendingPage = pageType === 'pending';
   const isScheduledPage = pageType === 'scheduled';
   const isOngoingPage = pageType === 'ongoing';
-  const isDeclinedPage = pageType === 'declined';
+  // const isDeclinedPage = pageType === 'declined';
   console.log('selectedTickets:', selectedTickets);
   // Schedule creation state
   const [scheduleData, setScheduleData] = useState({
@@ -96,7 +96,7 @@ const TicketRequestPanel = ({
 
   const { isOpen: isOpenRemoveModal, onOpen: onOpenRemoveModal, onClose: onCloseRemoveModal } = useDisclosure();
 
-  // NEW: add tickets modal disclosure
+  // add tickets modal disclosure
   const { isOpen: isOpenAddModal, onOpen: onOpenAddModal, onClose: onCloseAddModal } = useDisclosure();
 
   // Initialize tickets for scheduling
@@ -650,12 +650,12 @@ const TicketRequestPanel = ({
 
         )}
         
-        {isDeclinedPage && !isViewingDetails && (
+        {/* {isDeclinedPage && !isViewingDetails && (
           <ModalHeader bg="red.50" borderBottomWidth="1px" borderColor="gray.200" display="flex" alignItems="center">
             <CloseIcon style={{ marginRight: 12, color: '#e53e3e' }} />
             Declined Ticket Details
           </ModalHeader>
-        )}
+        )} */}
 
         <ModalBody py={6}>
           {isPendingPage && isViewingDetails && selectedTickets.length === 1 ? (
@@ -663,13 +663,13 @@ const TicketRequestPanel = ({
               <Tabs colorScheme="red" variant="enclosed">
                 <TabList>
                   <Tab>Ticket Details</Tab>
-                  <Tab>Decline Ticket</Tab>
+                  {/* <Tab>Decline Ticket</Tab> */}
                 </TabList>
                 <TabPanels>
                   <TabPanel px={0} pt={4} pb={0}>
                     {ticketDetailsSection}
                   </TabPanel>
-                  <TabPanel px={0} pt={4} pb={0}>
+                  {/* <TabPanel px={0} pt={4} pb={0}>
                     <Box bg="red.50" p={3} borderRadius="md" mb={3} borderLeft="4px solid" borderLeftColor="red.400">
                       <Text fontSize="sm" color="red.600">
                         Declining will move this ticket to Declined. This action will notify the requester.
@@ -695,7 +695,7 @@ const TicketRequestPanel = ({
                         Decline Ticket
                       </Button>
                     </Flex>
-                  </TabPanel>
+                  </TabPanel> */}
                 </TabPanels>
               </Tabs>
             </>
@@ -704,7 +704,7 @@ const TicketRequestPanel = ({
               <Tabs colorScheme="yellow" variant="enclosed">
                     <TabList>
                       <Tab>Create Weekly Schedule</Tab>
-                      <Tab>Decline Tickets</Tab>
+                      {/* <Tab>Decline Tickets</Tab> */}
                       <Tab>Ticket Details</Tab>
                     </TabList>
                     <TabPanels>
@@ -846,7 +846,7 @@ const TicketRequestPanel = ({
                         </VStack>
                       </TabPanel>
 
-                      <TabPanel px={0} pt={4} pb={0}>
+                      {/* <TabPanel px={0} pt={4} pb={0}>
                         <Box bg="red.50" p={3} borderRadius="md" mb={3} borderLeft="4px solid" borderLeftColor="red.400">
                           <Text fontSize="sm" color="red.600">
                             Declining will move the selected tickets to Declined. This action will notify the requester.
@@ -875,7 +875,7 @@ const TicketRequestPanel = ({
                             Decline Selected Tickets
                           </Button>
                         </Flex>
-                      </TabPanel>
+                      </TabPanel> */}
                       
                       <TabPanel px={0} pt={4} pb={0}>
                         {ticketDetailsSection}
@@ -1028,12 +1028,12 @@ const TicketRequestPanel = ({
                                             >
                                               {sortedUnits.map(unit => (
                                                 <option key={unit._id} value={unit._id}>
-                                                  {unit.plateNumber} - {unit.machineryTypeId?.equipmentType}
+                                                  {unit.unitNumber} - {unit.machineryTypeId?.equipmentType}
                                                 </option>
                                               ))}
                                             </Select>
                                           ) : (
-                                            <Text fontSize={'xs'}>{ticket.assignedMachineUnit?.plateNumber || '-'}</Text>
+                                            <Text fontSize={'xs'}>{ticket.assignedMachineUnit?.unitNumber || '-'}</Text>
                                           )}
                                         </Td>
                                         {user?.role === 'MIM' && (
@@ -1136,6 +1136,7 @@ const TicketRequestPanel = ({
                             {selectedWeeklySchedule.ticketRequests.map((tr) => {
                               const ticket = tr.ticketDetails;
                               if (!ticket) return null;
+                              console.log('ticket in ongoing schedule:', ticket);
                               
                               const updateTicket = ticketUpdateData.tickets.find(t => t.ticketId === tr.ticketRequestId);
                               const typeId = ticket?.requestedMachineType?.requestedMachineTypeId;
@@ -1211,33 +1212,33 @@ const TicketRequestPanel = ({
                                       </>
                                     )}
                                   </Td>
-                                  <Td fontSize={'xs'}>
-                                    {ticket.disabledForEditing === true ? (
-                                      <>
-                                        {ticket.assignedMachineUnit.plateNumber}
-                                      </>
-                                    ) : (
-                                      <>
-                                        <Select
-                                          size="xs"
-                                          placeholder={tr.assignedMachineUnit} 
-                                          value={updateTicket?.assignedMachineUnitId || ''}
-                                          onChange={(e) => updateTicketInUpdateData(
-                                            tr.ticketRequestId,
-                                            'assignedMachineUnitId',
-                                            e.target.value
-                                          )}
-                                          isDisabled={!typeId || !unitsForType.length}
-                                        >
-                                          {sortedUnits.map(unit => (
-                                            <option key={unit._id} value={unit._id}>
-                                              {unit.plateNumber} - {unit.machineryTypeId?.equipmentType}
-                                            </option>
-                                          ))}
-                                        </Select>
-                                      </>
-                                    )}
-                                  </Td>
+                                    <Td fontSize={'xs'}>
+                                      {ticket.disabledForEditing === true ? (
+                                        <>
+                                          {ticket?.assignedMachineUnit?.unitNumber}
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Select
+                                            size="xs"
+                                            placeholder={tr.assignedMachineUnit} 
+                                            value={updateTicket?.assignedMachineUnitId || ''}
+                                            onChange={(e) => updateTicketInUpdateData(
+                                              tr.ticketRequestId,
+                                              'assignedMachineUnitId',
+                                              e.target.value
+                                            )}
+                                            isDisabled={!typeId || !unitsForType.length}
+                                          >
+                                            {sortedUnits.map(unit => (
+                                              <option key={unit._id} value={unit._id}>
+                                                {unit.unitNumber} - {unit.machineryTypeId?.equipmentType}
+                                              </option>
+                                            ))}
+                                          </Select>
+                                        </>
+                                      )}
+                                    </Td>
                                     {user?.role === 'MIM' && (
                                       <Td>
                                       <Button
@@ -1275,7 +1276,7 @@ const TicketRequestPanel = ({
                 </TabPanels>
               </Tabs>
             </>
-          ) : isDeclinedPage && selectedTickets.length === 1 ? (
+          ) /* : isDeclinedPage && selectedTickets.length === 1 ? (
             <>
               <Tabs colorScheme="red" variant="enclosed">
                 <TabList>
@@ -1305,7 +1306,7 @@ const TicketRequestPanel = ({
                 </TabPanels>
               </Tabs>
             </>
-          ) : (
+          )*/ : (
               <VStack spacing={4} align="center" py={4}>
                 <Text color="gray.600" fontSize="sm">No ticket/s or weekly schedule selected to manage.</Text>
               </VStack>

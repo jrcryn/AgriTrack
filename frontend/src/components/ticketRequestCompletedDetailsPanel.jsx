@@ -249,7 +249,7 @@ const TicketRequestCompletedDetailsPanel = ({
                   </Box>
                   <Box>
                     <Text fontWeight="bold" fontSize="sm" color="gray.600">Machine Unit</Text>
-                    <Text fontSize="md">{selectedTicket.assignedMachineUnit?.plateNumber}</Text>
+                    <Text fontSize="md">{selectedTicket.assignedMachineUnit?.unitNumber}</Text>
                   </Box>
                 </SimpleGrid>
               </Box>

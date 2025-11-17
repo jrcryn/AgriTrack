@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 
-// Extension ticket sub-schema
+// Extension ticket schema
 export const extensionTicketSchema = new mongoose.Schema({
     refNumber: { type: String, required: true },
     areaServiced: { type: Number, required: true },
@@ -15,7 +15,6 @@ export const extensionTicketSchema = new mongoose.Schema({
             'Scheduled', 
             'Ongoing', 
             'Completed',  
-            'Declined',
             'No Proof Submitted', 
             'Completed (Delayed Submission)'
         ],
@@ -60,7 +59,7 @@ export const extensionTicketSchema = new mongoose.Schema({
             type: mongoose.Schema.Types.ObjectId,
             ref: 'Machine_Unit',
         },
-        plateNumber: String, 
+        unitNumber: String, 
         engineBrand: String,
         engineHorsepower: String
     },
@@ -128,7 +127,6 @@ export const ticketRequestSchema = new mongoose.Schema({
             'Scheduled', 
             'Ongoing', 
             'Completed', 
-            'Declined', 
             'No Proof Submitted', 
             'Completed (Delayed Submission)',
             'Partially Completed'
@@ -160,7 +158,7 @@ export const ticketRequestSchema = new mongoose.Schema({
             type: mongoose.Schema.Types.ObjectId,
             ref: 'Machine_Unit',
         },
-        plateNumber: String, 
+        unitNumber: String,
         engineBrand: String,
         engineHorsepower: String
     },

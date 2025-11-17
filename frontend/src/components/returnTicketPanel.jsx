@@ -251,6 +251,7 @@ const ReturnTicketPanel = ({
       signatureRef.current.on(); // Re-enable canvas on close
     }
     onClose();
+    onCloseCompletionWarning();
   };
 
   const formatDate = (dateString) => {
@@ -339,7 +340,7 @@ const ReturnTicketPanel = ({
                   </Box>
                   <Box>
                     <Text fontWeight="bold" fontSize="sm" color="gray.600">Machine Unit</Text>
-                    <Text fontSize="md">{selectedTicket?.assignedMachineUnit?.plateNumber || 'N/A'}</Text>
+                    <Text fontSize="md">{selectedTicket?.assignedMachineUnit?.unitNumber || 'N/A'}</Text>
                   </Box>
                 </SimpleGrid>
               </Box>
@@ -678,7 +679,7 @@ const ReturnTicketPanel = ({
           <Button variant="outline" onClick={onCloseCompletionWarning} mr={3}>
             Cancel
           </Button>
-          <Button colorScheme="orange">
+          <Button colorScheme="orange" onClick={handleSubmit} isLoading={isSubmitting || isSettingTicketToComplete}>
             Yes, I Understand
           </Button>
         </ModalFooter>

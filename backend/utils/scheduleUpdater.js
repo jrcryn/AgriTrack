@@ -38,18 +38,23 @@ export const disableEditingForTodayTickets = async () => {
     try {
         const now = new Date();
         const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
 
         // Find all ongoing tickets with assignedDate <= today and disabledForEditing = false
         const tickets = await global.machineriesModels.TicketRequest.find({
             status: 'Ongoing',
             assignedDate: {
-                $lte: startOfDay
+                $gte: startOfDay,
+                $lte: endOfDay
             },
-            disabledForEditing: { $ne: true }
+            $or: [
+                { disabledForEditing: { $exists: false } },
+                { disabledForEditing: false }
+            ]
         });
 
         if (tickets.length === 0) {
-            console.log('No ongoing tickets found with today\'s or past assigned dates');
+            console.log('No ongoing tickets found with today\'s assigned date');
             return;
         }
 
@@ -60,7 +65,7 @@ export const disableEditingForTodayTickets = async () => {
         });
 
         await Promise.all(updatePromises);
-        console.log(`Successfully disabled editing for ${tickets.length} ticket(s) with today's or past assigned dates`);
+        console.log(`Successfully disabled editing for ${tickets.length} ticket(s) with today's assigned date`);
 
     } catch (error) {
         console.error('Error disabling editing for today\'s tickets:', error);
