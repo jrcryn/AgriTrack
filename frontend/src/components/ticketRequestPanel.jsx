@@ -1134,7 +1134,8 @@ const TicketRequestPanel = ({
                           </Thead>
                           <Tbody>
                             {selectedWeeklySchedule.ticketRequests.map((tr) => {
-                              const ticket = tr.ticketDetails;
+                              // Show extension ticket if present, else regular ticket
+                              const ticket = tr.extensionRequestId ? tr.extensionDetails : tr.ticketDetails;
                               if (!ticket) return null;
                               console.log('ticket in ongoing schedule:', ticket);
                               
@@ -1157,12 +1158,25 @@ const TicketRequestPanel = ({
                               });
                               
                               return (
-                                <Tr key={tr.ticketRequestId}>
+                                <Tr key={tr.ticketRequestId || tr._id}>
                                   <Td fontWeight="semibold" fontSize={'xs'}>{ticket.refNumber}</Td>
-                                  <Td fontSize={'xs'}>{`${ticket.requestorFarmer?.first_name} ${ticket.requestorFarmer?.surname}`}</Td>
-                                  <Td fontSize={'xs'}>{ticket.barangay}</Td>
-                                  <Td fontSize={'xs'}>{ticket.requestedMachineType?.equipmentType}</Td>
-                                  <Td fontSize={'xs'}>{ticket.estimatedArea}</Td>
+                                  <Td fontSize={'xs'}>
+                                    {ticket.requestorFarmer
+                                      ? `${ticket.requestorFarmer?.first_name} ${ticket.requestorFarmer?.surname}`
+                                      : <Text>|    |</Text>}
+                                  </Td>
+                                  <Td fontSize={'xs'}>
+                                    {ticket.barangay || <Text>|    |</Text>}
+                                  </Td>
+                                  <Td fontSize={'xs'}>
+                                    <Text>{ticket.requestedMachineType?.equipmentType || '—'}</Text>
+                                  </Td>
+                                  <Td fontSize={'xs'}>
+                                    {ticket.estimatedArea
+                                      ? `${ticket?.estimatedArea || '-'}` 
+                                      : <Text>{ticket?.remainingArea || '-'}</Text>
+                                      }
+                                  </Td>
                                   <Td fontSize={'xs'}>
                                     {ticket.disabledForEditing === true ? (
                                       <>
@@ -1276,7 +1290,7 @@ const TicketRequestPanel = ({
                 </TabPanels>
               </Tabs>
             </>
-          ) /* : isDeclinedPage && selectedTickets.length === 1 ? (
+          )  /* : isDeclinedPage && selectedTickets.length === 1 ? (
             <>
               <Tabs colorScheme="red" variant="enclosed">
                 <TabList>

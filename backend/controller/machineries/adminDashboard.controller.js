@@ -994,7 +994,10 @@ export const moveTicketRequestToASchedule = async (req, res) => { //pang move ng
         // Build map of existing dates in target schedule (excluding tickets being moved)
         const existingDatesInSchedule = new Set(
             (targetSchedule.ticketRequests || [])
-                .filter(tr => !ticketIds.includes(tr.ticketRequestId.toString()))
+                .filter(tr => 
+                    !ticketIds.includes(tr.ticketRequestId?.toString()) &&
+                    !ticketIds.includes(tr.extensionRequestId?.toString())
+                )
                 .map(tr => toDateKey(tr.assignedDate))
         );
 
@@ -1162,7 +1165,8 @@ export const moveTicketRequestToASchedule = async (req, res) => { //pang move ng
 
             // Check if the ticket is already in the target schedule
             const ticketInSchedule = targetSchedule.ticketRequests?.some(
-                tr => tr.ticketRequestId.toString() === ticket.ticketId
+                tr => tr.ticketRequestId?.toString() === ticket.ticketId ||
+                    tr.extensionRequestId?.toString() === ticket.ticketId
             );
 
             if (!ticketInSchedule) {

@@ -29,6 +29,8 @@ export const extensionTicketSchema = new mongoose.Schema({
 
     declineReason: String,
     updatedToOngoing: {type: Boolean, default: false},
+    disabledForEditing: Boolean,
+
     approvedBy: {
         employeeId: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee_Account' },
         first_name: String,

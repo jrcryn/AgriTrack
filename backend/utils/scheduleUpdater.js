@@ -24,6 +24,7 @@ export const updateScheduleStatus = async () => {
                 if (tr.status !== 'Ongoing' && !tr.updatedToOngoing) {
                     tr.status = 'Ongoing';
                     tr.updatedToOngoing = true;
+                    tr.disabledForEditing = true;
                     await tr.save();
                 }
             }
@@ -45,6 +46,7 @@ export const updateScheduleStatus = async () => {
                 if (tr.status !== 'Ongoing' && !tr.updatedToOngoing) {
                     tr.status = 'Ongoing';
                     tr.updatedToOngoing = true;
+                    tr.disabledForEditing = true;
                     await tr.save();
                 }
             }
