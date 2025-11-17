@@ -277,7 +277,7 @@ const TripTicketReturns = () => {
                               {schedule.ticketRequests.map((ticket) => (
                                 <Flex key={ticket._id} align='center' justify="space-between" gap={2}>
                                   <Flex direction='column'>
-                                    {exte}
+                                    
                                     <Text fontWeight='medium'>{ticket.ticketDetails?.refNumber}</Text>
                                   </Flex>
                                 </Flex>
