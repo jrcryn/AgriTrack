@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter,
   Box, VStack, Text, Heading, SimpleGrid, Badge, Button, Divider, AspectRatio, HStack, Alert, AlertIcon,
-  Table, Thead, Tbody, Tr, Th, Td, Select, Input
+  Table, Thead, Tbody, Tr, Th, Td, Select, Input, Textarea, useToast
 } from '@chakra-ui/react';
 import { FaCheckCircle } from "react-icons/fa";
 import { useAuthStore } from '../auth/store/authStore.js';
@@ -15,10 +15,12 @@ const TicketRequestCompletedDetailsPanel = ({
  }) => {
 
   const { user } = useAuthStore();
+  const toast = useToast();
   const [isApproveModalOpen, setIsApproveModalOpen] = useState(false);
   const [isDeclineModalOpen, setIsDeclineModalOpen] = useState(false);
   const [selectedExtension, setSelectedExtension] = useState(null);
   const [unitsByType, setUnitsByType] = useState({});
+  const [declineReason, setDeclineReason] = useState('');
   const [extensionUpdateData, setExtensionUpdateData] = useState({
     assignedOperatorId: '',
     assignedMachineUnitId: ''
@@ -28,6 +30,11 @@ const TicketRequestCompletedDetailsPanel = ({
     operatorsList,
     isLoadingOperatorsList,
     getMachineryUnitsForDropDownByType,
+
+    approveExtensionRequest,
+    isApprovingExtensionRequest,
+    declineExtensionRequest,
+    isDecliningExtensionRequest,
   } = useAdminDashboard();
 
   const formatDate = (dateString) => {
@@ -55,13 +62,54 @@ const TicketRequestCompletedDetailsPanel = ({
     return url;
   };
 
+  //helper handler para i reasy yung data
   const handleApproveExtension = (extension, index) => {
+    // Next day relative to the ticket's original assigned date
+    const base = selectedTicket?.assignedDate ? new Date(selectedTicket.assignedDate) : new Date();
+    const next = new Date(base);
+    next.setDate(base.getDate() + 1);
+    const nextFormatted = next.toISOString().split('T')[0];
+
     setSelectedExtension(extension);
     setExtensionUpdateData({
       assignedOperatorId: extension.assignedOperator?._id || '',
-      assignedMachineUnitId: extension.assignedMachineUnit?._id || ''
+      assignedMachineUnitId: extension.assignedMachineUnit?._id || '',
+      assignedDate: nextFormatted // read-only, for display only
     });
     setIsApproveModalOpen(true);
+  };
+
+
+  //handler for confirm approve
+  const handleConfirmApprove = async () => {
+    if (!selectedTicket || !selectedExtension) return;
+    try {
+      await approveExtensionRequest({
+        ticketRequestId: selectedTicket._id,
+        extensionTicketId: selectedExtension._id,
+        employeeId: user?.id,
+        assignedOperatorId: extensionUpdateData.assignedOperatorId,
+        assignedMachineUnitId: extensionUpdateData.assignedMachineUnitId,
+      });
+      toast({
+        title: 'Extension approved',
+        description: 'The extension request has been scheduled.',
+        status: 'success',
+        duration: 4000,
+        isClosable: true,
+      });
+      onApproveModalClose();
+      onClose();
+    } catch (e) {
+      toast({
+        title: 'Failed to approve extension',
+        description: e?.response?.data?.message || e?.message || 'Please try again.',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+      console.error('Failed to approve extension:', e);
+    }
   };
 
   const handleDeclineExtension = (extension, index) => {
@@ -74,13 +122,45 @@ const TicketRequestCompletedDetailsPanel = ({
     setSelectedExtension(null);
     setExtensionUpdateData({
       assignedOperatorId: '',
-      assignedMachineUnitId: ''
+      assignedMachineUnitId: '',
+      assignedDate: ''
     });
   };
 
   const onDeclineModalClose = () => {
     setIsDeclineModalOpen(false);
     setSelectedExtension(null);
+    setDeclineReason('');
+  };
+
+  const handleConfirmDecline = async () => {
+    if (!selectedTicket || !selectedExtension || !declineReason.trim()) return;
+    try {
+      await declineExtensionRequest({
+        ticketRequestId: selectedTicket._id,
+        extensionTicketId: selectedExtension._id,
+        employeeId: user?._id,
+        declineReason: declineReason.trim(),
+      });
+      toast({
+        title: 'Extension declined',
+        description: 'The extension request has been removed and the parent ticket completed.',
+        status: 'success',
+        duration: 4000,
+        isClosable: true,
+      });
+      onDeclineModalClose();
+      onClose();
+    } catch (e) {
+      toast({
+        title: 'Failed to decline extension',
+        description: e?.response?.data?.message || e?.message || 'Please try again.',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+      console.error('Failed to decline extension:', e);
+    }
   };
 
   // Fetch units for the selected extension's machine type
@@ -428,15 +508,15 @@ const TicketRequestCompletedDetailsPanel = ({
               </Text>
               <VStack align="stretch" spacing={2} pl={2}>
                 <Text fontSize="sm">
-                  • If current scheduled tickets are <Text as="span" fontWeight="bold">5</Text>, 
-                  the last scheduled ticket will be moved back to pending status to accommodate this extension request
+                  • If there are currently <Text as="span" fontWeight="bold">5 scheduled tickets</Text>, 
+                  the last ticket in the schedule will be moved back to "Pending" to make room for this extension request.
                 </Text>
                 <Text fontSize="sm">
-                  • If current scheduled tickets are <Text as="span" fontWeight="bold">4 or less than 5</Text>, 
-                  this extension ticket will be scheduled for the next available day
+                  • If there are <Text as="span" fontWeight="bold">4 or fewer scheduled tickets</Text>, 
+                  this extension request will be added to the next available schedule slot.
                 </Text>
                 <Text fontSize="sm" fontWeight="medium" color="blue.700">
-                  • All future scheduled tickets will be adjusted accordingly
+                  • All upcoming scheduled tickets will be automatically adjusted based on these changes.
                 </Text>
               </VStack>
             </Box>
@@ -469,7 +549,14 @@ const TicketRequestCompletedDetailsPanel = ({
                         <Td fontSize="xs">{selectedTicket?.requestedMachineType?.equipmentType || 'N/A'}</Td>
                         <Td fontSize="xs">{selectedExtension.remainingArea}</Td>
                         <Td fontSize="xs">
-                          <Text>{formatDate(selectedExtension.assignedDate) || 'Auto-assigned'}</Text>
+                          <Input
+                            type="date"
+                            size="xs"
+                            value={extensionUpdateData.assignedDate}
+                            isReadOnly
+                            bg="gray.100"
+                            cursor="not-allowed"
+                          />
                         </Td>
                         <Td>
                           <Select
@@ -522,6 +609,8 @@ const TicketRequestCompletedDetailsPanel = ({
           <Button 
             colorScheme="green"
             isDisabled={!extensionUpdateData.assignedOperatorId || !extensionUpdateData.assignedMachineUnitId}
+            isLoading={isApprovingExtensionRequest}
+            onClick={handleConfirmApprove}
           >
             Confirm Approval
           </Button>
@@ -551,7 +640,7 @@ const TicketRequestCompletedDetailsPanel = ({
                   • The parent ticket will be <Text as="span" fontWeight="bold">forced to completed status</Text>
                 </Text>
                 <Text fontSize="sm">
-                  • This extension request will be permanently declined
+                  • This extension request will be removed.
                 </Text>
                 <Text fontSize="sm">
                   • The remaining area ({selectedExtension?.remainingArea || 0} ha) will not be serviced
@@ -571,6 +660,21 @@ const TicketRequestCompletedDetailsPanel = ({
               </Box>
             )}
 
+            <Box>
+              <Text fontSize="sm" fontWeight="bold" mb={2} color="gray.700">
+                Reason for Declining <Text as="span" color="red.500">*</Text>
+              </Text>
+              <Textarea
+                placeholder="Please provide a reason for declining this extension request..."
+                value={declineReason}
+                onChange={(e) => setDeclineReason(e.target.value)}
+                size="sm"
+                rows={4}
+                resize="vertical"
+                borderRadius={5}
+              />
+            </Box>
+
             <Alert status="warning" borderRadius="md" variant="left-accent">
               <AlertIcon />
               <Text fontSize="xs">This action cannot be undone</Text>
@@ -581,7 +685,12 @@ const TicketRequestCompletedDetailsPanel = ({
           <Button variant="outline" mr={3} onClick={onDeclineModalClose}>
             Cancel
           </Button>
-          <Button colorScheme="red">
+          <Button 
+            colorScheme="red"
+            isDisabled={!declineReason.trim()}
+            isLoading={isDecliningExtensionRequest}
+            onClick={handleConfirmDecline}
+          >
             Confirm Decline
           </Button>
         </ModalFooter>

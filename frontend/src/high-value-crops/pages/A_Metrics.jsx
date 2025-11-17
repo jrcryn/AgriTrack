@@ -412,18 +412,6 @@ const Metrics = () => {
             </Box>
           </Stack>
         
-          <Flex justifyContent="flex-end" mt={3}>
-            <Tooltip  label="Function currently being built." hasArrow placement="left">
-            <Button 
-              colorScheme="green" 
-              size="sm"
-              rightIcon={<FaChartLine />}
-              isDisabled
-            >
-              See more
-            </Button>
-            </Tooltip>
-          </Flex>
         </Box>
     
         {/* HARVESTING SECTION */}
@@ -530,18 +518,6 @@ const Metrics = () => {
             </Box>
           </Stack>
         
-          <Flex justifyContent="flex-end" mt={3}>
-            <Tooltip  label="Function currently being built." hasArrow placement="left">
-            <Button 
-              colorScheme="orange" 
-              size="sm"
-              rightIcon={<FaChartLine />}
-              isDisabled
-            >
-              See more
-            </Button>
-            </Tooltip>
-          </Flex>
         </Box>
       </Box>
   );

@@ -14,13 +14,15 @@ export const extensionTicketSchema = new mongoose.Schema({
             'Pending', 
             'Scheduled', 
             'Ongoing', 
-            'Completed', 
-            'Declined', 
+            'Completed',  
+            'Declined',
             'No Proof Submitted', 
             'Completed (Delayed Submission)'
         ],
         default: 'Pending'
     },
+
+    declineReason: String,
 
     approvedBy: {
         employeeId: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee_Account' },
@@ -197,10 +199,11 @@ export const ticketRequestSchema = new mongoose.Schema({
     },
 
     extensionNeeded: Boolean,
-    
-
 
     remarks: String,
 
-    extensionTickets: [extensionTicketSchema],
+    extensionTicketId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Extension_Ticket',
+    },
 }, { versionKey: false, timestamps: true });

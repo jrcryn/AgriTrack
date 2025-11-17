@@ -718,7 +718,7 @@ const TicketRequestPanel = ({
                           
                           <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
                             <FormControl isRequired>
-                              <FormLabel>Week Start</FormLabel>
+                              <FormLabel>Start Day</FormLabel>
                               <Input
                                 type="date"
                                 value={scheduleData.weekStart}
@@ -727,7 +727,7 @@ const TicketRequestPanel = ({
                             </FormControl>
                             
                             <FormControl isRequired>
-                              <FormLabel>Week End</FormLabel>
+                              <FormLabel>End Day</FormLabel>
                               <Input
                                 type="date"
                                 value={scheduleData.weekEnd}
@@ -812,7 +812,7 @@ const TicketRequestPanel = ({
                                         >
                                           {unitsForType.map(unit => (
                                             <option key={unit._id} value={unit._id}>
-                                              {unit.plateNumber} - {unit.machineryTypeId?.equipmentType}
+                                              {unit.unitNumber} - {unit.machineryTypeId?.equipmentType}
                                             </option>
                                           ))}
                                         </Select>

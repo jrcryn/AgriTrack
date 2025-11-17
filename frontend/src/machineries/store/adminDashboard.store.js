@@ -192,6 +192,8 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
     const [isUpdatingWeeklySchedule, setIsUpdatingWeeklySchedule] = useState(false); 
     const [isUndecliningTicketRequest, setIsUndecliningTicketRequest] = useState(false); 
     const [isSettingTicketToComplete, setIsSettingTicketToComplete] = useState(false);
+    const [isApprovingExtensionRequest, setIsApprovingExtensionRequest] = useState(false);
+    const [isDecliningExtensionRequest, setIsDecliningExtensionRequest] = useState(false);
 
     // Actions
     const createMachineryType = async (data) => {
@@ -383,6 +385,30 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         }
     };
 
+    const approveExtensionRequest = async (data) => {
+        setIsApprovingExtensionRequest(true);
+        try {
+            const res = await axios.post(`${API_URL}/api/machineries/approve-extension-request`, data);
+            return res.data;
+        } catch (error) {
+            throw error;
+        } finally {
+            setIsApprovingExtensionRequest(false);
+        }
+    };
+
+    const declineExtensionRequest = async (data) => {
+        setIsDecliningExtensionRequest(true);
+        try {
+            const res = await axios.post(`${API_URL}/api/machineries/decline-extension-request`, data);
+            return res.data;
+        } catch (error) {
+            throw error;
+        } finally {
+            setIsDecliningExtensionRequest(false);
+        }
+    };
+
     return {
         // query data
         machineryTypes,
@@ -413,6 +439,8 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         getMachineryUnitsForDropDownByType,
         updateWeeklySchedule, 
         setTicketToComplete,
+        approveExtensionRequest,
+        declineExtensionRequest,
 
         // loading states (queries)
         isLoadingMachineryTypes,
@@ -442,6 +470,8 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         isUpdatingWeeklySchedule,  
         isUndecliningTicketRequest, 
         isSettingTicketToComplete,
+        isApprovingExtensionRequest,
+        isDecliningExtensionRequest,
 
         // error states
         machineryTypesError,

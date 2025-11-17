@@ -28,7 +28,10 @@ import {
     setRequestTicketToComplete,
 
     getPendingExtensionRequestsCount,
-    approveExtensionRequest
+    approveExtensionRequest,
+    declineExtensionRequest,
+
+    deleteScheduleAndTickets
 } from '../controller/machineries/adminDashboard.controller.js';
 
 import { generateMachineryExcelReport } from '../controller/machineries/genReports.controller.js';
@@ -85,4 +88,7 @@ router.post('/submit-ticket-request', createTicketRequestForm); //working
 
 router.get('/pending-extension-count', getPendingExtensionRequestsCount);
 router.post('/approve-extension-request', approveExtensionRequest);
+router.post('/decline-extension-request', declineExtensionRequest);
+
+router.post('/delete-schedule-and-tickets/:scheduleId', deleteScheduleAndTickets);
 export default router;
