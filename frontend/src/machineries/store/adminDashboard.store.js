@@ -130,6 +130,16 @@ export const usePendingExtensionRequestsCountQuery = (role) =>
         enabled: role === 'MIM' || role === 'MIS',
 });
 
+export const useMachineUnitsQuery = (role) =>
+    useQuery({
+        queryKey: ['machineUnits'],
+        queryFn: async () => {
+            const response = await axios.get(`${API_URL}/api/machineries/get-machine-units`);
+            return response.data;
+        },
+        enabled: role === 'MIM' || role === 'MIS',
+});
+
 const useOccupiedDatesForSchedulingQuery = (role) =>
     useQuery({
         queryKey: ['occupiedDatesForScheduling'],

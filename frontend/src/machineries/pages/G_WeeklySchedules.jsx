@@ -20,7 +20,7 @@ const G_WeeklySchedules = () => {
   ];
   const [date, setDate] = useState(new Date());
   return (
-    <div style={{ height: "90vh", paddingTop: "20px" }}>
+    <div style={{ height: "90vh", padding: "20px" }}>
       <Calendar
         localizer={localizer}
         events={events}

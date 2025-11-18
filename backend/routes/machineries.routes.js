@@ -32,6 +32,7 @@ import {
     declineExtensionRequest,
     setExtenstionTicketToComplete,
     getOccupiedDatesForScheduling,
+    getMachineUnits,
     
     deleteScheduleAndTickets
 } from '../controller/machineries/adminDashboard.controller.js';
@@ -99,6 +100,7 @@ router.post('/extension-ticket-complete',
   setExtenstionTicketToComplete
 );
 router.post('/get-occupied-dates-for-scheduling', getOccupiedDatesForScheduling);
+router.get('/get-machine-units', getMachineUnits);
 
 router.post('/delete-schedule-and-tickets/:scheduleId', deleteScheduleAndTickets);
 export default router;

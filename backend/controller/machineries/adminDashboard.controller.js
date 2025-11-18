@@ -3158,4 +3158,73 @@ export const getOccupiedDatesForScheduling = async (req, res) => {
     }
 };
 
-    
+export const getMachineUnits = async (req, res) => {
+    const { searchQuery } = req.query;
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+
+        const machineUnitColl = global.machineriesModels.MachineriesUnit.collection.name;
+
+        const pipeline = [];
+
+        // Add search conditions if searchQuery exists
+        if (searchQuery && searchQuery.trim() !== '') {
+            const words = searchQuery.trim().split(/\s+/);
+            const searchConditions = words.map((word) => ({
+                $or: [
+                    { ownerName: { $regex: word, $options: 'i' } },
+                    { ownerType: { $regex: word, $options: 'i' } },
+                    { equipmentType: { $regex: word, $options: 'i' } },
+                    { ratedCapacity: { $regex: word, $options: 'i' } }
+                ]
+            }));
+            pipeline.push({ $match: { $and: searchConditions } });
+        }
+
+        // Lookup machine units
+        pipeline.push({
+            $lookup: {
+                from: machineUnitColl,
+                localField: '_id',
+                foreignField: 'machineryTypeId',
+                as: 'machineUnits'
+            }
+        });
+
+        // Add facet for pagination and total count
+        pipeline.push({
+            $facet: {
+                paginatedResults: [
+                    { $sort: { _id: -1 } },
+                    { $skip: skip },
+                    { $limit: limit }
+                ],
+                totalCount: [{ $count: 'count' }]
+            }
+        });
+
+        const result = await global.machineriesModels.MachineriesType.aggregate(pipeline);
+        const machineTypesWithUnits = result[0]?.paginatedResults || [];
+        const totalCount = result[0]?.totalCount?.[0]?.count || 0;
+
+        return res.status(200).json({
+            success: true,
+            message: "Machine types with units retrieved successfully.",
+            data: {
+                machineTypesWithUnits,
+                totalCount,
+                totalPages: Math.ceil(totalCount / limit),
+                currentPage: page
+            }
+        });
+    } catch (error) {
+        console.error("Error fetching machine types with units:", error);
+        return res.status(500).json({ 
+            success: false, 
+            message: "Error fetching machine types with units.", 
+            error: error.message 
+        });
+    }
+};
