@@ -42,6 +42,19 @@ import {
   SimpleGrid,
   Divider,
   useToast,
+  Tabs,
+  TabList,
+  TabPanels,
+  Tab,
+  TabPanel,
+  FormLabel,
+  NumberInput,
+  NumberInputField,
+  NumberInputStepper,
+  NumberIncrementStepper,
+  NumberDecrementStepper,
+  RadioGroup,
+  Radio,
 } from "@chakra-ui/react";
 import {
   FaTractor,
@@ -51,6 +64,7 @@ import {
   FaEye,
   FaSearch,
   FaInfo,
+  FaPlus
 } from "react-icons/fa";
 import { useAdminDashboard } from "../store/adminDashboard.store";
 import { useAuthStore } from "../../auth/store/authStore";
@@ -78,7 +92,10 @@ const B_MachineInventory = () => {
     isLoadingMachineTypes,
     machineTypesError,
 
-    
+    createMachineryType,
+    isCreatingMachineryType,
+    createMachineryUnit,
+    isCreatingMachineryUnit
   } = useAdminDashboard({ machineUnitsPage }, { searchQuery });
 
   const getOverviewStats = () => {
@@ -227,6 +244,61 @@ const B_MachineInventory = () => {
         isClosable: true,
       });
     }
+  };
+
+  const { isOpen: isOpenRegister, onOpen: onOpenRegister, onClose: onCloseRegister } = useDisclosure();
+  const [activeTab, setActiveTab] = useState(0);
+
+  // State for creating machine type
+  const [machineTypeData, setMachineTypeData] = useState({
+    equipmentType: '',
+    ownerName: '',
+    ownerType: '',
+    ratedCapacity: '',
+  });
+
+  // State for adding machine unit
+  const [machineUnitData, setMachineUnitData] = useState({
+    machineryTypeId: '',
+    unitNumber: '',
+    engineBrand: '',
+    engineHorsepower: '',
+    modeOfAcquisition: '',
+    costOfAcquisition: '',
+    yearAcquired: '',
+    location: '',
+  });
+
+  const resetMachineTypeForm = () => {
+    setMachineTypeData({
+      equipmentType: '',
+      ownerName: '',
+      ownerType: '',
+      ratedCapacity: '',
+    });
+  };
+
+  const resetMachineUnitForm = () => {
+    setMachineUnitData({
+      machineryTypeId: '',
+      unitNumber: '',
+      engineBrand: '',
+      engineHorsepower: '',
+      modeOfAcquisition: '',
+      costOfAcquisition: '',
+      yearAcquired: '',
+      location: '',
+    });
+  };
+
+  const handleCreateMachineType = () => {
+    // TODO: Implement API call
+    console.log('Creating machine type:', machineTypeData);
+  };
+
+  const handleAddMachineUnit = () => {
+    // TODO: Implement API call
+    console.log('Adding machine unit:', machineUnitData);
   };
 
   // Pagination data
@@ -1037,8 +1109,341 @@ const B_MachineInventory = () => {
       </ModalContent>
     </Modal>
 
-    <Modal>
-      
+    {/* Register Machine Modal */}
+    <Modal
+      isOpen={isOpenRegister}
+      onClose={() => {
+        resetMachineTypeForm();
+        resetMachineUnitForm();
+        setActiveTab(0);
+        onCloseRegister();
+      }}
+      size="3xl"
+      closeOnOverlayClick={false}
+      scrollBehavior="inside"
+      isCentered
+      motionPreset="none"
+      blockScrollOnMount={false}
+    >
+      <ModalOverlay />
+      <ModalContent borderRadius="lg" overflow="hidden">
+        <ModalHeader
+          bg="orange.50"
+          borderBottomWidth="1px"
+          borderColor="gray.200"
+          py={4}
+          display="flex"
+          alignItems="center"
+        >
+          <Icon as={FaPlus} mr={2} color="orange.500" />
+          Register Machine
+        </ModalHeader>
+        
+        <ModalBody py={6}>
+          <Tabs
+            index={activeTab}
+            onChange={(index) => setActiveTab(index)}
+            colorScheme="orange"
+            variant="enclosed"
+          >
+            <TabList>
+              <Tab>Create Machine Type</Tab>
+              <Tab>Add Machine Unit</Tab>
+            </TabList>
+
+            <TabPanels>
+              {/* Create Machine Type Tab */}
+              <TabPanel px={0} pt={6}>
+                <Stack spacing={4}>
+                  <Alert status="info" borderRadius="md">
+                    <AlertIcon />
+                    <Box>
+                      <AlertTitle fontSize="sm">Create Machine Type First</AlertTitle>
+                      <AlertDescription fontSize="xs">
+                        Before adding machine units, you need to create a machine type (e.g., Tractor, Harvester).
+                      </AlertDescription>
+                    </Box>
+                  </Alert>
+
+                  {/* Equipment Type */}
+                  <FormControl isRequired>
+                    <FormLabel fontSize="sm" fontWeight="medium">
+                      Equipment Type
+                    </FormLabel>
+                    <Input
+                      placeholder="e.g., Tractor, Harvester, Cultivator"
+                      value={machineTypeData.equipmentType}
+                      onChange={(e) => setMachineTypeData({ ...machineTypeData, equipmentType: e.target.value })}
+                      bg="white"
+                    />
+                  </FormControl>
+
+                  {/* Owner Name */}
+                  <FormControl isRequired>
+                    <FormLabel fontSize="sm" fontWeight="medium">
+                      Owner Name
+                    </FormLabel>
+                    <Input
+                      placeholder="e.g., DAR, Municipality, Private Owner"
+                      value={machineTypeData.ownerName}
+                      onChange={(e) => setMachineTypeData({ ...machineTypeData, ownerName: e.target.value })}
+                      bg="white"
+                    />
+                  </FormControl>
+
+                  {/* Owner Type */}
+                  <FormControl isRequired>
+                    <FormLabel fontSize="sm" fontWeight="medium">
+                      Owner Type
+                    </FormLabel>
+                    <RadioGroup
+                      value={machineTypeData.ownerType}
+                      onChange={(value) => setMachineTypeData({ ...machineTypeData, ownerType: value })}
+                    >
+                      <Stack direction="row" spacing={4}>
+                        <Radio value="Government">Government</Radio>
+                        <Radio value="LGU">LGU</Radio>
+                        <Radio value="Private">Private</Radio>
+                      </Stack>
+                    </RadioGroup>
+                  </FormControl>
+
+                  {/* Rated Capacity */}
+                  <FormControl isRequired>
+                    <FormLabel fontSize="sm" fontWeight="medium">
+                      Rated Capacity
+                    </FormLabel>
+                    <Input
+                      placeholder="e.g., 50 HP, 100 HP"
+                      value={machineTypeData.ratedCapacity}
+                      onChange={(e) => setMachineTypeData({ ...machineTypeData, ratedCapacity: e.target.value })}
+                      bg="white"
+                    />
+                    <Text fontSize="xs" color="gray.500" mt={1}>
+                      Enter the capacity or power rating of the equipment
+                    </Text>
+                  </FormControl>
+                </Stack>
+              </TabPanel>
+
+              {/* Add Machine Unit Tab */}
+              <TabPanel px={0} pt={6}>
+                <Stack spacing={4}>
+                  <Alert status="info" borderRadius="md">
+                    <AlertIcon />
+                    <Box>
+                      <AlertTitle fontSize="sm">Add Machine Unit</AlertTitle>
+                      <AlertDescription fontSize="xs">
+                        Add individual machine units to an existing machine type.
+                      </AlertDescription>
+                    </Box>
+                  </Alert>
+
+                  {/* Machine Type Selection */}
+                  <FormControl isRequired>
+                    <FormLabel fontSize="sm" fontWeight="medium">
+                      Machine Type
+                    </FormLabel>
+                    <Select
+                      placeholder="Select machine type"
+                      value={machineUnitData.machineryTypeId}
+                      onChange={(e) => setMachineUnitData({ ...machineUnitData, machineryTypeId: e.target.value })}
+                      bg="white"
+                    >
+                      {isLoadingMachineTypes ? (
+                        <option disabled>Loading...</option>
+                      ) : machineTypes?.data?.map((type) => (
+                        <option key={type._id} value={type._id}>
+                          {type.equipmentType} - {type.ownerName}
+                        </option>
+                      ))}
+                    </Select>
+                  </FormControl>
+
+                  <Divider />
+
+                  <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+                    {/* Unit Number */}
+                    <FormControl isRequired>
+                      <FormLabel fontSize="sm" fontWeight="medium">
+                        Unit Number
+                      </FormLabel>
+                      <Input
+                        placeholder="e.g., TR-001"
+                        value={machineUnitData.unitNumber}
+                        onChange={(e) => setMachineUnitData({ ...machineUnitData, unitNumber: e.target.value })}
+                        bg="white"
+                      />
+                    </FormControl>
+
+                    {/* Engine Brand */}
+                    <FormControl>
+                      <FormLabel fontSize="sm" fontWeight="medium">
+                        Engine Brand
+                      </FormLabel>
+                      <Input
+                        placeholder="e.g., Kubota, Yanmar"
+                        value={machineUnitData.engineBrand}
+                        onChange={(e) => setMachineUnitData({ ...machineUnitData, engineBrand: e.target.value })}
+                        bg="white"
+                      />
+                    </FormControl>
+
+                    {/* Engine Horsepower */}
+                    <FormControl>
+                      <FormLabel fontSize="sm" fontWeight="medium">
+                        Engine Horsepower
+                      </FormLabel>
+                      <NumberInput
+                        value={machineUnitData.engineHorsepower}
+                        onChange={(value) => setMachineUnitData({ ...machineUnitData, engineHorsepower: value })}
+                        min={0}
+                        bg="white"
+                      >
+                        <NumberInputField placeholder="e.g., 50" />
+                        <NumberInputStepper>
+                          <NumberIncrementStepper />
+                          <NumberDecrementStepper />
+                        </NumberInputStepper>
+                      </NumberInput>
+                    </FormControl>
+
+                    {/* Year Acquired */}
+                    <FormControl>
+                      <FormLabel fontSize="sm" fontWeight="medium">
+                        Year Acquired
+                      </FormLabel>
+                      <NumberInput
+                        value={machineUnitData.yearAcquired}
+                        onChange={(value) => setMachineUnitData({ ...machineUnitData, yearAcquired: value })}
+                        min={1900}
+                        max={new Date().getFullYear()}
+                        bg="white"
+                      >
+                        <NumberInputField placeholder="e.g., 2023" />
+                        <NumberInputStepper>
+                          <NumberIncrementStepper />
+                          <NumberDecrementStepper />
+                        </NumberInputStepper>
+                      </NumberInput>
+                    </FormControl>
+                  </SimpleGrid>
+
+                  <Divider />
+
+                  <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+                    {/* Mode of Acquisition */}
+                    <FormControl>
+                      <FormLabel fontSize="sm" fontWeight="medium">
+                        Mode of Acquisition
+                      </FormLabel>
+                      <Select
+                        placeholder="Select mode"
+                        value={machineUnitData.modeOfAcquisition}
+                        onChange={(e) => setMachineUnitData({ ...machineUnitData, modeOfAcquisition: e.target.value })}
+                        bg="white"
+                      >
+                        <option value="Purchase">Purchase</option>
+                        <option value="Donation">Donation</option>
+                        <option value="Loan">Loan</option>
+                        <option value="Lease">Lease</option>
+                      </Select>
+                    </FormControl>
+
+                    {/* Cost of Acquisition */}
+                    <FormControl>
+                      <FormLabel fontSize="sm" fontWeight="medium">
+                        Cost of Acquisition
+                      </FormLabel>
+                      <NumberInput
+                        value={machineUnitData.costOfAcquisition}
+                        onChange={(value) => setMachineUnitData({ ...machineUnitData, costOfAcquisition: value })}
+                        min={0}
+                        bg="white"
+                      >
+                        <NumberInputField placeholder="e.g., 500000" />
+                        <NumberInputStepper>
+                          <NumberIncrementStepper />
+                          <NumberDecrementStepper />
+                        </NumberInputStepper>
+                      </NumberInput>
+                    </FormControl>
+                  </SimpleGrid>
+
+                  {/* Location */}
+                  <FormControl>
+                    <FormLabel fontSize="sm" fontWeight="medium">
+                      Location
+                    </FormLabel>
+                    <Input
+                      placeholder="e.g., Warehouse A, Field Station B"
+                      value={machineUnitData.location}
+                      onChange={(e) => setMachineUnitData({ ...machineUnitData, location: e.target.value })}
+                      bg="white"
+                    />
+                  </FormControl>
+                </Stack>
+              </TabPanel>
+            </TabPanels>
+          </Tabs>
+        </ModalBody>
+        
+        <ModalFooter
+          bg="gray.50"
+          borderTopWidth="1px"
+          borderColor="gray.200"
+          py={4}
+          gap={2}
+        >
+          <Button
+            variant="outline"
+            onClick={() => {
+              resetMachineTypeForm();
+              resetMachineUnitForm();
+              setActiveTab(0);
+              onCloseRegister();
+            }}
+            size="md"
+            _hover={{ bg: "gray.100" }}
+          >
+            Cancel
+          </Button>
+          
+          {activeTab === 0 ? (
+            <Button
+              colorScheme="orange"
+              onClick={handleCreateMachineType}
+              size="md"
+              isLoading={isCreatingMachineryType}
+              isDisabled={
+                !machineTypeData.equipmentType ||
+                !machineTypeData.ownerName ||
+                !machineTypeData.ownerType ||
+                !machineTypeData.ratedCapacity ||
+                isCreatingMachineryType
+              }
+              leftIcon={<FaPlus />}
+            >
+              Create Machine Type
+            </Button>
+          ) : (
+            <Button
+              colorScheme="orange"
+              onClick={handleAddMachineUnit}
+              size="md"
+              isLoading={isCreatingMachineryUnit}
+              isDisabled={
+                !machineUnitData.machineryTypeId ||
+                !machineUnitData.unitNumber ||
+                isCreatingMachineryUnit
+              }
+              leftIcon={<FaPlus />}
+            >
+              Add Machine Unit
+            </Button>
+          )}
+        </ModalFooter>
+      </ModalContent>
     </Modal>
     </>
   );
