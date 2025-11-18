@@ -264,9 +264,9 @@ const B_MachineInventory = () => {
     engineBrand: '',
     engineHorsepower: '',
     modeOfAcquisition: '',
+    otherModeOfAcquisition: '', 
     costOfAcquisition: '',
     yearAcquired: '',
-    location: '',
   });
 
   const resetMachineTypeForm = () => {
@@ -285,20 +285,73 @@ const B_MachineInventory = () => {
       engineBrand: '',
       engineHorsepower: '',
       modeOfAcquisition: '',
+      otherModeOfAcquisition: '', 
       costOfAcquisition: '',
       yearAcquired: '',
-      location: '',
     });
   };
 
-  const handleCreateMachineType = () => {
-    // TODO: Implement API call
-    console.log('Creating machine type:', machineTypeData);
+  const handleCreateMachineType = async () => {
+    try {
+      const result = await createMachineryType(machineTypeData);
+      
+      toast({
+        title: "Success",
+        description: result.message || "Machine type created successfully",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+
+      // Invalidate and refetch queries
+      await queryClient.invalidateQueries({ queryKey: ['machineTypes'] });
+      
+      // Reset form and close modal
+      resetMachineTypeForm();
+      onCloseRegister();
+      
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error?.response?.data?.message || error?.message || "Failed to create machine type",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    }
   };
 
-  const handleAddMachineUnit = () => {
-    // TODO: Implement API call
-    console.log('Adding machine unit:', machineUnitData);
+  const handleAddMachineUnit = async () => {
+    try {
+      const result = await createMachineryUnit(machineUnitData);
+      
+      toast({
+        title: "Success",
+        description: result.message || "Machine unit added successfully",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+
+      // Invalidate and refetch queries
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['machineUnits'] }),
+        queryClient.invalidateQueries({ queryKey: ['machineOverview'] }),
+      ]);
+      
+      // Reset form and close modal
+      resetMachineUnitForm();
+      onCloseRegister();
+      
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error?.response?.data?.message || error?.message || "Failed to add machine unit",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    }
   };
 
   // Pagination data
@@ -551,10 +604,8 @@ const B_MachineInventory = () => {
             height="40px"
             width={{ base: "100%", lg: "auto" }}
             flexShrink={0}
-            onClick={() => {
-              // TODO: Implement register machine flow
-              console.log("Register Machine clicked");
-            }}
+            onClick={onOpenRegister}
+            leftIcon={<FaPlus />}
           >
             Register Machine
           </Button>
@@ -670,6 +721,7 @@ const B_MachineInventory = () => {
                                   equipmentType: type.equipmentType,
                                   ownerName: type.ownerName,
                                   ratedCapacity: type.ratedCapacity,
+                                  ownerType: type.ownerType,
                                 });
                                 onOpen();
                               }}
@@ -751,8 +803,12 @@ const B_MachineInventory = () => {
                     <Text fontWeight="semibold" fontSize="md">{selectedUnit.equipmentType || "N/A"}</Text>
                   </Box>
                   <Box>
-                    <Text fontSize="xs" color="gray.500" fontWeight="medium">Owner</Text>
+                    <Text fontSize="xs" color="gray.500" fontWeight="medium">Owner Name</Text>
                     <Text fontWeight="semibold" fontSize="md">{selectedUnit.ownerName || "N/A"}</Text>
+                  </Box>
+                  <Box>
+                    <Text fontSize="xs" color="gray.500" fontWeight="medium">Owner Type</Text>
+                    <Text fontWeight="semibold" fontSize="md">{selectedUnit.ownerType || "N/A"}</Text>
                   </Box>
                   <Box>
                     <Text fontSize="xs" color="gray.500" fontWeight="medium">Engine Brand</Text>
@@ -1155,12 +1211,22 @@ const B_MachineInventory = () => {
               {/* Create Machine Type Tab */}
               <TabPanel px={0} pt={6}>
                 <Stack spacing={4}>
-                  <Alert status="info" borderRadius="md">
+                  <Alert status="info" borderRadius="md" variant="left-accent">
                     <AlertIcon />
                     <Box>
                       <AlertTitle fontSize="sm">Create Machine Type First</AlertTitle>
                       <AlertDescription fontSize="xs">
                         Before adding machine units, you need to create a machine type (e.g., Tractor, Harvester).
+                      </AlertDescription>
+                    </Box>
+                  </Alert>
+
+                  <Alert status="warning" borderRadius="md" variant="left-accent">
+                    <AlertIcon />
+                    <Box>
+                      <AlertTitle fontSize="sm">Fields Won't Be Editable After</AlertTitle>
+                      <AlertDescription fontSize="xs">
+                        After finishing, fields cannot be changed later. It would require administrative intervention to modify. Please double-check your entries.
                       </AlertDescription>
                     </Box>
                   </Alert>
@@ -1184,7 +1250,7 @@ const B_MachineInventory = () => {
                       Owner Name
                     </FormLabel>
                     <Input
-                      placeholder="e.g., DAR, Municipality, Private Owner"
+                      placeholder="e.g., DAR, Municipality, Office Name"
                       value={machineTypeData.ownerName}
                       onChange={(e) => setMachineTypeData({ ...machineTypeData, ownerName: e.target.value })}
                       bg="white"
@@ -1202,8 +1268,6 @@ const B_MachineInventory = () => {
                     >
                       <Stack direction="row" spacing={4}>
                         <Radio value="Government">Government</Radio>
-                        <Radio value="LGU">LGU</Radio>
-                        <Radio value="Private">Private</Radio>
                       </Stack>
                     </RadioGroup>
                   </FormControl>
@@ -1229,12 +1293,22 @@ const B_MachineInventory = () => {
               {/* Add Machine Unit Tab */}
               <TabPanel px={0} pt={6}>
                 <Stack spacing={4}>
-                  <Alert status="info" borderRadius="md">
+                  <Alert status="info" borderRadius="md" variant="left-accent">
                     <AlertIcon />
                     <Box>
                       <AlertTitle fontSize="sm">Add Machine Unit</AlertTitle>
                       <AlertDescription fontSize="xs">
                         Add individual machine units to an existing machine type.
+                      </AlertDescription>
+                    </Box>
+                  </Alert>
+
+                  <Alert status="warning" borderRadius="md" variant="left-accent">
+                    <AlertIcon />
+                    <Box>
+                      <AlertTitle fontSize="sm">Fields Won't Be Editable After</AlertTitle>
+                      <AlertDescription fontSize="xs">
+                        After finishing, fields cannot be changed later. It would require administrative intervention to modify. Please double-check your entries.
                       </AlertDescription>
                     </Box>
                   </Alert>
@@ -1269,7 +1343,7 @@ const B_MachineInventory = () => {
                         Unit Number
                       </FormLabel>
                       <Input
-                        placeholder="e.g., TR-001"
+                        placeholder="e.g., 1"
                         value={machineUnitData.unitNumber}
                         onChange={(e) => setMachineUnitData({ ...machineUnitData, unitNumber: e.target.value })}
                         bg="white"
@@ -1294,18 +1368,13 @@ const B_MachineInventory = () => {
                       <FormLabel fontSize="sm" fontWeight="medium">
                         Engine Horsepower
                       </FormLabel>
-                      <NumberInput
+                      <Input
+                        placeholder="e.g., 50hp"
                         value={machineUnitData.engineHorsepower}
-                        onChange={(value) => setMachineUnitData({ ...machineUnitData, engineHorsepower: value })}
+                        onChange={(e) => setMachineUnitData({ ...machineUnitData, engineHorsepower: e.target.value })}
                         min={0}
                         bg="white"
-                      >
-                        <NumberInputField placeholder="e.g., 50" />
-                        <NumberInputStepper>
-                          <NumberIncrementStepper />
-                          <NumberDecrementStepper />
-                        </NumberInputStepper>
-                      </NumberInput>
+                      />
                     </FormControl>
 
                     {/* Year Acquired */}
@@ -1313,19 +1382,24 @@ const B_MachineInventory = () => {
                       <FormLabel fontSize="sm" fontWeight="medium">
                         Year Acquired
                       </FormLabel>
-                      <NumberInput
+                      <Input
+                        type="number"
+                        placeholder="e.g., 2023"
                         value={machineUnitData.yearAcquired}
-                        onChange={(value) => setMachineUnitData({ ...machineUnitData, yearAcquired: value })}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          // Only allow up to 4 digits
+                          if (value.length <= 4) {
+                            setMachineUnitData({ ...machineUnitData, yearAcquired: value });
+                          }
+                        }}
+                        onWheel={(e) => e.target.blur()}
                         min={1900}
                         max={new Date().getFullYear()}
+                        maxLength={4}
                         bg="white"
-                      >
-                        <NumberInputField placeholder="e.g., 2023" />
-                        <NumberInputStepper>
-                          <NumberIncrementStepper />
-                          <NumberDecrementStepper />
-                        </NumberInputStepper>
-                      </NumberInput>
+                       
+                      />
                     </FormControl>
                   </SimpleGrid>
 
@@ -1343,45 +1417,44 @@ const B_MachineInventory = () => {
                         onChange={(e) => setMachineUnitData({ ...machineUnitData, modeOfAcquisition: e.target.value })}
                         bg="white"
                       >
-                        <option value="Purchase">Purchase</option>
-                        <option value="Donation">Donation</option>
+                        <option value="Grant">Grant</option>
                         <option value="Loan">Loan</option>
-                        <option value="Lease">Lease</option>
+                        <option value="Cash">Cash</option>
+                        <option value="Counterpart">Counterpart</option>
+                        <option value="Others">Others</option>
                       </Select>
                     </FormControl>
+
+                    {/* Specify Other Mode - Fixed */}
+                    {machineUnitData.modeOfAcquisition === 'Others' && (
+                      <FormControl isRequired>
+                        <FormLabel fontSize="sm" fontWeight="medium">
+                          Specify Other Mode
+                        </FormLabel>
+                        <Input
+                          placeholder="Specify other mode"
+                          value={machineUnitData.otherModeOfAcquisition}
+                          onChange={(e) => setMachineUnitData({ ...machineUnitData, otherModeOfAcquisition: e.target.value })}
+                          bg="white"
+                        />
+                      </FormControl>
+                    )}
 
                     {/* Cost of Acquisition */}
                     <FormControl>
                       <FormLabel fontSize="sm" fontWeight="medium">
                         Cost of Acquisition
                       </FormLabel>
-                      <NumberInput
+                      <Input
+                        type="number"
+                        placeholder="e.g., 500000"
                         value={machineUnitData.costOfAcquisition}
-                        onChange={(value) => setMachineUnitData({ ...machineUnitData, costOfAcquisition: value })}
+                        onChange={(e) => setMachineUnitData({ ...machineUnitData, costOfAcquisition: e.target.value })}
                         min={0}
                         bg="white"
-                      >
-                        <NumberInputField placeholder="e.g., 500000" />
-                        <NumberInputStepper>
-                          <NumberIncrementStepper />
-                          <NumberDecrementStepper />
-                        </NumberInputStepper>
-                      </NumberInput>
+                      />
                     </FormControl>
                   </SimpleGrid>
-
-                  {/* Location */}
-                  <FormControl>
-                    <FormLabel fontSize="sm" fontWeight="medium">
-                      Location
-                    </FormLabel>
-                    <Input
-                      placeholder="e.g., Warehouse A, Field Station B"
-                      value={machineUnitData.location}
-                      onChange={(e) => setMachineUnitData({ ...machineUnitData, location: e.target.value })}
-                      bg="white"
-                    />
-                  </FormControl>
                 </Stack>
               </TabPanel>
             </TabPanels>

@@ -287,25 +287,27 @@ export const updateMachineryType = async (req, res) => {
     }
 };
 
-export const addMachineryUnit = async (req, res) => { //ADD MACHINERY UNIT
+export const addMachineryUnit = async (req, res) => {
     const { 
         machineryTypeId, 
-        plateNumber, 
+        unitNumber,  // Changed from plateNumber
         engineBrand, 
         engineHorsepower, 
         modeOfAcquisition, 
-        costOfAcquisition, 
+        costOfAcquisition,
+        otherModeOfAcquisition,
         yearAcquired, 
         condition, 
-        location, 
         remarks, 
         status 
     } = req.body;
 
-    if (!machineryTypeId || !plateNumber || !engineHorsepower || 
-        !modeOfAcquisition || !yearAcquired || !condition || 
-        !location || !status) {
-        return res.status(400).json({ success: false, message: "Please provide all required fields." });
+    // Updated validation - unitNumber instead of plateNumber
+    if (!machineryTypeId || !unitNumber) {
+        return res.status(400).json({ 
+            success: false, 
+            message: "Please provide machinery type ID and unit number." 
+        });
     }
 
     try {
@@ -314,23 +316,27 @@ export const addMachineryUnit = async (req, res) => { //ADD MACHINERY UNIT
             return res.status(404).json({ success: false, message: "Machinery type not found." });
         }
 
-        const existingUnit = await global.machineriesModels.MachineriesUnit.findOne({ plateNumber });
-        if (existingUnit) {
-            return res.status(400).json({ success: false, message: "A machinery unit with this plate number already exists." });
-        }
+        // // Check for duplicate unit number
+        // const existingUnit = await global.machineriesModels.MachineriesUnit.findOne({ unitNumber });
+        // if (existingUnit) {
+        //     return res.status(400).json({ 
+        //         success: false, 
+        //         message: "A machinery unit with this unit number already exists." 
+        //     });
+        // }
 
         const newMachineryUnit = await global.machineriesModels.MachineriesUnit.create({
             machineryTypeId,
-            plateNumber,
-            engineBrand,
-            engineHorsepower,
-            modeOfAcquisition,
-            costOfAcquisition,
-            yearAcquired,
-            condition,
-            location,
-            remarks,
-            status
+            unitNumber,  // Changed from plateNumber
+            engineBrand: engineBrand || '',
+            engineHorsepower: engineHorsepower || '',
+            modeOfAcquisition: modeOfAcquisition || '',
+            otherModeOfAcquisition: otherModeOfAcquisition || '',
+            costOfAcquisition: costOfAcquisition || '',
+            yearAcquired: yearAcquired || '',
+            condition: condition || 'Functional',  // Default value
+            remarks: remarks || '',
+            status: status || 'Available'  // Default value
         });
 
         return res.status(201).json({
@@ -340,7 +346,11 @@ export const addMachineryUnit = async (req, res) => { //ADD MACHINERY UNIT
         });
     } catch (error) {
         console.error("Error creating machinery unit:", error);
-        return res.status(500).json({ success: false, message: "Error creating machinery unit.", error: error.message });
+        return res.status(500).json({ 
+            success: false, 
+            message: "Error creating machinery unit.", 
+            error: error.message 
+        });
     }
 };
 

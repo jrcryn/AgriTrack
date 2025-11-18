@@ -38,6 +38,7 @@ export const MachineriesUnitSchema = new mongoose.Schema({
     engineBrand: {type: String},
     engineHorsepower: {type: String, required: true},
     modeOfAcquisition: {type: String, required: true},
+    otherModeOfAcquisition: {type: String},
     costOfAcquisition: {type: String},
     yearAcquired: { type: String, required: true},
     
