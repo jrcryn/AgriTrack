@@ -3686,7 +3686,6 @@ export const getMachineTypes = async (req, res) => {
     }
 };
 
-
 export const getTicketStatusCounts = async (req, res) => {
     try {
         // Count ticket requests
