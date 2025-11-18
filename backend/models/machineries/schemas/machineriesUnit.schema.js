@@ -48,11 +48,6 @@ export const MachineriesUnitSchema = new mongoose.Schema({
         enum: ['Functional', 'Non-Functional'], 
         default: 'Functional' 
     },
-    location: { 
-        type: String, 
-        required: true, 
-        default: 'Office/The Plaza'
-    },
     remarks: { type: String },
     status: { 
         type: String, 

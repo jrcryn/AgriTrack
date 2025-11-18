@@ -90,77 +90,6 @@ export const createTicketRequestForm = async (req, res) => {
     }
 };
 
-// export const declineTicketRequest = async (req, res) => {
-//     const { employeeId, tickets, reason } = req.body;
-
-//     if (!employeeId || !Array.isArray(tickets) || tickets.length === 0) {
-//         return res.status(400).json({
-//             success: false,
-//             message: "Please provide all of the required fields."
-//         });
-//     }
-
-//     try {
-//         const employee = await global.globalModels.EmployeeAccount.findById(employeeId).lean();
-//         if (!employee) {
-//             return res.status(404).json({ success: false, message: "We cannot find your account. If this error persists please contact IT." });
-//         }
-
-//         const ticketIds = tickets.map(t => t._id);
-
-//         const foundTickets = await global.machineriesModels.TicketRequest.find(
-//             { _id: { $in: ticketIds } },
-//             { _id: 1 }
-//         );
-
-//         if (foundTickets.length !== ticketIds.length) {
-//             return res.status(404).json({ success: false, message: "One or more tickets not found. All operations aborted." });
-//         }
-
-//         // First check if ANY ticket is referenced in a schedule (do this outside the loop)
-//         const scheduleRef = await global.machineriesModels.WeeklySchedule.findOne({
-//             'ticketRequests.ticketRequestId': { $in: ticketIds }
-//         });
-
-//         if (scheduleRef) {
-//             return res.status(400).json({
-//                 success: false,
-//                 message: "Cannot decline a ticket that is still referenced in a weekly schedule."
-//             });
-//         }
-
-//         const updateOperations = [];
-
-//         for (const ticket of tickets) {
-//             updateOperations.push(
-//                 global.machineriesModels.TicketRequest.findOneAndUpdate(
-//                 {_id: ticket._id },
-//                 {
-//                     status: 'Declined',
-//                     declinedBy: {
-//                         employeeId: employee._id,
-//                         first_name: employee.first_name,
-//                         last_name: employee.last_name,
-//                         middle_name: employee.middle_name,
-//                         suffix: employee.suffix,
-//                         email: employee.email,
-//                         phone: employee.phone
-//                     },
-//                     declineReason: reason
-//                 }
-//             ));
-//         }
-
-//         await Promise.all(updateOperations);
-
-//         return res.status(200).json({ success: true, message: "Selected tickets has been declined successfully." });
-
-//     } catch (error) {
-//         console.error("Error declining ticket requests:", error);
-//         return res.status(500).json({ success: false, message: "Error declining ticket requests.", error: error.message });
-//     }
-// };
-
 export const archiveTicketRequest = async (req, res) => {
     const { ticketRequestId, employeeId } = req.body;
 
@@ -257,7 +186,7 @@ export const archiveTicketRequest = async (req, res) => {
     }
 };  
 
-export const createMachineriesType = async (req, res) => {
+export const createMachineriesType = async (req, res) => { //CREATE MACHINERIES TYPE
     const { ownerName, ownerType, equipmentType, ratedCapacity } = req.body;
 
     // Validate required fields
@@ -358,7 +287,7 @@ export const updateMachineryType = async (req, res) => {
     }
 };
 
-export const addMachineryUnit = async (req, res) => {
+export const addMachineryUnit = async (req, res) => { //ADD MACHINERY UNIT
     const { 
         machineryTypeId, 
         plateNumber, 
@@ -415,85 +344,85 @@ export const addMachineryUnit = async (req, res) => {
     }
 };
 
-export const updateMachineryUnit = async (req, res) => {
-    const { 
-        machineryUnitId,
-        machineryTypeId,
-        plateNumber, 
-        engineBrand, 
-        engineHorsepower, 
-        modeOfAcquisition, 
-        costOfAcquisition, 
-        yearAcquired, 
-        condition, 
-        location, 
-        remarks, 
-        status 
-    } = req.body;
+// export const updateMachineryUnit = async (req, res) => {
+//     const { 
+//         machineryUnitId,
+//         machineryTypeId,
+//         plateNumber, 
+//         engineBrand, 
+//         engineHorsepower, 
+//         modeOfAcquisition, 
+//         costOfAcquisition, 
+//         yearAcquired, 
+//         condition, 
+//         location, 
+//         remarks, 
+//         status 
+//     } = req.body;
  
-    if (!machineryUnitId) {
-        return res.status(400).json({ success: false, message: "Please provide the machinery unit ID." });
-    }
+//     if (!machineryUnitId) {
+//         return res.status(400).json({ success: false, message: "Please provide the machinery unit ID." });
+//     }
 
-    try {
-        // Check if the machinery unit exists
-        const existingUnit = await global.machineriesModels.MachineriesUnit.findById(machineryUnitId);
+//     try {
+//         // Check if the machinery unit exists
+//         const existingUnit = await global.machineriesModels.MachineriesUnit.findById(machineryUnitId);
         
-        if (!existingUnit) {
-            return res.status(404).json({ 
-                success: false, 
-                message: "Machinery unit not found." 
-            });
-        }
+//         if (!existingUnit) {
+//             return res.status(404).json({ 
+//                 success: false, 
+//                 message: "Machinery unit not found." 
+//             });
+//         }
 
-        const updateData = {};
+//         const updateData = {};
         
-        if (machineryTypeId !== undefined) {
-           const machineTypeExists = await global.machineriesModels.MachineriesType.findById(machineryTypeId);
-            if (!machineTypeExists) {
-                return res.status(404).json({ success: false, message: "Machinery type not found." });
-            }
-            updateData.machineryTypeId = machineryTypeId;
-        }
+//         if (machineryTypeId !== undefined) {
+//            const machineTypeExists = await global.machineriesModels.MachineriesType.findById(machineryTypeId);
+//             if (!machineTypeExists) {
+//                 return res.status(404).json({ success: false, message: "Machinery type not found." });
+//             }
+//             updateData.machineryTypeId = machineryTypeId;
+//         }
 
-        // Check for duplicate plate number if it's being updated
-        if (plateNumber !== undefined && plateNumber !== existingUnit.plateNumber) {
-            const duplicateCheck = await global.machineriesModels.MachineriesUnit.findOne({
-                _id: { $ne: machineryUnitId }, // exclude the current item
-                plateNumber
-            });
+//         // Check for duplicate plate number if it's being updated
+//         if (plateNumber !== undefined && plateNumber !== existingUnit.plateNumber) {
+//             const duplicateCheck = await global.machineriesModels.MachineriesUnit.findOne({
+//                 _id: { $ne: machineryUnitId }, // exclude the current item
+//                 plateNumber
+//             });
 
-            if (duplicateCheck) {
-                return res.status(400).json({ success: false, message: "A machinery unit with this plate number already exists." });
-            }
-            updateData.plateNumber = plateNumber;
-        }
+//             if (duplicateCheck) {
+//                 return res.status(400).json({ success: false, message: "A machinery unit with this plate number already exists." });
+//             }
+//             updateData.plateNumber = plateNumber;
+//         }
 
-        // Add other fields to updateData if they are provided
-        if (engineBrand !== undefined) updateData.engineBrand = engineBrand;
-        if (engineHorsepower !== undefined) updateData.engineHorsepower = engineHorsepower;
-        if (modeOfAcquisition !== undefined) updateData.modeOfAcquisition = modeOfAcquisition;
-        if (costOfAcquisition !== undefined) updateData.costOfAcquisition = costOfAcquisition;
-        if (yearAcquired !== undefined) updateData.yearAcquired = new Date(yearAcquired);
-        if (condition !== undefined) updateData.condition = condition;
-        if (location !== undefined) updateData.location = location;
-        if (remarks !== undefined) updateData.remarks = remarks;
-        if (status !== undefined) updateData.status = status;
+//         // Add other fields to updateData if they are provided
+//         if (engineBrand !== undefined) updateData.engineBrand = engineBrand;
+//         if (engineHorsepower !== undefined) updateData.engineHorsepower = engineHorsepower;
+//         if (modeOfAcquisition !== undefined) updateData.modeOfAcquisition = modeOfAcquisition;
+//         if (costOfAcquisition !== undefined) updateData.costOfAcquisition = costOfAcquisition;
+//         if (yearAcquired !== undefined) updateData.yearAcquired = new Date(yearAcquired);
+//         if (condition !== undefined) updateData.condition = condition;
+//         if (location !== undefined) updateData.location = location;
+//         if (remarks !== undefined) updateData.remarks = remarks;
+//         if (status !== undefined) updateData.status = status;
 
-        // Update the machinery unit
-        const updatedMachineryUnit = await global.machineriesModels.MachineriesUnit.findByIdAndUpdate(
-            machineryUnitId,
-            updateData,
-            { new: true } 
-        );
+//         // Update the machinery unit
+//         const updatedMachineryUnit = await global.machineriesModels.MachineriesUnit.findByIdAndUpdate(
+//             machineryUnitId,
+//             updateData,
+//             { new: true } 
+//         );
 
-        return res.status(200).json({ success: true, message: "Machinery unit updated successfully.", data: updatedMachineryUnit});
+//         return res.status(200).json({ success: true, message: "Machinery unit updated successfully.", data: updatedMachineryUnit});
 
-    } catch (error) {
-        console.error("Error updating machinery unit:", error);
-        return res.status(500).json({ success: false, message: "Error updating machinery unit.", error: error.message });
-    }
-}; 
+//     } catch (error) {
+//         console.error("Error updating machinery unit:", error);
+//         return res.status(500).json({ success: false, message: "Error updating machinery unit.", error: error.message });
+//     }
+// }; 
 
 
 
@@ -504,6 +433,8 @@ export const updateMachineryUnit = async (req, res) => {
 // 3) Check machine availability
 // 4.) Check operator availability
 // 5.) Check per-day schedule capacity
+
+
 export const createWeeklySchedule = async (req, res) => {
     const { weekStart, weekEnd, tickets } = req.body;
 
@@ -1285,60 +1216,6 @@ export const moveTicketRequestToASchedule = async (req, res) => { //pang move ng
         });
     }
 };
-
-// export const undeclineTicketRequest = async (req, res) => {
-//     try {
-//         const { ticketRequestId } = req.body;
-
-//         if (!ticketRequestId) {
-//             return res.status(400).json({
-//                 success: false,
-//                 message: "Please provide the request ticket."
-//             });
-//         }
-
-//         const ticket = await global.machineriesModels.TicketRequest.findById(ticketRequestId);
-//         if (!ticket) {
-//             return res.status(404).json({
-//                 success: false,
-//                 message: "Ticket request not found."
-//             });
-//         }
-
-//         if (ticket.status !== 'Declined') {
-//             return res.status(400).json({
-//                 success: false,
-//                 message: "The ticket request is already not declined."
-//             });
-//         }
-
-//         // Revert to pending and clear decline metadata
-//         const updated = await global.machineriesModels.TicketRequest.findByIdAndUpdate(
-//             ticketRequestId,
-//             {
-//                 status: 'Pending',
-//                 $unset: {
-//                     declinedBy: "",
-//                     declineReason: ""
-//                 }
-//             },
-//             { new: true }
-//         );
-
-//         return res.status(200).json({
-//             success: true,
-//             message: "Ticket request has been reverted to Pending.",
-//             data: updated
-//         });
-//     } catch (error) {
-//         console.error("Error undeclining ticket request:", error);
-//         return res.status(500).json({
-//             success: false,
-//             message: "Error undeclining ticket request.",
-//             error: error.message
-//         });
-//     }
-// };
 
 
 import { uploadFileToDrive } from '../googleDrive.controller.js';
@@ -2148,16 +2025,22 @@ export const updateMachineryUnitStatus = async (req, res) => {
         employeeId, 
         newStatus, 
         newCondition, 
-        reason, 
-        repairCost, 
-        retirementReason,
-        location
+        reason
     } = req.body;
 
-    if (!machineryUnitId || !employeeId || !newStatus || !newCondition) {
+    // Validate required fields
+    if (!machineryUnitId || !employeeId || !newStatus || !newCondition || !reason) {
         return res.status(400).json({
             success: false,
             message: "Please provide machinery unit ID, employee ID, new status, and new condition."
+        });
+    }
+
+    // Validate reason is provided
+    if (!reason || !reason.trim()) {
+        return res.status(400).json({
+            success: false,
+            message: "Please provide a reason for the status change."
         });
     }
 
@@ -2176,25 +2059,6 @@ export const updateMachineryUnitStatus = async (req, res) => {
         return res.status(400).json({
             success: false,
             message: "Invalid condition. Must be one of: " + validConditions.join(', ')
-        });
-    }
-
-    // Validate repair cost if status is Under Repair
-    if (newStatus === 'Under Repair' && repairCost) {
-        const cost = parseFloat(repairCost);
-        if (isNaN(cost) || cost < 0) {
-            return res.status(400).json({
-                success: false,
-                message: "Repair cost must be a valid positive number."
-            });
-        }
-    }
-
-    // Require retirement reason if status is Retired
-    if (newStatus === 'Retired' && (!retirementReason || !retirementReason.trim())) {
-        return res.status(400).json({
-            success: false,
-            message: "Retirement reason is required when retiring a machinery unit."
         });
     }
 
@@ -2219,17 +2083,18 @@ export const updateMachineryUnitStatus = async (req, res) => {
             });
         }
 
-        // Check if machinery unit is currently assigned to any active ticket
+        // Check if machinery unit is currently assigned to any active ticket (except when setting to 'In Use')
         if (newStatus !== 'In Use') {
             const activeAssignment = await global.machineriesModels.TicketRequest.findOne({
                 'assignedMachineUnit.assignedMachineUnitId': machineryUnitId,
                 status: { $in: ['Scheduled', 'Ongoing'] }
-            });
+            }).populate('scheduleId', 'refNumber');
 
             if (activeAssignment) {
+                const scheduleRef = activeAssignment.scheduleId?.refNumber || 'Unknown Schedule';
                 return res.status(400).json({
                     success: false,
-                    message: "Cannot change status. Machinery unit is currently assigned to an active ticket."
+                    message: `Cannot change status. Machinery unit is currently assigned to an active ticket in schedule ${scheduleRef}.`
                 });
             }
 
@@ -2237,12 +2102,13 @@ export const updateMachineryUnitStatus = async (req, res) => {
             const activeExtensionAssignment = await global.machineriesModels.ExtensionTicket.findOne({
                 'assignedMachineUnit.assignedMachineUnitId': machineryUnitId,
                 status: { $in: ['Scheduled', 'Ongoing'] }
-            });
+            }).populate('scheduleId', 'refNumber');
 
             if (activeExtensionAssignment) {
+                const scheduleRef = activeExtensionAssignment.scheduleId?.refNumber || 'Unknown Schedule';
                 return res.status(400).json({
                     success: false,
-                    message: "Cannot change status. Machinery unit is currently assigned to an active extension ticket."
+                    message: `Cannot change status. Machinery unit is currently assigned to an active extension ticket in schedule ${scheduleRef}.`
                 });
             }
         }
@@ -2251,7 +2117,7 @@ export const updateMachineryUnitStatus = async (req, res) => {
         const historyEntry = {
             status: newStatus,
             condition: newCondition,
-            reason: reason && reason.trim() ? reason.trim() : undefined,
+            reason: reason.trim(),
             changedBy: {
                 _id: employee._id,
                 first_name: employee.first_name,
@@ -2264,15 +2130,8 @@ export const updateMachineryUnitStatus = async (req, res) => {
             changedAt: new Date()
         };
 
-        // Add repair cost if applicable
-        if (newStatus === 'Under Repair' && repairCost) {
-            historyEntry.repairCost = parseFloat(repairCost);
-            machineryUnit.totalRepairCost = (machineryUnit.totalRepairCost || 0) + parseFloat(repairCost);
-        }
-
-        // Add retirement reason if applicable
+        // Handle retirement
         if (newStatus === 'Retired') {
-            historyEntry.retirementReason = retirementReason.trim();
             machineryUnit.isRetired = true;
             machineryUnit.retiredDate = new Date();
         } else {
@@ -2286,14 +2145,7 @@ export const updateMachineryUnitStatus = async (req, res) => {
         // Update machinery unit status
         machineryUnit.status = newStatus;
         machineryUnit.condition = newCondition;
-        
-        if (location && location.trim()) {
-            machineryUnit.location = location.trim();
-        }
-        
-        if (reason && reason.trim()) {
-            machineryUnit.remarks = reason.trim();
-        }
+        machineryUnit.remarks = reason.trim();
 
         // Add to status history
         machineryUnit.statusHistory.push(historyEntry);
@@ -3609,56 +3461,92 @@ export const getMachineUnits = async (req, res) => {
     const { searchQuery } = req.query;
     try {
         const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 10;
+        const limit = parseInt(req.query.limit) || 5;
         const skip = (page - 1) * limit;
 
-        const machineUnitColl = global.machineriesModels.MachineriesUnit.collection.name;
+        // First populate all units to enable searching on populated fields
+        let allUnits = await global.machineriesModels.MachineriesUnit
+            .find({})
+            .populate({
+                path: 'machineryTypeId',
+                select: 'equipmentType ownerName ownerType'
+            })
+            .lean();
 
-        const pipeline = [];
-
-        // Add search conditions if searchQuery exists
+        // Filter units based on search query
         if (searchQuery && searchQuery.trim() !== '') {
             const words = searchQuery.trim().split(/\s+/);
-            const searchConditions = words.map((word) => ({
-                $or: [
-                    { ownerName: { $regex: word, $options: 'i' } },
-                    { ownerType: { $regex: word, $options: 'i' } },
-                    { equipmentType: { $regex: word, $options: 'i' } },
-                    { ratedCapacity: { $regex: word, $options: 'i' } }
-                ]
-            }));
-            pipeline.push({ $match: { $and: searchConditions } });
+            
+            allUnits = allUnits.filter(unit => {
+                return words.every(word => {
+                    const regex = new RegExp(word, 'i');
+                    return (
+                        regex.test(unit.unitNumber || '') ||
+                        regex.test(unit.engineBrand || '') ||
+                        regex.test(unit.location || '') ||
+                        regex.test(unit.status || '') ||
+                        regex.test(unit.condition || '') ||
+                        regex.test(unit.machineryTypeId?.equipmentType || '') ||
+                        regex.test(unit.machineryTypeId?.ownerName || '')
+                    );
+                });
+            });
         }
 
-        // Lookup machine units
-        pipeline.push({
-            $lookup: {
-                from: machineUnitColl,
-                localField: '_id',
-                foreignField: 'machineryTypeId',
-                as: 'machineUnits'
+        // Get total count after filtering
+        const totalCount = allUnits.length;
+
+        // Sort by creation date (newest first)
+        allUnits.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+        // Apply pagination
+        const paginatedUnits = allUnits.slice(skip, skip + limit);
+
+        // Group by machinery type for display
+        const machineTypesMap = new Map();
+        
+        paginatedUnits.forEach(unit => {
+            const typeId = unit.machineryTypeId?._id?.toString();
+            if (!typeId) return;
+
+            if (!machineTypesMap.has(typeId)) {
+                machineTypesMap.set(typeId, {
+                    _id: unit.machineryTypeId._id,
+                    equipmentType: unit.machineryTypeId.equipmentType,
+                    ownerName: unit.machineryTypeId.ownerName,
+                    ownerType: unit.machineryTypeId.ownerType,
+                    machineUnits: []
+                });
             }
+
+            // Sort status history by changedAt (most recent first)
+            const sortedStatusHistory = (unit.statusHistory || []).sort((a, b) => 
+                new Date(b.changedAt) - new Date(a.changedAt)
+            );
+
+            machineTypesMap.get(typeId).machineUnits.push({
+                _id: unit._id,
+                unitNumber: unit.unitNumber,
+                engineBrand: unit.engineBrand,
+                engineHorsepower: unit.engineHorsepower,
+                modeOfAcquisition: unit.modeOfAcquisition,
+                costOfAcquisition: unit.costOfAcquisition,
+                yearAcquired: unit.yearAcquired,
+                condition: unit.condition,
+                location: unit.location,
+                remarks: unit.remarks,
+                status: unit.status,
+                statusHistory: sortedStatusHistory, // Include sorted status history
+                createdAt: unit.createdAt,
+                updatedAt: unit.updatedAt
+            });
         });
 
-        // Add facet for pagination and total count
-        pipeline.push({
-            $facet: {
-                paginatedResults: [
-                    { $sort: { _id: -1 } },
-                    { $skip: skip },
-                    { $limit: limit }
-                ],
-                totalCount: [{ $count: 'count' }]
-            }
-        });
-
-        const result = await global.machineriesModels.MachineriesType.aggregate(pipeline);
-        const machineTypesWithUnits = result[0]?.paginatedResults || [];
-        const totalCount = result[0]?.totalCount?.[0]?.count || 0;
+        const machineTypesWithUnits = Array.from(machineTypesMap.values());
 
         return res.status(200).json({
             success: true,
-            message: "Machine types with units retrieved successfully.",
+            message: "Machine units retrieved successfully.",
             data: {
                 machineTypesWithUnits,
                 totalCount,
@@ -3667,11 +3555,123 @@ export const getMachineUnits = async (req, res) => {
             }
         });
     } catch (error) {
-        console.error("Error fetching machine types with units:", error);
-        return res.status(500).json({ 
-            success: false, 
-            message: "Error fetching machine types with units.", 
-            error: error.message 
+        console.error("Error fetching machine units:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Error fetching machine units.",
+            error: error.message
+        });
+    }
+};
+
+export const getMachineOverview = async (req, res) => {
+    try {
+        const pipeline = [
+            {
+                $facet: {
+                    // Total number of machines
+                    totalMachines: [
+                        { $count: 'count' }
+                    ],
+                    // Count by condition
+                    byCondition: [
+                        {
+                            $group: {
+                                _id: '$condition',
+                                count: { $sum: 1 }
+                            }
+                        }
+                    ],
+                    // Count by status
+                    byStatus: [
+                        {
+                            $group: {
+                                _id: '$status',
+                                count: { $sum: 1 }
+                            }
+                        }
+                    ],
+                    // Count retired machines
+                    retired: [
+                        { $match: { isRetired: true } },
+                        { $count: 'count' }
+                    ],
+                    // Count under repair
+                    underRepair: [
+                        { $match: { status: 'Under Repair' } },
+                        { $count: 'count' }
+                    ],
+                    // Count functional
+                    functional: [
+                        { $match: { condition: 'Functional' } },
+                        { $count: 'count' }
+                    ]
+                }
+            }
+        ];
+
+        const result = await global.machineriesModels.MachineriesUnit.aggregate(pipeline);
+        
+        const data = result[0];
+        
+        // Format the response
+        const overview = {
+            totalMachines: data.totalMachines[0]?.count || 0,
+            functional: data.functional[0]?.count || 0,
+            underRepair: data.underRepair[0]?.count || 0,
+            retired: data.retired[0]?.count || 0,
+            byCondition: data.byCondition.reduce((acc, item) => {
+                acc[item._id] = item.count;
+                return acc;
+            }, {}),
+            byStatus: data.byStatus.reduce((acc, item) => {
+                acc[item._id] = item.count;
+                return acc;
+            }, {})
+        };
+
+        return res.status(200).json({
+            success: true,
+            message: "Machine overview retrieved successfully.",
+            data: overview
+        });
+
+    } catch (error) {
+        console.error("Error fetching machine overview:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Error fetching machine overview.",
+            error: error.message
+        });
+    }
+};
+
+export const getMachineTypes = async (req, res) => {
+    try {
+        const machineTypes = await global.machineriesModels.MachineriesType
+            .find({})
+            .select('equipmentType ownerName ownerType ratedCapacity')
+            .lean();
+
+        if (!machineTypes || machineTypes.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "No machine types found."
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: "Machine types retrieved successfully.",
+            data: machineTypes
+        });
+
+    } catch (error) {
+        console.error("Error fetching machine types:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Error fetching machine types.",
+            error: error.message
         });
     }
 };

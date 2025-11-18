@@ -130,11 +130,13 @@ export const usePendingExtensionRequestsCountQuery = (role) =>
         enabled: role === 'MIM' || role === 'MIS',
 });
 
-export const useMachineUnitsQuery = (role) =>
+export const useMachineUnitsQuery = (page = 1, searchQuery = {}, role) =>
     useQuery({
-        queryKey: ['machineUnits'],
+        queryKey: ['machineUnits', page, searchQuery],
         queryFn: async () => {
-            const response = await axios.get(`${API_URL}/api/machineries/get-machine-units`);
+            const response = await axios.get(`${API_URL}/api/machineries/get-machine-units`, {
+                params: { page, limit: 5, ...searchQuery }
+            });
             return response.data;
         },
         enabled: role === 'MIM',
@@ -145,6 +147,26 @@ const useOccupiedDatesForSchedulingQuery = (role) =>
         queryKey: ['occupiedDatesForScheduling'],
         queryFn: async () => {
             const res = await axios.post(`${API_URL}/api/machineries/get-occupied-dates-for-scheduling`);
+            return res.data;
+        },
+        enabled: role === 'MIM',
+    });
+
+const useMachineOverviewQuery = (role) =>
+    useQuery({
+        queryKey: ['machineOverview'],
+        queryFn: async () => {
+            const res = await axios.get(`${API_URL}/api/machineries/get-machine-overview`);
+            return res.data;
+        },
+        enabled: role === 'MIM',
+    });
+
+const useMachineTypesQuery = (role) =>
+    useQuery({
+        queryKey: ['machineTypes'],
+        queryFn: async () => {
+            const res = await axios.get(`${API_URL}/api/machineries/get-machine-types`);
             return res.data;
         },
         enabled: role === 'MIM',
@@ -161,6 +183,7 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         scheduledPage = 1,
         declinedPage = 1,
         schedulesPage = 1,
+        machineUnitsPage = 1
     } = pages;
 
     // Queries
@@ -201,8 +224,15 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         useOccupiedDatesForSchedulingQuery(role);
 
     const { data: machineUnits = [], isLoading: isLoadingMachineUnits, error: machineUnitsError } =
-        useMachineUnitsQuery(role);
+        useMachineUnitsQuery(machineUnitsPage, searchQuery, role);
 
+    const { data: machineOverview = [], isLoading: isLoadingMachineOverview, error: machineOverviewError } =
+        useMachineOverviewQuery(role);
+
+    const { data: machineTypes = [], isLoading: isLoadingMachineTypes, error: machineTypesError } =
+        useMachineTypesQuery(role);
+
+    
     // Action flags
     const [isCreatingMachineryType, setIsCreatingMachineryType] = useState(false);
     const [isUpdatingMachineryType, setIsUpdatingMachineryType] = useState(false);
@@ -221,6 +251,7 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
     const [isApprovingExtensionRequest, setIsApprovingExtensionRequest] = useState(false);
     const [isDecliningExtensionRequest, setIsDecliningExtensionRequest] = useState(false);
     const [isSettingExtensionTicketToComplete, setIsSettingExtensionTicketToComplete] = useState(false);
+    const [isUpdatingMachineryUnitStatus, setIsUpdatingMachineryUnitStatus] = useState(false);
 
     // Actions
     const createMachineryType = async (data) => {
@@ -348,30 +379,6 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         }
     };
 
-    // const declineTicketRequests = async (data) => {
-    //     setIsDecliningTicketRequests(true);
-    //     try {
-    //         const res = await axios.post(`${API_URL}/api/machineries/decline-ticket-requests`, data);
-    //         return res.data;
-    //     } catch (error) {
-    //         throw error;
-    //     } finally {
-    //         setIsDecliningTicketRequests(false);
-    //     }
-    // };
-
-    // const undeclineTicketRequest = async (data) => {
-    //     setIsUndecliningTicketRequest(true);
-    //     try {
-    //         const res = await axios.post(`${API_URL}/api/machineries/undecline-ticket-request`, data);
-    //         return res.data;
-    //     } catch (error) {
-    //         throw error;
-    //     } finally {
-    //         setIsUndecliningTicketRequest(false);
-    //     }
-    // };
-
     const updateWeeklySchedule = async (data) => {
         setIsUpdatingWeeklySchedule(true);
         try {
@@ -452,6 +459,18 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         }
     };
 
+    const updateMachineryUnitStatus = async (data) => {
+        setIsUpdatingMachineryUnitStatus(true);
+        try {
+            const res = await axios.post(`${API_URL}/api/machineries/update-machinery-unit-status`, data);
+            return res.data;
+        } catch (error) {
+            throw error;
+        } finally {
+            setIsUpdatingMachineryUnitStatus(false);
+        }
+    };
+
     return {
         // query data
         machineryTypes,
@@ -467,6 +486,8 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         pendingExtensionCount,
         occupiedDatesForScheduling,
         machineUnits, 
+        machineOverview,
+        machineTypes,
 
         // actions
         createMachineryType,
@@ -487,6 +508,7 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         approveExtensionRequest,
         declineExtensionRequest,
         setExtensionTicketToComplete,
+        updateMachineryUnitStatus,
 
         // loading states (queries)
         isLoadingMachineryTypes,
@@ -502,6 +524,8 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         isLoadingPendingExtensionCount,
         isLoadingOccupiedDatesForScheduling,
         isLoadingMachineUnits,
+        isLoadingMachineOverview,
+        isLoadingMachineTypes,
 
         // action flags
         isCreatingMachineryType,
@@ -521,6 +545,7 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         isApprovingExtensionRequest,
         isDecliningExtensionRequest,
         isSettingExtensionTicketToComplete,
+        isUpdatingMachineryUnitStatus,
 
         // error states
         machineryTypesError,
@@ -536,5 +561,7 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         pendingExtensionCountError,
         occupiedDatesForSchedulingError,
         machineUnitsError,
+        machineOverviewError,
+        machineTypesError,
     };
 };

@@ -642,7 +642,7 @@ const TicketRequestPanel = ({
                             ) : occupiedDatesForScheduling?.data?.occupiedWeeks?.length > 0 ? (
                             <Box bg="orange.50" p={3} borderRadius="md" borderLeft="4px solid" borderLeftColor="orange.400">
                                 <Text fontSize="sm" fontWeight="bold" color="orange.700" mb={2}>
-                                Occupied Week Ranges ({occupiedDatesForScheduling.data.count}):
+                                Exisitng Week Ranges ({occupiedDatesForScheduling.data.count}):
                                 </Text>
                                 <VStack align="stretch" spacing={1}>
                                 {occupiedDatesForScheduling.data.occupiedWeeks.map((week, index) => (
@@ -699,6 +699,7 @@ const TicketRequestPanel = ({
                                           min={scheduleData.weekStart || undefined}
                                           max={scheduleData.weekEnd || undefined}
                                           size={'xs'}
+                                          isDisabled={!scheduleData.weekStart || !scheduleData.weekEnd}
                                         />
                                       </Td>
                                       <Td>

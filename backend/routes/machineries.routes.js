@@ -6,7 +6,6 @@ import {
     createMachineriesType,
     updateMachineryType,
     addMachineryUnit,
-    updateMachineryUnit,
     createWeeklySchedule,
     removeTicketRequestFromSchedule,
     moveTicketRequestToASchedule,
@@ -33,6 +32,11 @@ import {
     setExtenstionTicketToComplete,
     getOccupiedDatesForScheduling,
     getMachineUnits,
+    getMachineOverview,
+    updateMachineryUnitStatus,
+    getMachineTypes,
+    createMachineriesType,
+    addMachineryUnit,
     
     deleteScheduleAndTickets
 } from '../controller/machineries/adminDashboard.controller.js';
@@ -57,7 +61,6 @@ router.put('/update-machinery-type', updateMachineryType);
 router.get('/get-machinery-types', getMachineryTypes);
 
 router.post('/create-machinery-unit', addMachineryUnit); //working
-router.post('/update-machinery-unit', updateMachineryUnit);
 router.post('/get-machinery-unit', getMachineryUnits);
 
 router.get('/get-pending-ticket-requests', getPendingTicketRequests); //working frontend
@@ -101,6 +104,11 @@ router.post('/extension-ticket-complete',
 );
 router.post('/get-occupied-dates-for-scheduling', getOccupiedDatesForScheduling);
 router.get('/get-machine-units', getMachineUnits);
+router.get('/get-machine-overview', getMachineOverview);
+router.post('/update-machinery-unit-status', updateMachineryUnitStatus);
+router.get('/get-machine-types', getMachineTypes);
+router.post('/create-machinery-type', createMachineriesType);
+router.post('/add-machinery-unit', addMachineryUnit);
 
 router.post('/delete-schedule-and-tickets/:scheduleId', deleteScheduleAndTickets);
 export default router;
