@@ -259,8 +259,9 @@ const TicketRequestPanel = ({
       
       // Invalidate queries to refresh data
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['pendingTicketRequests'] }),
-        queryClient.invalidateQueries({ queryKey: ['weeklySchedules'] })
+        queryClient.invalidateQueries({ queryKey: ['inProgressWeeklySchedules'] }),
+        queryClient.invalidateQueries({ queryKey: ['plannedWeeklySchedules'] }),
+        queryClient.invalidateQueries({ queryKey: ['pendingTicketRequests'] })
       ]);
       
     } catch (error) {
@@ -614,6 +615,7 @@ const TicketRequestPanel = ({
                                 type="date"
                                 value={scheduleData.weekStart}
                                 onChange={(e) => setScheduleData({...scheduleData, weekStart: e.target.value})}
+                                min={new Date().toISOString().split("T")[0]}
                               />
                             </FormControl>
                             
@@ -623,6 +625,7 @@ const TicketRequestPanel = ({
                                 type="date"
                                 value={scheduleData.weekEnd}
                                 onChange={(e) => setScheduleData({...scheduleData, weekEnd: e.target.value})}
+                                min={new Date().toISOString().split("T")[0]}
                               />
                             </FormControl>
                           </SimpleGrid>

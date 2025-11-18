@@ -3094,7 +3094,7 @@ export const getInProgressWeeklySchedules = async (req, res) => { //in progress 
 export const getPendingExtensionRequestsCount = async (req, res) => {
     try {
         // Find all tickets with pending extension requests
-        const count = await global.machineriesModels.ExtensionTicket.countDocuments();
+        const count = await global.machineriesModels.ExtensionTicket.countDocuments({ status: 'Pending' });
 
         return res.status(200).json({
             success: true,
@@ -3112,7 +3112,6 @@ export const getPendingExtensionRequestsCount = async (req, res) => {
         });
     }
 };
-
 
 export const getOccupiedDatesForScheduling = async (req, res) => {
     try {
@@ -3158,3 +3157,5 @@ export const getOccupiedDatesForScheduling = async (req, res) => {
         });
     }
 };
+
+    

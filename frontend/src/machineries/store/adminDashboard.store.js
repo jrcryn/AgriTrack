@@ -124,7 +124,7 @@ export const usePendingExtensionRequestsCountQuery = (role) =>
     useQuery({
         queryKey: ['pendingExtensionCount'],
         queryFn: async () => {
-            const response = await axios.post(`${API_URL}/api/machineries/pending-extension-count`);
+            const response = await axios.get(`${API_URL}/api/machineries/pending-extension-count`);
             return response.data;
         },
         enabled: role === 'MIM' || role === 'MIS',
@@ -134,7 +134,7 @@ const useOccupiedDatesForSchedulingQuery = (role) =>
     useQuery({
         queryKey: ['occupiedDatesForScheduling'],
         queryFn: async () => {
-            const res = await axios.get(`${API_URL}/api/machineries/get-occupied-dates-for-scheduling`);
+            const res = await axios.post(`${API_URL}/api/machineries/get-occupied-dates-for-scheduling`);
             return res.data;
         },
         enabled: role === 'MIM',
