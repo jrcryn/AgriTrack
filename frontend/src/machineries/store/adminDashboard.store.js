@@ -124,7 +124,7 @@ export const usePendingExtensionRequestsCountQuery = (role) =>
     useQuery({
         queryKey: ['pendingExtensionCount'],
         queryFn: async () => {
-            const response = await axios.get(`${API_URL}/api/machineries/pending-extension-count`);
+            const response = await axios.post(`${API_URL}/api/machineries/pending-extension-count`);
             return response.data;
         },
         enabled: role === 'MIM' || role === 'MIS',
