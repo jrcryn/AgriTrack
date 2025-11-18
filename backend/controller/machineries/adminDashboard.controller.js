@@ -504,7 +504,7 @@ export const updateMachineryUnit = async (req, res) => {
 // 3) Check machine availability
 // 4.) Check operator availability
 // 5.) Check per-day schedule capacity
-export const createWeeklySchedule = async (req, res) => { //pang consolidate ng multiple request ticktets into a weekly schedule
+export const createWeeklySchedule = async (req, res) => {
     const { weekStart, weekEnd, tickets } = req.body;
 
     // Validation
@@ -562,43 +562,97 @@ export const createWeeklySchedule = async (req, res) => { //pang consolidate ng 
             seenDates.add(key);
         }
 
-        // NEW: Check operator and machine availability across ALL schedules
+        // prepare intra-payload maps to catch duplicates inside the same schedule
+        const operatorDateMap = new Set();
+        const machineDateMap = new Set();
+
         for (const ticket of tickets) {
             const assignedDate = new Date(ticket.assignedDate);
             const dateKey = toDateKey(assignedDate);
+            const dayStart = new Date(dateKey);
+            const dayEnd = new Date(dayStart);
+            dayEnd.setDate(dayEnd.getDate() + 1);
 
-            // Check if operator is already assigned on this date
-            const operatorConflict = await global.machineriesModels.TicketRequest.findOne({
-                'assignedOperator.assignedOperatorId': ticket.assignedOperatorId,
-                assignedDate: {
-                    $gte: new Date(dateKey),
-                    $lt: new Date(new Date(dateKey).setDate(new Date(dateKey).getDate() + 1))
-                },
-                status: { $in: ['Scheduled', 'Ongoing'] }
-            });
-
-            if (operatorConflict) {
-                return res.status(400).json({
-                    success: false,
-                    message: `Operator is already assigned to another ticket on ${dateKey}.`
-                });
+            // check duplicate operator/machine assignments inside the incoming tickets array
+            if (ticket.assignedOperatorId) {
+                const opKey = `${ticket.assignedOperatorId.toString()}|${dateKey}`;
+                if (operatorDateMap.has(opKey)) {
+                    return res.status(400).json({
+                        success: false,
+                        message: `Operator ${ticket.assignedOperatorId} is assigned to more than one ticket on ${dateKey} within this schedule.`
+                    });
+                }
+                operatorDateMap.add(opKey);
+            }
+            if (ticket.assignedMachineUnitId) {
+                const mKey = `${ticket.assignedMachineUnitId.toString()}|${dateKey}`;
+                if (machineDateMap.has(mKey)) {
+                    return res.status(400).json({
+                        success: false,
+                        message: `Machine unit ${ticket.assignedMachineUnitId} is assigned to more than one ticket on ${dateKey} within this schedule.`
+                    });
+                }
+                machineDateMap.add(mKey);
             }
 
-            // Check if machine is already assigned on this date
-            const machineConflict = await global.machineriesModels.TicketRequest.findOne({
-                'assignedMachineUnit.assignedMachineUnitId': ticket.assignedMachineUnitId,
-                assignedDate: {
-                    $gte: new Date(dateKey),
-                    $lt: new Date(new Date(dateKey).setDate(new Date(dateKey).getDate() + 1))
-                },
-                status: { $in: ['Scheduled', 'Ongoing'] }
-            });
+            // Check operator in TicketRequest (Scheduled/Ongoing)
+            if (ticket.assignedOperatorId) {
+                const operatorConflict = await global.machineriesModels.TicketRequest.findOne({
+                    'assignedOperator.assignedOperatorId': ticket.assignedOperatorId,
+                    assignedDate: { $gte: dayStart, $lt: dayEnd },
+                    status: { $in: ['Scheduled', 'Ongoing'] }
+                }).lean();
 
-            if (machineConflict) {
-                return res.status(400).json({
-                    success: false,
-                    message: `Machine unit is already assigned to another ticket on ${dateKey}.`
-                });
+                if (operatorConflict) {
+                    return res.status(400).json({
+                        success: false,
+                        message: `Operator is already assigned to another ticket on ${dateKey}.`
+                    });
+                }
+
+                // Check operator in ExtensionTicket as well
+                const operatorExtConflict = await global.machineriesModels.ExtensionTicket.findOne({
+                    'assignedOperator.assignedOperatorId': ticket.assignedOperatorId,
+                    assignedDate: { $gte: dayStart, $lt: dayEnd },
+                    status: { $in: ['Scheduled', 'Ongoing'] }
+                }).lean();
+
+                if (operatorExtConflict) {
+                    return res.status(400).json({
+                        success: false,
+                        message: `Operator is already assigned to another extension ticket on ${dateKey}.`
+                    });
+                }
+            }
+
+            // Check machine in TicketRequest (Scheduled/Ongoing)
+            if (ticket.assignedMachineUnitId) {
+                const machineConflict = await global.machineriesModels.TicketRequest.findOne({
+                    'assignedMachineUnit.assignedMachineUnitId': ticket.assignedMachineUnitId,
+                    assignedDate: { $gte: dayStart, $lt: dayEnd },
+                    status: { $in: ['Scheduled', 'Ongoing'] }
+                }).lean();
+
+                if (machineConflict) {
+                    return res.status(400).json({
+                        success: false,
+                        message: `Machine unit is already assigned to another ticket on ${dateKey}.`
+                    });
+                }
+
+                // Check machine in ExtensionTicket as well
+                const machineExtConflict = await global.machineriesModels.ExtensionTicket.findOne({
+                    'assignedMachineUnit.assignedMachineUnitId': ticket.assignedMachineUnitId,
+                    assignedDate: { $gte: dayStart, $lt: dayEnd },
+                    status: { $in: ['Scheduled', 'Ongoing'] }
+                }).lean();
+
+                if (machineExtConflict) {
+                    return res.status(400).json({
+                        success: false,
+                        message: `Machine unit is already assigned to another extension ticket on ${dateKey}.`
+                    });
+                }
             }
         }
 
@@ -708,8 +762,7 @@ export const createWeeklySchedule = async (req, res) => { //pang consolidate ng 
     }
 };
 
-
-export const updateWeeklySchedule = async (req, res) => { //pang update ng assigned dates, operators, machines sa existing weekly schedule
+export const updateWeeklySchedule = async (req, res) => { //pang update ng assigned dates, operators, machines sa existing weekly schedulemachi
     const { scheduleId, tickets } = req.body;
 
     if (!scheduleId || !Array.isArray(tickets) || tickets.length === 0) {
@@ -3055,6 +3108,52 @@ export const getPendingExtensionRequestsCount = async (req, res) => {
         return res.status(500).json({
             success: false,
             message: "Error fetching pending extension requests count.",
+            error: error.message
+        });
+    }
+};
+
+
+export const getOccupiedDatesForScheduling = async (req, res) => {
+    try {
+        // Only consider active schedules to prevent overlapping future weeks
+        const match = { status: { $in: ['Planned', 'In Progress'] } };
+        const projection = { weekStart: 1, weekEnd: 1, _id: 0 };
+
+        const schedules = await global.machineriesModels.WeeklySchedule
+            .find(match, projection)
+            .lean();
+
+        // Helper to format as YYYY-MM-DD in local time (avoid TZ shifts)
+        const toDateKey = (d) => {
+            const dt = new Date(d);
+            const y = dt.getFullYear();
+            const m = String(dt.getMonth() + 1).padStart(2, '0');
+            const day = String(dt.getDate()).padStart(2, '0');
+            return `${y}-${m}-${day}`;
+        };
+
+        const occupiedWeeks = schedules
+            .filter(s => s.weekStart && s.weekEnd)
+            .map(s => ({
+                weekStart: toDateKey(s.weekStart),
+                weekEnd: toDateKey(s.weekEnd)
+            }))
+            .sort((a, b) => new Date(a.weekStart) - new Date(b.weekStart));
+
+        return res.status(200).json({
+            success: true,
+            message: "Occupied weeks compiled successfully.",
+            data: {
+                occupiedWeeks,
+                count: occupiedWeeks.length
+            }
+        });
+    } catch (error) {
+        console.error("Error compiling occupied weeks:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Error compiling occupied weeks.",
             error: error.message
         });
     }

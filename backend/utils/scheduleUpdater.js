@@ -2,6 +2,7 @@
 export const updateScheduleStatus = async () => {
     try {
         const now = new Date();
+        const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
 
         const tickets = await global.machineriesModels.TicketRequest.find({ status: 'Scheduled', scheduleId: { $ne: null } }).populate('scheduleId', '_id weekStart weekEnd status');
         const extTickets = await global.machineriesModels.ExtensionTicket.find({ status: 'Scheduled', scheduleId: { $ne: null } }).populate('scheduleId', '_id weekStart weekEnd status');
@@ -20,11 +21,16 @@ export const updateScheduleStatus = async () => {
                     updatedSchedules.add(scheduleIdStr);
                 }
 
-                // Update ticket
+                // Update ticket to Ongoing only if it's within the week
                 if (tr.status !== 'Ongoing' && !tr.updatedToOngoing) {
                     tr.status = 'Ongoing';
                     tr.updatedToOngoing = true;
-                    tr.disabledForEditing = true;
+                    
+                    // Only disable editing if assignedDate is today or in the past
+                    if (tr.assignedDate && new Date(tr.assignedDate) <= endOfToday) {
+                        tr.disabledForEditing = true;
+                    }
+                    
                     await tr.save();
                 }
             }
@@ -42,11 +48,16 @@ export const updateScheduleStatus = async () => {
                     updatedSchedules.add(scheduleIdStr);
                 }
 
-                // Update ticket
+                // Update ticket to Ongoing only if it's within the week
                 if (tr.status !== 'Ongoing' && !tr.updatedToOngoing) {
                     tr.status = 'Ongoing';
                     tr.updatedToOngoing = true;
-                    tr.disabledForEditing = true;
+                    
+                    // Only disable editing if assignedDate is today or in the past
+                    if (tr.assignedDate && new Date(tr.assignedDate) <= endOfToday) {
+                        tr.disabledForEditing = true;
+                    }
+                    
                     await tr.save();
                 }
             }
@@ -66,10 +77,11 @@ export const disableEditingForTodayTickets = async () => {
         const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
 
-        // Find all ongoing tickets with assignedDate <= today and disabledForEditing = false
+        // Find all ongoing tickets with assignedDate >= startOfDay AND <= endOfDay (only today)
         const tickets = await global.machineriesModels.TicketRequest.find({
             status: 'Ongoing',
             assignedDate: {
+                $gte: startOfDay,
                 $lte: endOfDay
             },
             $or: [

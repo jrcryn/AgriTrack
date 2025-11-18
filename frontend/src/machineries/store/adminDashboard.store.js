@@ -130,6 +130,16 @@ export const usePendingExtensionRequestsCountQuery = (role) =>
         enabled: role === 'MIM' || role === 'MIS',
 });
 
+const useOccupiedDatesForSchedulingQuery = (role) =>
+    useQuery({
+        queryKey: ['occupiedDatesForScheduling'],
+        queryFn: async () => {
+            const res = await axios.get(`${API_URL}/api/machineries/get-occupied-dates-for-scheduling`);
+            return res.data;
+        },
+        enabled: role === 'MIM',
+    });
+
 // Exported store
 export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
     const { user } = useAuthStore();
@@ -176,6 +186,9 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
 
     const { data: pendingExtensionCount = 0, isLoading: isLoadingPendingExtensionCount, error: pendingExtensionCountError } =
         usePendingExtensionRequestsCountQuery(role);
+    
+    const { data: occupiedDatesForScheduling = [], isLoading: isLoadingOccupiedDatesForScheduling, error: occupiedDatesForSchedulingError } =
+        useOccupiedDatesForSchedulingQuery(role);
 
     // Action flags
     const [isCreatingMachineryType, setIsCreatingMachineryType] = useState(false);
@@ -439,6 +452,7 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         plannedWeeklySchedules, 
         inProgressWeeklySchedules,
         pendingExtensionCount,
+        occupiedDatesForScheduling,
 
         // actions
         createMachineryType,
@@ -472,6 +486,7 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         isLoadingPlannedWeeklySchedules, 
         isLoadingInProgressWeeklySchedules,
         isLoadingPendingExtensionCount,
+        isLoadingOccupiedDatesForScheduling,
 
         // action flags
         isCreatingMachineryType,
@@ -503,6 +518,7 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         operatorsListError,
         plannedWeeklySchedulesError, 
         inProgressWeeklySchedulesError,
-        pendingExtensionCountError
+        pendingExtensionCountError,
+        occupiedDatesForSchedulingError,
     };
 };
