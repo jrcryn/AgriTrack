@@ -1,12 +1,18 @@
 import mongoose from 'mongoose';
 
-// Extension ticket sub-schema
+// Extension ticket schema
 export const extensionTicketSchema = new mongoose.Schema({
     refNumber: { type: String, required: true },
     areaServiced: { type: Number, required: true },
     remainingArea: { type: Number, required: true },
     assignedDate: Date,
     extensionReason: String,
+
+    parentRequestTicketId: {
+        ref: 'Ticket_Request',
+        type: mongoose.Schema.Types.ObjectId,
+        required: true
+    },
 
     status: { 
         type: String, 
@@ -15,7 +21,6 @@ export const extensionTicketSchema = new mongoose.Schema({
             'Scheduled', 
             'Ongoing', 
             'Completed',  
-            'Declined',
             'No Proof Submitted', 
             'Completed (Delayed Submission)'
         ],
@@ -23,6 +28,8 @@ export const extensionTicketSchema = new mongoose.Schema({
     },
 
     declineReason: String,
+    updatedToOngoing: {type: Boolean, default: false},
+    disabledForEditing: Boolean,
 
     approvedBy: {
         employeeId: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee_Account' },
@@ -60,7 +67,7 @@ export const extensionTicketSchema = new mongoose.Schema({
             type: mongoose.Schema.Types.ObjectId,
             ref: 'Machine_Unit',
         },
-        plateNumber: String, 
+        unitNumber: String, 
         engineBrand: String,
         engineHorsepower: String
     },
@@ -78,6 +85,23 @@ export const extensionTicketSchema = new mongoose.Schema({
         phone: String
     },
 
+    statusTimeline: [{
+        status: { type: String, enum: ['In Transit', 'Arrived On Site', 'Completion Proof Submitted', 'Machine Returned'] },
+        timestamp: { type: Date, default: Date.now },
+        updatedBy: {
+            operatorId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Staff_Account',
+        },
+            first_name: String,
+            last_name: String,
+            middle_name: String,
+            suffix: String,
+            email: String,
+            phone: String,
+        }
+    }],
+
     completionProof: {
         proofImageId: String,
         proofImageUrl: String,
@@ -87,7 +111,7 @@ export const extensionTicketSchema = new mongoose.Schema({
     },
 
     remarks: String,
-}, { _id: true, timestamps: false });
+}, { _id: true, timestamps: false, versionKey: false });
 
 
 
@@ -128,7 +152,6 @@ export const ticketRequestSchema = new mongoose.Schema({
             'Scheduled', 
             'Ongoing', 
             'Completed', 
-            'Declined', 
             'No Proof Submitted', 
             'Completed (Delayed Submission)',
             'Partially Completed'
@@ -136,7 +159,7 @@ export const ticketRequestSchema = new mongoose.Schema({
     },
     disabledForEditing: Boolean,
     removedOutOfScheduleDueToExtension: Boolean,
-
+    updatedToOngoing: {type: Boolean, default: false},
     declinedBy: {
         employeeId: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee_Account' },
         first_name: String,
@@ -160,7 +183,7 @@ export const ticketRequestSchema = new mongoose.Schema({
             type: mongoose.Schema.Types.ObjectId,
             ref: 'Machine_Unit',
         },
-        plateNumber: String, 
+        unitNumber: String,
         engineBrand: String,
         engineHorsepower: String
     },
@@ -176,6 +199,23 @@ export const ticketRequestSchema = new mongoose.Schema({
         email: String,
         phone: String
     },
+
+    statusTimeline: [{
+        status: { type: String, enum: ['In Transit', 'Arrived On Site', 'Completion Proof Submitted', 'Machine Returned'] },
+        timestamp: { type: Date, default: Date.now },
+        updatedBy: {
+            operatorId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Staff_Account',
+        },
+            first_name: String,
+            last_name: String,
+            middle_name: String,
+            suffix: String,
+            email: String,
+            phone: String,
+        }
+    }],
 
     completionProof: {
         proofImageId: String,

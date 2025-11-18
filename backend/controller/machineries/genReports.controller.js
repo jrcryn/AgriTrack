@@ -1,189 +1,271 @@
 import ExcelJS from 'exceljs';
-import Barangays from "../../../frontend/src/components/barangays.js";
 
-
-const createColumnKey = (header) => {
-    return header.toLowerCase().replace(/[\s.]+/g, '_');
-  };
-
-  
-export const generateMachineryExcelReport = async (req, res) => {
-    try {
-        // Get all machinery units
-        const machineryUnits = await global.machineriesModels.MachineriesUnit.find().lean();
-        
-        // Create a new workbook and worksheet
-        const workbook = new ExcelJS.Workbook();
-        const worksheet = workbook.addWorksheet('Machinery Inventory');
-        
-        // Set up headers with their exact keys
-        const headerConfig = [
-            { header: 'Unit Name', key: 'unit_name' },
-            { header: 'No. of Units', key: 'no_of_units' },
-            { header: 'Functional', key: 'functional' },
-            { header: 'Non-Functional', key: 'non_functional' },
-            { header: 'Remarks', key: 'remarks' }
-        ];
-        
-        // Create barangay header configs
-        const barangayHeaderConfig = Barangays.map(barangay => ({
-            header: barangay,
-            key: createColumnKey(barangay)
-        }));
-        
-        // Combine all header configs
-        const allHeaderConfig = [...headerConfig, ...barangayHeaderConfig];
-        const columnCount = allHeaderConfig.length;
-        
-        // Apply column definitions with consistent keys
-        worksheet.columns = allHeaderConfig.map(config => ({
-            ...config,
-            width: 12
-        }));
-        
-        // Style the header row
-        const headerRow = worksheet.getRow(1);
-        headerRow.font = { bold: true };
-        headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
-        headerRow.height = 25;
-        headerRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
-            if (colNumber <= columnCount) {
-                // Add borders to all header cells
-                cell.border = {
-                    top: { style: 'thin' },
-                    left: { style: 'thin' },
-                    bottom: { style: 'thin' },
-                    right: { style: 'thin' }
-                };
-                
-                // Color the headers: first 5 columns green, rest orange
-                if (colNumber <= 5) {
-                    // Unit Name, No. of Units, Functional, Non-Functional, Remarks
-                    cell.fill = {
-                        type: 'pattern',
-                        pattern: 'solid',
-                        fgColor: { argb: 'FF92D050' } // Green
-                    };
-                } else {
-                    // Barangay headers
-                    cell.fill = {
-                        type: 'pattern',
-                        pattern: 'solid',
-                        fgColor: { argb: 'FFFCD5B4' } // Light orange/peach
-                    };
-                }
-            }
-        });
-        
-        // Add data rows for each machinery unit
-        machineryUnits.forEach((unit, rowIndex) => {
-            // Calculate totals
-            const totalFunctional = unit.barangay_allocations.reduce(
-                (sum, alloc) => sum + (alloc.functional_units || 0), 0
-            );
-            const totalNonFunctional = unit.barangay_allocations.reduce(
-                (sum, alloc) => sum + (alloc.non_functional_units || 0), 0
-            );
-            const totalUnits = totalFunctional + totalNonFunctional;
-            
-            // Create row with main data - use exact keys from headerConfig
-            const rowValues = {
-                unit_name: unit.unit_name,
-                no_of_units: totalUnits,
-                functional: totalFunctional,
-                non_functional: totalNonFunctional,
-                remarks: unit.remarks || ''
-            };
-            
-            // Add empty values for barangay columns first
-            Barangays.forEach((barangay) => {
-                const colKey = createColumnKey(barangay);
-                rowValues[colKey] = '';
-            });
-            
-            // Add the row with basic values
-            const dataRow = worksheet.addRow(rowValues);
-            
-            // Apply borders and center alignment to all cells
-            dataRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
-                if (colNumber <= columnCount) {
-                    cell.border = {
-                        top: { style: 'thin' },
-                        left: { style: 'thin' },
-                        bottom: { style: 'thin' },
-                        right: { style: 'thin' }
-                    };
-                }
-        
-                if (colNumber > 1) {
-                    cell.alignment = { horizontal: 'center' };
-                }
-            });
-            
-            // Now update barangay cells with colored rich text
-            Barangays.forEach((barangay, index) => {
-                const allocation = unit.barangay_allocations.find(
-                    alloc => alloc.barangay === barangay
-                );
-                
-                if (allocation) {
-                    const functional = allocation.functional_units || 0;
-                    const nonFunctional = allocation.non_functional_units || 0;
-                    
-                    if (functional > 0 || nonFunctional > 0) {
-                        // Get the cell from the current row for this barangay
-                        const colIndex = headerConfig.length + index + 1; // +1 because Excel is 1-based
-                        const cell = dataRow.getCell(colIndex);
-                        
-                        // Apply rich text with different colors
-                        cell.value = {
-                            richText: [
-                                {
-                                    text: functional.toString(),
-                                    font: { color: { argb: 'FF00B050' } } // Green for functional
-                                },
-                                {
-                                    text: '/',
-                                    font: { color: { argb: 'FF000000' } } // Black for separator
-                                },
-                                {
-                                    text: nonFunctional.toString(),
-                                    font: { color: { argb: 'FFFF0000' } } // Red for non-functional
-                                }
-                            ]
-                        };
-                    }
-                }
-            });
-        });
-        
-        // Auto-size columns based on content
-        worksheet.columns.forEach((column, index) => {
-            if (index < columnCount) {
-                let maxLength = 0;
-                column.eachCell({ includeEmpty: true }, (cell) => {
-                    const columnLength = cell.value ? cell.value.toString().length : 10;
-                    if (columnLength > maxLength) {
-                        maxLength = columnLength;
-                    }
-                });
-                column.width = Math.max(10, Math.min(maxLength + 2, 30));
-            }
-        });
-        
-        // Set response headers for file download
-        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        res.setHeader('Content-Disposition', '');
-        
-        // Write to response and end
-        await workbook.xlsx.write(res);
-        res.end();
-        
-    } catch (error) {
-        console.error('Error generating machinery Excel report:', error);
-        res.status(500).json({
-            message: 'Error generating machinery Excel report',
-            error: error.message
-        });
-    }
+// Normalize date to YYYY-MM-DD (local)
+const toDateKey = (d) => {
+  const dt = new Date(d);
+  const y = dt.getFullYear();
+  const m = String(dt.getMonth() + 1).padStart(2, '0');
+  const day = String(dt.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 };
+
+const monthToRange = (month) => {
+  // month: 'YYYY-MM'
+  const [y, m] = month.split('-').map(Number);
+  if (!y || !m) throw new Error('Invalid month format. Use YYYY-MM.');
+  const start = new Date(y, m - 1, 1, 0, 0, 0, 0);
+  const end = new Date(y, m, 1, 0, 0, 0, 0); // exclusive
+  return { start, end };
+};
+
+const getRangeFromQuery = (req) => {
+  const { month, startDate, endDate } = req.query;
+  if (month) return monthToRange(month);
+  if (startDate && endDate) {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    if (isNaN(start.getTime()) || isNaN(end.getTime()) || start >= end) {
+      throw new Error('Invalid startDate/endDate range.');
+    }
+    // Make end exclusive next-day 00:00
+    const endExclusive = new Date(end);
+    endExclusive.setDate(endExclusive.getDate() + 1);
+    endExclusive.setHours(0, 0, 0, 0);
+    return { start, end: endExclusive };
+  }
+  // default: current month
+  const now = new Date();
+  const monthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  return monthToRange(monthStr);
+};
+
+const monthKey = (d) => {
+  const dt = new Date(d);
+  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2,'0')}`;
+};
+const monthLabel = (key) => {
+  const [y,m] = key.split('-').map(Number);
+  return `${new Date(y, m-1, 1).toLocaleString('en-US',{ month:'short'})}-${y}`;
+};
+const fullMonthName = (key) => {
+  const [y,m] = key.split('-').map(Number);
+  return `${new Date(y, m-1, 1).toLocaleString('en-US',{ month:'long'})} ${y}`;
+};
+
+export const exportMachineriesUsageReport = async (req, res) => {
+  try {
+    const { start, end } = getRangeFromQuery(req);
+
+    // Completed or partially-completed tickets finished in range
+    const ticketFilter = {
+      status: { $in: ['Completed', 'Partially Completed'] },
+      'completionProof.completedAt': { $gte: start, $lt: end }
+    };
+
+    // Completed extension tickets in range
+    const extensionFilter = {
+      status: 'Completed',
+      'completionProof.completedAt': { $gte: start, $lt: end }
+    };
+
+    const [tickets, extensions] = await Promise.all([
+      global.machineriesModels.TicketRequest.find(ticketFilter).lean(),
+      global.machineriesModels.ExtensionTicket.find(extensionFilter).lean()
+    ]);
+
+    // Map parents for extensions
+    const parentIds = [];
+    extensions.forEach(e => {
+      if (e.parentRequestTicketId) parentIds.push(e.parentRequestTicketId);
+      if (e.parentTicketId) parentIds.push(e.parentTicketId);
+    });
+    const parents = parentIds.length
+      ? await global.machineriesModels.TicketRequest.find({ _id: { $in: parentIds }}).lean()
+      : [];
+    const parentMap = {};
+    parents.forEach(p => parentMap[p._id.toString()] = p);
+
+    // Normalizers
+    const buildFarmerName = (f) => [f?.first_name, f?.middle_name, f?.surname].filter(Boolean).join(' ');
+    const normTicket = (t) => ({
+      isExtension: false,
+      completedAt: t.completionProof?.completedAt ? new Date(t.completionProof.completedAt) : null,
+      farmerName: buildFarmerName(t.requestorFarmer || {}),
+      farmerBarangay: t.barangay || '',
+      farmLocation: t.barangay || '', // no separate location field provided
+      area: t.estimatedArea ?? null
+    });
+    const normExtension = (e) => {
+      const parent = parentMap[e.parentRequestTicketId?.toString()] || parentMap[e.parentTicketId?.toString()];
+      return {
+        isExtension: true,
+        completedAt: e.completionProof?.completedAt ? new Date(e.completionProof.completedAt) : null,
+        farmerName: parent ? buildFarmerName(parent.requestorFarmer || {}) : '',
+        farmerBarangay: parent?.barangay || '',
+        farmLocation: parent?.barangay || '',
+        area: e.remainingArea ?? null // requested: use remaining area as serviced portion for extension
+      };
+    };
+
+    const allRows = [
+      ...tickets.map(normTicket).filter(r => r.completedAt),
+      ...extensions.map(normExtension).filter(r => r.completedAt)
+    ];
+
+    // Group by month
+    const monthGroups = {};
+    allRows.forEach(r => {
+      const key = monthKey(r.completedAt);
+      if (!monthGroups[key]) monthGroups[key] = [];
+      monthGroups[key].push(r);
+    });
+
+    const workbook = new ExcelJS.Workbook();
+    const periodLabel = `${toDateKey(start)} to ${toDateKey(new Date(end.getTime()-1))}`;
+
+    // Summary sheet (high-level)
+    const wsSummary = workbook.addWorksheet('Summary');
+    wsSummary.addRow(['Machinery Monthly Usage Report', '']);
+    wsSummary.mergeCells('A1','E1');
+    wsSummary.getCell('A1').font = { size: 16, bold: true };
+    wsSummary.getCell('A1').alignment = { horizontal: 'center' };
+    wsSummary.addRow(['Period:', periodLabel]);
+    wsSummary.addRow(['Total Months Covered:', Object.keys(monthGroups).length]);
+    wsSummary.addRow(['Total Completed Tickets:', tickets.length]);
+    wsSummary.addRow(['Total Completed Extensions:', extensions.length]);
+    wsSummary.addRow(['Grand Total Entries:', allRows.length]);
+    wsSummary.columns = [
+      { header: '', key: 'c1', width: 28 },
+      { header: '', key: 'c2', width: 35 },
+      { header: '', key: 'c3', width: 18 },
+      { header: '', key: 'c4', width: 18 },
+      { header: '', key: 'c5', width: 18 },
+    ];
+
+    // Style summary rows
+    wsSummary.eachRow((row,i)=>{
+      row.eachCell(cell=>{
+        if (i>1) cell.border = { top:{style:'thin'},bottom:{style:'thin'},left:{style:'thin'},right:{style:'thin'} };
+      });
+    });
+
+    // Per-month sheets
+    for (const key of Object.keys(monthGroups).sort()) {
+      const rows = monthGroups[key].sort((a,b)=>a.completedAt - b.completedAt);
+      const sheetName = monthLabel(key);
+      const ws = workbook.addWorksheet(sheetName);
+
+      // Columns
+      ws.columns = [
+        { header: 'Month', key: 'month', width: 14 },
+        { header: 'Farmer Name', key: 'farmerName', width: 28 },
+        { header: 'Farmer Barangay', key: 'farmerBarangay', width: 20 },
+        { header: 'Farm Location', key: 'farmLocation', width: 22 },
+        { header: 'Area (hectares)', key: 'area', width: 16 },
+        { header: 'Type', key: 'type', width: 14 },
+      ];
+
+      // Title row
+      ws.addRow([fullMonthName(key)]);
+      ws.mergeCells(1,1,1,ws.columns.length);
+      const titleCell = ws.getCell('A1');
+      titleCell.font = { bold: true, size: 18 };
+      titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+      titleCell.fill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFBDD7EE' } };
+      ws.getRow(1).height = 28;
+
+      // Header row
+      ws.addRow(ws.columns.map(c => c.header));
+      const headerRow = ws.getRow(2);
+      headerRow.font = { bold: true };
+      headerRow.alignment = { horizontal:'center', vertical:'middle' };
+      headerRow.height = 22;
+      headerRow.eachCell(cell=>{
+        cell.fill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FF92D050' } };
+        cell.border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} };
+      });
+
+      // Data rows
+      rows.forEach(r => {
+        ws.addRow({
+          month: fullMonthName(key),
+          farmerName: r.farmerName,
+            farmerBarangay: r.farmerBarangay,
+          farmLocation: r.farmLocation,
+          area: r.area ?? '',
+          type: r.isExtension ? 'Extension' : 'Ticket'
+        });
+      });
+
+      // Style data
+      for (let i=3;i<=ws.rowCount;i++){
+        const row = ws.getRow(i);
+        row.eachCell((cell,col)=>{
+          cell.border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} };
+          if (col===5) cell.alignment = { horizontal:'center' };
+          else cell.alignment = { horizontal:'left' };
+        });
+      }
+
+      // Barangay summary
+      const barangayCounts = {};
+      rows.forEach(r => {
+        barangayCounts[r.farmerBarangay] = (barangayCounts[r.farmerBarangay]||0)+1;
+      });
+
+      ws.addRow([]); // spacer
+      const summaryHeaderRowIndex = ws.rowCount + 1;
+      ws.addRow(['Barangay Coverage Summary','','','','','']);
+      ws.mergeCells(summaryHeaderRowIndex,1,summaryHeaderRowIndex,ws.columns.length);
+      const shCell = ws.getCell(summaryHeaderRowIndex,1);
+      shCell.font = { bold:true, size:14 };
+      shCell.alignment = { horizontal:'center' };
+      shCell.fill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFFCD5B4' } };
+      shCell.border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} };
+
+      // Summary table headers
+      ws.addRow(['Barangay', 'Completed Entries', '', '', '', '']);
+      const bh = ws.getRow(ws.rowCount);
+      bh.eachCell((cell, idx)=>{
+        if (idx <= 2) {
+          cell.font = { bold: true };
+          cell.fill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FFEEECE1' } };
+        }
+        cell.border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} };
+        cell.alignment = { horizontal:'center' };
+      });
+
+      Object.keys(barangayCounts).sort((a,b)=>barangayCounts[b]-barangayCounts[a]).forEach(b=>{
+        ws.addRow([b, barangayCounts[b], '', '', '', '']);
+        const row = ws.getRow(ws.rowCount);
+        row.eachCell((cell, idx)=>{
+          if (idx <= 2) {
+            cell.border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} };
+            cell.alignment = { horizontal: idx===1 ? 'left':'center' };
+          }
+        });
+      });
+
+      // Auto-fit (bounded)
+      ws.columns.forEach(col=>{
+        let max = col.width;
+        col.eachCell({ includeEmpty:true }, cell=>{
+          const valLen = cell.value ? cell.value.toString().length : 0;
+          if (valLen + 2 > max) max = valLen + 2;
+        });
+        col.width = Math.min(Math.max(12, max), 32);
+      });
+    }
+
+    // Filename
+    const filenameHint = `${toDateKey(start)}_${toDateKey(new Date(end.getTime()-1))}`;
+    res.setHeader('Content-Type','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition',`attachment; filename="machinery-monthly-report-${filenameHint}.xlsx"`);
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    console.error('Monthly report generation error:', error);
+    res.status(500).json({ success:false, message:'Error generating monthly report.', error: error.message });
+  }
+};
+

@@ -11,9 +11,10 @@ import { useAdminDashboard } from '../machineries/store/adminDashboard.store.js'
 const TicketRequestCompletedDetailsPanel = ({ 
     isOpen, 
     onClose, 
-    selectedTicket
+    selectedTicket,
+    isExtensionTicket
  }) => {
-
+console.log('Selected Ticket in CompletedDetailsPanel:', selectedTicket);
   const { user } = useAuthStore();
   const toast = useToast();
   const [isApproveModalOpen, setIsApproveModalOpen] = useState(false);
@@ -86,7 +87,8 @@ const TicketRequestCompletedDetailsPanel = ({
     try {
       await approveExtensionRequest({
         ticketRequestId: selectedTicket._id,
-        extensionTicketId: selectedExtension._id,
+        extensionTicketId: selectedTicket.extensionTicketId._id,
+        requestTicketId: selectedTicket._id,
         employeeId: user?.id,
         assignedOperatorId: extensionUpdateData.assignedOperatorId,
         assignedMachineUnitId: extensionUpdateData.assignedMachineUnitId,
@@ -112,7 +114,8 @@ const TicketRequestCompletedDetailsPanel = ({
     }
   };
 
-  const handleDeclineExtension = (extension, index) => {
+  // FIX: Update handleDeclineExtension to accept the extension object
+  const handleDeclineExtension = (extension) => {
     setSelectedExtension(extension);
     setIsDeclineModalOpen(true);
   };
@@ -163,6 +166,7 @@ const TicketRequestCompletedDetailsPanel = ({
     }
   };
 
+
   // Fetch units for the selected extension's machine type
   useEffect(() => {
     if (!selectedExtension || !isApproveModalOpen) return;
@@ -187,10 +191,15 @@ const TicketRequestCompletedDetailsPanel = ({
     <Modal isOpen={isOpen} onClose={onClose} size="4xl" closeOnOverlayClick={false} scrollBehavior="inside" isCentered motionPreset='none'>
       <ModalOverlay />
       <ModalContent borderRadius="md" overflow="hidden">
-        {selectedTicket?.extensionNeeded === true ? (
+        {(selectedTicket?.extensionNeeded === true && selectedTicket?.status === 'Partially Completed') ? (
           <ModalHeader bg="green.50" borderBottomWidth="1px" borderColor="gray.200" display="flex" alignItems="center">
             <FaCheckCircle style={{ marginRight: 12, color: 'green' }} />
             Partially Completed Ticket Details
+          </ModalHeader>
+        ) : isExtensionTicket ? (
+          <ModalHeader bg="green.50" borderBottomWidth="1px" borderColor="gray.200" display="flex" alignItems="center">
+            <FaCheckCircle style={{ marginRight: 12, color: 'green' }} />
+            Completed Extension Ticket Details
           </ModalHeader>
         ) : (
           <ModalHeader bg="green.50" borderBottomWidth="1px" borderColor="gray.200" display="flex" alignItems="center">
@@ -215,28 +224,46 @@ const TicketRequestCompletedDetailsPanel = ({
                     <Text fontWeight="bold" fontSize="sm" color="gray.600">Status</Text>
                     <Badge colorScheme="green">{selectedTicket.status}</Badge>
                   </Box>
-                  <Box>
-                    <Text fontWeight="bold" fontSize="sm" color="gray.600">Requestor Farmer</Text>
+                  {!isExtensionTicket && (
+                    <>
+                    <Box>
+                    <Text fontWeight="bold" fontSize="sm" color="gray.600">Farmer</Text>
                     <Text fontSize="md">
-                      {selectedTicket.requestorFarmer?.first_name} {selectedTicket.requestorFarmer?.surname}
+                      {`${selectedTicket?.requestorFarmer?.first_name || ''} ${selectedTicket?.requestorFarmer?.surname || ''}`}
                     </Text>
-                  </Box>
-                  <Box>
-                    <Text fontWeight="bold" fontSize="sm" color="gray.600">Farm Location</Text>
-                    <Text fontSize="md">{selectedTicket.barangay}</Text>
-                  </Box>
+                    </Box>
+                    <Box>
+                      <Text fontWeight="bold" fontSize="sm" color="gray.600">Farm Location</Text>
+                      <Text fontSize="md">{selectedTicket?.barangay || 'N/A'}</Text>
+                    </Box>
+                  </>
+                  )}
                   <Box>
                     <Text fontWeight="bold" fontSize="sm" color="gray.600">Machine Type</Text>
                     <Text fontSize="md">{selectedTicket.requestedMachineType?.equipmentType}</Text>
                   </Box>
-                  <Box>
-                    <Text fontWeight="bold" fontSize="sm" color="gray.600">Estimated Area</Text>
-                    <Text fontSize="md">{selectedTicket.estimatedArea} ha</Text>
-                  </Box>
+
+                  {!isExtensionTicket ? (
+                    <>
+                      <Box>
+                        <Text fontWeight="bold" fontSize="sm" color="gray.600">Estimated Area</Text>
+                        <Text fontSize="md">{selectedTicket?.estimatedArea || 'N/A'}</Text>
+                      </Box>
+                    </>
+                  ) : (
+                    <>
+                      <Box>
+                        <Text fontWeight="bold" fontSize="sm" color="gray.600">Remaining Area</Text>
+                        <Text fontSize="md">{selectedTicket?.remainingArea || 'N/A'}</Text>
+                      </Box>
+                    </>
+                  )}
+
                   <Box>
                     <Text fontWeight="bold" fontSize="sm" color="gray.600">Assigned Date</Text>
                     <Text fontSize="md">{formatDate(selectedTicket.assignedDate)}</Text>
                   </Box>
+
                   <Box>
                     <Text fontWeight="bold" fontSize="sm" color="gray.600">Completed Date</Text>
                     <Text fontSize="md">{formatDate(selectedTicket.completedDate || selectedTicket.updatedAt)}</Text>
@@ -249,112 +276,107 @@ const TicketRequestCompletedDetailsPanel = ({
                   </Box>
                   <Box>
                     <Text fontWeight="bold" fontSize="sm" color="gray.600">Machine Unit</Text>
-                    <Text fontSize="md">{selectedTicket.assignedMachineUnit?.plateNumber}</Text>
+                    <Text fontSize="md">{selectedTicket.assignedMachineUnit?.unitNumber}</Text>
                   </Box>
                 </SimpleGrid>
               </Box>
 
               <Divider />
 
+
+
               {/* Extension Tickets Section */}
-              {selectedTicket?.extensionNeeded && selectedTicket?.extensionTickets && selectedTicket?.extensionTickets.length > 0 && (
+              {selectedTicket?.extensionNeeded === true && selectedTicket?.extensionTicketId && (
                 <>
                   <Box>
                     <Heading size="sm" mb={4}>Extension Requests</Heading>
                     <VStack spacing={4} align="stretch">
-                      {selectedTicket.extensionTickets.map((extension, index) => {
-                        //const isLatest = index === selectedTicket.extensionTickets.length - 1;
-                        const Status = extension.status;
-                        const isAdmin = user?.role === 'MIM';
-                        
-                        return (
-                          <Box key={extension._id || index} bg="orange.50" p={4} borderRadius="md" borderWidth="1px" borderColor="orange.200">
-                            <Heading size="xs" mb={3} color="orange.700">Extension #{index + 1}</Heading>
-                            <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4}>
-                              {/* Column 1: Reference Number and Status */}
-                              <Box>
-                                <Text fontWeight="bold" fontSize="xs" color="gray.600">Reference Number</Text>
-                                <Text fontSize="xs" mb={2}>{extension.refNumber || 'N/A'}</Text>
-                                <Text fontWeight="bold" fontSize="xs" color="gray.600">Status</Text>
-                                <Badge colorScheme="orange" fontSize="xs">{extension.status}</Badge>
-                              </Box>
-                              
-                              {/* Column 2: Area Serviced and Remaining Area */}
-                              <Box>
-                                <Text fontWeight="bold" fontSize="xs" color="gray.600">Area Serviced</Text>
-                                <Text fontSize="xs" mb={2}>{extension.areaServiced} ha</Text>
-                                <Text fontWeight="bold" fontSize="xs" color="gray.600">Remaining Area</Text>
-                                <Text fontSize="xs">{extension.remainingArea} ha</Text>
-                              </Box>
-                              
-                              {/* Column 3: Extension Reason */}
-                              <Box>
-                                <Text fontWeight="bold" fontSize="xs" color="gray.600">Extension Reason</Text>
-                                <Text fontSize="xs">{extension.extensionReason || 'N/A'}</Text>
-                              </Box>
-                            </SimpleGrid>
-                            
-                            {/* Additional fields if assigned */}
-                            {(extension.assignedDate || extension.assignedOperator?.first_name || extension.assignedMachineUnit?.plateNumber) && (
-                              <>
-                                <Divider my={3} />
-                                <SimpleGrid columns={{ base: 1, md: 3 }} spacing={3}>
-                                  {extension.assignedDate && (
-                                    <Box>
-                                      <Text fontWeight="bold" fontSize="xs" color="gray.600">Assigned Date</Text>
-                                      <Text fontSize="xs">{formatDate(extension.assignedDate)}</Text>
-                                    </Box>
-                                  )}
-                                  {extension.assignedOperator?.first_name && (
-                                    <Box>
-                                      <Text fontWeight="bold" fontSize="xs" color="gray.600">Assigned Operator</Text>
-                                      <Text fontSize="xs">
-                                        {extension.assignedOperator.first_name} {extension.assignedOperator.last_name}
-                                      </Text>
-                                    </Box>
-                                  )}
-                                  {extension.assignedMachineUnit?.plateNumber && (
-                                    <Box>
-                                      <Text fontWeight="bold" fontSize="xs" color="gray.600">Machine Unit</Text>
-                                      <Text fontSize="xs">{extension.assignedMachineUnit.plateNumber}</Text>
-                                    </Box>
-                                  )}
-                                </SimpleGrid>
-                              </>
-                            )}
-
-                                {isAdmin ? (
-                                  <HStack spacing={3} justify="flex-end">
-                                    <Button
-                                      size="sm"
-                                      colorScheme="red"
-                                      onClick={() => handleDeclineExtension(extension, index)}
-                                    >
-                                      Decline
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      colorScheme="green"
-                                      onClick={() => handleApproveExtension(extension, index)}
-                                    >
-                                      Approve
-                                    </Button>
-                                  </HStack>
-                                ) : (
-                                  <Alert status="info" borderRadius="md" mt={3} variant="left-accent">
-                                    <AlertIcon />
-                                    <Text fontSize="sm">Waiting for managers' response</Text>
-                                  </Alert>
-                                )}
+                      {/* Use extensionId directly, which is populated as an object */}
+                      <Box bg="orange.50" p={4} borderRadius="md" borderWidth="1px" borderColor="orange.200">
+                        <Heading size="xs" mb={3} color="orange.700">Extension #1</Heading>
+                        <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4}>
+                          <Box>
+                            <Text fontWeight="bold" fontSize="xs" color="gray.600">Reference Number</Text>
+                            <Text fontSize="xs" mb={2}>{selectedTicket.extensionTicketId.refNumber || 'N/A'}</Text>
+                            <Text fontWeight="bold" fontSize="xs" color="gray.600">Status</Text>
+                            <Badge colorScheme="orange" fontSize="xs">{selectedTicket.extensionTicketId.status}</Badge>
                           </Box>
-                        );
-                      })}
+                          {/* Column 2: Area Serviced and Remaining Area */}
+                          <Box>
+                            <Text fontWeight="bold" fontSize="xs" color="gray.600">Area Serviced</Text>
+                            <Text fontSize="xs" mb={2}>{selectedTicket.extensionTicketId.areaServiced} ha</Text>
+                            <Text fontWeight="bold" fontSize="xs" color="gray.600">Remaining Area</Text>
+                            <Text fontSize="xs">{selectedTicket.extensionTicketId.remainingArea} ha</Text>
+                          </Box>
+                          {/* Column 3: Extension Reason */}
+                          <Box>
+                            <Text fontWeight="bold" fontSize="xs" color="gray.600">Extension Reason</Text>
+                            <Text fontSize="xs">{selectedTicket.extensionTicketId.extensionReason || 'N/A'}</Text>
+                          </Box>
+                        </SimpleGrid>
+                        {/* Additional fields if assigned */}
+                        {(selectedTicket.extensionTicketId.assignedDate ||
+                          selectedTicket.extensionTicketId.assignedOperator?.first_name ||
+                          selectedTicket.extensionTicketId.assignedMachineUnit?.plateNumber) && (
+                          <>
+                            <Divider my={3} />
+                            <SimpleGrid columns={{ base: 1, md: 3 }} spacing={3}>
+                              {selectedTicket.extensionTicketId.assignedDate && (
+                                <Box>
+                                  <Text fontWeight="bold" fontSize="xs" color="gray.600">Assigned Date</Text>
+                                  <Text fontSize="xs">{formatDate(selectedTicket.extensionTicketId.assignedDate)}</Text>
+                                </Box>
+                              )}
+                              {selectedTicket.extensionTicketId.assignedOperator?.first_name && (
+                                <Box>
+                                  <Text fontWeight="bold" fontSize="xs" color="gray.600">Assigned Operator</Text>
+                                  <Text fontSize="xs">
+                                    {selectedTicket.extensionTicketId.assignedOperator.first_name} {selectedTicket.extensionTicketId.assignedOperator.last_name}
+                                  </Text>
+                                </Box>
+                              )}
+                              {selectedTicket.extensionTicketId.assignedMachineUnit?.plateNumber && (
+                                <Box>
+                                  <Text fontWeight="bold" fontSize="xs" color="gray.600">Machine Unit</Text>
+                                  <Text fontSize="xs">{selectedTicket.extensionTicketId.assignedMachineUnit.plateNumber}</Text>
+                                </Box>
+                              )}
+                            </SimpleGrid>
+                          </>
+                        )}
+                        {/* Only show buttons and alert if status is Pending */}
+                        {selectedTicket.extensionTicketId.status === 'Pending' ? (
+                          user?.role === 'MIM' ? (
+                            <HStack spacing={3} justify="flex-end">
+                              <Button
+                                size="sm"
+                                colorScheme="red"
+                                onClick={() => handleDeclineExtension(selectedTicket.extensionTicketId)}
+                              >
+                                Decline
+                              </Button>
+                              <Button
+                                size="sm"
+                                colorScheme="green"
+                                onClick={() => handleApproveExtension(selectedTicket.extensionTicketId, 0)}
+                              >
+                                Approve
+                              </Button>
+                            </HStack>
+                          ) : (
+                            <Alert status="info" borderRadius="md" mt={3} variant="left-accent">
+                              <AlertIcon />
+                              <Text fontSize="sm">Waiting for managers' response</Text>
+                            </Alert>
+                          )
+                        ) : null}
+                      </Box>
                     </VStack>
                   </Box>
-
                   <Divider />
                 </>
               )}
+
 
               {/* Proof Images Section */}
               <Box>
@@ -454,25 +476,7 @@ const TicketRequestCompletedDetailsPanel = ({
                 </SimpleGrid>
               </Box>
 
-              {/* Additional Notes if available */}
-              {(selectedTicket.remarks || (selectedTicket.extensionNeeded && selectedTicket.extensionTickets?.[0]?.extensionReason)) && (
-                <>
-                  <Divider />
-                  <Box>
-                    <Text fontWeight="bold" fontSize="sm" color="gray.600" mb={2}>
-                      {selectedTicket.extensionNeeded ? 'Extension Reason' : 'Completion Notes'}
-                    </Text>
-                    <Box bg="gray.50" p={3} borderRadius="md">
-                      <Text fontSize="sm">
-                        {selectedTicket.extensionNeeded 
-                          ? (selectedTicket.extensionTickets?.[0]?.extensionReason || 'No extension reason provided')
-                          : selectedTicket.remarks
-                        }
-                      </Text>
-                    </Box>
-                  </Box>
-                </>
-              )}
+
             </VStack>
           ) : (
             <VStack spacing={4} align="center" py={8}>
@@ -498,11 +502,8 @@ const TicketRequestCompletedDetailsPanel = ({
         </ModalHeader>
         <ModalBody py={6}>
           <VStack spacing={4} align="stretch">
-            <Text fontSize="sm" fontWeight="medium">
-              Are you sure you want to approve this extension request?
-            </Text>
             
-            <Box bg="blue.50" p={3} borderRadius="md">
+            <Box bg="blue.50" p={3} borderRadius="md" borderWidth="1px" borderColor="blue.200">
               <Text fontSize="sm" fontWeight="bold" mb={2} color="blue.700">
                 Schedule Impact:
               </Text>
@@ -589,7 +590,7 @@ const TicketRequestCompletedDetailsPanel = ({
                           >
                             {(unitsByType[selectedTicket?.requestedMachineType?.requestedMachineTypeId] || []).map(unit => (
                               <option key={unit._id} value={unit._id}>
-                                {unit.plateNumber} - {unit.machineryTypeId?.equipmentType}
+                                {unit.unitNumber} - {unit.machineryTypeId?.equipmentType}
                               </option>
                             ))}
                           </Select>
@@ -627,10 +628,6 @@ const TicketRequestCompletedDetailsPanel = ({
         </ModalHeader>
         <ModalBody py={6}>
           <VStack spacing={4} align="stretch">
-            <Text fontSize="sm" fontWeight="medium">
-              Are you sure you want to decline this extension request?
-            </Text>
-            
             <Box bg="orange.50" p={3} borderRadius="md" borderWidth="1px" borderColor="orange.200">
               <Text fontSize="sm" fontWeight="bold" mb={2} color="orange.700">
                 Impact of Declining:
@@ -643,7 +640,7 @@ const TicketRequestCompletedDetailsPanel = ({
                   • This extension request will be removed.
                 </Text>
                 <Text fontSize="sm">
-                  • The remaining area ({selectedExtension?.remainingArea || 0} ha) will not be serviced
+                  • The remaining area ({selectedTicket?.extensionTicketId?.remainingArea || 0} ha) will not be serviced
                 </Text>
                 <Text fontSize="sm" fontWeight="medium" color="orange.700">
                   • The weekly schedule will continue as is without any adjustments

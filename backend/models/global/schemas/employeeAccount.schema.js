@@ -11,6 +11,7 @@ export const EmployeeAccountSchema = new mongoose.Schema({
     
     office_position: { type: String, enum: ['CFS', 'LPMS', 'ANMS', 'RTSS'] }, // pag gagawa lang ng staff account for doc-track sya applicable 
     roles: [String],
+    isOperatorDisabled: { type: Boolean, default: false },
 
     password: { type: String, required: true },
     lastLogin: { type: Date, default: Date.now },

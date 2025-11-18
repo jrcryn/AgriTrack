@@ -2,8 +2,10 @@
 export const updateScheduleStatus = async () => {
     try {
         const now = new Date();
+        const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
 
         const tickets = await global.machineriesModels.TicketRequest.find({ status: 'Scheduled', scheduleId: { $ne: null } }).populate('scheduleId', '_id weekStart weekEnd status');
+        const extTickets = await global.machineriesModels.ExtensionTicket.find({ status: 'Scheduled', scheduleId: { $ne: null } }).populate('scheduleId', '_id weekStart weekEnd status');
 
         const updatedSchedules = new Set();
 
@@ -19,13 +21,48 @@ export const updateScheduleStatus = async () => {
                     updatedSchedules.add(scheduleIdStr);
                 }
 
-                // Update ticket
-                if (tr.status !== 'Ongoing') {
+                // Update ticket to Ongoing only if it's within the week
+                if (tr.status !== 'Ongoing' && !tr.updatedToOngoing) {
                     tr.status = 'Ongoing';
+                    tr.updatedToOngoing = true;
+                    
+                    // Only disable editing if assignedDate is today or in the past
+                    if (tr.assignedDate && new Date(tr.assignedDate) <= endOfToday) {
+                        tr.disabledForEditing = true;
+                    }
+                    
                     await tr.save();
                 }
             }
         }
+
+        for (const tr of extTickets) {
+            const schedule = tr.scheduleId;
+            if (!schedule || !schedule.weekStart) continue;
+
+            if (now >= new Date(schedule.weekStart) && now <= new Date(schedule.weekEnd)) {
+                const scheduleIdStr = String(schedule._id);
+                if (schedule.status !== 'In Progress' && !updatedSchedules.has(scheduleIdStr)) {
+                    schedule.status = 'In Progress';
+                    await schedule.save();
+                    updatedSchedules.add(scheduleIdStr);
+                }
+
+                // Update ticket to Ongoing only if it's within the week
+                if (tr.status !== 'Ongoing' && !tr.updatedToOngoing) {
+                    tr.status = 'Ongoing';
+                    tr.updatedToOngoing = true;
+                    
+                    // Only disable editing if assignedDate is today or in the past
+                    if (tr.assignedDate && new Date(tr.assignedDate) <= endOfToday) {
+                        tr.disabledForEditing = true;
+                    }
+                    
+                    await tr.save();
+                }
+            }
+        }
+
         console.log('Schedule status update completed.');
     } catch (error) {
         console.error('Error updating schedule status:', error);
@@ -38,18 +75,23 @@ export const disableEditingForTodayTickets = async () => {
     try {
         const now = new Date();
         const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
 
-        // Find all ongoing tickets with assignedDate <= today and disabledForEditing = false
+        // Find all ongoing tickets with assignedDate >= startOfDay AND <= endOfDay (only today)
         const tickets = await global.machineriesModels.TicketRequest.find({
             status: 'Ongoing',
             assignedDate: {
-                $lte: startOfDay
+                $gte: startOfDay,
+                $lte: endOfDay
             },
-            disabledForEditing: { $ne: true }
+            $or: [
+                { disabledForEditing: { $exists: false } },
+                { disabledForEditing: false }
+            ]
         });
 
         if (tickets.length === 0) {
-            console.log('No ongoing tickets found with today\'s or past assigned dates');
+            console.log('No ongoing tickets found with today\'s assigned date');
             return;
         }
 
@@ -60,7 +102,7 @@ export const disableEditingForTodayTickets = async () => {
         });
 
         await Promise.all(updatePromises);
-        console.log(`Successfully disabled editing for ${tickets.length} ticket(s) with today's or past assigned dates`);
+        console.log(`Successfully disabled editing for ${tickets.length} ticket(s) with today's assigned date`);
 
     } catch (error) {
         console.error('Error disabling editing for today\'s tickets:', error);

@@ -23,12 +23,13 @@ const OngoingTicketPanel = ({
   const toast = useToast();
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
-
+  console.log('Selected Weekly Schedule:', selectedWeeklySchedule);
   const { isOpen: isOpenReturnModal, onOpen: onOpenReturnModal, onClose: onCloseReturnModal } = useDisclosure();
   const [selectedTicketForReturn, setSelectedTicketForReturn] = useState(null);
   
   const { isOpen: isOpenCompletedDetails, onOpen: onOpenCompletedDetails, onClose: onCloseCompletedDetails } = useDisclosure();
   const [selectedCompletedTicket, setSelectedCompletedTicket] = useState(null);
+  const [isExtensionTicket, setIsExtensionTicket] = useState(false);
 
   useEffect(() => {
     if (!isOpen) {
@@ -68,6 +69,22 @@ const OngoingTicketPanel = ({
       month: 'short',
       day: 'numeric'
     });
+  };
+
+  const isToday = (dateString) => {
+    if (!dateString) return false;
+    const today = new Date();
+    const assignedDate = new Date(dateString);
+    return today.toDateString() === assignedDate.toDateString();
+  };
+
+  const isTodayOrPast = (dateString) => {
+    if (!dateString) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const assignedDate = new Date(dateString);
+    assignedDate.setHours(0, 0, 0, 0);
+    return assignedDate <= today;
   };
 
   return (
@@ -140,67 +157,104 @@ const OngoingTicketPanel = ({
                           </Thead>
                           <Tbody>
                             {selectedWeeklySchedule.ticketRequests.map((tr) => {
-                              const ticket = tr.ticketDetails;
-                              const hasExtensionRequest = ticket.extensionNeeded === true;
-                              const rowBgColor = hasExtensionRequest ? 'orange.100' : (ticket.status === 'Completed' ? 'green.100' : null);
-                              
+                              // Show extension ticket if present, else regular ticket
+                              const ticket = tr.extensionRequestId ? tr.extensionDetails : tr.ticketDetails;
+                              const hasExtensionRequest = tr.extensionRequestId ? true : (ticket.extensionNeeded === true);
+                              const rowBgColor = ticket.status === 'Completed' ? 'green.100' : ticket.status === 'Partially Completed' ? 'orange.100' : null;
+
                               return (
-                                <Tr key={tr.ticketRequestId} bgColor={rowBgColor}>
-                                  <Td fontWeight="semibold" fontSize={'xs'} >{ticket.refNumber}</Td>
-                                  <Td fontSize={'xs'}>{`${ticket.requestorFarmer?.first_name} ${ticket.requestorFarmer?.surname}`}</Td>
-                                  <Td fontSize={'xs'}>{ticket.barangay}</Td>
-                                  <Td fontSize={'xs'}>{ticket.requestedMachineType?.equipmentType}</Td>
-                                  <Td fontSize={'xs'}>{ticket.estimatedArea}</Td>
-                                  <Td fontSize={'xs'}>
-                                    {formatDate(ticket.assignedDate) || '-'}
+                                <Tr key={tr.ticketRequestId || tr._id} bgColor={rowBgColor}>
+                                  <Td fontWeight="semibold" fontSize={'xs'}>
+                                    {/* Remove orange color for extension tickets */}
+                                    <Text>{ticket.refNumber}</Text>
                                   </Td>
                                   <Td fontSize={'xs'}>
-                                    {ticket.assignedOperator?.first_name || '-'} {ticket.assignedOperator?.last_name || ''}
+                                    {ticket.requestorFarmer
+                                      ? `${ticket.requestorFarmer?.first_name} ${ticket.requestorFarmer?.surname}`
+                                      : <Text>|    |</Text>}
                                   </Td>
                                   <Td fontSize={'xs'}>
-                                    {ticket.assignedMachineUnit?.plateNumber || '-'}
+                                    {ticket.barangay || <Text>|    |</Text>}
+                                  </Td>
+                                  <Td fontSize={'xs'}>
+                                    <Text>{ticket.requestedMachineType?.equipmentType || '—'}</Text>
+                                  </Td>
+                                  <Td fontSize={'xs'}>
+                                    {ticket.estimatedArea
+                                      ? `${ticket?.estimatedArea || '-'}`
+                                      : <Text>{ticket?.remainingArea || '-'}</Text>
+                                      }
+                                  </Td>
+                                  <Td fontSize={'xs'}>
+                                    <Text>{formatDate(ticket.assignedDate) || '-'}</Text>
+                                  </Td>
+                                  <Td fontSize={'xs'}>
+                                    {ticket.assignedOperator
+                                      ? <Text>{`${ticket.assignedOperator?.first_name || '-'} ${ticket.assignedOperator?.last_name || ''}`}</Text>
+                                      : '-'}
+                                  </Td>
+                                  <Td fontSize={'xs'}>
+                                    {/* Remove orange color for extension tickets */}
+                                    <Text>{ticket.assignedMachineUnit?.unitNumber || '-'}</Text>
                                   </Td>
                                   <Td>
+                                    {/* Extension ticket: show Update only if not completed, View Details only if completed */}
                                     {hasExtensionRequest ? (
-                                      <>
-                                        <Button 
-                                          size={'xs'} 
-                                          colorScheme='orange' 
+                                      (ticket.status === 'Completed' || ticket.status === 'Partially Completed') ? (
+                                        <Button
+                                          size={'xs'}
+                                          colorScheme='orange'
                                           ml={1}
                                           onClick={() => {
                                             setSelectedCompletedTicket(ticket);
                                             onOpenCompletedDetails();
+                                            setIsExtensionTicket(tr.extensionRequestId ? true : false);
+
                                           }}
                                         >
                                           View Details
                                         </Button>
-                                      </>
-                                    ) : ticket.status === 'Completed' ? (
-                                      <>
-                                        <Button 
-                                          size={'xs'} 
-                                          colorScheme='green' 
-                                          ml={1}
+                                      ) : (
+                                        <Button
+                                          colorScheme='yellow'
+                                          size={'xs'}
+                                          mr={2}
                                           onClick={() => {
-                                            setSelectedCompletedTicket(ticket);
-                                            onOpenCompletedDetails();
+                                            handleOpenReturnModal(ticket);
+                                            setIsExtensionTicket(tr.extensionRequestId ? true : false);
                                           }}
+                                          isDisabled={ticket.disabledForEditing === false || !isTodayOrPast(ticket.assignedDate)}
                                         >
-                                          View Details
+                                          Update Ticket
                                         </Button>
-                                      </>
+                                      )
                                     ) : (
-                                      <Button
-                                        colorScheme='yellow'
-                                        size={'xs'}
-                                        mr={5}
-                                        onClick={() => {
-                                          handleOpenReturnModal(ticket);
-                                        }}
-                                        isDisabled={ticket.disabledForEditing === false}
-                                      >
-                                        Update Ticket
-                                      </Button>
+                                      // Regular ticket: show View Details only if completed, else Update
+                                      ticket.status === 'Completed' ? (
+                                        <Button
+                                          size={'xs'}
+                                          colorScheme='green'
+                                          ml={1}
+                                          onClick={() => {
+                                            setSelectedCompletedTicket(ticket);
+                                            onOpenCompletedDetails();
+                                          }}
+                                        >
+                                          View Details
+                                        </Button>
+                                      ) : (
+                                        <Button
+                                          colorScheme='yellow'
+                                          size={'xs'}
+                                          mr={5}
+                                          onClick={() => {
+                                            handleOpenReturnModal(ticket);
+                                          }}
+                                          isDisabled={ticket.disabledForEditing === false || !isTodayOrPast(ticket.assignedDate)}
+                                        >
+                                          Update Ticket
+                                        </Button>
+                                      )
                                     )}
                                   </Td>
                                 </Tr>
@@ -235,6 +289,7 @@ const OngoingTicketPanel = ({
         selectedTicket={selectedTicketForReturn}
         scheduleId={selectedWeeklySchedule?._id}
         onRequestReopenSchedule={onRequestReopenSchedule}
+        isExtensionTicket={isExtensionTicket}
       />
 
       {/* Completed Ticket Details Modal */}
@@ -245,6 +300,7 @@ const OngoingTicketPanel = ({
           setTimeout(() => setSelectedCompletedTicket(null), 200);
         }}
         selectedTicket={selectedCompletedTicket}
+        isExtensionTicket={isExtensionTicket}
       />
     </>
   );

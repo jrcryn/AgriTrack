@@ -3,45 +3,46 @@ import {
   Box, Heading, Text, VStack, Button, Flex, Icon, SimpleGrid, Divider, 
   useToast, Spinner, Alert, AlertIcon, Badge
 } from "@chakra-ui/react";
-import { FaFileExcel, FaDownload, FaTools, FaChartBar } from 'react-icons/fa';
+import { FaFileExcel, FaDownload, FaChartBar } from 'react-icons/fa';
 import { useAdminDashboard } from '../store/adminDashboard.store';
 
 const GenReports = () => {
-  const { isGeneratingReport, generateExcelReport, isLoading, error, machineryUnits } = useAdminDashboard();
+  const { isGeneratingReport, generateMachineryReport, isLoading, error } = useAdminDashboard();
   const toast = useToast();
 
-  const handleGenerateReport = async () => {
+  const buildFilename = () => {
+    const now = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    const cur = `${now.getFullYear()}-${pad(now.getMonth() + 1)}`;
+    return `machinery-monthly-report-${cur}.xlsx`;
+  };
+
+  const handleGenerateUsageReport = async () => {
     try {
-      // Request the report data from the server
-      const reportData = await generateExcelReport();
-
-      // Handle the download in the component (UI concern)
-      const url = window.URL.createObjectURL(new Blob([reportData]));
+      // Request and download (backend decides the period; defaults to current month)
+      const blob = await generateMachineryReport();
+      const url = window.URL.createObjectURL(new Blob([blob]));
       const link = document.createElement('a');
-
-      const date = new Date().toISOString().split('T')[0];
-      const filename = `As_Of_${date}.xlsx`;
-
       link.href = url;
-      link.setAttribute('download', `Machinery_Inventory_${filename}`); //  file name
+      link.setAttribute('download', buildFilename());
       document.body.appendChild(link);
       link.click();
       link.remove();
-      
-      
+      window.URL.revokeObjectURL(url);
+
       toast({
-        title: "Success!",
-        description: reportData.message || "Machinery inventory report has been generated and downloaded",
-        status: "success",
-        duration: 5000,
+        title: 'Report generated',
+        description: 'Monthly usage report has been downloaded.',
+        status: 'success',
+        duration: 4000,
         isClosable: true,
       });
     } catch (error) {
-      console.error("Error generating report:", error);
+      console.error('Error generating report:', error);
       toast({
-        title: "Error generating report",
-        description: error.message || "Please try again later",
-        status: "error",
+        title: 'Error generating report',
+        description: error.message || 'Please try again later',
+        status: 'error',
         duration: 5000,
         isClosable: true,
       });
@@ -93,11 +94,11 @@ const GenReports = () => {
         Generate Reports
       </Heading>
       <Text color="gray.600" mb={5}>
-        Generate Excel reports for machinery inventory and allocation.
+        Generate Excel reports for monthly machinery usage.
       </Text>
 
       <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={8}>
-        {/* Excel Report Generation Section */}
+        {/* Usage Report Generation Section */}
         <Box>
           <Flex 
             justify="space-between" 
@@ -110,7 +111,7 @@ const GenReports = () => {
             borderLeftColor="green.500"
           >
             <Heading as="h2" size="md" display="flex" alignItems="center">
-              <Icon as={FaFileExcel} mr={2} color="green.600" /> MACHINERY INVENTORY REPORT
+              <Icon as={FaFileExcel} mr={2} color="green.600" /> MACHINERY MONTHLY USAGE REPORT
             </Heading>
           </Flex>
           
@@ -121,32 +122,24 @@ const GenReports = () => {
             borderWidth="1px" 
             borderColor="gray.200"
           >
-            <VStack spacing={6} align="stretch">
+            <VStack spacing={5} align="stretch">
               <Text>
-                Generate a machinery inventory report showing all units, their functional status, and barangay allocations.
+                Generate a report of completed ticket requests and completed extensions. Each month gets its own sheet
+                with rows for Farmer, Barangay, Farm Location, Area, and Type (Ticket/Extension), plus a barangay coverage summary.
               </Text>
-              
-              <Box bg="blue.50" p={4} borderRadius="md">
-                <Flex align="center">
-                  <Icon as={FaTools} color="blue.500" mr={2} />
-                  <Text fontWeight="medium">
-                    {machineryUnits.length} machines currently registered in the system.
-                  </Text>
-                </Flex>
-              </Box>
-              
-              <Divider my={2} />
-              
+
+              <Divider />
+
               <Button
                 colorScheme="green"
                 leftIcon={<FaDownload />}
-                onClick={handleGenerateReport}
+                onClick={handleGenerateUsageReport}
                 isLoading={isGeneratingReport}
                 loadingText="Generating..."
                 size="lg"
                 width="100%"
               >
-                Generate Report
+                Generate Usage Report
               </Button>
             </VStack>
           </Box>
@@ -178,37 +171,33 @@ const GenReports = () => {
           >
             <VStack spacing={5} align="stretch">
               <Text>
-                This report contains comprehensive data about machinery inventory and their allocation across all barangays.
+                The report contains a Summary sheet and monthly sheets generated automatically by the backend
+                (current month by default).
               </Text>
               
               <Box>
-                <Heading size="sm" mb={2}>Report Contains:</Heading>
+                <Heading size="sm" mb={2}>Each monthly sheet includes:</Heading>
                 <VStack align="start" spacing={2}>
                   <Flex align="center">
-                    <Badge colorScheme="green" mr={2}>Machinery Units</Badge>
-                    <Text fontSize="sm">Complete list of all registered machinery types</Text>
+                    <Badge colorScheme="green" mr={2}>Completed Tickets</Badge>
+                    <Text fontSize="sm">Farmer, Barangay, Farm Location, Area (Estimated)</Text>
                   </Flex>
                   <Flex align="center">
-                    <Badge colorScheme="blue" mr={2}>Functional Status</Badge>
-                    <Text fontSize="sm">Number of functional and non-functional units per type</Text>
+                    <Badge colorScheme="purple" mr={2}>Completed Extensions</Badge>
+                    <Text fontSize="sm">Farmer, Barangay, Farm Location, Area (Remaining)</Text>
                   </Flex>
                   <Flex align="center">
-                    <Badge colorScheme="orange" mr={2}>Barangay Allocation</Badge>
-                    <Text fontSize="sm">Distribution of machinery across all barangays</Text>
-                  </Flex>
-                  <Flex align="center">
-                    <Badge colorScheme="purple" mr={2}>Color Coding</Badge>
-                    <Text fontSize="sm">Functional (green) and non-functional (red) units clearly marked</Text>
+                    <Badge colorScheme="orange" mr={2}>Barangay Coverage</Badge>
+                    <Text fontSize="sm">Count of completed entries per barangay for the month</Text>
                   </Flex>
                 </VStack>
               </Box>
               
-              <Divider />
+              {/* <Divider />
               
-              <Text fontSize="sm" fontStyle="italic">
-                The generated Excel file is formatted for easy printing and sharing.
-                All machinery and their allocations are current as of the report generation date.
-              </Text>
+              {/* <Text fontSize="sm" fontStyle="italic">
+                Formatted with proper spacing, borders, and headers for printing and sharing.
+              </Text> */} 
             </VStack>
           </Box>
         </Box>

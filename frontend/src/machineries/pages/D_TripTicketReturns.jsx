@@ -46,14 +46,14 @@ const TripTicketReturns = () => {
     { ongoingPage },
     { searchQuery }
   );
-  console.log('In-Progress Weekly Schedules:', inProgressWeeklySchedules);
   useEffect(() => {
     setOngoingPage(1);
   }, [searchQuery]);
 
+  console.log('In-Progress Weekly Schedules:', inProgressWeeklySchedules);
+
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [selectedWeeklySchedule, setSelectedWeeklySchedule] = useState(null);
-  console.log(selectedWeeklySchedule);
 
   const inProgressWeeklySchedulesList = inProgressWeeklySchedules?.data?.relevantSchedules || [];
   const inProgressSchedulesTotalPages = inProgressWeeklySchedules?.data?.totalPages || 1;
@@ -259,11 +259,10 @@ const TripTicketReturns = () => {
                   {filteredInProgressSchedules.map((schedule) => {
                     //Check if any ticket has extension request with pending status
                     const hasExtensionRequest = schedule.ticketRequests.some(
-                      ticket => 
+                      ticket =>
                         ticket?.ticketDetails?.extensionNeeded === true &&
-                        ticket?.ticketDetails?.extensionTickets?.some(
-                          ext => ext.status === 'Pending'
-                        )
+                        ticket?.ticketDetails?.extensionTicketId &&
+                        ticket?.ticketDetails?.extensionTicketId.status === 'Pending'
                     );
 
                     return (
@@ -278,7 +277,12 @@ const TripTicketReturns = () => {
                               {schedule.ticketRequests.map((ticket) => (
                                 <Flex key={ticket._id} align='center' justify="space-between" gap={2}>
                                   <Flex direction='column'>
-                                    <Text fontWeight='medium'>{ticket.ticketDetails?.refNumber}</Text>
+                                    {ticket?.extensionRequestId ? (
+                                      <Text fontWeight='medium' color={'orange.500'}>{ticket.extensionDetails?.refNumber}</Text>
+                                    ) : (
+                                      <Text fontWeight='medium'>{ticket.ticketDetails?.refNumber}</Text>
+                                    )}
+                                    
                                   </Flex>
                                 </Flex>
                               ))}
@@ -301,7 +305,12 @@ const TripTicketReturns = () => {
                               {schedule.ticketRequests.map((ticket) => (
                                 <Flex key={ticket._id} align='center' justify="space-between" gap={2}>
                                   <Flex direction='column'>
-                                    {formatDate(ticket?.ticketDetails?.assignedDate)}
+                                  {ticket?.extensionRequestId ? (
+                                      <Text fontWeight='medium'>{formatDate(ticket.extensionDetails?.assignedDate)}</Text>
+                                    ) : (
+                                      <Text fontWeight='medium'>{formatDate(ticket?.ticketDetails?.assignedDate)}</Text>
+                                    )}
+                                    
                                   </Flex>
                                 </Flex>
                               ))}
@@ -317,7 +326,11 @@ const TripTicketReturns = () => {
                               {schedule.ticketRequests.map((ticket) => (
                                 <Flex key={ticket._id} align='center' justify="space-between" gap={2}>
                                   <Flex direction='column'>
-                                    <Text>{ticket?.ticketDetails?.assignedMachineUnit?.plateNumber} - {ticket?.ticketDetails?.requestedMachineType?.equipmentType}</Text>
+                                    {ticket?.extensionRequestId ? (
+                                      <Text>{ticket.extensionDetails?.assignedMachineUnit?.unitNumber} - {ticket.extensionDetails?.requestedMachineType?.equipmentType}</Text>
+                                    ) : (
+                                      <Text>{ticket?.ticketDetails?.assignedMachineUnit?.unitNumber} - {ticket?.ticketDetails?.requestedMachineType?.equipmentType}</Text>
+                                    )}
                                   </Flex>
                                 </Flex>
                               ))}
@@ -333,7 +346,11 @@ const TripTicketReturns = () => {
                               {schedule.ticketRequests.map((ticket) => (
                                 <Flex key={ticket._id} align='center' justify="space-between" gap={2}>
                                   <Flex direction='column'>
-                                    <Text>{ticket?.ticketDetails?.assignedOperator?.first_name} {ticket?.ticketDetails?.assignedOperator?.last_name}</Text>
+                                    {ticket?.extensionRequestId ? (
+                                      <Text>{ticket?.extensionDetails?.assignedOperator?.first_name} {ticket?.extensionDetails?.assignedOperator?.last_name}</Text>
+                                    ) : (
+                                      <Text>{ticket?.ticketDetails?.assignedOperator?.first_name} {ticket?.ticketDetails?.assignedOperator?.last_name}</Text>
+                                    )}
                                   </Flex>
                                 </Flex>
                               ))}

@@ -156,22 +156,6 @@ const TicketRequests = () => {
   const pendingCurrentPage = pendingTicketRequests?.data?.currentPage || 1;
   const pendingTotalItems = pendingTicketRequests?.data?.totalCount || 0;
 
-  //individual tickets query data
-  const scheduledTickets = scheduledTicketRequests?.data?.relevantTickets || [];
-  const scheduledTotalPages = scheduledTicketRequests?.data?.totalPages || 1;
-  const scheduledCurrentPage = scheduledTicketRequests?.data?.currentPage || 1;
-  const scheduledTotalItems = scheduledTicketRequests?.data?.totalCount || 0;
-
-  const ongoingTickets = ongoingTicketRequests?.data?.relevantTickets || [];
-  const ongoingTotalPages = ongoingTicketRequests?.data?.totalPages || 1;
-  const ongoingCurrentPage = ongoingTicketRequests?.data?.currentPage || 1;
-  const ongoingTotalItems = ongoingTicketRequests?.data?.totalCount || 0;
-
-  const declinedTickets = declinedTicketRequests?.data?.relevantTickets || [];
-  const declinedTotalPages = declinedTicketRequests?.data?.totalPages || 1;
-  const declinedCurrentPage = declinedTicketRequests?.data?.currentPage || 1;
-  const declinedTotalItems = declinedTicketRequests?.data?.totalCount || 0;
-
   const plannedWeeklySchedulesList = plannedWeeklySchedules?.data?.relevantSchedules || [];
   const plannedSchedulesTotalPages = plannedWeeklySchedules?.data?.totalPages || 1;
   const plannedSchedulesCurrentPage = plannedWeeklySchedules?.data?.currentPage || 1;
@@ -289,7 +273,7 @@ const TicketRequests = () => {
                   <option value="pending">Pending Tickets</option>
                   <option value="scheduled">Scheduled Tickets</option>
                   <option value="ongoing">Ongoing Tickets</option>
-                  <option value="declined">Declined Tickets</option>
+                  {/* <option value="declined">Declined Tickets</option> */}
                 </>
               )}
               {user?.role !== 'MIM' && (
@@ -535,9 +519,10 @@ const TicketRequests = () => {
                             ) : (
                               <Flex direction="column" gap={2}>
                                 {schedule.ticketRequests.map((ticket) => (
+                                  console.log('ticket in scheduled schedule:', ticket),
                                   <Flex key={ticket._id} align='center' justify="space-between" gap={2}>
                                     <Flex direction='column'>
-                                      <Text>{ticket?.ticketDetails?.assignedMachineUnit?.plateNumber} - {ticket?.ticketDetails?.requestedMachineType?.equipmentType}</Text>
+                                      <Text>{ticket?.ticketDetails?.assignedMachineUnit?.unitNumber} - {ticket?.ticketDetails?.requestedMachineType?.equipmentType}</Text>
                                     </Flex>
                                   </Flex>
                                 ))}
@@ -622,6 +607,7 @@ const TicketRequests = () => {
         </>
       )}
 
+
       {pageType === 'ongoing' && (
         <>
         {/* Ongoing Tickets */}
@@ -676,7 +662,11 @@ const TicketRequests = () => {
                                 {schedule.ticketRequests.map((ticket) => (
                                   <Flex key={ticket._id} align='center' justify="space-between" gap={2}>
                                     <Flex direction='column'>
-                                      <Text fontWeight='medium'>{ticket.ticketDetails?.refNumber}</Text>
+                                      {ticket?.extensionRequestId ? (
+                                        <Text fontWeight='medium' color={'orange.500'}>{ticket.extensionDetails?.refNumber}</Text>
+                                      ) : (
+                                        <Text fontWeight='medium'>{ticket.ticketDetails?.refNumber}</Text>
+                                      )}
                                     </Flex>
                                   </Flex>
                                 ))}
@@ -699,7 +689,11 @@ const TicketRequests = () => {
                                 {schedule.ticketRequests.map((ticket) => (
                                   <Flex key={ticket._id} align='center' justify="space-between" gap={2}>
                                     <Flex direction='column'>
-                                      {formatDate(ticket?.ticketDetails?.assignedDate)}
+                                      {ticket?.extensionRequestId ? (
+                                        <Text fontWeight='medium'>{formatDate(ticket.extensionDetails?.assignedDate)}</Text>
+                                      ) : (
+                                        <Text fontWeight='medium'>{formatDate(ticket?.ticketDetails?.assignedDate)}</Text>
+                                      )}
                                     </Flex>
                                   </Flex>
                                 ))}
@@ -715,7 +709,11 @@ const TicketRequests = () => {
                                 {schedule.ticketRequests.map((ticket) => (
                                   <Flex key={ticket._id} align='center' justify="space-between" gap={2}>
                                     <Flex direction='column'>
-                                      <Text>{ticket?.ticketDetails?.assignedMachineUnit?.plateNumber} - {ticket?.ticketDetails?.requestedMachineType?.equipmentType}</Text>
+                                      {ticket?.extensionRequestId ? (
+                                        <Text>{ticket.extensionDetails?.assignedMachineUnit?.unitNumber} - {ticket.extensionDetails?.requestedMachineType?.equipmentType}</Text>
+                                      ) : (
+                                        <Text>{ticket?.ticketDetails?.assignedMachineUnit?.unitNumber} - {ticket?.ticketDetails?.requestedMachineType?.equipmentType}</Text>
+                                      )}
                                     </Flex>
                                   </Flex>
                                 ))}
@@ -731,7 +729,11 @@ const TicketRequests = () => {
                                 {schedule.ticketRequests.map((ticket) => (
                                   <Flex key={ticket._id} align='center' justify="space-between" gap={2}>
                                     <Flex direction='column'>
-                                      <Text>{ticket?.ticketDetails?.assignedOperator?.first_name} {ticket?.ticketDetails?.assignedOperator?.last_name}</Text>
+                                      {ticket?.extensionRequestId ? (
+                                        <Text>{ticket?.extensionDetails?.assignedOperator?.first_name} {ticket?.extensionDetails?.assignedOperator?.last_name}</Text>
+                                      ) : (
+                                        <Text>{ticket?.ticketDetails?.assignedOperator?.first_name} {ticket?.ticketDetails?.assignedOperator?.last_name}</Text>
+                                      )}
                                     </Flex>
                                   </Flex>
                                 ))}
@@ -800,7 +802,8 @@ const TicketRequests = () => {
         </>
       )}
 
-      {pageType === 'declined' && (
+
+      {/* {pageType === 'declined' && (
         <>
         <Box mb={8}>
           <Flex justify="space-between" align="center" mb={4} bg={'red.50'} p={3} borderRadius="md" borderLeftWidth="4px" borderLeftColor={'red.500'}>
@@ -908,7 +911,7 @@ const TicketRequests = () => {
           </Flex>
         </Box>
         </>
-      )}
+      )} */}
 
       <TicketRequestPanel
         isOpen={isOpen}

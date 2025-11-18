@@ -6,7 +6,6 @@ import {
     createMachineriesType,
     updateMachineryType,
     addMachineryUnit,
-    updateMachineryUnit,
     createWeeklySchedule,
     removeTicketRequestFromSchedule,
     moveTicketRequestToASchedule,
@@ -20,21 +19,32 @@ import {
     getOperatorsList,
     getMachineryUnitsForDropDown,
     archiveTicketRequest,
-    declineTicketRequest,
+    //declineTicketRequest,
     getPlannedWeeklySchedules,
     updateWeeklySchedule,
     getInProgressWeeklySchedules,
-    undeclineTicketRequest, // added
+    //undeclineTicketRequest, // added
     setRequestTicketToComplete,
 
     getPendingExtensionRequestsCount,
     approveExtensionRequest,
     declineExtensionRequest,
-
+    setExtenstionTicketToComplete,
+    getOccupiedDatesForScheduling,
+    getMachineUnits,
+    getMachineOverview,
+    updateMachineryUnitStatus,
+    getMachineTypes,
+    getTicketStatusCounts,
+    getUpcomingAndOngoingSchedules,
+    disableOperator,
+    enableOperator,
+    getAllOperators,
+    
     deleteScheduleAndTickets
 } from '../controller/machineries/adminDashboard.controller.js';
 
-import { generateMachineryExcelReport } from '../controller/machineries/genReports.controller.js';
+import { exportMachineriesUsageReport } from '../controller/machineries/genReports.controller.js';
 
 import { verifyAuthToken } from '../middleware/verifyToken.js';
 import { verifyRole } from '../middleware/verifyRole.js';
@@ -45,7 +55,7 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
 });
 
-router.get('/generate-machinery-report', verifyAuthToken, verifyRole(['MIM', 'MIS']), generateMachineryExcelReport);
+router.get('/generate-machinery-report', exportMachineriesUsageReport);
 
 
 
@@ -54,7 +64,6 @@ router.put('/update-machinery-type', updateMachineryType);
 router.get('/get-machinery-types', getMachineryTypes);
 
 router.post('/create-machinery-unit', addMachineryUnit); //working
-router.post('/update-machinery-unit', updateMachineryUnit);
 router.post('/get-machinery-unit', getMachineryUnits);
 
 router.get('/get-pending-ticket-requests', getPendingTicketRequests); //working frontend
@@ -67,12 +76,12 @@ router.get('/get-planned-weekly-schedules', getPlannedWeeklySchedules); //workin
 router.get('/get-in-progress-weekly-schedules', getInProgressWeeklySchedules);
 
 router.post('/archive-ticket-request', archiveTicketRequest);
-router.post('/decline-ticket-requests', declineTicketRequest); //working frontend
+//router.post('/decline-ticket-requests', declineTicketRequest); //working frontend
 router.post('/create-weekly-schedule', createWeeklySchedule); //working frontend
 router.post('/remove-from-schedule/:ticketRequestId', removeTicketRequestFromSchedule); //working frontend
 router.post('/move-to-schedule', moveTicketRequestToASchedule);  // working frontend
 router.post('/update-weekly-schedule', updateWeeklySchedule); // for review
-router.post('/undecline-ticket-request', undeclineTicketRequest); // new route
+//router.post('/undecline-ticket-request', undeclineTicketRequest); // new route
 router.post('/ticket-request-complete', 
   upload.fields([
     { name: 'proofImage', maxCount: 1 },
@@ -89,6 +98,23 @@ router.post('/submit-ticket-request', createTicketRequestForm); //working
 router.get('/pending-extension-count', getPendingExtensionRequestsCount);
 router.post('/approve-extension-request', approveExtensionRequest);
 router.post('/decline-extension-request', declineExtensionRequest);
+router.post('/extension-ticket-complete', 
+  upload.fields([
+    { name: 'proofImage', maxCount: 1 },
+    { name: 'signature', maxCount: 1 }
+  ]),
+  setExtenstionTicketToComplete
+);
+router.post('/get-occupied-dates-for-scheduling', getOccupiedDatesForScheduling);
+router.get('/get-machine-units', getMachineUnits);
+router.get('/get-machine-overview', getMachineOverview);
+router.post('/update-machinery-unit-status', updateMachineryUnitStatus);
+router.get('/get-machine-types', getMachineTypes);
+router.get('/get-ticket-status-counts', getTicketStatusCounts);
+router.get('/get-upcoming-and-ongoing-schedules', getUpcomingAndOngoingSchedules);
+router.post('/disable-operator', disableOperator);
+router.post('/enable-operator', enableOperator);
+router.get('/get-all-operators', getAllOperators);
 
 router.post('/delete-schedule-and-tickets/:scheduleId', deleteScheduleAndTickets);
 export default router;
