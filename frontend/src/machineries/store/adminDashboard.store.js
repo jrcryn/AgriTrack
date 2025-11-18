@@ -142,6 +142,18 @@ export const useMachineUnitsQuery = (page = 1, searchQuery = {}, role) =>
         enabled: role === 'MIM',
 });
 
+export const useOperatorAccountsQuery = (page = 1, searchQuery = {}, role) =>
+    useQuery({
+        queryKey: ['operatorAccounts', page, searchQuery],
+        queryFn: async () => {
+            const response = await axios.get(`${API_URL}/api/machineries/get-all-operators`, {
+                params: { page, limit: 10, ...searchQuery }
+            });
+            return response.data;
+        },
+        enabled: role === 'MIM',
+});
+
 const useOccupiedDatesForSchedulingQuery = (role) =>
     useQuery({
         queryKey: ['occupiedDatesForScheduling'],
@@ -203,7 +215,8 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         scheduledPage = 1,
         declinedPage = 1,
         schedulesPage = 1,
-        machineUnitsPage = 1
+        machineUnitsPage = 1,
+        operatorAccountsPage = 1,
     } = pages;
 
     // Queries
@@ -258,6 +271,9 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
     const { data: upcomingAndOngoingSchedules = [], isLoading: isLoadingUpcomingAndOngoingSchedules, error: upcomingAndOngoingSchedulesError } =
         useUpcomingAndOngoingSchedulesQuery(role);
 
+    const { data: operatorAccounts = [], isLoading: isLoadingOperatorAccounts, error: operatorAccountsError } =
+        useOperatorAccountsQuery(operatorAccountsPage, searchQuery, role);
+
     
     // Action flags
     const [isCreatingMachineryType, setIsCreatingMachineryType] = useState(false);
@@ -278,6 +294,7 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
     const [isDecliningExtensionRequest, setIsDecliningExtensionRequest] = useState(false);
     const [isSettingExtensionTicketToComplete, setIsSettingExtensionTicketToComplete] = useState(false);
     const [isUpdatingMachineryUnitStatus, setIsUpdatingMachineryUnitStatus] = useState(false);
+    const [isEnablingDisablingOperatorAccount, setIsEnablingDisablingOperatorAccount] = useState(false);
 
     // Actions
     const createMachineryType = async (data) => {
@@ -497,6 +514,31 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         }
     };
 
+    const disableOperatorAccount = async (data) => {
+        setIsEnablingDisablingOperatorAccount(true);
+        try {
+            const res = await axios.post(`${API_URL}/api/machineries/disable-operator`, data);
+            return res.data;
+        } catch (error) {
+            throw error;
+        } finally {
+            setIsEnablingDisablingOperatorAccount(false);
+        }
+    };
+
+    const enableOperatorAccount = async (data) => {
+        setIsEnablingDisablingOperatorAccount(true);
+        try {
+            const res = await axios.post(`${API_URL}/api/machineries/enable-operator`, data);
+            return res.data;
+        } catch (error) {
+            throw error;
+        } finally {
+            setIsEnablingDisablingOperatorAccount(false);
+        }
+    };
+
+    
     return {
         // query data
         machineryTypes,
@@ -516,6 +558,7 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         machineTypes,
         ticketStatusCounts,
         upcomingAndOngoingSchedules,
+        operatorAccounts,
 
         // actions
         createMachineryType,
@@ -537,6 +580,8 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         declineExtensionRequest,
         setExtensionTicketToComplete,
         updateMachineryUnitStatus,
+        disableOperatorAccount,
+        enableOperatorAccount,
 
         // loading states (queries)
         isLoadingMachineryTypes,
@@ -556,6 +601,7 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         isLoadingMachineTypes,
         isLoadingTicketStatusCounts,
         isLoadingUpcomingAndOngoingSchedules,
+        isLoadingOperatorAccounts,
 
         // action flags
         isCreatingMachineryType,
@@ -576,6 +622,7 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         isDecliningExtensionRequest,
         isSettingExtensionTicketToComplete,
         isUpdatingMachineryUnitStatus,
+        isEnablingDisablingOperatorAccount,
 
         // error states
         machineryTypesError,
@@ -595,5 +642,6 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         machineTypesError,
         ticketStatusCountsError,
         upcomingAndOngoingSchedulesError,
+        isLoadingOperatorAccounts,
     };
 };

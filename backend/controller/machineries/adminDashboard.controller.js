@@ -1330,6 +1330,15 @@ export const setRequestTicketToComplete = async (req, res) => { //kapag work don
             });
         }
 
+        if (operator.isOperatorDisabled) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(403).json({ 
+                success: false, 
+                message: "Your operator account has been disabled. Please speak with your manager for more information." 
+            });
+        }
+
         const proofImageFile = req.files.proofImage[0];
         const signatureFile = req.files.signature[0];
 
@@ -1931,7 +1940,7 @@ export const setExtenstionTicketToComplete = async (req, res) => {
         //     }
         // }
 
-        
+
         // Validate operator
         const operator = await global.globalModels.EmployeeAccount.findById(operatorId).lean();
         if (!operator) {
@@ -1943,6 +1952,15 @@ export const setExtenstionTicketToComplete = async (req, res) => {
             await session.abortTransaction();
             session.endSession();
             return res.status(400).json({ success: false, message: "The provided user is not an authorized operator." });
+        }
+
+        if (operator.isOperatorDisabled) {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(403).json({ 
+                success: false, 
+                message: "Your operator account has been disabled. Please speak with your manager for more information." 
+            });
         }
 
         const proofImageFile = req.files.proofImage[0];
@@ -3896,6 +3914,235 @@ export const getUpcomingAndOngoingSchedules = async (req, res) => {
         return res.status(500).json({
             success: false,
             message: "Error fetching upcoming and ongoing schedules.",
+            error: error.message
+        });
+    }
+};
+
+
+export const disableOperator = async (req, res) => {
+    const { operatorId, employeeId } = req.body;
+
+    if (!operatorId || !employeeId) {
+        return res.status(400).json({
+            success: false,
+            message: "Please provide operator ID and employee ID."
+        });
+    }
+
+    try {
+        // Validate the employee performing the action
+        const employee = await global.globalModels.EmployeeAccount.findById(employeeId).lean();
+        if (!employee) {
+            return res.status(404).json({
+                success: false,
+                message: "Employee account not found."
+            });
+        }
+
+        // Only managers can disable operators
+        if (!employee.roles || !employee.roles.includes('MIM')) {
+            return res.status(403).json({
+                success: false,
+                message: "You are not authorized to disable operators."
+            });
+        }
+
+        // Find the operator
+        const operator = await global.globalModels.EmployeeAccount.findById(operatorId);
+        if (!operator) {
+            return res.status(404).json({
+                success: false,
+                message: "Operator account not found."
+            });
+        }
+
+        // Verify the account is an operator
+        if (!operator.roles || !operator.roles.includes('MIS')) {
+            return res.status(400).json({
+                success: false,
+                message: "The specified account is not an operator."
+            });
+        }
+
+        // Check if already disabled
+        if (operator.isOperatorDisabled) {
+            return res.status(400).json({
+                success: false,
+                message: "Operator is already disabled."
+            });
+        }
+
+        // Disable the operator
+        operator.isOperatorDisabled = true;
+        await operator.save();
+
+        return res.status(200).json({
+            success: true,
+            message: "Operator disabled successfully."
+        });
+
+    } catch (error) {
+        console.error("Error disabling operator:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Error disabling operator.",
+            error: error.message
+        });
+    }
+};
+
+export const enableOperator = async (req, res) => {
+    const { operatorId, employeeId } = req.body;
+
+    if (!operatorId || !employeeId) {
+        return res.status(400).json({
+            success: false,
+            message: "Please provide operator ID and employee ID."
+        });
+    }
+
+    try {
+        // Validate the employee performing the action
+        const employee = await global.globalModels.EmployeeAccount.findById(employeeId).lean();
+        if (!employee) {
+            return res.status(404).json({
+                success: false,
+                message: "Employee account not found."
+            });
+        }
+
+        // Only managers can enable operators
+        if (!employee.roles || !employee.roles.includes('MIM')) {
+            return res.status(403).json({
+                success: false,
+                message: "You are not authorized to enable operators."
+            });
+        }
+
+        // Find the operator
+        const operator = await global.globalModels.EmployeeAccount.findById(operatorId);
+        if (!operator) {
+            return res.status(404).json({
+                success: false,
+                message: "Operator account not found."
+            });
+        }
+
+        // Verify the account is an operator
+        if (!operator.roles || !operator.roles.includes('MIS')) {
+            return res.status(400).json({
+                success: false,
+                message: "The specified account is not an operator."
+            });
+        }
+
+        // Check if already enabled
+        if (!operator.isOperatorDisabled) {
+            return res.status(400).json({
+                success: false,
+                message: "Operator is already enabled."
+            });
+        }
+
+        // Enable the operator
+        operator.isOperatorDisabled = false;
+        await operator.save();
+
+        return res.status(200).json({
+            success: true,
+            message: "Operator enabled successfully.",
+        });
+
+    } catch (error) {
+        console.error("Error enabling operator:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Error enabling operator.",
+            error: error.message
+        });
+    }
+};
+
+export const getAllOperators = async (req, res) => {
+    const { searchQuery } = req.query;
+    
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+
+        // Build match criteria for operators
+        const matchCriteria = {
+            roles: 'MIS' // Only get employees with MIS (Machinery Implementation Staff) role
+        };
+
+        const pipeline = [
+            { $match: matchCriteria }
+        ];
+
+        // Add search functionality
+        if (searchQuery && searchQuery.trim() !== '') {
+            const words = searchQuery.trim().split(/\s+/);
+            const searchConditions = words.map((word) => ({
+                $or: [
+                    { first_name: { $regex: word, $options: 'i' } },
+                    { last_name: { $regex: word, $options: 'i' } },
+                    { middle_name: { $regex: word, $options: 'i' } },
+                    { email: { $regex: word, $options: 'i' } },
+                    { phone: { $regex: word, $options: 'i' } }
+                ]
+            }));
+            pipeline.push({ $match: { $and: searchConditions } });
+        }
+
+        // Project only necessary fields
+        pipeline.push({
+            $project: {
+                first_name: 1,
+                last_name: 1,
+                middle_name: 1,
+                suffix: 1,
+                email: 1,
+                phone: 1,
+                isOperatorDisabled: 1,
+                lastLogin: 1,
+                createdAt: 1
+            }
+        });
+
+        // Add pagination
+        pipeline.push({
+            $facet: {
+                paginatedResults: [
+                    { $sort: { createdAt: -1, _id: -1 } },
+                    { $skip: skip },
+                    { $limit: limit }
+                ],
+                totalCount: [{ $count: 'count' }]
+            }
+        });
+
+        const result = await global.globalModels.EmployeeAccount.aggregate(pipeline);
+        const operators = result[0]?.paginatedResults || [];
+        const totalCount = result[0]?.totalCount?.[0]?.count || 0;
+
+        return res.status(200).json({
+            success: true,
+            message: "Operators retrieved successfully.",
+            data: {
+                operators,
+                totalCount,
+                totalPages: Math.ceil(totalCount / limit),
+                currentPage: page
+            }
+        });
+
+    } catch (error) {
+        console.error("Error fetching operators:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Error fetching operators.",
             error: error.message
         });
     }
