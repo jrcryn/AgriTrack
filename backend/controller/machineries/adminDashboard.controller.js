@@ -1304,16 +1304,16 @@ export const setRequestTicketToComplete = async (req, res) => { //kapag work don
             });
         }
 
-        const toDateKey = (d) => new Date(d).toISOString().split('T')[0];
-        const todayKey = toDateKey(new Date());
-        const assignedDateKey = toDateKey(ticket.assignedDate);
+        // const toDateKey = (d) => new Date(d).toISOString().split('T')[0];
+        // const todayKey = toDateKey(new Date());
+        // const assignedDateKey = toDateKey(ticket.assignedDate);
 
-        if (assignedDateKey !== todayKey) {
-            return res.status(400).json({
-                success: false,
-                message: "Ticket can only be marked as completed on its assigned date."
-            });
-        }
+        // if (assignedDateKey !== todayKey) {
+        //     return res.status(400).json({
+        //         success: false,
+        //         message: "Ticket can only be marked as completed on its assigned date."
+        //     });
+        // }
 
         const operator = await global.globalModels.EmployeeAccount.findById(operatorId).lean();
         if (!operator) {
@@ -1507,25 +1507,34 @@ export const approveExtensionRequest = async (req, res) => {
             });
         }
 
-        // 4. Load schedule
-        const schedule = await global.machineriesModels.WeeklySchedule.findById(parentTicket.scheduleId).lean();
+        // 4. Load schedule (as a doc, not lean, so we can extend weekEnd)
+        const schedule = await global.machineriesModels.WeeklySchedule.findById(parentTicket.scheduleId);
         if (!schedule) {
             return res.status(404).json({ success: false, message: "Original schedule not found." });
         }
 
         const addDays = (d, n) => {
             const r = new Date(d);
+            r.setHours(0,0,0,0);
             r.setDate(r.getDate() + n);
             return r;
         };
         const toDateKey = (d) => new Date(d).toISOString().split('T')[0];
 
         const originalAssignedDate = new Date(parentTicket.assignedDate);
+        originalAssignedDate.setHours(0,0,0,0);
         const extensionDate = addDays(originalAssignedDate, 1);
         const dateKey = toDateKey(extensionDate);
 
-        // NEW: Check operator and machine availability for the extension date
-        // Check if operator is already assigned on this date
+        // NEW: Auto-extend weekEnd by 1 day (to the extension date) if needed
+        const currentWeekEnd = new Date(schedule.weekEnd);
+        currentWeekEnd.setHours(0,0,0,0);
+        if (extensionDate > currentWeekEnd) {
+            schedule.weekEnd = extensionDate;
+            await schedule.save();
+        }
+
+        // Check operator/machine availability on extension date
         const operatorConflict = await global.machineriesModels.TicketRequest.findOne({
             'assignedOperator.assignedOperatorId': assignedOperatorId,
             assignedDate: {
@@ -1534,7 +1543,6 @@ export const approveExtensionRequest = async (req, res) => {
             },
             status: { $in: ['Scheduled', 'Ongoing'] }
         });
-
         if (operatorConflict) {
             return res.status(400).json({
                 success: false,
@@ -1542,7 +1550,6 @@ export const approveExtensionRequest = async (req, res) => {
             });
         }
 
-        // Check extension tickets for operator conflicts
         const operatorExtConflict = await global.machineriesModels.ExtensionTicket.findOne({
             _id: { $ne: extensionTicketId },
             'assignedOperator.assignedOperatorId': assignedOperatorId,
@@ -1552,7 +1559,6 @@ export const approveExtensionRequest = async (req, res) => {
             },
             status: { $in: ['Scheduled', 'Ongoing'] }
         });
-
         if (operatorExtConflict) {
             return res.status(400).json({
                 success: false,
@@ -1560,7 +1566,6 @@ export const approveExtensionRequest = async (req, res) => {
             });
         }
 
-        // Check if machine is already assigned on this date
         const machineConflict = await global.machineriesModels.TicketRequest.findOne({
             'assignedMachineUnit.assignedMachineUnitId': assignedMachineUnitId,
             assignedDate: {
@@ -1569,7 +1574,6 @@ export const approveExtensionRequest = async (req, res) => {
             },
             status: { $in: ['Scheduled', 'Ongoing'] }
         });
-
         if (machineConflict) {
             return res.status(400).json({
                 success: false,
@@ -1577,7 +1581,6 @@ export const approveExtensionRequest = async (req, res) => {
             });
         }
 
-        // Check extension tickets for machine conflicts
         const machineExtConflict = await global.machineriesModels.ExtensionTicket.findOne({
             _id: { $ne: extensionTicketId },
             'assignedMachineUnit.assignedMachineUnitId': assignedMachineUnitId,
@@ -1587,7 +1590,6 @@ export const approveExtensionRequest = async (req, res) => {
             },
             status: { $in: ['Scheduled', 'Ongoing'] }
         });
-
         if (machineExtConflict) {
             return res.status(400).json({
                 success: false,
@@ -1634,6 +1636,7 @@ export const approveExtensionRequest = async (req, res) => {
         const shiftUpdates = [];
         for (const t of scheduleTickets) {
             const tDate = new Date(t.assignedDate);
+            tDate.setHours(0,0,0,0);
             if (tDate >= extensionDate) {
                 const newDate = addDays(tDate, 1);
 
@@ -1909,25 +1912,26 @@ export const setExtenstionTicketToComplete = async (req, res) => {
         }
 
         // Validate assigned date is today
-        if (extTicket.assignedDate) {
-            const toDateKey = (d) => {
-            const date = new Date(d);
-            return date.getFullYear() + '-' + 
-                    String(date.getMonth() + 1).padStart(2, '0') + '-' + 
-                    String(date.getDate()).padStart(2, '0');
-            };
-            const todayKey = toDateKey(new Date());
-            const assignedDateKey = toDateKey(extTicket.assignedDate);
-            if (assignedDateKey !== todayKey) {
-                await session.abortTransaction();
-                session.endSession();
-                return res.status(400).json({
-                    success: false,
-                    message: "Extension ticket can only be marked as completed on its assigned date."
-                });
-            }
-        }
+        // if (extTicket.assignedDate) {
+        //     const toDateKey = (d) => {
+        //     const date = new Date(d);
+        //     return date.getFullYear() + '-' + 
+        //             String(date.getMonth() + 1).padStart(2, '0') + '-' + 
+        //             String(date.getDate()).padStart(2, '0');
+        //     };
+        //     const todayKey = toDateKey(new Date());
+        //     const assignedDateKey = toDateKey(extTicket.assignedDate);
+        //     if (assignedDateKey !== todayKey) {
+        //         await session.abortTransaction();
+        //         session.endSession();
+        //         return res.status(400).json({
+        //             success: false,
+        //             message: "Extension ticket can only be marked as completed on its assigned date."
+        //         });
+        //     }
+        // }
 
+        
         // Validate operator
         const operator = await global.globalModels.EmployeeAccount.findById(operatorId).lean();
         if (!operator) {
