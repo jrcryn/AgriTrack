@@ -41,7 +41,7 @@ import {
     deleteScheduleAndTickets
 } from '../controller/machineries/adminDashboard.controller.js';
 
-import { generateMachineryExcelReport } from '../controller/machineries/genReports.controller.js';
+import { exportMachineriesUsageReport } from '../controller/machineries/genReports.controller.js';
 
 import { verifyAuthToken } from '../middleware/verifyToken.js';
 import { verifyRole } from '../middleware/verifyRole.js';
@@ -52,7 +52,7 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
 });
 
-router.get('/generate-machinery-report', verifyAuthToken, verifyRole(['MIM', 'MIS']), generateMachineryExcelReport);
+router.get('/generate-machinery-report', exportMachineriesUsageReport);
 
 
 
