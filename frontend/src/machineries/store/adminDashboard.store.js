@@ -137,7 +137,7 @@ export const useMachineUnitsQuery = (role) =>
             const response = await axios.get(`${API_URL}/api/machineries/get-machine-units`);
             return response.data;
         },
-        enabled: role === 'MIM' || role === 'MIS',
+        enabled: role === 'MIM',
 });
 
 const useOccupiedDatesForSchedulingQuery = (role) =>
@@ -199,6 +199,9 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
     
     const { data: occupiedDatesForScheduling = [], isLoading: isLoadingOccupiedDatesForScheduling, error: occupiedDatesForSchedulingError } =
         useOccupiedDatesForSchedulingQuery(role);
+
+    const { data: machineUnits = [], isLoading: isLoadingMachineUnits, error: machineUnitsError } =
+        useMachineUnitsQuery(role);
 
     // Action flags
     const [isCreatingMachineryType, setIsCreatingMachineryType] = useState(false);
@@ -463,6 +466,7 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         inProgressWeeklySchedules,
         pendingExtensionCount,
         occupiedDatesForScheduling,
+        machineUnits, 
 
         // actions
         createMachineryType,
@@ -497,6 +501,7 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         isLoadingInProgressWeeklySchedules,
         isLoadingPendingExtensionCount,
         isLoadingOccupiedDatesForScheduling,
+        isLoadingMachineUnits,
 
         // action flags
         isCreatingMachineryType,
@@ -530,5 +535,6 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         inProgressWeeklySchedulesError,
         pendingExtensionCountError,
         occupiedDatesForSchedulingError,
+        machineUnitsError,
     };
 };

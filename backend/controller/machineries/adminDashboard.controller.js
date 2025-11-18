@@ -2142,6 +2142,453 @@ export const setExtenstionTicketToComplete = async (req, res) => {
 
 
 
+export const updateMachineryUnitStatus = async (req, res) => {
+    const { 
+        machineryUnitId, 
+        employeeId, 
+        newStatus, 
+        newCondition, 
+        reason, 
+        repairCost, 
+        retirementReason,
+        location
+    } = req.body;
+
+    if (!machineryUnitId || !employeeId || !newStatus || !newCondition) {
+        return res.status(400).json({
+            success: false,
+            message: "Please provide machinery unit ID, employee ID, new status, and new condition."
+        });
+    }
+
+    // Validate status and condition enums
+    const validStatuses = ['Available', 'In Use', 'Under Repair', 'Retired', 'Not for Use'];
+    const validConditions = ['Functional', 'Non-Functional'];
+
+    if (!validStatuses.includes(newStatus)) {
+        return res.status(400).json({
+            success: false,
+            message: "Invalid status. Must be one of: " + validStatuses.join(', ')
+        });
+    }
+
+    if (!validConditions.includes(newCondition)) {
+        return res.status(400).json({
+            success: false,
+            message: "Invalid condition. Must be one of: " + validConditions.join(', ')
+        });
+    }
+
+    // Validate repair cost if status is Under Repair
+    if (newStatus === 'Under Repair' && repairCost) {
+        const cost = parseFloat(repairCost);
+        if (isNaN(cost) || cost < 0) {
+            return res.status(400).json({
+                success: false,
+                message: "Repair cost must be a valid positive number."
+            });
+        }
+    }
+
+    // Require retirement reason if status is Retired
+    if (newStatus === 'Retired' && (!retirementReason || !retirementReason.trim())) {
+        return res.status(400).json({
+            success: false,
+            message: "Retirement reason is required when retiring a machinery unit."
+        });
+    }
+
+    try {
+        // Find the machinery unit
+        const machineryUnit = await global.machineriesModels.MachineriesUnit.findById(machineryUnitId);
+        
+        if (!machineryUnit) {
+            return res.status(404).json({
+                success: false,
+                message: "Machinery unit not found."
+            });
+        }
+
+        // Find the employee
+        const employee = await global.globalModels.EmployeeAccount.findById(employeeId).lean();
+        
+        if (!employee) {
+            return res.status(404).json({
+                success: false,
+                message: "Employee account not found."
+            });
+        }
+
+        // Check if machinery unit is currently assigned to any active ticket
+        if (newStatus !== 'In Use') {
+            const activeAssignment = await global.machineriesModels.TicketRequest.findOne({
+                'assignedMachineUnit.assignedMachineUnitId': machineryUnitId,
+                status: { $in: ['Scheduled', 'Ongoing'] }
+            });
+
+            if (activeAssignment) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Cannot change status. Machinery unit is currently assigned to an active ticket."
+                });
+            }
+
+            // Also check extension tickets
+            const activeExtensionAssignment = await global.machineriesModels.ExtensionTicket.findOne({
+                'assignedMachineUnit.assignedMachineUnitId': machineryUnitId,
+                status: { $in: ['Scheduled', 'Ongoing'] }
+            });
+
+            if (activeExtensionAssignment) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Cannot change status. Machinery unit is currently assigned to an active extension ticket."
+                });
+            }
+        }
+
+        // Build status history entry
+        const historyEntry = {
+            status: newStatus,
+            condition: newCondition,
+            reason: reason && reason.trim() ? reason.trim() : undefined,
+            changedBy: {
+                _id: employee._id,
+                first_name: employee.first_name,
+                last_name: employee.last_name,
+                middle_name: employee.middle_name,
+                suffix: employee.suffix,
+                email: employee.email,
+                phone: employee.phone
+            },
+            changedAt: new Date()
+        };
+
+        // Add repair cost if applicable
+        if (newStatus === 'Under Repair' && repairCost) {
+            historyEntry.repairCost = parseFloat(repairCost);
+            machineryUnit.totalRepairCost = (machineryUnit.totalRepairCost || 0) + parseFloat(repairCost);
+        }
+
+        // Add retirement reason if applicable
+        if (newStatus === 'Retired') {
+            historyEntry.retirementReason = retirementReason.trim();
+            machineryUnit.isRetired = true;
+            machineryUnit.retiredDate = new Date();
+        } else {
+            // If changing from Retired to another status, clear retirement flags
+            if (machineryUnit.isRetired) {
+                machineryUnit.isRetired = false;
+                machineryUnit.retiredDate = undefined;
+            }
+        }
+
+        // Update machinery unit status
+        machineryUnit.status = newStatus;
+        machineryUnit.condition = newCondition;
+        
+        if (location && location.trim()) {
+            machineryUnit.location = location.trim();
+        }
+        
+        if (reason && reason.trim()) {
+            machineryUnit.remarks = reason.trim();
+        }
+
+        // Add to status history
+        machineryUnit.statusHistory.push(historyEntry);
+
+        await machineryUnit.save();
+
+        return res.status(200).json({
+            success: true,
+            message: "Machinery unit status updated successfully.",
+            data: machineryUnit
+        });
+
+    } catch (error) {
+        console.error("Error updating machinery unit status:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Error updating machinery unit status.",
+            error: error.message
+        });
+    }
+};
+
+export const getMachineryUnitStatusHistory = async (req, res) => {
+    const { machineryUnitId } = req.params;
+
+    if (!machineryUnitId) {
+        return res.status(400).json({
+            success: false,
+            message: "Please provide machinery unit ID."
+        });
+    }
+
+    try {
+        const machineryUnit = await global.machineriesModels.MachineriesUnit
+            .findById(machineryUnitId)
+            .select('unitNumber statusHistory')
+            .lean();
+
+        if (!machineryUnit) {
+            return res.status(404).json({
+                success: false,
+                message: "Machinery unit not found."
+            });
+        }
+
+        // Sort status history by date (most recent first)
+        const sortedHistory = (machineryUnit.statusHistory || []).sort((a, b) => 
+            new Date(b.changedAt) - new Date(a.changedAt)
+        );
+
+        return res.status(200).json({
+            success: true,
+            message: "Machinery unit status history retrieved successfully.",
+            data: {
+                unitNumber: machineryUnit.unitNumber,
+                statusHistory: sortedHistory
+            }
+        });
+
+    } catch (error) {
+        console.error("Error fetching machinery unit status history:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Error fetching machinery unit status history.",
+            error: error.message
+        });
+    }
+};
+
+export const recordMachineryMaintenance = async (req, res) => {
+    const { machineryUnitId, employeeId, maintenanceDate, nextMaintenanceDate, notes } = req.body;
+
+    if (!machineryUnitId || !employeeId || !maintenanceDate) {
+        return res.status(400).json({
+            success: false,
+            message: "Please provide machinery unit ID, employee ID, and maintenance date."
+        });
+    }
+
+    try {
+        const machineryUnit = await global.machineriesModels.MachineriesUnit.findById(machineryUnitId);
+        
+        if (!machineryUnit) {
+            return res.status(404).json({
+                success: false,
+                message: "Machinery unit not found."
+            });
+        }
+
+        const employee = await global.globalModels.EmployeeAccount.findById(employeeId).lean();
+        
+        if (!employee) {
+            return res.status(404).json({
+                success: false,
+                message: "Employee account not found."
+            });
+        }
+
+        // Update maintenance dates
+        machineryUnit.lastMaintenanceDate = new Date(maintenanceDate);
+        
+        if (nextMaintenanceDate) {
+            machineryUnit.nextMaintenanceDate = new Date(nextMaintenanceDate);
+        }
+
+        // Add to status history
+        const historyEntry = {
+            status: machineryUnit.status,
+            condition: machineryUnit.condition,
+            reason: notes && notes.trim() ? `Maintenance: ${notes.trim()}` : 'Routine maintenance performed',
+            changedBy: {
+                _id: employee._id,
+                first_name: employee.first_name,
+                last_name: employee.last_name,
+                middle_name: employee.middle_name,
+                suffix: employee.suffix,
+                email: employee.email,
+                phone: employee.phone
+            },
+            changedAt: new Date(maintenanceDate)
+        };
+
+        machineryUnit.statusHistory.push(historyEntry);
+
+        await machineryUnit.save();
+
+        return res.status(200).json({
+            success: true,
+            message: "Machinery maintenance recorded successfully.",
+            data: machineryUnit
+        });
+
+    } catch (error) {
+        console.error("Error recording machinery maintenance:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Error recording machinery maintenance.",
+            error: error.message
+        });
+    }
+};
+
+export const getMachineryUnitsByStatus = async (req, res) => {
+    const { status } = req.query;
+
+    if (!status) {
+        return res.status(400).json({
+            success: false,
+            message: "Please provide a status to filter by."
+        });
+    }
+
+    const validStatuses = ['Available', 'In Use', 'Under Repair', 'Retired', 'Not for Use'];
+    
+    if (!validStatuses.includes(status)) {
+        return res.status(400).json({
+            success: false,
+            message: "Invalid status. Must be one of: " + validStatuses.join(', ')
+        });
+    }
+
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+
+        const machineTypeColl = global.machineriesModels.MachineriesType.collection.name;
+
+        const pipeline = [
+            { $match: { status } },
+            {
+                $lookup: {
+                    from: machineTypeColl,
+                    localField: 'machineryTypeId',
+                    foreignField: '_id',
+                    as: 'machineTypeDetails'
+                }
+            },
+            { $unwind: { path: '$machineTypeDetails', preserveNullAndEmptyArrays: true } },
+            {
+                $facet: {
+                    paginatedResults: [
+                        { $sort: { createdAt: -1 } },
+                        { $skip: skip },
+                        { $limit: limit }
+                    ],
+                    totalCount: [{ $count: 'count' }]
+                }
+            }
+        ];
+
+        const result = await global.machineriesModels.MachineriesUnit.aggregate(pipeline);
+        const machineryUnits = result[0]?.paginatedResults || [];
+        const totalCount = result[0]?.totalCount?.[0]?.count || 0;
+
+        return res.status(200).json({
+            success: true,
+            message: `Machinery units with status '${status}' retrieved successfully.`,
+            data: {
+                machineryUnits,
+                totalCount,
+                totalPages: Math.ceil(totalCount / limit),
+                currentPage: page
+            }
+        });
+
+    } catch (error) {
+        console.error("Error fetching machinery units by status:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Error fetching machinery units by status.",
+            error: error.message
+        });
+    }
+};
+
+export const getMachineryMaintenanceSchedule = async (req, res) => {
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+
+        const now = new Date();
+
+        const pipeline = [
+            {
+                $match: {
+                    nextMaintenanceDate: { $exists: true },
+                    isRetired: { $ne: true }
+                }
+            },
+            {
+                $addFields: {
+                    isOverdue: { $lt: ['$nextMaintenanceDate', now] },
+                    daysUntilMaintenance: {
+                        $divide: [
+                            { $subtract: ['$nextMaintenanceDate', now] },
+                            1000 * 60 * 60 * 24
+                        ]
+                    }
+                }
+            },
+            { $sort: { nextMaintenanceDate: 1 } },
+            {
+                $lookup: {
+                    from: global.machineriesModels.MachineriesType.collection.name,
+                    localField: 'machineryTypeId',
+                    foreignField: '_id',
+                    as: 'machineTypeDetails'
+                }
+            },
+            { $unwind: { path: '$machineTypeDetails', preserveNullAndEmptyArrays: true } },
+            {
+                $facet: {
+                    paginatedResults: [
+                        { $skip: skip },
+                        { $limit: limit }
+                    ],
+                    totalCount: [{ $count: 'count' }],
+                    overdueCount: [
+                        { $match: { isOverdue: true } },
+                        { $count: 'count' }
+                    ]
+                }
+            }
+        ];
+
+        const result = await global.machineriesModels.MachineriesUnit.aggregate(pipeline);
+        const maintenanceSchedule = result[0]?.paginatedResults || [];
+        const totalCount = result[0]?.totalCount?.[0]?.count || 0;
+        const overdueCount = result[0]?.overdueCount?.[0]?.count || 0;
+
+        return res.status(200).json({
+            success: true,
+            message: "Machinery maintenance schedule retrieved successfully.",
+            data: {
+                maintenanceSchedule,
+                totalCount,
+                overdueCount,
+                totalPages: Math.ceil(totalCount / limit),
+                currentPage: page
+            }
+        });
+
+    } catch (error) {
+        console.error("Error fetching machinery maintenance schedule:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Error fetching machinery maintenance schedule.",
+            error: error.message
+        });
+    }
+};
+
+
 
 
 

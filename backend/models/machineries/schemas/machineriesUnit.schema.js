@@ -15,10 +15,15 @@ const StatusHistorySchema = new mongoose.Schema({
     reason: { type: String }, // Why status changed
     changedBy: { 
         type: mongoose.Schema.Types.ObjectId, 
-        ref: 'Employee_Account' 
+        ref: 'Employee_Account',
+        first_name: { type: String, required: true },
+        last_name: String,
+        middle_name: String,
+        suffix: String,
+        email: String,
+        phone: String, 
     },
     changedAt: { type: Date, default: Date.now },
-    estimatedReturnDate: { type: Date }, // For repairs
     repairCost: { type: Number }, // For repairs
     retirementReason: { type: String } // For retired machines
 }, { _id: false, versionKey: false });
