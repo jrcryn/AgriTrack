@@ -35,6 +35,8 @@ import {
     getMachineOverview,
     updateMachineryUnitStatus,
     getMachineTypes,
+    getTicketStatusCounts,
+    getUpcomingAndOngoingSchedules,
     
     deleteScheduleAndTickets
 } from '../controller/machineries/adminDashboard.controller.js';
@@ -105,6 +107,8 @@ router.get('/get-machine-units', getMachineUnits);
 router.get('/get-machine-overview', getMachineOverview);
 router.post('/update-machinery-unit-status', updateMachineryUnitStatus);
 router.get('/get-machine-types', getMachineTypes);
+router.get('/get-ticket-status-counts', getTicketStatusCounts);
+router.get('/get-upcoming-and-ongoing-schedules', getUpcomingAndOngoingSchedules);
 
 router.post('/delete-schedule-and-tickets/:scheduleId', deleteScheduleAndTickets);
 export default router;

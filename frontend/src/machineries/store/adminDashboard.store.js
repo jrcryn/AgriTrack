@@ -172,6 +172,26 @@ const useMachineTypesQuery = (role) =>
         enabled: role === 'MIM',
     });
 
+const useTicketStatusCountsQuery = (role) =>
+    useQuery({
+        queryKey: ['ticketStatusCounts'],
+        queryFn: async () => {
+            const res = await axios.get(`${API_URL}/api/machineries/get-ticket-status-counts`);
+            return res.data;
+        },
+        enabled: role === 'MIM',
+    });
+
+const useUpcomingAndOngoingSchedulesQuery = (role) =>
+    useQuery({
+        queryKey: ['upcomingAndOngoingSchedules'],
+        queryFn: async () => {
+            const res = await axios.get(`${API_URL}/api/machineries/get-upcoming-and-ongoing-schedules`);
+            return res.data;
+        },
+        enabled: role === 'MIM',
+    });
+
 // Exported store
 export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
     const { user } = useAuthStore();
@@ -231,6 +251,12 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
 
     const { data: machineTypes = [], isLoading: isLoadingMachineTypes, error: machineTypesError } =
         useMachineTypesQuery(role);
+
+    const { data: ticketStatusCounts = {}, isLoading: isLoadingTicketStatusCounts, error: ticketStatusCountsError } =
+        useTicketStatusCountsQuery(role);
+
+    const { data: upcomingAndOngoingSchedules = [], isLoading: isLoadingUpcomingAndOngoingSchedules, error: upcomingAndOngoingSchedulesError } =
+        useUpcomingAndOngoingSchedulesQuery(role);
 
     
     // Action flags
@@ -488,6 +514,8 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         machineUnits, 
         machineOverview,
         machineTypes,
+        ticketStatusCounts,
+        upcomingAndOngoingSchedules,
 
         // actions
         createMachineryType,
@@ -526,6 +554,8 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         isLoadingMachineUnits,
         isLoadingMachineOverview,
         isLoadingMachineTypes,
+        isLoadingTicketStatusCounts,
+        isLoadingUpcomingAndOngoingSchedules,
 
         // action flags
         isCreatingMachineryType,
@@ -563,5 +593,7 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         machineUnitsError,
         machineOverviewError,
         machineTypesError,
+        ticketStatusCountsError,
+        upcomingAndOngoingSchedulesError,
     };
 };

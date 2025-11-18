@@ -3685,3 +3685,215 @@ export const getMachineTypes = async (req, res) => {
         });
     }
 };
+
+
+export const getTicketStatusCounts = async (req, res) => {
+    try {
+        // Count ticket requests
+        const ticketPipeline = [
+            {
+                $facet: {
+                    pending: [
+                        { $match: { status: 'Pending' } },
+                        { $count: 'count' }
+                    ],
+                    ongoing: [
+                        { $match: { status: 'Ongoing' } },
+                        { $count: 'count' }
+                    ],
+                    scheduled: [
+                        { $match: { status: 'Scheduled' } },
+                        { $count: 'count' }
+                    ],
+                    completed: [
+                        { $match: { status: 'Completed' } },
+                        { $count: 'count' }
+                    ],
+                    partiallyCompleted: [
+                        { $match: { status: 'Partially Completed' } },
+                        { $count: 'count' }
+                    ],
+                    declined: [
+                        { $match: { status: 'Declined' } },
+                        { $count: 'count' }
+                    ],
+                    total: [
+                        { $count: 'count' }
+                    ]
+                }
+            }
+        ];
+
+        // Count extension tickets
+        const extensionPipeline = [
+            {
+                $facet: {
+                    pending: [
+                        { $match: { status: 'Pending' } },
+                        { $count: 'count' }
+                    ],
+                    ongoing: [
+                        { $match: { status: 'Ongoing' } },
+                        { $count: 'count' }
+                    ],
+                    scheduled: [
+                        { $match: { status: 'Scheduled' } },
+                        { $count: 'count' }
+                    ],
+                    completed: [
+                        { $match: { status: 'Completed' } },
+                        { $count: 'count' }
+                    ],
+                    declined: [
+                        { $match: { status: 'Declined' } },
+                        { $count: 'count' }
+                    ],
+                    total: [
+                        { $count: 'count' }
+                    ]
+                }
+            }
+        ];
+
+        const [ticketResult, extensionResult] = await Promise.all([
+            global.machineriesModels.TicketRequest.aggregate(ticketPipeline),
+            global.machineriesModels.ExtensionTicket.aggregate(extensionPipeline)
+        ]);
+
+        const ticketData = ticketResult[0];
+        const extensionData = extensionResult[0];
+
+        // Combine counts from both ticket requests and extension tickets
+        const counts = {
+            pending: (ticketData.pending[0]?.count || 0) + (extensionData.pending[0]?.count || 0),
+            ongoing: (ticketData.ongoing[0]?.count || 0) + (extensionData.ongoing[0]?.count || 0),
+            scheduled: (ticketData.scheduled[0]?.count || 0) + (extensionData.scheduled[0]?.count || 0),
+            completed: (ticketData.completed[0]?.count || 0) + (extensionData.completed[0]?.count || 0),
+            partiallyCompleted: ticketData.partiallyCompleted[0]?.count || 0, // Only ticket requests have this status
+            declined: (ticketData.declined[0]?.count || 0) + (extensionData.declined[0]?.count || 0),
+            total: (ticketData.total[0]?.count || 0) + (extensionData.total[0]?.count || 0)
+        };
+
+        return res.status(200).json({
+            success: true,
+            message: "Ticket status counts retrieved successfully.",
+            data: counts
+        });
+
+    } catch (error) {
+        console.error("Error fetching ticket status counts:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Error fetching ticket status counts.",
+            error: error.message
+        });
+    }
+};
+
+export const getUpcomingAndOngoingSchedules = async (req, res) => {
+    try {
+        const now = new Date();
+        now.setHours(0, 0, 0, 0); // Start of today
+
+        // Fetch 3 upcoming planned schedules (weekStart >= today)
+        const upcomingSchedules = await global.machineriesModels.WeeklySchedule
+            .find({
+                status: 'Planned',
+                weekStart: { $gte: now }
+            })
+            .sort({ weekStart: 1 }) // Earliest first
+            .limit(3)
+            .lean();
+
+        // Fetch 3 ongoing schedules
+        const ongoingSchedules = await global.machineriesModels.WeeklySchedule
+            .find({ status: 'In Progress' })
+            .sort({ weekStart: -1 }) // Most recent first
+            .limit(3)
+            .lean();
+
+        // Extract ticket IDs from both upcoming and ongoing schedules
+        const allSchedules = [...upcomingSchedules, ...ongoingSchedules];
+        const ticketIds = [];
+        const extensionIds = [];
+
+        allSchedules.forEach(schedule => {
+            schedule.ticketRequests?.forEach(tr => {
+                if (tr.ticketRequestId) ticketIds.push(tr.ticketRequestId);
+                if (tr.extensionRequestId) extensionIds.push(tr.extensionRequestId);
+            });
+        });
+
+        // Fetch all related ticket requests and extensions
+        const [ticketRequests, extensionTickets] = await Promise.all([
+            global.machineriesModels.TicketRequest
+                .find({ _id: { $in: ticketIds } })
+                .lean(),
+            extensionIds.length > 0
+                ? global.machineriesModels.ExtensionTicket
+                    .find({ _id: { $in: extensionIds } })
+                    .lean()
+                : []
+        ]);
+
+        // Helper function to enhance schedules with ticket details
+        const enhanceSchedule = (schedule) => {
+            const enhancedTickets = schedule.ticketRequests?.map(tr => {
+                let ticketDetails = null;
+                let extensionDetails = null;
+
+                if (tr.ticketRequestId) {
+                    ticketDetails = ticketRequests.find(
+                        t => t._id?.toString() === tr.ticketRequestId.toString()
+                    );
+                }
+                if (tr.extensionRequestId) {
+                    extensionDetails = extensionTickets.find(
+                        ext => ext._id?.toString() === tr.extensionRequestId.toString()
+                    );
+                }
+
+                return {
+                    ...tr,
+                    ticketDetails: ticketDetails || null,
+                    extensionDetails: extensionDetails || null
+                };
+            }) || [];
+
+            // Sort tickets by assigned date (earliest first)
+            enhancedTickets.sort((a, b) => {
+                const dateA = new Date(a.assignedDate || 0);
+                const dateB = new Date(b.assignedDate || 0);
+                return dateA - dateB;
+            });
+
+            return {
+                ...schedule,
+                ticketRequests: enhancedTickets
+            };
+        };
+
+        // Enhance both upcoming and ongoing schedules
+        const enhancedUpcoming = upcomingSchedules.map(enhanceSchedule);
+        const enhancedOngoing = ongoingSchedules.map(enhanceSchedule);
+
+        return res.status(200).json({
+            success: true,
+            message: "Upcoming and ongoing schedules retrieved successfully.",
+            data: {
+                upcoming: enhancedUpcoming,
+                ongoing: enhancedOngoing,
+                upcomingCount: enhancedUpcoming.length,
+                ongoingCount: enhancedOngoing.length
+            }
+        });
+
+    } catch (error) {
+        console.error("Error fetching upcoming and ongoing schedules:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Error fetching upcoming and ongoing schedules.",
+            error: error.message
+        });
+    }
+};
