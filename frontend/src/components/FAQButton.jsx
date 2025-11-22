@@ -75,6 +75,10 @@ const FAQButton = () => {
         </Text>
       </Text>
     },
+    {
+       question: <Text color="blue.500">AgriTrack User Manual</Text>,
+       answer: 'Link to be included here.',
+    },
   ];
 
   return (
@@ -132,7 +136,7 @@ const FAQButton = () => {
               </Accordion>
             </VStack>
           </ModalBody>
-          <ModalFooter>
+          <ModalFooter borderTopWidth="1px" borderColor="gray.200">
             <Button onClick={onClose} variant="outline">Close</Button>
           </ModalFooter>
         </ModalContent>

@@ -7,27 +7,6 @@ import { useMutation } from '@tanstack/react-query';
 const API_URL = import.meta.env.VITE_API_URL;
 
 // Queries
-const useMachineryTypesQuery = (role) =>
-    useQuery({
-        queryKey: ['machineryTypes'],
-        queryFn: async () => {
-            const res = await axios.get(`${API_URL}/api/machineries/get-machinery-types`);
-            return res.data?.data ?? res.data;
-        },
-        enabled: role === 'MIM' || role === 'MIS',
-    });
-
-const useMachineryUnitsQuery = (role) =>
-    useQuery({
-        queryKey: ['machineryUnits'],
-        queryFn: async () => {
-            // updated to match new backend route (POST /get-machinery-unit)
-            const res = await axios.post(`${API_URL}/api/machineries/get-machinery-unit`, {});
-            return res.data;
-        },
-        enabled: role === 'MIM' || role === 'MIS',
-    });
-
 const usePendingTicketRequestsQuery = (page = 1, searchQuery = {}, role) =>
     useQuery({
         queryKey: ['pendingTicketRequests', page, searchQuery],
@@ -130,7 +109,7 @@ export const usePendingExtensionRequestsCountQuery = (role) =>
         enabled: role === 'MIM' || role === 'MIS',
 });
 
-export const useMachineUnitsQuery = (page = 1, searchQuery = {}, role) =>
+const useMachineUnitsQuery = (page = 1, searchQuery = {}, role) =>
     useQuery({
         queryKey: ['machineUnits', page, searchQuery],
         queryFn: async () => {
@@ -142,7 +121,7 @@ export const useMachineUnitsQuery = (page = 1, searchQuery = {}, role) =>
         enabled: role === 'MIM',
 });
 
-export const useOperatorAccountsQuery = (page = 1, searchQuery = {}, role) =>
+const useOperatorAccountsQuery = (page = 1, searchQuery = {}, role) =>
     useQuery({
         queryKey: ['operatorAccounts', page, searchQuery],
         queryFn: async () => {
@@ -178,7 +157,7 @@ const useMachineTypesQuery = (role) =>
     useQuery({
         queryKey: ['machineTypes'],
         queryFn: async () => {
-            const res = await axios.get(`${API_URL}/api/machineries/get-machine-types`);
+            const res = await axios.get(`${API_URL}/api/machineries/get-machine-types-for-adding-units`);
             return res.data;
         },
         enabled: role === 'MIM',
@@ -219,12 +198,6 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         operatorAccountsPage = 1,
     } = pages;
 
-    // Queries
-    const { data: machineryTypes = [], isLoading: isLoadingMachineryTypes, error: machineryTypesError } =
-        useMachineryTypesQuery(role);
-
-    const { data: machineryUnits = [], isLoading: isLoadingMachineryUnits, error: machineryUnitsError } =
-        useMachineryUnitsQuery(role);
 
     const { data: pendingTicketRequests = [], isLoading: isLoadingPendingTicketRequests, error: pendingTicketRequestsError } =
         usePendingTicketRequestsQuery(pendingPage, searchQuery, role);
@@ -541,8 +514,6 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
     
     return {
         // query data
-        machineryTypes,
-        machineryUnits,
         pendingTicketRequests,
         ongoingTicketRequests,
         scheduledTicketRequests,
@@ -584,8 +555,6 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         enableOperatorAccount,
 
         // loading states (queries)
-        isLoadingMachineryTypes,
-        isLoadingMachineryUnits,
         isLoadingPendingTicketRequests,
         isLoadingOngoingTicketRequests,
         isLoadingScheduledTicketRequests,
@@ -625,8 +594,6 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         isEnablingDisablingOperatorAccount,
 
         // error states
-        machineryTypesError,
-        machineryUnitsError,
         pendingTicketRequestsError,
         ongoingTicketRequestsError,
         scheduledTicketRequestsError,

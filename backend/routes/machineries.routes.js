@@ -9,21 +9,13 @@ import {
     createWeeklySchedule,
     removeTicketRequestFromSchedule,
     moveTicketRequestToASchedule,
-    formGetAvailableMachineryTypes,
-    getMachineryTypes,
+    availableMachineryTypes,
     getPendingTicketRequests,
-    getMachineryUnits,
-    getOngoingTicketRequests,
-    getScheduledTicketRequests,
-    getDeclinedTicketRequests,
     getOperatorsList,
     getMachineryUnitsForDropDown,
-    archiveTicketRequest,
-    //declineTicketRequest,
     getPlannedWeeklySchedules,
     updateWeeklySchedule,
     getInProgressWeeklySchedules,
-    //undeclineTicketRequest, // added
     setRequestTicketToComplete,
 
     getPendingExtensionRequestsCount,
@@ -34,7 +26,7 @@ import {
     getMachineUnits,
     getMachineOverview,
     updateMachineryUnitStatus,
-    getMachineTypes,
+    getMachineTypesForAddingUnits,
     getTicketStatusCounts,
     getUpcomingAndOngoingSchedules,
     disableOperator,
@@ -55,34 +47,27 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
 });
 
-router.get('/generate-machinery-report', exportMachineriesUsageReport);
+router.get('/generate-machinery-report', verifyAuthToken, verifyRole(['MIM']), exportMachineriesUsageReport);
 
 
 
-router.post('/create-machinery-type', createMachineriesType); //working
-router.put('/update-machinery-type', updateMachineryType);
-router.get('/get-machinery-types', getMachineryTypes);
+router.post('/create-machinery-type', verifyAuthToken, verifyRole(['MIM']), createMachineriesType); //working
+router.put('/update-machinery-type', verifyAuthToken, verifyRole(['MIM']), updateMachineryType);
+router.post('/create-machinery-unit', verifyAuthToken, verifyRole(['MIM']), addMachineryUnit); //working
 
-router.post('/create-machinery-unit', addMachineryUnit); //working
-router.post('/get-machinery-unit', getMachineryUnits);
+router.get('/get-pending-ticket-requests', verifyAuthToken, verifyRole(['MIM', 'MIS']), getPendingTicketRequests); //working frontend
+router.get('/get-operators-list', verifyAuthToken, verifyRole(['MIM', 'MIS']), getOperatorsList); //working frontend
+router.get('/get-machinery-units-for-dropdown', verifyAuthToken, verifyRole(['MIM', 'MIS']), getMachineryUnitsForDropDown); //working frontend
+router.get('/get-planned-weekly-schedules', verifyAuthToken, verifyRole(['MIM', 'MIS']), getPlannedWeeklySchedules); //working frontend
+router.get('/get-in-progress-weekly-schedules', verifyAuthToken, verifyRole(['MIM', 'MIS']), getInProgressWeeklySchedules);
 
-router.get('/get-pending-ticket-requests', getPendingTicketRequests); //working frontend
-router.get('/get-ongoing-ticket-requests', getOngoingTicketRequests);
-router.get('/get-scheduled-ticket-requests', getScheduledTicketRequests);
-router.get('/get-declined-ticket-requests', getDeclinedTicketRequests); 
-router.get('/get-operators-list', getOperatorsList); //working frontend
-router.get('/get-machinery-units-for-dropdown', getMachineryUnitsForDropDown); //working frontend
-router.get('/get-planned-weekly-schedules', getPlannedWeeklySchedules); //working frontend
-router.get('/get-in-progress-weekly-schedules', getInProgressWeeklySchedules);
-
-router.post('/archive-ticket-request', archiveTicketRequest);
-//router.post('/decline-ticket-requests', declineTicketRequest); //working frontend
-router.post('/create-weekly-schedule', createWeeklySchedule); //working frontend
-router.post('/remove-from-schedule/:ticketRequestId', removeTicketRequestFromSchedule); //working frontend
-router.post('/move-to-schedule', moveTicketRequestToASchedule);  // working frontend
-router.post('/update-weekly-schedule', updateWeeklySchedule); // for review
-//router.post('/undecline-ticket-request', undeclineTicketRequest); // new route
+router.post('/create-weekly-schedule', verifyAuthToken, verifyRole(['MIM']), createWeeklySchedule); //working frontend
+router.post('/remove-from-schedule/:ticketRequestId', verifyAuthToken, verifyRole(['MIM']), removeTicketRequestFromSchedule); //working frontend
+router.post('/move-to-schedule', verifyAuthToken, verifyRole(['MIM']), moveTicketRequestToASchedule);  // working frontend
+router.post('/update-weekly-schedule', verifyAuthToken, verifyRole(['MIM']), updateWeeklySchedule); // for review
 router.post('/ticket-request-complete', 
+  verifyAuthToken, 
+  verifyRole(['MIM', 'MIS']),
   upload.fields([
     { name: 'proofImage', maxCount: 1 },
     { name: 'signature', maxCount: 1 }
@@ -92,29 +77,31 @@ router.post('/ticket-request-complete',
 
 
 // Public API routes
-router.get('/get-available-machinery-types', formGetAvailableMachineryTypes); //working
+router.get('/get-available-machinery-types', availableMachineryTypes); //working
 router.post('/submit-ticket-request', createTicketRequestForm); //working
 
-router.get('/pending-extension-count', getPendingExtensionRequestsCount);
-router.post('/approve-extension-request', approveExtensionRequest);
-router.post('/decline-extension-request', declineExtensionRequest);
+router.get('/pending-extension-count', verifyAuthToken, verifyRole(['MIM', 'MIS']), getPendingExtensionRequestsCount);
+router.post('/approve-extension-request', verifyAuthToken, verifyRole(['MIM', 'MIS']), approveExtensionRequest);
+router.post('/decline-extension-request', verifyAuthToken, verifyRole(['MIM', 'MIS']), declineExtensionRequest);
 router.post('/extension-ticket-complete', 
+  verifyAuthToken, 
+  verifyRole(['MIM', 'MIS']),
   upload.fields([
     { name: 'proofImage', maxCount: 1 },
     { name: 'signature', maxCount: 1 }
   ]),
   setExtenstionTicketToComplete
 );
-router.post('/get-occupied-dates-for-scheduling', getOccupiedDatesForScheduling);
-router.get('/get-machine-units', getMachineUnits);
-router.get('/get-machine-overview', getMachineOverview);
-router.post('/update-machinery-unit-status', updateMachineryUnitStatus);
-router.get('/get-machine-types', getMachineTypes);
-router.get('/get-ticket-status-counts', getTicketStatusCounts);
-router.get('/get-upcoming-and-ongoing-schedules', getUpcomingAndOngoingSchedules);
-router.post('/disable-operator', disableOperator);
-router.post('/enable-operator', enableOperator);
-router.get('/get-all-operators', getAllOperators);
+router.post('/get-occupied-dates-for-scheduling', verifyAuthToken, verifyRole(['MIM']), getOccupiedDatesForScheduling);
+router.get('/get-machine-units', verifyAuthToken, verifyRole(['MIM']), getMachineUnits);
+router.get('/get-machine-overview', verifyAuthToken, verifyRole(['MIM']), getMachineOverview);
+router.post('/update-machinery-unit-status', verifyAuthToken, verifyRole(['MIM']), updateMachineryUnitStatus);
+router.get('/get-machine-types-for-adding-units', verifyAuthToken, verifyRole(['MIM']), getMachineTypesForAddingUnits);
+router.get('/get-ticket-status-counts', verifyAuthToken, verifyRole(['MIM']), getTicketStatusCounts);
+router.get('/get-upcoming-and-ongoing-schedules', verifyAuthToken, verifyRole(['MIM']), getUpcomingAndOngoingSchedules);
+router.post('/disable-operator', verifyAuthToken, verifyRole(['MIM']), disableOperator);
+router.post('/enable-operator', verifyAuthToken, verifyRole(['MIM']), enableOperator);
+router.get('/get-all-operators', verifyAuthToken, verifyRole(['MIM']), getAllOperators);
 
-router.post('/delete-schedule-and-tickets/:scheduleId', deleteScheduleAndTickets);
+router.post('/delete-schedule-and-tickets/:scheduleId', deleteScheduleAndTickets); //FOR DEBUGGING AND TESTING PURPOSES ONLY
 export default router;
