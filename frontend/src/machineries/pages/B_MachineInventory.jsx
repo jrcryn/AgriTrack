@@ -48,11 +48,6 @@ import {
   Tab,
   TabPanel,
   FormLabel,
-  NumberInput,
-  NumberInputField,
-  NumberInputStepper,
-  NumberIncrementStepper,
-  NumberDecrementStepper,
   RadioGroup,
   Radio,
 } from "@chakra-ui/react";
