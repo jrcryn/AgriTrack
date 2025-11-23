@@ -17,16 +17,38 @@ import {
   useToast,
   InputGroup,
   InputLeftAddon,
+  Accordion,
+  AccordionItem,
+  AccordionButton,
+  AccordionPanel,
+  AccordionIcon,
 } from '@chakra-ui/react';
 import { useFarmerFormStore } from '../store/farmerForm.store.js';
 import { usePublicFormStore } from '../../global/publicForm.store.js';
 import Barangays from '../../components/barangays.js';
 import { FaUserCheck, FaSearch } from 'react-icons/fa';
+import CropTypes from './B_cropTypes.jsx';
+import CropRecordsIndus from './C1_cropRecordsIndus.jsx';
+import CropRecordsOther from './C2_cropRecordsOther.jsx';
+import CropIndusNew from './D1_cropIndusNew.jsx';
+import CropIndusHarvest from './D1_cropIndusHarvest.jsx';
+import BcOtherFctNew from './D2_bc-other-fctNew.jsx';
+import BcOtherFctHarvest from './D2_bc-other-fctHarvest.jsx';
 
 const FarmerInput = ({ onNext, onBack }) => {
-
   // Get the existing farmer input data from the store
-  const { formData, updateFarmerInput, isLoading } = useFarmerFormStore();
+  const { 
+    formData, 
+    updateFarmerInput, 
+    updateCropType,
+    updateCropRecordIndus,
+    updateCropRecordOther,
+    updateCropIndusNew,
+    updateCropIndusHarvest,
+    updateCropOtherNew,
+    updateCropOtherHarvest,
+    isLoading 
+  } = useFarmerFormStore();
   const { getFarmerAccountByName } = usePublicFormStore();
   
   // Initialize form data with existing data from the store
@@ -165,16 +187,72 @@ const FarmerInput = ({ onNext, onBack }) => {
   const headerBorder = 'gray.200';
   const accentColor = 'blue.600'; 
 
+  // Inline step management
+  const [steps, setSteps] = useState([]);
+  const handleStepBack = () => {
+    const currentStep = steps[steps.length - 1];
+    
+    // Clear data based on which step we're going back from
+    switch (currentStep) {
+      case 'cropRecordsIndus':
+        updateCropRecordIndus(null);
+        break;
+      case 'cropRecordsOther':
+        updateCropRecordOther(null);
+        break;
+      case 'cropIndusNew':
+        updateCropIndusNew(null);
+        break;
+      case 'cropIndusHarvest':
+        updateCropIndusHarvest(null);
+        break;
+      case 'otherFctNew':
+        updateCropOtherNew(null);
+        break;
+      case 'otherFctHarvest':
+        updateCropOtherHarvest(null);
+        break;
+      default:
+        break;
+    }
+    
+    // Remove the last step from the array
+    setSteps(prev => prev.slice(0, -1));
+  };
+
+  // Removed previous effect that waited for farm_location before showing cropTypes
+  // useEffect(() => {
+  //   if (isFarmerSelected && localFormData.farm_location && !steps.includes('cropTypes')) {
+  //     setSteps(['cropTypes']);
+  //   }
+  // }, [isFarmerSelected, localFormData.farm_location]);
+
+  // Handlers passed to child forms
+  const handleCropTypesNext = (selectedCropType) => {
+    if (selectedCropType === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS') {
+      setSteps(prev => [...prev, 'cropRecordsIndus']);
+    } else {
+      setSteps(prev => [...prev, 'cropRecordsOther']);
+    }
+  };
+  const handleCropRecordsIndusNext = (stage) => {
+    setSteps(prev => [...prev, stage === 'NEWLY PLANTED' ? 'cropIndusNew' : 'cropIndusHarvest']);
+  };
+  const handleCropRecordsOtherNext = (stage) => {
+    setSteps(prev => [...prev, stage === 'NEWLY PLANTED' ? 'otherFctNew' : 'otherFctHarvest']);
+  };
+
+  // Final submission success handler (optional)
+  const handleFinalSuccess = () => {
+    // Optionally scroll / toast; keep original onNext if needed
+    onNext && onNext('/success');
+  };
+
+  // Remove bottom navigation (Continue/Back) – now managed inline
   return (
     <Box minH="100vh" py={10} px={4}>
       <VStack spacing={8} maxW="800px" mx="auto" w="full">
-        <Box 
-          bg={cardBg}
-          borderRadius="xl"
-          shadow="xl"
-          w="full"
-          overflow="hidden"
-        >
+        <Box bg={cardBg} borderRadius="xl" shadow="xl" w="full" overflow="hidden">
           {/* Header */}
           <Box 
             p={6}
@@ -196,9 +274,7 @@ const FarmerInput = ({ onNext, onBack }) => {
             </Text>
           </Box>
 
-          {/* Form Content */}
           <Box p={8}>
-
             <VStack spacing={6} align="stretch" key={isFarmerSelected ? 'selected' : 'not-selected'}>
 
               <Text 
@@ -350,72 +426,80 @@ const FarmerInput = ({ onNext, onBack }) => {
                   </Button>
               )}
 
-
-
-              {isFarmerSelected && (
-                 <Divider my={1} borderWidth={1} borderColor="gray.300" />
-              )}
-              {isFarmerSelected && (
-                <SimpleGrid>
-                <FormControl id="farmLocation" isRequired>
-                  <FormLabel 
-                    fontSize="sm" 
-                    fontWeight="medium"
-                    color="gray.600"
-                  >
-                    FARM LOCATION (PILIIN ANG BARANGAY KUNG NASAAN ANG INYONG TANIMAN)
-                  </FormLabel>
-                  <Select 
-                    name='farm_location'
-                    value={localFormData.farm_location}
-                    onChange={handleChange}
-                    placeholder="Select Barangay"
-                    borderRadius="md"
-                    focusBorderColor={accentColor}
-                  >
-                    {Barangays.map((barangay) => (
-                      <option key={barangay} value={barangay}>
-                        {barangay}
-                      </option>
-                    ))}
-                  </Select>
-                </FormControl>
-              </SimpleGrid>
-              )}
-
             </VStack>
-
-            {/* Navigation Buttons */}
-            <Stack 
-              direction={{ base: 'column', md: 'row' }}
-              spacing={4}
-              justify="flex-end"
-              mt={12}
-            >
-              <Button 
-                variant="ghost"
-                colorScheme="blue"
-                onClick={onBack}
-                px={8}
-                borderRadius="md"
-              >
-                Back
-              </Button>
-              <Button 
-                bg={accentColor}
-                color="white"
-                _hover={{ bg: 'blue.700' }}
-                onClick={handleNext}
-                isLoading={isLoading}
-                px={8}
-                borderRadius="md"
-                isDisabled={!isFormValid}
-              >
-                Continue
-              </Button>
-            </Stack>
           </Box>
         </Box>
+
+        {isFarmerSelected && (
+          <Box bg={cardBg} borderRadius="xl" shadow="xl" w="full" overflow="hidden">
+              <Accordion allowToggle defaultIndex={[0]} mt={0}>
+                <AccordionItem border="1px" borderColor="gray.200" borderRadius="md">
+                  <AccordionButton _expanded={{ bg: 'blue.50', color: accentColor }} py={4}>
+                    <Box flex="1" textAlign="left" fontWeight="semibold">
+                      Farm Location & Crop Forms
+                    </Box>
+                    <AccordionIcon />
+                  </AccordionButton>
+                  <AccordionPanel p={8}>
+                    {/* Farm Location + Crop Type side by side */}
+                    <SimpleGrid  spacing={8} mb={10}>  
+                      <FormControl id="farmLocation" isRequired>
+                        <FormLabel fontSize="sm" fontWeight="medium" color="gray.600">
+                          FARM LOCATION (PILIIN ANG BARANGAY KUNG NASAAN ANG INYONG TANIMAN)
+                        </FormLabel>
+                        <Select
+                          name='farm_location'
+                          value={localFormData.farm_location}
+                          onChange={handleChange}
+                          placeholder="Select Barangay"
+                          borderRadius="md"
+                          focusBorderColor={accentColor}
+                        >
+                          {Barangays.map((barangay) => (
+                            <option key={barangay} value={barangay}>
+                              {barangay}
+                            </option>
+                          ))}
+                        </Select>
+                      </FormControl>
+
+                      <CropTypes
+                        inline
+                        onNext={handleCropTypesNext}
+                        onBack={handleStepBack}
+                        isDisabled={!localFormData.farm_location}
+                      />
+                    </SimpleGrid>
+
+                    <VStack align="stretch" spacing={10}>
+                      {steps.includes('cropRecordsIndus') && (
+                        <CropRecordsIndus onNext={handleCropRecordsIndusNext} onBack={handleStepBack} />
+                      )}
+                      {steps.includes('cropRecordsOther') && (
+                        <CropRecordsOther
+                          cropType={formData.cropType}
+                          onNext={handleCropRecordsOtherNext}
+                          onBack={handleStepBack}
+                        />
+                      )}
+                      {steps.includes('cropIndusNew') && (
+                        <CropIndusNew onBack={handleStepBack} onNext={handleFinalSuccess} />
+                      )}
+                      {steps.includes('cropIndusHarvest') && (
+                        <CropIndusHarvest onBack={handleStepBack} onNext={handleFinalSuccess} />
+                      )}
+                      {steps.includes('otherFctNew') && (
+                        <BcOtherFctNew onBack={handleStepBack} onNext={handleFinalSuccess} />
+                      )}
+                      {steps.includes('otherFctHarvest') && (
+                        <BcOtherFctHarvest onBack={handleStepBack} onNext={handleFinalSuccess} />
+                      )}
+                    </VStack>
+                  </AccordionPanel>
+                </AccordionItem>
+              </Accordion>
+            </Box>
+        )}
       </VStack>
     </Box>
   );
