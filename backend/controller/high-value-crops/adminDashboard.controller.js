@@ -6,7 +6,7 @@ import mongoose from 'mongoose';
 
 
 // Get all unvalidated farmer inputs with their referenced documents
-export const getUnvalidatedFarmerInputs = async (req, res) => { //not in use
+export const getUnvalidatedFarmerInputs = async (req, res) => { 
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 5; // Default to 5 per page for each section
@@ -45,6 +45,7 @@ export const getUnvalidatedFarmerInputs = async (req, res) => { //not in use
       .find({ _id: { $in: relevantFarmerInputIds } })
       .populate({ path: 'farmer_account_id', model: global.globalModels.FarmerAccount })
       .populate({ path: 'editConsent.editRequestId', model: global.highValueCropsModels.EditRequest })
+      .sort({ createdAt: -1 })
       .lean()
       .skip(skip)
       .limit(limit);
@@ -141,6 +142,7 @@ export const getUnvalidatedArchivedFarmerInputs = async (req, res) => {
     const farmerInputs = await global.highValueCropsModels.A_farmer_inputs
       .find({ _id: { $in: relevantFarmerInputIds } })
       .populate({ path: 'farmer_account_id', model: global.globalModels.FarmerAccount })
+      .sort({ createdAt: -1 })
       .lean()
       .skip(skip)
       .limit(limit);

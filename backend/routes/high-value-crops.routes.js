@@ -3,7 +3,6 @@ import multer from 'multer';
 
 import { 
     getUnvalidatedFarmerInputs, 
-    //getValidatedFarmerInputs, // not in use
     createFarmerAccount, //manipulate data
     archiveFarmerAccount,
     unarchiveFarmerAccount,
@@ -11,7 +10,6 @@ import {
     getArchivedFarmerAccounts,
 
     getFarmerAccountByNameUser, 
-    //getFarmerAccountById, // not in use
     updateFarmerAccount, //manipulate data
     createUnifiedFarmerResponse, //manipulate data
     flagResponseForReview,
