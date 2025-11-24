@@ -19,7 +19,7 @@ import { useFarmerFormStore } from '../store/farmerForm.store.js';
 const CropIndusNew = ({ onNext, onBack }) => {
   const toast = useToast();
   const dateOptions = DateMonthOptions();
-  const { formData, updateCropIndusNew, submitFarmerForm, isLoading } = useFarmerFormStore();
+  const { formData, updateCropIndusNew } = useFarmerFormStore();
 
   // Create combined date options, initially apat kasi yung binibigay ni DateMonthOptions
   const combinedOptions = [
@@ -57,9 +57,7 @@ const CropIndusNew = ({ onNext, onBack }) => {
     }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
+  const handleContinue = () => {
     // Validate for negative numbers
     if (parseFloat(localFormData.total_area_planted) < 0) {
       toast({
@@ -81,13 +79,7 @@ const CropIndusNew = ({ onNext, onBack }) => {
       harvest_month_year: formattedHarvestDate,
     };
     updateCropIndusNew(data);
-    
-    try {
-      const success = await submitFarmerForm();
-      if (success) onNext();
-    } catch (error) {
-      console.error("Submission error:", error);
-    }
+    onNext();
   };
 
   useEffect(() => {
@@ -246,13 +238,12 @@ const CropIndusNew = ({ onNext, onBack }) => {
             bg={accentColor}
             color="white"
             _hover={{ bg: 'blue.700' }}
-            onClick={handleSubmit} 
+            onClick={handleContinue} 
             isDisabled={!isFormValid} 
-            isLoading={isLoading}
             w={{ base: 'full', md: 'auto' }}
             borderRadius="md"
           >
-            Submit
+            Continue
           </Button>
         </Stack>
       </VStack>

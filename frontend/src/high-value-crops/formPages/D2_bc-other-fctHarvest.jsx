@@ -34,7 +34,7 @@ const bc_other_fctHarvest = ({ onNext, onBack }) => {
     }
   ];
 
-  const { formData, updateCropOtherHarvest, submitFarmerForm, isLoading } = useFarmerFormStore();
+  const { formData, updateCropOtherHarvest } = useFarmerFormStore();
   const [localFormData, setLocalFormData] = useState(formData.cropOtherHarvest || {
     harvest_start_date: '',
     harvest_end_date: '',
@@ -52,7 +52,6 @@ const bc_other_fctHarvest = ({ onNext, onBack }) => {
   const [cropPurpose, setCropPurpose] = useState(localFormData.crop_purpose);
 
   const [isFormValid, setIsFormValid] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -91,7 +90,7 @@ const bc_other_fctHarvest = ({ onNext, onBack }) => {
     }));
   };
 
-  const handleSubmit = async () => {
+  const handleContinue = () => {
     // Validate for negative numbers
     if (parseFloat(localFormData.trees_harvested) < 0) {
       toast({
@@ -114,8 +113,6 @@ const bc_other_fctHarvest = ({ onNext, onBack }) => {
       });
       return;
     }
-
-    setSubmitting(true);
     
     const formDataToSubmit = { ...localFormData };
 
@@ -130,15 +127,7 @@ const bc_other_fctHarvest = ({ onNext, onBack }) => {
     }
 
     updateCropOtherHarvest(formDataToSubmit);
-    
-    try {
-      const success = await submitFarmerForm();
-      setSubmitting(false);
-      if (success) onNext();
-    } catch (error) {
-      console.error("Submission error:", error);
-      setSubmitting(false);
-    }
+    onNext();
   };
 
   useEffect(() => {
@@ -336,13 +325,12 @@ const bc_other_fctHarvest = ({ onNext, onBack }) => {
           bg={accentColor}
           color="white"
           _hover={{ bg: 'blue.700' }}
-          onClick={handleSubmit} 
+          onClick={handleContinue} 
           isDisabled={!isFormValid} 
-          isLoading={isLoading || submitting}
           w={{ base: 'full', md: 'auto' }}
           borderRadius="md"
         >
-          Submit
+          Continue
         </Button>
       </Stack>
     </Box>

@@ -21,7 +21,7 @@ import { useFarmerFormStore } from '../store/farmerForm.store.js';
 const CropIndusHarvest = ({ onNext, onBack }) => {
   const toast = useToast();
   const dateOptions = DateMonthOptions();
-  const { formData, updateCropIndusHarvest, submitFarmerForm, isLoading } = useFarmerFormStore();
+  const { formData, updateCropIndusHarvest } = useFarmerFormStore();
 
   // Create combined date options, initially apat kasi yung binibigay ni DateMonthOptions
   const combinedOptions = [
@@ -56,7 +56,6 @@ const CropIndusHarvest = ({ onNext, onBack }) => {
   
   
   const [isFormValid, setIsFormValid] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -99,7 +98,7 @@ const CropIndusHarvest = ({ onNext, onBack }) => {
     }));
   };
 
-  const handleSubmit = async () => {
+  const handleContinue = () => {
     // Validate for negative numbers
     if (parseFloat(localFormData.total_area_harvested) < 0) {
       toast({
@@ -122,8 +121,6 @@ const CropIndusHarvest = ({ onNext, onBack }) => {
       });
       return;
     }
-
-    setSubmitting(true);
     
     const formDataToSubmit = {...localFormData};
     
@@ -140,18 +137,7 @@ const CropIndusHarvest = ({ onNext, onBack }) => {
     }
     
     updateCropIndusHarvest(formDataToSubmit);
-    
-    try {
-      const success = await submitFarmerForm();
-      setSubmitting(false);
-      
-      if (success) {
-        onNext();
-      }
-    } catch (error) {
-      console.error("Submission error:", error);
-      setSubmitting(false);
-    }
+    onNext();
   };
 
 
@@ -495,13 +481,12 @@ const CropIndusHarvest = ({ onNext, onBack }) => {
             bg={accentColor}
             color="white"
             _hover={{ bg: 'blue.700' }}
-            onClick={handleSubmit} 
+            onClick={handleContinue} 
             isDisabled={!isFormValid} 
-            isLoading={isLoading || submitting}
             w={{ base: 'full', md: 'auto' }}
             borderRadius="md"
           >
-            Submit
+            Continue
           </Button>
         </Stack>
       </VStack>

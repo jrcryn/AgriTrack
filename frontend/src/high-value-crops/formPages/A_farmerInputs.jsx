@@ -39,15 +39,14 @@ import BcOtherFctHarvest from './D2_bc-other-fctHarvest.jsx';
 // Component for a single crop form accordion
 const CropFormAccordion = ({ 
   accordionId, 
-  accordionStoreId, // The unique ID used in the store
   farmerInput, 
   onRemove, 
   canRemove,
-  onSubmissionSuccess 
+  onCompletionChange,
+  onGetFormData
 }) => {
   const { 
     formData: storeFormData,
-    accordionForms,
     updateCropType,
     updateCropRecordIndus,
     updateCropRecordOther,
@@ -55,27 +54,14 @@ const CropFormAccordion = ({
     updateCropIndusHarvest,
     updateCropOtherNew,
     updateCropOtherHarvest,
-    addAccordionForm,
-    updateAccordionForm,
-    getAccordionForm,
-    removeAccordionForm,
     submitFarmerFormWithData,
     isLoading 
   } = useFarmerFormStore();
   
   const accentColor = 'blue.600';
   
-  // Initialize accordion form in store if it doesn't exist
-  useEffect(() => {
-    const existingForm = getAccordionForm(accordionStoreId);
-    if (!existingForm) {
-      addAccordionForm(accordionStoreId);
-    }
-  }, [accordionStoreId, addAccordionForm, getAccordionForm]);
-  
-  // Get accordion form data from store
-  const storedFormData = getAccordionForm(accordionStoreId);
-  const initialFormData = storedFormData?.formData || {
+  // Local state for this accordion - complete form data
+  const [accordionFormData, setAccordionFormData] = useState({
     farm_location: '',
     cropType: '',
     cropRecordIndus: null,
@@ -84,63 +70,22 @@ const CropFormAccordion = ({
     cropIndusNew: null,
     cropOtherHarvest: null,
     cropOtherNew: null,
-  };
-  
-  // Local state for this accordion - complete form data
-  const [accordionFormData, setAccordionFormData] = useState(initialFormData);
+  });
   
   const [steps, setSteps] = useState([]);
   
-  // Sync local state with store when store changes
+  // Sync store updates to local state when store changes (from child components)
   useEffect(() => {
-    const stored = getAccordionForm(accordionStoreId);
-    if (stored?.formData) {
-      setAccordionFormData(prev => ({
-        ...prev,
-        ...stored.formData
-      }));
-    }
-  }, [accordionStoreId, getAccordionForm, accordionForms]);
-  
-  // Sync store updates to local state and accordion store when store changes (from child components)
-  useEffect(() => {
-    const updates = {};
-    let hasUpdates = false;
-    
-    if (storeFormData.cropType && storeFormData.cropType !== accordionFormData.cropType) {
-      updates.cropType = storeFormData.cropType;
-      hasUpdates = true;
-    }
-    if (storeFormData.cropRecordIndus !== null && storeFormData.cropRecordIndus !== accordionFormData.cropRecordIndus) {
-      updates.cropRecordIndus = storeFormData.cropRecordIndus;
-      hasUpdates = true;
-    }
-    if (storeFormData.cropRecordOther !== null && storeFormData.cropRecordOther !== accordionFormData.cropRecordOther) {
-      updates.cropRecordOther = storeFormData.cropRecordOther;
-      hasUpdates = true;
-    }
-    if (storeFormData.cropIndusHarvest !== null && storeFormData.cropIndusHarvest !== accordionFormData.cropIndusHarvest) {
-      updates.cropIndusHarvest = storeFormData.cropIndusHarvest;
-      hasUpdates = true;
-    }
-    if (storeFormData.cropIndusNew !== null && storeFormData.cropIndusNew !== accordionFormData.cropIndusNew) {
-      updates.cropIndusNew = storeFormData.cropIndusNew;
-      hasUpdates = true;
-    }
-    if (storeFormData.cropOtherHarvest !== null && storeFormData.cropOtherHarvest !== accordionFormData.cropOtherHarvest) {
-      updates.cropOtherHarvest = storeFormData.cropOtherHarvest;
-      hasUpdates = true;
-    }
-    if (storeFormData.cropOtherNew !== null && storeFormData.cropOtherNew !== accordionFormData.cropOtherNew) {
-      updates.cropOtherNew = storeFormData.cropOtherNew;
-      hasUpdates = true;
-    }
-    
-    if (hasUpdates) {
-      setAccordionFormData(prev => ({ ...prev, ...updates }));
-      // Also update accordion form in store
-      updateAccordionForm(accordionStoreId, updates);
-    }
+    setAccordionFormData(prev => ({
+      ...prev,
+      cropType: storeFormData.cropType || prev.cropType,
+      cropRecordIndus: storeFormData.cropRecordIndus !== null ? storeFormData.cropRecordIndus : prev.cropRecordIndus,
+      cropRecordOther: storeFormData.cropRecordOther !== null ? storeFormData.cropRecordOther : prev.cropRecordOther,
+      cropIndusHarvest: storeFormData.cropIndusHarvest !== null ? storeFormData.cropIndusHarvest : prev.cropIndusHarvest,
+      cropIndusNew: storeFormData.cropIndusNew !== null ? storeFormData.cropIndusNew : prev.cropIndusNew,
+      cropOtherHarvest: storeFormData.cropOtherHarvest !== null ? storeFormData.cropOtherHarvest : prev.cropOtherHarvest,
+      cropOtherNew: storeFormData.cropOtherNew !== null ? storeFormData.cropOtherNew : prev.cropOtherNew,
+    }));
   }, [
     storeFormData.cropType,
     storeFormData.cropRecordIndus,
@@ -149,34 +94,14 @@ const CropFormAccordion = ({
     storeFormData.cropIndusNew,
     storeFormData.cropOtherHarvest,
     storeFormData.cropOtherNew,
-    accordionStoreId,
-    updateAccordionForm,
-    accordionFormData.cropType,
-    accordionFormData.cropRecordIndus,
-    accordionFormData.cropRecordOther,
-    accordionFormData.cropIndusHarvest,
-    accordionFormData.cropIndusNew,
-    accordionFormData.cropOtherHarvest,
-    accordionFormData.cropOtherNew,
   ]);
   
   const handleFarmLocationChange = (e) => {
-    const newFarmLocation = e.target.value;
-    setAccordionFormData(prev => {
-      const updated = { ...prev, farm_location: newFarmLocation };
-      // Save to store
-      updateAccordionForm(accordionStoreId, { farm_location: newFarmLocation });
-      return updated;
-    });
+    setAccordionFormData(prev => ({ ...prev, farm_location: e.target.value }));
   };
   
   const handleCropTypesNext = (selectedCropType) => {
-    setAccordionFormData(prev => {
-      const updated = { ...prev, cropType: selectedCropType };
-      // Save to store
-      updateAccordionForm(accordionStoreId, { cropType: selectedCropType });
-      return updated;
-    });
+    setAccordionFormData(prev => ({ ...prev, cropType: selectedCropType }));
     updateCropType(selectedCropType);
     if (selectedCropType === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS') {
       setSteps(prev => [...prev, 'cropRecordsIndus']);
@@ -190,51 +115,27 @@ const CropFormAccordion = ({
     
     switch (currentStep) {
       case 'cropRecordsIndus':
-        setAccordionFormData(prev => {
-          const updated = { ...prev, cropRecordIndus: null };
-          updateAccordionForm(accordionStoreId, { cropRecordIndus: null });
-          return updated;
-        });
+        setAccordionFormData(prev => ({ ...prev, cropRecordIndus: null }));
         updateCropRecordIndus(null);
         break;
       case 'cropRecordsOther':
-        setAccordionFormData(prev => {
-          const updated = { ...prev, cropRecordOther: null };
-          updateAccordionForm(accordionStoreId, { cropRecordOther: null });
-          return updated;
-        });
+        setAccordionFormData(prev => ({ ...prev, cropRecordOther: null }));
         updateCropRecordOther(null);
         break;
       case 'cropIndusNew':
-        setAccordionFormData(prev => {
-          const updated = { ...prev, cropIndusNew: null };
-          updateAccordionForm(accordionStoreId, { cropIndusNew: null });
-          return updated;
-        });
+        setAccordionFormData(prev => ({ ...prev, cropIndusNew: null }));
         updateCropIndusNew(null);
         break;
       case 'cropIndusHarvest':
-        setAccordionFormData(prev => {
-          const updated = { ...prev, cropIndusHarvest: null };
-          updateAccordionForm(accordionStoreId, { cropIndusHarvest: null });
-          return updated;
-        });
+        setAccordionFormData(prev => ({ ...prev, cropIndusHarvest: null }));
         updateCropIndusHarvest(null);
         break;
       case 'otherFctNew':
-        setAccordionFormData(prev => {
-          const updated = { ...prev, cropOtherNew: null };
-          updateAccordionForm(accordionStoreId, { cropOtherNew: null });
-          return updated;
-        });
+        setAccordionFormData(prev => ({ ...prev, cropOtherNew: null }));
         updateCropOtherNew(null);
         break;
       case 'otherFctHarvest':
-        setAccordionFormData(prev => {
-          const updated = { ...prev, cropOtherHarvest: null };
-          updateAccordionForm(accordionStoreId, { cropOtherHarvest: null });
-          return updated;
-        });
+        setAccordionFormData(prev => ({ ...prev, cropOtherHarvest: null }));
         updateCropOtherHarvest(null);
         break;
       default:
@@ -247,98 +148,112 @@ const CropFormAccordion = ({
   const handleCropRecordsIndusNext = (stage) => {
     // Data is already in store from CropRecordsIndus component
     const store = useFarmerFormStore.getState();
-    const cropRecordData = store.formData.cropRecordIndus;
-    setAccordionFormData(prev => {
-      const updated = { ...prev, cropRecordIndus: cropRecordData };
-      // Save to store
-      updateAccordionForm(accordionStoreId, { cropRecordIndus: cropRecordData });
-      return updated;
-    });
+    setAccordionFormData(prev => ({ ...prev, cropRecordIndus: store.formData.cropRecordIndus }));
     setSteps(prev => [...prev, stage === 'NEWLY PLANTED' ? 'cropIndusNew' : 'cropIndusHarvest']);
   };
   
   const handleCropRecordsOtherNext = (stage) => {
     // Data is already in store from CropRecordsOther component
     const store = useFarmerFormStore.getState();
-    const cropRecordData = store.formData.cropRecordOther;
-    setAccordionFormData(prev => {
-      const updated = { ...prev, cropRecordOther: cropRecordData };
-      // Save to store
-      updateAccordionForm(accordionStoreId, { cropRecordOther: cropRecordData });
-      return updated;
-    });
+    setAccordionFormData(prev => ({ ...prev, cropRecordOther: store.formData.cropRecordOther }));
     setSteps(prev => [...prev, stage === 'NEWLY PLANTED' ? 'otherFctNew' : 'otherFctHarvest']);
   };
   
-  const handleFinalSuccess = async () => {
-    // Get latest data from store (child components update it)
+  // Check if form is complete
+  const checkFormCompletion = () => {
+    const hasFarmLocation = !!accordionFormData.farm_location;
+    const hasCropType = !!accordionFormData.cropType;
+    
+    if (!hasFarmLocation || !hasCropType) {
+      return false;
+    }
+    
+    // Check based on crop type
+    if (accordionFormData.cropType === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS') {
+      const hasCropRecord = !!(storeFormData.cropRecordIndus || accordionFormData.cropRecordIndus);
+      const hasFinalForm = !!(storeFormData.cropIndusHarvest || storeFormData.cropIndusNew || 
+                                accordionFormData.cropIndusHarvest || accordionFormData.cropIndusNew);
+      return hasCropRecord && hasFinalForm;
+    } else if (accordionFormData.cropType) {
+      const hasCropRecord = !!(storeFormData.cropRecordOther || accordionFormData.cropRecordOther);
+      const hasFinalForm = !!(storeFormData.cropOtherHarvest || storeFormData.cropOtherNew || 
+                                accordionFormData.cropOtherHarvest || accordionFormData.cropOtherNew);
+      return hasCropRecord && hasFinalForm;
+    }
+    
+    return false;
+  };
+  
+  // Update completion status when form data changes
+  useEffect(() => {
+    const isComplete = checkFormCompletion();
+    if (onCompletionChange) {
+      onCompletionChange(accordionId, isComplete);
+    }
+  }, [
+    accordionFormData.farm_location,
+    accordionFormData.cropType,
+    accordionFormData.cropRecordIndus,
+    accordionFormData.cropRecordOther,
+    accordionFormData.cropIndusHarvest,
+    accordionFormData.cropIndusNew,
+    accordionFormData.cropOtherHarvest,
+    accordionFormData.cropOtherNew,
+    storeFormData.cropRecordIndus,
+    storeFormData.cropRecordOther,
+    storeFormData.cropIndusHarvest,
+    storeFormData.cropIndusNew,
+    storeFormData.cropOtherHarvest,
+    storeFormData.cropOtherNew,
+    accordionId,
+    onCompletionChange
+  ]);
+  
+  // Expose form data getter to parent
+  useEffect(() => {
+    if (onGetFormData) {
+      onGetFormData(accordionId, () => {
+        const store = useFarmerFormStore.getState();
+        return {
+          privacyConsent: '',
+          farmerInput: {
+            ...farmerInput,
+            farm_location: accordionFormData.farm_location,
+          },
+          cropType: accordionFormData.cropType,
+          cropRecordIndus: store.formData.cropRecordIndus || accordionFormData.cropRecordIndus,
+          cropRecordOther: store.formData.cropRecordOther || accordionFormData.cropRecordOther,
+          cropIndusHarvest: store.formData.cropIndusHarvest || accordionFormData.cropIndusHarvest,
+          cropIndusNew: store.formData.cropIndusNew || accordionFormData.cropIndusNew,
+          cropOtherHarvest: store.formData.cropOtherHarvest || accordionFormData.cropOtherHarvest,
+          cropOtherNew: store.formData.cropOtherNew || accordionFormData.cropOtherNew,
+        };
+      });
+    }
+  }, [
+    accordionFormData,
+    farmerInput,
+    accordionId,
+    onGetFormData
+  ]);
+  
+  const handleFinalSuccess = () => {
+    // Just mark as complete - parent will handle submission
+    // This is called when user completes the final form step
     const store = useFarmerFormStore.getState();
     
-    // Build complete form data for this accordion
-    const completeFormData = {
-      privacyConsent: '',
-      farmerInput: {
-        ...farmerInput,
-        farm_location: accordionFormData.farm_location,
-      },
-      cropType: accordionFormData.cropType,
-      cropRecordIndus: store.formData.cropRecordIndus || accordionFormData.cropRecordIndus,
-      cropRecordOther: store.formData.cropRecordOther || accordionFormData.cropRecordOther,
-      cropIndusHarvest: store.formData.cropIndusHarvest || accordionFormData.cropIndusHarvest,
-      cropIndusNew: store.formData.cropIndusNew || accordionFormData.cropIndusNew,
-      cropOtherHarvest: store.formData.cropOtherHarvest || accordionFormData.cropOtherHarvest,
-      cropOtherNew: store.formData.cropOtherNew || accordionFormData.cropOtherNew,
-    };
-    
-    // Save final form data to accordion store before submitting
-    updateAccordionForm(accordionStoreId, {
-      cropIndusHarvest: completeFormData.cropIndusHarvest,
-      cropIndusNew: completeFormData.cropIndusNew,
-      cropOtherHarvest: completeFormData.cropOtherHarvest,
-      cropOtherNew: completeFormData.cropOtherNew,
-    });
-    
-    // Submit using the new function that accepts form data
-    const success = await submitFarmerFormWithData(completeFormData);
-    
-    if (success) {
-      // Clear this accordion's state
-      setAccordionFormData({
-        farm_location: '',
-        cropType: '',
-        cropRecordIndus: null,
-        cropRecordOther: null,
-        cropIndusHarvest: null,
-        cropIndusNew: null,
-        cropOtherHarvest: null,
-        cropOtherNew: null,
-      });
-      setSteps([]);
-      
-      // Clear accordion form from store (or reset it)
-      updateAccordionForm(accordionStoreId, {
-        farm_location: '',
-        cropType: '',
-        cropRecordIndus: null,
-        cropRecordOther: null,
-        cropIndusHarvest: null,
-        cropIndusNew: null,
-        cropOtherHarvest: null,
-        cropOtherNew: null,
-      });
-      
-      // Clear store crop data
-      updateCropType('');
-      updateCropRecordIndus(null);
-      updateCropRecordOther(null);
-      updateCropIndusNew(null);
-      updateCropIndusHarvest(null);
-      updateCropOtherNew(null);
-      updateCropOtherHarvest(null);
-      
-      if (onSubmissionSuccess) {
-        onSubmissionSuccess();
-      }
+    // Update local state with final form data from store
+    if (store.formData.cropIndusHarvest) {
+      setAccordionFormData(prev => ({ ...prev, cropIndusHarvest: store.formData.cropIndusHarvest }));
+    }
+    if (store.formData.cropIndusNew) {
+      setAccordionFormData(prev => ({ ...prev, cropIndusNew: store.formData.cropIndusNew }));
+    }
+    if (store.formData.cropOtherHarvest) {
+      setAccordionFormData(prev => ({ ...prev, cropOtherHarvest: store.formData.cropOtherHarvest }));
+    }
+    if (store.formData.cropOtherNew) {
+      setAccordionFormData(prev => ({ ...prev, cropOtherNew: store.formData.cropOtherNew }));
     }
   };
   
@@ -346,7 +261,7 @@ const CropFormAccordion = ({
     <AccordionItem border="1px" borderColor="gray.200" borderRadius="md" mb={4}>
       <AccordionButton _expanded={{ bg: 'blue.50', color: accentColor }} py={4}>
         <Box flex="1" textAlign="left" fontWeight="semibold" ml={4}>
-          Form {accordionId > 0 ? `#${accordionId + 1}` : '#1'} - {accordionFormData.cropType || 'Select Crop Type'} 
+          Form {accordionId > 0 ? `#${accordionId + 1}` : '#1'}
         </Box>
         {canRemove && (
           <IconButton
@@ -432,9 +347,7 @@ const FarmerInput = ({ onNext, onBack }) => {
   // Get the existing farmer input data from the store
   const { 
     formData, 
-    updateFarmerInput,
-    clearAccordionForms,
-    removeAccordionForm
+    updateFarmerInput
   } = useFarmerFormStore();
   const { getFarmerAccountByName } = usePublicFormStore();
   
@@ -551,12 +464,6 @@ const FarmerInput = ({ onNext, onBack }) => {
     // Update store first
     updateFarmerInput(resetData);
     
-    // Clear all accordion forms
-    clearAccordionForms();
-    
-    // Reset accordion IDs
-    setAccordionIds([0]);
-    
     // Then update local state
     setLocalFormData(resetData);
     
@@ -582,18 +489,45 @@ const FarmerInput = ({ onNext, onBack }) => {
 
   // Manage multiple accordions
   const [accordionIds, setAccordionIds] = useState([0]);
+  const [accordionCompletions, setAccordionCompletions] = useState({});
+  const [accordionFormDataGetters, setAccordionFormDataGetters] = useState({});
+  const { submitFarmerFormWithData, isLoading } = useFarmerFormStore();
+  
+  // Initialize completion status for all accordions
+  useEffect(() => {
+    setAccordionCompletions(prev => {
+      const newCompletions = {};
+      accordionIds.forEach(id => {
+        if (!(id in prev)) {
+          newCompletions[id] = false;
+        }
+      });
+      if (Object.keys(newCompletions).length > 0) {
+        return { ...prev, ...newCompletions };
+      }
+      return prev;
+    });
+  }, [accordionIds]);
   
   const handleAddAccordion = () => {
     const newId = accordionIds.length > 0 ? Math.max(...accordionIds) + 1 : 0;
     setAccordionIds(prev => [...prev, newId]);
+    setAccordionCompletions(prev => ({ ...prev, [newId]: false }));
   };
   
   const handleRemoveAccordion = (idToRemove) => {
     if (accordionIds.length > 1) {
-      // Remove from store
-      removeAccordionForm(idToRemove);
-      // Remove from local state
       setAccordionIds(prev => prev.filter(id => id !== idToRemove));
+      setAccordionCompletions(prev => {
+        const updated = { ...prev };
+        delete updated[idToRemove];
+        return updated;
+      });
+      setAccordionFormDataGetters(prev => {
+        const updated = { ...prev };
+        delete updated[idToRemove];
+        return updated;
+      });
     } else {
       toast({
         title: "Cannot Remove",
@@ -605,14 +539,83 @@ const FarmerInput = ({ onNext, onBack }) => {
     }
   };
   
-  const handleAccordionSubmissionSuccess = () => {
-    toast({
-      title: "Success",
-      description: "Crop form submitted successfully!",
-      status: "success",
-      duration: 3000,
-      isClosable: true,
-    });
+  const handleCompletionChange = (accordionId, isComplete) => {
+    setAccordionCompletions(prev => ({ ...prev, [accordionId]: isComplete }));
+  };
+  
+  const handleGetFormData = (accordionId, getter) => {
+    setAccordionFormDataGetters(prev => ({ ...prev, [accordionId]: getter }));
+  };
+  
+  // Check if all accordions are complete
+  const areAllAccordionsComplete = () => {
+    if (accordionIds.length === 0) return false;
+    return accordionIds.every(id => accordionCompletions[id] === true);
+  };
+  
+  // Submit all completed forms
+  const handleSubmitAll = async () => {
+    if (!areAllAccordionsComplete()) {
+      toast({
+        title: "Incomplete Forms",
+        description: "Please complete all crop forms before submitting.",
+        status: "warning",
+        duration: 5000,
+        isClosable: true,
+      });
+      return;
+    }
+    
+    // Collect all form data
+    const allFormData = accordionIds
+      .map(id => {
+        const getter = accordionFormDataGetters[id];
+        return getter ? getter() : null;
+      })
+      .filter(Boolean);
+    
+    if (allFormData.length === 0) {
+      toast({
+        title: "Error",
+        description: "No form data to submit.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+    
+    // Submit each form sequentially
+    try {
+      for (let i = 0; i < allFormData.length; i++) {
+        const success = await submitFarmerFormWithData(allFormData[i]);
+        if (!success) {
+          throw new Error(`Failed to submit form ${i + 1}`);
+        }
+      }
+      
+      toast({
+        title: "Success",
+        description: `Successfully submitted ${allFormData.length} crop form(s)!`,
+        status: "success",
+        duration: 5000,
+        isClosable: true,
+      });
+      
+      // Clear all accordions and reset
+      setAccordionIds([0]);
+      setAccordionCompletions({});
+      setAccordionFormDataGetters({});
+      
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to submit forms. Please try again.",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    }
   };
 
   // Remove bottom navigation (Continue/Back) – now managed inline
@@ -805,25 +808,38 @@ const FarmerInput = ({ onNext, onBack }) => {
                   <CropFormAccordion
                     key={accordionId}
                     accordionId={index}
-                    accordionStoreId={accordionId}
                     farmerInput={localFormData}
                     onRemove={() => handleRemoveAccordion(accordionId)}
                     canRemove={accordionIds.length > 1}
-                    onSubmissionSuccess={handleAccordionSubmissionSuccess}
+                    onCompletionChange={handleCompletionChange}
+                    onGetFormData={handleGetFormData}
                   />
                 ))}
               </Accordion>
               
               <Button
                 leftIcon={<FaPlus />}
-                bg={accentColor}
-                color="white"
-                _hover={{ bg: 'blue.700' }}
+                variant='outline'
+                color={accentColor}
+                borderColor='blue.500'
                 onClick={handleAddAccordion}
                 borderRadius="md"
                 mt={4}
               >
                 Add Another Crop Type
+              </Button>
+              
+              <Button
+                bg="green.600"
+                color="white"
+                _hover={{ bg: 'green.700' }}
+                onClick={handleSubmitAll}
+                isLoading={isLoading}
+                borderRadius="md"
+                size="md"
+                isDisabled={!areAllAccordionsComplete()}
+              >
+                Submit All Forms
               </Button>
             </VStack>
           </Box>
