@@ -92,6 +92,24 @@ export const useFarmerFormStore = create((set, get) => ({
     }
   },
   
+  // Submit with custom form data (for multiple accordions)
+  submitFarmerFormWithData: async (customFormData) => {
+    set({ isLoading: true, error: null });
+    
+    try {
+      await axios.post(`${API_URL}/api/hvc/farmer-form-submission`, customFormData);
+      set({ isLoading: false, success: true });
+      return true;
+    } catch (error) {
+      console.error('Form submission error:', error);
+      set({ 
+        isLoading: false, 
+        error: error.response?.data?.message || 'Error submitting form data'
+      });
+      return false;
+    }
+  },
+  
   // Reset the form
   resetForm: () => set({
     formData: {

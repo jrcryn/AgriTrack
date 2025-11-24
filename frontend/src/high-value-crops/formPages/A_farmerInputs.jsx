@@ -22,11 +22,12 @@ import {
   AccordionButton,
   AccordionPanel,
   AccordionIcon,
+  IconButton,
 } from '@chakra-ui/react';
 import { useFarmerFormStore } from '../store/farmerForm.store.js';
 import { usePublicFormStore } from '../../global/publicForm.store.js';
 import Barangays from '../../components/barangays.js';
-import { FaUserCheck, FaSearch } from 'react-icons/fa';
+import { FaUserCheck, FaSearch, FaPlus, FaTrash } from 'react-icons/fa';
 import CropTypes from './B_cropTypes.jsx';
 import CropRecordsIndus from './C1_cropRecordsIndus.jsx';
 import CropRecordsOther from './C2_cropRecordsOther.jsx';
@@ -35,11 +36,16 @@ import CropIndusHarvest from './D1_cropIndusHarvest.jsx';
 import BcOtherFctNew from './D2_bc-other-fctNew.jsx';
 import BcOtherFctHarvest from './D2_bc-other-fctHarvest.jsx';
 
-const FarmerInput = ({ onNext, onBack }) => {
-  // Get the existing farmer input data from the store
+// Component for a single crop form accordion
+const CropFormAccordion = ({ 
+  accordionId, 
+  farmerInput, 
+  onRemove, 
+  canRemove,
+  onSubmissionSuccess 
+}) => {
   const { 
-    formData, 
-    updateFarmerInput, 
+    formData: storeFormData,
     updateCropType,
     updateCropRecordIndus,
     updateCropRecordOther,
@@ -47,7 +53,254 @@ const FarmerInput = ({ onNext, onBack }) => {
     updateCropIndusHarvest,
     updateCropOtherNew,
     updateCropOtherHarvest,
+    submitFarmerFormWithData,
     isLoading 
+  } = useFarmerFormStore();
+  
+  const accentColor = 'blue.600';
+  
+  // Local state for this accordion - complete form data
+  const [accordionFormData, setAccordionFormData] = useState({
+    farm_location: '',
+    cropType: '',
+    cropRecordIndus: null,
+    cropRecordOther: null,
+    cropIndusHarvest: null,
+    cropIndusNew: null,
+    cropOtherHarvest: null,
+    cropOtherNew: null,
+  });
+  
+  const [steps, setSteps] = useState([]);
+  
+  // Sync store updates to local state when store changes (from child components)
+  useEffect(() => {
+    setAccordionFormData(prev => ({
+      ...prev,
+      cropType: storeFormData.cropType || prev.cropType,
+      cropRecordIndus: storeFormData.cropRecordIndus !== null ? storeFormData.cropRecordIndus : prev.cropRecordIndus,
+      cropRecordOther: storeFormData.cropRecordOther !== null ? storeFormData.cropRecordOther : prev.cropRecordOther,
+      cropIndusHarvest: storeFormData.cropIndusHarvest !== null ? storeFormData.cropIndusHarvest : prev.cropIndusHarvest,
+      cropIndusNew: storeFormData.cropIndusNew !== null ? storeFormData.cropIndusNew : prev.cropIndusNew,
+      cropOtherHarvest: storeFormData.cropOtherHarvest !== null ? storeFormData.cropOtherHarvest : prev.cropOtherHarvest,
+      cropOtherNew: storeFormData.cropOtherNew !== null ? storeFormData.cropOtherNew : prev.cropOtherNew,
+    }));
+  }, [
+    storeFormData.cropType,
+    storeFormData.cropRecordIndus,
+    storeFormData.cropRecordOther,
+    storeFormData.cropIndusHarvest,
+    storeFormData.cropIndusNew,
+    storeFormData.cropOtherHarvest,
+    storeFormData.cropOtherNew,
+  ]);
+  
+  const handleFarmLocationChange = (e) => {
+    setAccordionFormData(prev => ({ ...prev, farm_location: e.target.value }));
+  };
+  
+  const handleCropTypesNext = (selectedCropType) => {
+    setAccordionFormData(prev => ({ ...prev, cropType: selectedCropType }));
+    updateCropType(selectedCropType);
+    if (selectedCropType === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS') {
+      setSteps(prev => [...prev, 'cropRecordsIndus']);
+    } else {
+      setSteps(prev => [...prev, 'cropRecordsOther']);
+    }
+  };
+  
+  const handleStepBack = () => {
+    const currentStep = steps[steps.length - 1];
+    
+    switch (currentStep) {
+      case 'cropRecordsIndus':
+        setAccordionFormData(prev => ({ ...prev, cropRecordIndus: null }));
+        updateCropRecordIndus(null);
+        break;
+      case 'cropRecordsOther':
+        setAccordionFormData(prev => ({ ...prev, cropRecordOther: null }));
+        updateCropRecordOther(null);
+        break;
+      case 'cropIndusNew':
+        setAccordionFormData(prev => ({ ...prev, cropIndusNew: null }));
+        updateCropIndusNew(null);
+        break;
+      case 'cropIndusHarvest':
+        setAccordionFormData(prev => ({ ...prev, cropIndusHarvest: null }));
+        updateCropIndusHarvest(null);
+        break;
+      case 'otherFctNew':
+        setAccordionFormData(prev => ({ ...prev, cropOtherNew: null }));
+        updateCropOtherNew(null);
+        break;
+      case 'otherFctHarvest':
+        setAccordionFormData(prev => ({ ...prev, cropOtherHarvest: null }));
+        updateCropOtherHarvest(null);
+        break;
+      default:
+        break;
+    }
+    
+    setSteps(prev => prev.slice(0, -1));
+  };
+  
+  const handleCropRecordsIndusNext = (stage) => {
+    // Data is already in store from CropRecordsIndus component
+    const store = useFarmerFormStore.getState();
+    setAccordionFormData(prev => ({ ...prev, cropRecordIndus: store.formData.cropRecordIndus }));
+    setSteps(prev => [...prev, stage === 'NEWLY PLANTED' ? 'cropIndusNew' : 'cropIndusHarvest']);
+  };
+  
+  const handleCropRecordsOtherNext = (stage) => {
+    // Data is already in store from CropRecordsOther component
+    const store = useFarmerFormStore.getState();
+    setAccordionFormData(prev => ({ ...prev, cropRecordOther: store.formData.cropRecordOther }));
+    setSteps(prev => [...prev, stage === 'NEWLY PLANTED' ? 'otherFctNew' : 'otherFctHarvest']);
+  };
+  
+  const handleFinalSuccess = async () => {
+    // Get latest data from store (child components update it)
+    const store = useFarmerFormStore.getState();
+    
+    // Build complete form data for this accordion
+    const completeFormData = {
+      privacyConsent: '',
+      farmerInput: {
+        ...farmerInput,
+        farm_location: accordionFormData.farm_location,
+      },
+      cropType: accordionFormData.cropType,
+      cropRecordIndus: store.formData.cropRecordIndus || accordionFormData.cropRecordIndus,
+      cropRecordOther: store.formData.cropRecordOther || accordionFormData.cropRecordOther,
+      cropIndusHarvest: store.formData.cropIndusHarvest || accordionFormData.cropIndusHarvest,
+      cropIndusNew: store.formData.cropIndusNew || accordionFormData.cropIndusNew,
+      cropOtherHarvest: store.formData.cropOtherHarvest || accordionFormData.cropOtherHarvest,
+      cropOtherNew: store.formData.cropOtherNew || accordionFormData.cropOtherNew,
+    };
+    
+    // Submit using the new function that accepts form data
+    const success = await submitFarmerFormWithData(completeFormData);
+    
+    if (success) {
+      // Clear this accordion's state
+      setAccordionFormData({
+        farm_location: '',
+        cropType: '',
+        cropRecordIndus: null,
+        cropRecordOther: null,
+        cropIndusHarvest: null,
+        cropIndusNew: null,
+        cropOtherHarvest: null,
+        cropOtherNew: null,
+      });
+      setSteps([]);
+      
+      // Clear store crop data
+      updateCropType('');
+      updateCropRecordIndus(null);
+      updateCropRecordOther(null);
+      updateCropIndusNew(null);
+      updateCropIndusHarvest(null);
+      updateCropOtherNew(null);
+      updateCropOtherHarvest(null);
+      
+      if (onSubmissionSuccess) {
+        onSubmissionSuccess();
+      }
+    }
+  };
+  
+  return (
+    <AccordionItem border="1px" borderColor="gray.200" borderRadius="md" mb={4}>
+      <AccordionButton _expanded={{ bg: 'blue.50', color: accentColor }} py={4}>
+        <Box flex="1" textAlign="left" fontWeight="semibold" ml={4}>
+          Farm Location & Crop Forms {accordionId > 0 ? `#${accordionId + 1}` : ''}
+        </Box>
+        {canRemove && (
+          <IconButton
+            icon={<FaTrash />}
+            size="sm"
+            variant="ghost"
+            colorScheme="red"
+            onClick={(e) => {
+              e.stopPropagation();
+              onRemove();
+            }}
+            aria-label="Remove accordion"
+            mr={2}
+          />
+        )}
+        <AccordionIcon />
+      </AccordionButton>
+      <AccordionPanel pt={5}>
+        <SimpleGrid spacing={8} mb={5}>
+          <Box borderRadius="xl" borderColor="gray.200" borderWidth="1px" p={4} mb={-3}>
+            <FormControl id={`farmLocation-${accordionId}`} isRequired>
+              <FormLabel fontSize="sm" fontWeight="bold" color="gray.600" mb={4}>
+                FARM LOCATION (PILIIN ANG BARANGAY KUNG NASAAN ANG INYONG TANIMAN)
+              </FormLabel>
+              <Select
+                name={`farm_location-${accordionId}`}
+                value={accordionFormData.farm_location}
+                onChange={handleFarmLocationChange}
+                placeholder="Select Barangay"
+                borderRadius="md"
+                focusBorderColor={accentColor}
+              >
+                {Barangays.map((barangay) => (
+                  <option key={barangay} value={barangay}>
+                    {barangay}
+                  </option>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
+
+          <CropTypes
+            inline
+            onNext={handleCropTypesNext}
+            onBack={handleStepBack}
+            isDisabled={!accordionFormData.farm_location}
+          />
+        </SimpleGrid>
+
+        <VStack align="stretch" spacing={10}>
+          {steps.includes('cropRecordsIndus') && (
+            <CropRecordsIndus 
+              onNext={handleCropRecordsIndusNext} 
+              onBack={handleStepBack} 
+            />
+          )}
+          {steps.includes('cropRecordsOther') && (
+            <CropRecordsOther
+              cropType={accordionFormData.cropType}
+              onNext={handleCropRecordsOtherNext}
+              onBack={handleStepBack}
+            />
+          )}
+          {steps.includes('cropIndusNew') && (
+            <CropIndusNew onBack={handleStepBack} onNext={handleFinalSuccess} />
+          )}
+          {steps.includes('cropIndusHarvest') && (
+            <CropIndusHarvest onBack={handleStepBack} onNext={handleFinalSuccess} />
+          )}
+          {steps.includes('otherFctNew') && (
+            <BcOtherFctNew onBack={handleStepBack} onNext={handleFinalSuccess} />
+          )}
+          {steps.includes('otherFctHarvest') && (
+            <BcOtherFctHarvest onBack={handleStepBack} onNext={handleFinalSuccess} />
+          )}
+        </VStack>
+      </AccordionPanel>
+    </AccordionItem>
+  );
+};
+
+const FarmerInput = ({ onNext, onBack }) => {
+  // Get the existing farmer input data from the store
+  const { 
+    formData, 
+    updateFarmerInput
   } = useFarmerFormStore();
   const { getFarmerAccountByName } = usePublicFormStore();
   
@@ -187,65 +440,36 @@ const FarmerInput = ({ onNext, onBack }) => {
   const headerBorder = 'gray.200';
   const accentColor = 'blue.600'; 
 
-  // Inline step management
-  const [steps, setSteps] = useState([]);
-  const handleStepBack = () => {
-    const currentStep = steps[steps.length - 1];
-    
-    // Clear data based on which step we're going back from
-    switch (currentStep) {
-      case 'cropRecordsIndus':
-        updateCropRecordIndus(null);
-        break;
-      case 'cropRecordsOther':
-        updateCropRecordOther(null);
-        break;
-      case 'cropIndusNew':
-        updateCropIndusNew(null);
-        break;
-      case 'cropIndusHarvest':
-        updateCropIndusHarvest(null);
-        break;
-      case 'otherFctNew':
-        updateCropOtherNew(null);
-        break;
-      case 'otherFctHarvest':
-        updateCropOtherHarvest(null);
-        break;
-      default:
-        break;
-    }
-    
-    // Remove the last step from the array
-    setSteps(prev => prev.slice(0, -1));
+  // Manage multiple accordions
+  const [accordionIds, setAccordionIds] = useState([0]);
+  
+  const handleAddAccordion = () => {
+    const newId = accordionIds.length > 0 ? Math.max(...accordionIds) + 1 : 0;
+    setAccordionIds(prev => [...prev, newId]);
   };
-
-  // Removed previous effect that waited for farm_location before showing cropTypes
-  // useEffect(() => {
-  //   if (isFarmerSelected && localFormData.farm_location && !steps.includes('cropTypes')) {
-  //     setSteps(['cropTypes']);
-  //   }
-  // }, [isFarmerSelected, localFormData.farm_location]);
-
-  // Handlers passed to child forms
-  const handleCropTypesNext = (selectedCropType) => {
-    if (selectedCropType === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS') {
-      setSteps(prev => [...prev, 'cropRecordsIndus']);
+  
+  const handleRemoveAccordion = (idToRemove) => {
+    if (accordionIds.length > 1) {
+      setAccordionIds(prev => prev.filter(id => id !== idToRemove));
     } else {
-      setSteps(prev => [...prev, 'cropRecordsOther']);
+      toast({
+        title: "Cannot Remove",
+        description: "You must have at least one crop form.",
+        status: "warning",
+        duration: 3000,
+        isClosable: true,
+      });
     }
   };
-  const handleCropRecordsIndusNext = (stage) => {
-    setSteps(prev => [...prev, stage === 'NEWLY PLANTED' ? 'cropIndusNew' : 'cropIndusHarvest']);
-  };
-  const handleCropRecordsOtherNext = (stage) => {
-    setSteps(prev => [...prev, stage === 'NEWLY PLANTED' ? 'otherFctNew' : 'otherFctHarvest']);
-  };
-
-  // Final submission success handler (optional)
-  const handleFinalSuccess = () => {
-    // Optionally scroll / toast; keep original onNext if needed
-    onNext && onNext('/success');
+  
+  const handleAccordionSubmissionSuccess = () => {
+    toast({
+      title: "Success",
+      description: "Crop form submitted successfully!",
+      status: "success",
+      duration: 3000,
+      isClosable: true,
+    });
   };
 
   // Remove bottom navigation (Continue/Back) – now managed inline
@@ -431,74 +655,34 @@ const FarmerInput = ({ onNext, onBack }) => {
         </Box>
 
         {isFarmerSelected && (
-          <Box bg={cardBg} borderRadius="xl" shadow="xl" w="full" overflow="hidden">
+          <Box bg={cardBg} borderRadius="xl" shadow="xl" w="full" overflow="hidden" p={6}>
+            <VStack spacing={4} align="stretch">
               <Accordion allowToggle defaultIndex={[0]} mt={0}>
-                <AccordionItem border="1px" borderColor="gray.200" borderRadius="md">
-                  <AccordionButton _expanded={{ bg: 'blue.50', color: accentColor }} py={4}>
-                    <Box flex="1" textAlign="left" fontWeight="semibold">
-                      Farm Location & Crop Forms
-                    </Box>
-                    <AccordionIcon />
-                  </AccordionButton>
-                  <AccordionPanel p={8}>
-                    {/* Farm Location + Crop Type side by side */}
-                    <SimpleGrid  spacing={8} mb={10}>  
-                      <FormControl id="farmLocation" isRequired>
-                        <FormLabel fontSize="sm" fontWeight="medium" color="gray.600">
-                          FARM LOCATION (PILIIN ANG BARANGAY KUNG NASAAN ANG INYONG TANIMAN)
-                        </FormLabel>
-                        <Select
-                          name='farm_location'
-                          value={localFormData.farm_location}
-                          onChange={handleChange}
-                          placeholder="Select Barangay"
-                          borderRadius="md"
-                          focusBorderColor={accentColor}
-                        >
-                          {Barangays.map((barangay) => (
-                            <option key={barangay} value={barangay}>
-                              {barangay}
-                            </option>
-                          ))}
-                        </Select>
-                      </FormControl>
-
-                      <CropTypes
-                        inline
-                        onNext={handleCropTypesNext}
-                        onBack={handleStepBack}
-                        isDisabled={!localFormData.farm_location}
-                      />
-                    </SimpleGrid>
-
-                    <VStack align="stretch" spacing={10}>
-                      {steps.includes('cropRecordsIndus') && (
-                        <CropRecordsIndus onNext={handleCropRecordsIndusNext} onBack={handleStepBack} />
-                      )}
-                      {steps.includes('cropRecordsOther') && (
-                        <CropRecordsOther
-                          cropType={formData.cropType}
-                          onNext={handleCropRecordsOtherNext}
-                          onBack={handleStepBack}
-                        />
-                      )}
-                      {steps.includes('cropIndusNew') && (
-                        <CropIndusNew onBack={handleStepBack} onNext={handleFinalSuccess} />
-                      )}
-                      {steps.includes('cropIndusHarvest') && (
-                        <CropIndusHarvest onBack={handleStepBack} onNext={handleFinalSuccess} />
-                      )}
-                      {steps.includes('otherFctNew') && (
-                        <BcOtherFctNew onBack={handleStepBack} onNext={handleFinalSuccess} />
-                      )}
-                      {steps.includes('otherFctHarvest') && (
-                        <BcOtherFctHarvest onBack={handleStepBack} onNext={handleFinalSuccess} />
-                      )}
-                    </VStack>
-                  </AccordionPanel>
-                </AccordionItem>
+                {accordionIds.map((accordionId, index) => (
+                  <CropFormAccordion
+                    key={accordionId}
+                    accordionId={index}
+                    farmerInput={localFormData}
+                    onRemove={() => handleRemoveAccordion(accordionId)}
+                    canRemove={accordionIds.length > 1}
+                    onSubmissionSuccess={handleAccordionSubmissionSuccess}
+                  />
+                ))}
               </Accordion>
-            </Box>
+              
+              <Button
+                leftIcon={<FaPlus />}
+                bg={accentColor}
+                color="white"
+                _hover={{ bg: 'blue.700' }}
+                onClick={handleAddAccordion}
+                borderRadius="md"
+                mt={4}
+              >
+                Add Another Crop Type
+              </Button>
+            </VStack>
+          </Box>
         )}
       </VStack>
     </Box>
