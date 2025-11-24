@@ -26,6 +26,9 @@ export const useFarmerFormStore = create((set, get) => ({
     cropOtherNew: null,
   },
   
+  // Array to store individual accordion form data
+  accordionForms: [], // Array of { accordionId, formData }
+  
   formattedFarmerId: '',
   isContinueAnswering: false,
   isLoading: false,
@@ -69,6 +72,63 @@ export const useFarmerFormStore = create((set, get) => ({
   updateCropOtherNew: (data) => set((state) => ({
     formData: { ...state.formData, cropOtherNew: data }
   })),
+  
+  // Methods to manage accordion forms array
+  addAccordionForm: (accordionId) => set((state) => {
+    const existingForm = state.accordionForms.find(form => form.accordionId === accordionId);
+    if (existingForm) {
+      return state; // Already exists
+    }
+    return {
+      accordionForms: [
+        ...state.accordionForms,
+        {
+          accordionId,
+          formData: {
+            farm_location: '',
+            cropType: '',
+            cropRecordIndus: null,
+            cropRecordOther: null,
+            cropIndusHarvest: null,
+            cropIndusNew: null,
+            cropOtherHarvest: null,
+            cropOtherNew: null,
+          }
+        }
+      ]
+    };
+  }),
+  
+  updateAccordionForm: (accordionId, formData) => set((state) => {
+    const accordionIndex = state.accordionForms.findIndex(form => form.accordionId === accordionId);
+    if (accordionIndex === -1) {
+      // If accordion doesn't exist, add it
+      return {
+        accordionForms: [
+          ...state.accordionForms,
+          { accordionId, formData }
+        ]
+      };
+    }
+    // Update existing accordion
+    const updatedForms = [...state.accordionForms];
+    updatedForms[accordionIndex] = {
+      ...updatedForms[accordionIndex],
+      formData: { ...updatedForms[accordionIndex].formData, ...formData }
+    };
+    return { accordionForms: updatedForms };
+  }),
+  
+  getAccordionForm: (accordionId) => {
+    const state = get();
+    return state.accordionForms.find(form => form.accordionId === accordionId);
+  },
+  
+  removeAccordionForm: (accordionId) => set((state) => ({
+    accordionForms: state.accordionForms.filter(form => form.accordionId !== accordionId)
+  })),
+  
+  clearAccordionForms: () => set({ accordionForms: [] }),
   
   // Final submission function
   submitFarmerForm: async () => {
@@ -132,6 +192,7 @@ export const useFarmerFormStore = create((set, get) => ({
       cropOtherHarvest: null,
       cropOtherNew: null,
     },
+    accordionForms: [],
     isLoading: false,
     error: null,
     success: false
@@ -152,6 +213,7 @@ export const useFarmerFormStore = create((set, get) => ({
       cropOtherHarvest: null,
       cropOtherNew: null,
     },
+    accordionForms: [], // Clear accordion forms when continuing
     isLoading: false,
     error: null,
     success: false,
