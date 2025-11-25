@@ -2082,6 +2082,151 @@ export const getOperatorsList = async (req, res) => {
     }
 };
 
+export const getOperatorAssignedNumbers = async (req, res) => {
+    try {
+        // Aggregate ticket requests by assigned operator (only Scheduled/Ongoing)
+        const ticketRequestPipeline = [
+            {
+                $match: {
+                    'assignedOperator.assignedOperatorId': { $exists: true, $ne: null },
+                    status: { $in: ['Scheduled', 'Ongoing'] }
+                }
+            },
+            {
+                $group: {
+                    _id: '$assignedOperator.assignedOperatorId',
+                    activeAssignments: { $sum: 1 },
+                    operatorDetails: {
+                        $first: {
+                            first_name: '$assignedOperator.first_name',
+                            last_name: '$assignedOperator.last_name',
+                            middle_name: '$assignedOperator.middle_name',
+                            suffix: '$assignedOperator.suffix',
+                            email: '$assignedOperator.email',
+                            phone: '$assignedOperator.phone'
+                        }
+                    }
+                }
+            }
+        ];
+
+        // Aggregate extension tickets by assigned operator (only Scheduled/Ongoing)
+        const extensionTicketPipeline = [
+            {
+                $match: {
+                    'assignedOperator.assignedOperatorId': { $exists: true, $ne: null },
+                    status: { $in: ['Scheduled', 'Ongoing'] }
+                }
+            },
+            {
+                $group: {
+                    _id: '$assignedOperator.assignedOperatorId',
+                    activeAssignments: { $sum: 1 },
+                    operatorDetails: {
+                        $first: {
+                            first_name: '$assignedOperator.first_name',
+                            last_name: '$assignedOperator.last_name',
+                            middle_name: '$assignedOperator.middle_name',
+                            suffix: '$assignedOperator.suffix',
+                            email: '$assignedOperator.email',
+                            phone: '$assignedOperator.phone'
+                        }
+                    }
+                }
+            }
+        ];
+
+        // Execute both aggregations in parallel
+        const [ticketRequestResults, extensionTicketResults] = await Promise.all([
+            global.machineriesModels.TicketRequest.aggregate(ticketRequestPipeline),
+            global.machineriesModels.ExtensionTicket.aggregate(extensionTicketPipeline)
+        ]);
+
+        // Combine results by operator ID
+        const operatorCountsMap = new Map();
+
+        // Process ticket request results
+        ticketRequestResults.forEach(result => {
+            const operatorId = result._id.toString();
+            if (!operatorCountsMap.has(operatorId)) {
+                operatorCountsMap.set(operatorId, {
+                    operatorId: result._id,
+                    activeAssignments: 0,
+                    operatorDetails: result.operatorDetails
+                });
+            }
+            const existing = operatorCountsMap.get(operatorId);
+            existing.activeAssignments += result.activeAssignments;
+        });
+
+        // Process extension ticket results
+        extensionTicketResults.forEach(result => {
+            const operatorId = result._id.toString();
+            if (!operatorCountsMap.has(operatorId)) {
+                operatorCountsMap.set(operatorId, {
+                    operatorId: result._id,
+                    activeAssignments: 0,
+                    operatorDetails: result.operatorDetails
+                });
+            }
+            const existing = operatorCountsMap.get(operatorId);
+            existing.activeAssignments += result.activeAssignments;
+        });
+
+        // Convert map to array and enrich with operator account data
+        const operatorCountsArray = Array.from(operatorCountsMap.values());
+
+        // Fetch full operator details from EmployeeAccount for operators with assignments
+        const operatorIds = operatorCountsArray.map(op => op.operatorId);
+        const operators = await global.globalModels.EmployeeAccount.find({
+            _id: { $in: operatorIds },
+            roles: 'MIS'
+        }).select('first_name last_name middle_name suffix email phone isOperatorDisabled').lean();
+
+        // Create a map of operator details for quick lookup
+        const operatorDetailsMap = new Map();
+        operators.forEach(op => {
+            operatorDetailsMap.set(op._id.toString(), op);
+        });
+
+        // Enrich the results with full operator details and handle missing operators
+        const enrichedResults = operatorCountsArray.map(opCount => {
+            const operatorIdStr = opCount.operatorId.toString();
+            const fullOperatorDetails = operatorDetailsMap.get(operatorIdStr);
+
+            return {
+                operatorId: opCount.operatorId,
+                activeAssignments: opCount.activeAssignments,
+                operatorDetails: fullOperatorDetails || opCount.operatorDetails || null,
+                isOperatorDisabled: fullOperatorDetails?.isOperatorDisabled || false
+            };
+        });
+
+        // Sort by active assignments (highest first) to show overworked operators first
+        enrichedResults.sort((a, b) => {
+            return b.activeAssignments - a.activeAssignments;
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: "Operator assignment counts retrieved successfully.",
+            data: {
+                operators: enrichedResults,
+                totalOperators: enrichedResults.length,
+                totalActiveAssignments: enrichedResults.reduce((sum, op) => sum + op.activeAssignments, 0)
+            }
+        });
+
+    } catch (error) {
+        console.error("Error fetching operator assigned numbers:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Error fetching operator assigned numbers.",
+            error: error.message
+        });
+    }
+};
+
 const getNextScheduleCounterSeq = async (counterId) => {
     const doc = await global.machineriesModels.SCounter.findOneAndUpdate(
         { _id: counterId },

@@ -90,7 +90,10 @@ const TicketRequestPanel = ({
     
     occupiedDatesForScheduling,
     isLoadingOccupiedDatesForScheduling,
-    occupiedDatesForSchedulingError
+    occupiedDatesForSchedulingError,
+    operatorAssignedNumbers,
+    isLoadingOperatorAssignedNumbers,
+    operatorAssignedNumbersError
   } = useAdminDashboard();
 
   const [selectedTicketForRemoval, setSelectedTicketForRemoval] = useState(null);
@@ -655,6 +658,42 @@ const TicketRequestPanel = ({
                             ) : (
                             <Box bg="green.50" p={3} borderRadius="md">
                                 <Text fontSize="sm" color="green.700">No occupied weeks found</Text>
+                            </Box>
+                            )}
+
+                          {/* Display Operator Assignment Numbers */}
+                            {isLoadingOperatorAssignedNumbers ? (
+                            <Box bg="gray.50" p={3} borderRadius="md">
+                                <Text fontSize="sm" color="gray.600">Loading operator assignments...</Text>
+                            </Box>
+                            ) : operatorAssignedNumbersError ? (
+                            <Box bg="red.50" p={3} borderRadius="md">
+                                <Text fontSize="sm" color="red.600">Error loading operator assignments</Text>
+                            </Box>
+                            ) : operatorAssignedNumbers?.data?.operators?.length > 0 ? (
+                            <Box bg="blue.50" p={3} borderRadius="md" borderLeft="4px solid" borderLeftColor="blue.400">
+                                <Text fontSize="sm" fontWeight="bold" color="blue.700" mb={2}>
+                                Operator Workload ({operatorAssignedNumbers.data.totalOperators} operators, {operatorAssignedNumbers.data.totalActiveAssignments} total active assignments):
+                                </Text>
+                                <VStack align="stretch" spacing={1}>
+                                {operatorAssignedNumbers.data.operators.slice(0, 5).map((operator, index) => (
+                                    <Text key={operator.operatorId || index} fontSize="sm" color="blue.600">
+                                    • {operator.operatorDetails?.first_name || ''} {operator.operatorDetails?.last_name || ''}: {operator.activeAssignments} active assignment{operator.activeAssignments !== 1 ? 's' : ''}
+                                    {operator.isOperatorDisabled && (
+                                        <Badge colorScheme="red" ml={2} fontSize="xs">Disabled</Badge>
+                                    )}
+                                    </Text>
+                                ))}
+                                {operatorAssignedNumbers.data.operators.length > 5 && (
+                                    <Text fontSize="xs" color="blue.500" fontStyle="italic">
+                                    ... and {operatorAssignedNumbers.data.operators.length - 5} more operator{operatorAssignedNumbers.data.operators.length - 5 !== 1 ? 's' : ''}
+                                    </Text>
+                                )}
+                                </VStack>
+                            </Box>
+                            ) : (
+                            <Box bg="green.50" p={3} borderRadius="md">
+                                <Text fontSize="sm" color="green.700">No operator assignments found</Text>
                             </Box>
                             )}
 

@@ -143,6 +143,16 @@ const useOccupiedDatesForSchedulingQuery = (role) =>
         enabled: role === 'MIM',
     });
 
+const useOperatorAssignedNumbersQuery = (role) =>
+    useQuery({
+        queryKey: ['operatorAssignedNumbers'],
+        queryFn: async () => {
+            const res = await axios.get(`${API_URL}/api/machineries/get-operators-assigned-numbers`);
+            return res.data;
+        },
+        enabled: role === 'MIM',
+    });
+
 const useMachineOverviewQuery = (role) =>
     useQuery({
         queryKey: ['machineOverview'],
@@ -228,6 +238,9 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
     
     const { data: occupiedDatesForScheduling = [], isLoading: isLoadingOccupiedDatesForScheduling, error: occupiedDatesForSchedulingError } =
         useOccupiedDatesForSchedulingQuery(role);
+
+    const { data: operatorAssignedNumbers = [], isLoading: isLoadingOperatorAssignedNumbers, error: operatorAssignedNumbersError } =
+        useOperatorAssignedNumbersQuery(role);
 
     const { data: machineUnits = [], isLoading: isLoadingMachineUnits, error: machineUnitsError } =
         useMachineUnitsQuery(machineUnitsPage, searchQuery, role);
@@ -524,6 +537,7 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         inProgressWeeklySchedules,
         pendingExtensionCount,
         occupiedDatesForScheduling,
+        operatorAssignedNumbers,
         machineUnits, 
         machineOverview,
         machineTypes,
@@ -565,6 +579,7 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         isLoadingInProgressWeeklySchedules,
         isLoadingPendingExtensionCount,
         isLoadingOccupiedDatesForScheduling,
+        isLoadingOperatorAssignedNumbers,
         isLoadingMachineUnits,
         isLoadingMachineOverview,
         isLoadingMachineTypes,
@@ -604,6 +619,7 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         inProgressWeeklySchedulesError,
         pendingExtensionCountError,
         occupiedDatesForSchedulingError,
+        operatorAssignedNumbersError,
         machineUnitsError,
         machineOverviewError,
         machineTypesError,
