@@ -16,7 +16,7 @@ import {
 import DateMonthOptions from '../../components/dateMonthOptions.js';
 import { useFarmerFormStore } from '../store/farmerForm.store.js';
 
-const CropIndusNew = ({ onNext, onBack }) => {
+const CropIndusNew = ({ onNext, onBack, disabled = false }) => {
   const toast = useToast();
   const dateOptions = DateMonthOptions();
   const { formData, updateCropIndusNew } = useFarmerFormStore();
@@ -95,7 +95,7 @@ const CropIndusNew = ({ onNext, onBack }) => {
     <Box border="1px" borderColor="gray.200" p={6} borderRadius="lg" bg="white">
       <VStack spacing={6} align="stretch">
         {/* DATE OF PLANTATION */}
-        <FormControl id="plantationDate" isRequired>
+        <FormControl id="plantationDate" isRequired isDisabled={disabled}>
           <FormLabel
             fontSize="sm"
             fontWeight="bold"
@@ -110,6 +110,7 @@ const CropIndusNew = ({ onNext, onBack }) => {
             name="plantation_date"
             onChange={handleDateRadioChange}
             value={`${localFormData.plantation_start_date}_to_${localFormData.plantation_end_date}`}
+            isDisabled={disabled}
           >
             <Stack direction="column" spacing={4}>
               {combinedOptions.map((option) => (
@@ -124,7 +125,7 @@ const CropIndusNew = ({ onNext, onBack }) => {
         </FormControl>
 
         {/* MONTH AND YEAR OF HARVEST */}
-        <FormControl id="monthOfHarvest" isRequired>
+        <FormControl id="monthOfHarvest" isRequired isDisabled={disabled}>
           <FormLabel
             fontSize="sm"
             fontWeight="bold"
@@ -141,6 +142,7 @@ const CropIndusNew = ({ onNext, onBack }) => {
               placeholder="Select month"
               value={localFormData.harvest_month}
               onChange={handleChange}
+              isDisabled={disabled}
             >
               <option value="01">JANUARY</option>
               <option value="02">FEBRUARY</option>
@@ -166,12 +168,13 @@ const CropIndusNew = ({ onNext, onBack }) => {
               value={localFormData.harvest_year}
               onChange={handleChange}
               required
+              isDisabled={disabled}
             />
           </Stack>
         </FormControl>
 
         {/* TOTAL AREA PLANTED */}
-        <FormControl id="totalAreaPlanted" isRequired>
+        <FormControl id="totalAreaPlanted" isRequired isDisabled={disabled}>
           <FormLabel
             fontSize="sm"
             fontWeight="bold"
@@ -216,6 +219,7 @@ const CropIndusNew = ({ onNext, onBack }) => {
             min="0"
             step="0.01"
             placeholder="Your answer"
+            isDisabled={disabled}
           />
         </FormControl>
 
@@ -231,6 +235,7 @@ const CropIndusNew = ({ onNext, onBack }) => {
             onClick={onBack}
             w={{ base: 'full', md: 'auto' }}
             borderRadius="md"
+            isDisabled={disabled}
           >
             Back
           </Button>
@@ -239,7 +244,7 @@ const CropIndusNew = ({ onNext, onBack }) => {
             color="white"
             _hover={{ bg: 'blue.700' }}
             onClick={handleContinue} 
-            isDisabled={!isFormValid} 
+            isDisabled={!isFormValid || disabled} 
             w={{ base: 'full', md: 'auto' }}
             borderRadius="md"
           >

@@ -15,7 +15,7 @@ import {
 import IndusCrops from '../../components/indusCrops.js';
 import { useFarmerFormStore } from '../store/farmerForm.store.js';
 
-const CropRecordsIndus = ({ onNext, onBack }) => {
+const CropRecordsIndus = ({ onNext, onBack, disabled = false }) => {
 
   const { formData, updateCropRecordIndus, isLoading } = useFarmerFormStore();
 
@@ -52,7 +52,7 @@ const CropRecordsIndus = ({ onNext, onBack }) => {
   return (
     <Box border="1px" borderColor="gray.200" p={6} borderRadius="lg" bg="white">
       <VStack spacing={6} align="stretch">
-        <FormControl id="cropName" isRequired>
+        <FormControl id="cropName" isRequired isDisabled={disabled}>
           <FormLabel
             fontSize="sm"
             fontWeight="bold"
@@ -68,6 +68,7 @@ const CropRecordsIndus = ({ onNext, onBack }) => {
             placeholder="Choose"
             value={localFormData.crop_type}
             onChange={handleChange}
+            isDisabled={disabled}
           >
             {IndusCrops.map((crop) => (
               <option key={crop} value={crop}>
@@ -77,7 +78,7 @@ const CropRecordsIndus = ({ onNext, onBack }) => {
           </Select>
         </FormControl>
 
-        <FormControl id="variety">
+        <FormControl id="variety" isDisabled={disabled}>
           <FormLabel
             fontSize="sm"
             fontWeight="bold"
@@ -108,11 +109,12 @@ const CropRecordsIndus = ({ onNext, onBack }) => {
             value={localFormData.crop_variety}
             onChange={handleChange}
             type="text" 
-            placeholder="Isulat ang variety ng inyong tanim" 
+            placeholder="Isulat ang variety ng inyong tanim"
+            isDisabled={disabled}
           />
         </FormControl>
 
-        <FormControl id="stageOfCrop" isRequired>
+        <FormControl id="stageOfCrop" isRequired isDisabled={disabled}>
           <FormLabel
             fontSize="sm"
             fontWeight="bold"
@@ -126,6 +128,7 @@ const CropRecordsIndus = ({ onNext, onBack }) => {
           <RadioGroup 
             onChange={(value) => handleStageChange(value)} 
             value={localFormData.crop_stage}
+            isDisabled={disabled}
           >
             <Stack direction="column" spacing={4}>
               <Radio value="NEWLY PLANTED" colorScheme="blue">
@@ -150,6 +153,7 @@ const CropRecordsIndus = ({ onNext, onBack }) => {
             onClick={onBack}
             w={{ base: 'full', md: 'auto' }}
             borderRadius="md"
+            isDisabled={disabled}
           >
             Back
           </Button>
@@ -158,7 +162,7 @@ const CropRecordsIndus = ({ onNext, onBack }) => {
             color="white"
             _hover={{ bg: 'blue.700' }}
             onClick={handleSubmit}
-            isDisabled={!isFormValid}
+            isDisabled={!isFormValid || disabled}
             isLoading={isLoading}
             w={{ base: 'full', md: 'auto' }}
             borderRadius="md"

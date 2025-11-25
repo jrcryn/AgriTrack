@@ -18,7 +18,7 @@ import ModeOfDelivery from '../../components/modeOfDelivery.js';
 import DateMonthOptions from '../../components/dateMonthOptions.js';
 import { useFarmerFormStore } from '../store/farmerForm.store.js';
 
-const CropIndusHarvest = ({ onNext, onBack }) => {
+const CropIndusHarvest = ({ onNext, onBack, disabled = false }) => {
   const toast = useToast();
   const dateOptions = DateMonthOptions();
   const { formData, updateCropIndusHarvest } = useFarmerFormStore();
@@ -137,7 +137,7 @@ const CropIndusHarvest = ({ onNext, onBack }) => {
     }
     
     updateCropIndusHarvest(formDataToSubmit);
-    onNext();
+        onNext();
   };
 
 
@@ -174,7 +174,7 @@ const CropIndusHarvest = ({ onNext, onBack }) => {
       <VStack spacing={6} align="stretch">
 
         {/* Date of Harvest */}
-        <FormControl id="harvestDate" isRequired>
+        <FormControl id="harvestDate" isRequired isDisabled={disabled}>
           <FormLabel
             fontSize="sm"
             fontWeight="bold"
@@ -189,6 +189,7 @@ const CropIndusHarvest = ({ onNext, onBack }) => {
             name="harvest_date"
             onChange={handleDateRadioChange}
             value={`${localFormData.harvest_start_date}_to_${localFormData.harvest_end_date}`}
+            isDisabled={disabled}
           >
             <Stack direction="column" spacing={4}>
               {combinedOptions.map((option) => (
@@ -203,7 +204,7 @@ const CropIndusHarvest = ({ onNext, onBack }) => {
         </FormControl>
 
         {/* Total Area Harvested */}
-        <FormControl id="totalAreaHarvested" isRequired>
+        <FormControl id="totalAreaHarvested" isRequired isDisabled={disabled}>
           <FormLabel
             fontSize="sm"
             fontWeight="bold"
@@ -247,12 +248,13 @@ const CropIndusHarvest = ({ onNext, onBack }) => {
             inputMode='numeric'
             min="0"
             step="0.01"
-            placeholder="Your answer" 
+            placeholder="Your answer"
+            isDisabled={disabled}
           />
         </FormControl>
 
         {/* Total Weight of Production */}
-        <FormControl id="totalWeightProduction" isRequired>
+        <FormControl id="totalWeightProduction" isRequired isDisabled={disabled}>
           <FormLabel
             fontSize="sm"
             fontWeight="bold"
@@ -272,12 +274,13 @@ const CropIndusHarvest = ({ onNext, onBack }) => {
             inputMode='numeric'
             min="0"
             step="0.01"
-            placeholder="Your answer in kilograms" 
+            placeholder="Your answer in kilograms"
+            isDisabled={disabled}
           />
         </FormControl>
 
         {/* Crop Purpose */}
-        <FormControl id="cropPurpose" isRequired>
+        <FormControl id="cropPurpose" isRequired isDisabled={disabled}>
           <FormLabel
             fontSize="sm"
             fontWeight="bold"
@@ -300,6 +303,7 @@ const CropIndusHarvest = ({ onNext, onBack }) => {
                 crop_purpose: value
               }));
             }}
+            isDisabled={disabled}
           >
             <option value="PANG BENTA">PANG BENTA (FOR SELLING)</option>
             <option value="PANG SARILI LAMANG">PANG SARILI LAMANG (FOR PERSONAL USE)</option>
@@ -309,7 +313,7 @@ const CropIndusHarvest = ({ onNext, onBack }) => {
         {cropPurpose === 'PANG BENTA' && (
           <>
           {/* Destination */}
-          <FormControl id="destination" isRequired>
+          <FormControl id="destination" isRequired isDisabled={disabled}>
             <FormLabel
               fontSize="sm"
               fontWeight="bold"
@@ -324,6 +328,7 @@ const CropIndusHarvest = ({ onNext, onBack }) => {
               name="destination"
               onChange={(value) => handleRadioChange('destination', value)}
               value={localFormData.destination}
+              isDisabled={disabled}
             >
               <Stack direction="column" spacing={4}>
                 {Destination.map((option) => (
@@ -352,13 +357,14 @@ const CropIndusHarvest = ({ onNext, onBack }) => {
                 value={otherDestination}
                 onChange={handleChange}
                 placeholder="Please specify"
+                isDisabled={disabled}
               />
             </Box>
           )}
           </FormControl>
 
           {/* Mode of Payment */}
-          <FormControl id="modeOfPayment" isRequired>
+          <FormControl id="modeOfPayment" isRequired isDisabled={disabled}>
             <FormLabel
               fontSize="sm"
               fontWeight="bold"
@@ -373,6 +379,7 @@ const CropIndusHarvest = ({ onNext, onBack }) => {
               name="mode_of_payment"
               onChange={(value) => handleRadioChange('mode_of_payment', value)}
               value={localFormData.mode_of_payment}
+              isDisabled={disabled}
             >
               <Stack direction="column" spacing={4}>
                 <Radio colorScheme="blue" value="CASH">
@@ -406,13 +413,14 @@ const CropIndusHarvest = ({ onNext, onBack }) => {
                 value={otherPayment}
                 onChange={handleChange}
                 placeholder="Please specify"
+                isDisabled={disabled}
               />
             </Box>
           )}
           </FormControl>
 
           {/* Mode of Delivery */}
-          <FormControl id="modeOfDelivery" isRequired>
+          <FormControl id="modeOfDelivery" isRequired isDisabled={disabled}>
             <FormLabel
               fontSize="sm"
               fontWeight="bold"
@@ -427,6 +435,7 @@ const CropIndusHarvest = ({ onNext, onBack }) => {
               name="mode_of_delivery"
               onChange={(value) => handleRadioChange('mode_of_delivery', value)}
               value={localFormData.mode_of_delivery}
+              isDisabled={disabled}
             >
               <Stack direction="column" spacing={4}>
                 {ModeOfDelivery.map((option) => (
@@ -455,6 +464,7 @@ const CropIndusHarvest = ({ onNext, onBack }) => {
                 value={otherDelivery}
                 onChange={handleChange}
                 placeholder="Please specify"
+                isDisabled={disabled}
               />
             </Box>
           )}
@@ -474,6 +484,7 @@ const CropIndusHarvest = ({ onNext, onBack }) => {
             onClick={onBack}
             w={{ base: 'full', md: 'auto' }}
             borderRadius="md"
+            isDisabled={disabled}
           >
             Back
           </Button>
@@ -482,7 +493,7 @@ const CropIndusHarvest = ({ onNext, onBack }) => {
             color="white"
             _hover={{ bg: 'blue.700' }}
             onClick={handleContinue} 
-            isDisabled={!isFormValid} 
+            isDisabled={!isFormValid || disabled} 
             w={{ base: 'full', md: 'auto' }}
             borderRadius="md"
           >

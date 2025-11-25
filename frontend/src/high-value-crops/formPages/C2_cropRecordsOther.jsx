@@ -14,7 +14,7 @@ import {
 import OtherFCT from '../../components/otherFCT.js';
 import { useFarmerFormStore } from '../store/farmerForm.store.js';
 
-const CropRecordsOther = ({ onNext, onBack, cropType }) => {
+const CropRecordsOther = ({ onNext, onBack, cropType, disabled = false }) => {
   const { formData, updateCropRecordOther, isLoading } = useFarmerFormStore();
   
   // Initialize from store
@@ -53,7 +53,7 @@ const CropRecordsOther = ({ onNext, onBack, cropType }) => {
           {cropType === "BANANA" && (
             <>
               {/* Variety Selection */}
-              <FormControl id="bananaVariety" isRequired mb={6}>
+              <FormControl id="bananaVariety" isRequired mb={6} isDisabled={disabled}>
                 <FormLabel
                   fontSize="sm"
                   fontWeight="bold"
@@ -68,6 +68,7 @@ const CropRecordsOther = ({ onNext, onBack, cropType }) => {
                   name='crop_variety'
                   onChange={(value) => setLocalFormData(prev => ({ ...prev, crop_variety: value }))}
                   value={localFormData.crop_variety}
+                  isDisabled={disabled}
                 >
                   <Stack direction="column" spacing={4}>
                     <Radio colorScheme="blue" value="BUNGULAN">
@@ -93,7 +94,7 @@ const CropRecordsOther = ({ onNext, onBack, cropType }) => {
               </FormControl>
 
               {/* Stage Selection */}
-              <FormControl id="stageOfCrop" isRequired>
+              <FormControl id="stageOfCrop" isRequired isDisabled={disabled}>
                 <FormLabel
                   fontSize="sm"
                   fontWeight="bold"
@@ -107,6 +108,7 @@ const CropRecordsOther = ({ onNext, onBack, cropType }) => {
                 <RadioGroup 
                 onChange={handleStageChange} 
                 value={localFormData.crop_stage}
+                isDisabled={disabled}
                 >
                   <Stack direction="column" spacing={4}>
                     <Radio colorScheme="blue" value="NEWLY PLANTED">
@@ -123,9 +125,8 @@ const CropRecordsOther = ({ onNext, onBack, cropType }) => {
 
           {cropType === "COFFEE" && (
             <>
-
               {/* Variety Selection */}
-              <FormControl id="coffeeVariety" isRequired mb={6}>
+              <FormControl id="coffeeVariety" isRequired mb={6} isDisabled={disabled}>
                 <FormLabel
                   fontSize="sm"
                   fontWeight="bold"
@@ -139,7 +140,8 @@ const CropRecordsOther = ({ onNext, onBack, cropType }) => {
                 <RadioGroup 
                 name='crop_variety'
                 onChange={(value) => setLocalFormData(prev => ({ ...prev, crop_variety: value }))}
-                value={localFormData.crop_variety} 
+                value={localFormData.crop_variety}
+                isDisabled={disabled}
                 >
                   <Stack direction="column" spacing={4}>
                     <Radio colorScheme="blue" value="LIBERICA">
@@ -153,7 +155,7 @@ const CropRecordsOther = ({ onNext, onBack, cropType }) => {
               </FormControl>
 
               {/* Stage Selection */}
-              <FormControl id="stageOfCrop" isRequired>
+              <FormControl id="stageOfCrop" isRequired isDisabled={disabled}>
                 <FormLabel
                   fontSize="sm"
                   fontWeight="bold"
@@ -167,6 +169,7 @@ const CropRecordsOther = ({ onNext, onBack, cropType }) => {
                 <RadioGroup 
                 onChange={handleStageChange} 
                 value={localFormData.crop_stage}
+                isDisabled={disabled}
                 >
                   <Stack direction="column" spacing={4}>
                     <Radio colorScheme="blue" value="NEWLY PLANTED">
@@ -183,9 +186,8 @@ const CropRecordsOther = ({ onNext, onBack, cropType }) => {
 
           {cropType === "OTHER FRUIT CROPS/TREES" && (
             <>
-
               {/* Crop Type Selection */}
-              <FormControl id="farmLocation" isRequired mb={6}>
+              <FormControl id="farmLocation" isRequired mb={6} isDisabled={disabled}>
                 <FormLabel
                   fontSize="sm"
                   fontWeight="bold"
@@ -199,8 +201,9 @@ const CropRecordsOther = ({ onNext, onBack, cropType }) => {
                 <Select 
                 name="crop_variety"
                 value={localFormData.crop_variety}
-                onChange={handleChange} 
+                onChange={handleChange}
                 placeholder="Choose"
+                isDisabled={disabled}
                 >
                   {OtherFCT.map((otherFCT) => (
                     <option key={otherFCT} value={otherFCT}>
@@ -211,7 +214,7 @@ const CropRecordsOther = ({ onNext, onBack, cropType }) => {
               </FormControl>
 
               {/* Stage Selection */}
-              <FormControl id="stageOfCrop" isRequired>
+              <FormControl id="stageOfCrop" isRequired isDisabled={disabled}>
                 <FormLabel
                   fontSize="sm"
                   fontWeight="bold"
@@ -225,6 +228,7 @@ const CropRecordsOther = ({ onNext, onBack, cropType }) => {
                 <RadioGroup 
                 onChange={handleStageChange} 
                 value={localFormData.crop_stage}
+                isDisabled={disabled}
                 >
                   <Stack direction="column" spacing={4}>
                     <Radio colorScheme="blue" value="NEWLY PLANTED">
@@ -251,6 +255,7 @@ const CropRecordsOther = ({ onNext, onBack, cropType }) => {
             onClick={onBack}
             w={{ base: 'full', md: 'auto' }}
             borderRadius="md"
+            isDisabled={disabled}
           >
             Back
           </Button>
@@ -262,7 +267,7 @@ const CropRecordsOther = ({ onNext, onBack, cropType }) => {
             isLoading={isLoading}
             w={{ base: 'full', md: 'auto' }}
             borderRadius="md"
-            isDisabled={!isFormValid}
+            isDisabled={!isFormValid || disabled}
           >
             Continue
           </Button>

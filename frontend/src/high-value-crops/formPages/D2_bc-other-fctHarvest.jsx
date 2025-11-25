@@ -18,7 +18,7 @@ import ModeOfDelivery from '../../components/modeOfDelivery.js';
 import DateMonthOptions from '../../components/dateMonthOptions.js';
 import { useFarmerFormStore } from '../store/farmerForm.store.js';
 
-const bc_other_fctHarvest = ({ onNext, onBack }) => {
+const bc_other_fctHarvest = ({ onNext, onBack, disabled = false }) => {
   const toast = useToast();
   const dateOptions = DateMonthOptions();
 
@@ -160,11 +160,11 @@ const bc_other_fctHarvest = ({ onNext, onBack }) => {
   return (
     <Box border="1px" borderColor="gray.200" p={6} borderRadius="lg" bg="white">
       <VStack spacing={6} align="stretch">
-        <FormControl id="dateOfHarvest" isRequired>
+        <FormControl id="dateOfHarvest" isRequired isDisabled={disabled}>
           <FormLabel fontSize="sm" fontWeight="bold" color="gray.600" textTransform="uppercase" letterSpacing="wide" mb={4}>
             DATE OF HARVEST (PILIIN ANG PETSA KUNG KAILAN NAG-ANI)
           </FormLabel>
-          <RadioGroup name="harvest_date" onChange={handleDateRadioChange} value={`${localFormData.harvest_start_date}_to_${localFormData.harvest_end_date}`}>
+          <RadioGroup name="harvest_date" onChange={handleDateRadioChange} value={`${localFormData.harvest_start_date}_to_${localFormData.harvest_end_date}`} isDisabled={disabled}>
             <Stack direction="column" spacing={4}>
               {combinedOptions.map((option) => (
                 <Radio key={option.value} value={option.value} colorScheme="blue">
@@ -177,7 +177,7 @@ const bc_other_fctHarvest = ({ onNext, onBack }) => {
           </RadioGroup>
         </FormControl>
 
-        <FormControl id="totalTreesHarvested" isRequired>
+        <FormControl id="totalTreesHarvested" isRequired isDisabled={disabled}>
           <FormLabel fontSize="sm" fontWeight="bold" color="gray.600" textTransform="uppercase" letterSpacing="wide" mb={4}>
             TOTAL NUMBER OF TREES HARVESTED (ILAN ANG KABUUANG BILANG NG PUNO NA KINUHANAN NINYO NG ANI?)
           </FormLabel>
@@ -190,11 +190,12 @@ const bc_other_fctHarvest = ({ onNext, onBack }) => {
             inputMode='numeric'
             min="0"
             step="1"
-            placeholder="Your answer" 
+            placeholder="Your answer"
+            isDisabled={disabled}
           />
         </FormControl>
 
-        <FormControl id="totalWeightHarvested" isRequired>
+        <FormControl id="totalWeightHarvested" isRequired isDisabled={disabled}>
           <FormLabel fontSize="sm" fontWeight="bold" color="gray.600" textTransform="uppercase" letterSpacing="wide" mb={4}>
             TOTAL WEIGHT OF HARVESTED CROPS (ILAN ANG KABUUANG TIMBANG NA INYONG NAANI?)
           </FormLabel>
@@ -207,11 +208,12 @@ const bc_other_fctHarvest = ({ onNext, onBack }) => {
             inputMode='numeric'
             min="0"
             step="0.01"
-            placeholder="Your answer in kilograms" 
+            placeholder="Your answer in kilograms"
+            isDisabled={disabled}
           />
         </FormControl>
 
-        <FormControl id="cropPurpose" isRequired>
+        <FormControl id="cropPurpose" isRequired isDisabled={disabled}>
           <FormLabel fontSize="sm" fontWeight="bold" color="gray.600" textTransform="uppercase" letterSpacing="wide" mb={4}>
             PURPOSE OF HARVEST (SAAN GAGAMITIN AND INYONG NAANI?)
           </FormLabel>
@@ -222,7 +224,7 @@ const bc_other_fctHarvest = ({ onNext, onBack }) => {
               ...prevData,
               crop_purpose: value
             }));
-          }}>
+          }} isDisabled={disabled}>
             <option value="PANG BENTA">PANG BENTA (FOR SELLING)</option>
             <option value="PANG SARILI LAMANG">PANG SARILI LAMANG (FOR PERSONAL USE)</option>
           </Select>
@@ -230,11 +232,11 @@ const bc_other_fctHarvest = ({ onNext, onBack }) => {
 
         {cropPurpose === 'PANG BENTA' && (
           <>
-            <FormControl id="destination" isRequired>
+            <FormControl id="destination" isRequired isDisabled={disabled}>
               <FormLabel fontSize="sm" fontWeight="bold" color="gray.600" mb={4}>
                 DESTINATION (SAAN NIYO DINADALA ANG INYONG MGA INANING GULAY?)
               </FormLabel>
-              <RadioGroup name="destination" onChange={(value) => handleRadioChange('destination', value)} value={localFormData.destination}>
+              <RadioGroup name="destination" onChange={(value) => handleRadioChange('destination', value)} value={localFormData.destination} isDisabled={disabled}>
                 <Stack direction="column" spacing={4}>
                   {Destination.map((option) => (
                     <Radio key={option} value={option} colorScheme="blue">
@@ -250,16 +252,16 @@ const bc_other_fctHarvest = ({ onNext, onBack }) => {
                   <FormLabel fontSize="sm" fontWeight="bold" color="gray.600">
                     SPECIFY OTHER MODE OF PAYMENT
                   </FormLabel>
-                  <Input type="text" name="destination_others" value={otherDestination} onChange={handleChange} placeholder="Please specify" />
+                  <Input type="text" name="destination_others" value={otherDestination} onChange={handleChange} placeholder="Please specify" isDisabled={disabled} />
                 </Box>
               )}
             </FormControl>
 
-            <FormControl id="modeOfPayment" isRequired>
+            <FormControl id="modeOfPayment" isRequired isDisabled={disabled}>
               <FormLabel fontSize="sm" fontWeight="bold" color="gray.600" mb={4}>
                 MODE OF PAYMENT (PAANO ANG MODE OF PAYMENT SA INYONG PRODUKTO?)
               </FormLabel>
-              <RadioGroup name="mode_of_payment" onChange={(value) => handleRadioChange('mode_of_payment', value)} value={localFormData.mode_of_payment}>
+              <RadioGroup name="mode_of_payment" onChange={(value) => handleRadioChange('mode_of_payment', value)} value={localFormData.mode_of_payment} isDisabled={disabled}>
                 <Stack direction="column" spacing={4}>
                   <Radio colorScheme="blue" value="CASH">CASH</Radio>
                   <Radio colorScheme="blue" value="GCASH">GCASH</Radio>
@@ -272,16 +274,16 @@ const bc_other_fctHarvest = ({ onNext, onBack }) => {
                   <FormLabel fontSize="sm" fontWeight="bold" color="gray.600" textTransform="uppercase" letterSpacing="wide">
                     SPECIFY OTHER MODE OF PAYMENT
                   </FormLabel>
-                  <Input type="text" name="mode_of_payment_others" value={otherPayment} onChange={handleChange} placeholder="Please specify" />
+                  <Input type="text" name="mode_of_payment_others" value={otherPayment} onChange={handleChange} placeholder="Please specify" isDisabled={disabled} />
                 </Box>
               )}
             </FormControl>
 
-            <FormControl id="modeOfDelivery" isRequired>
+            <FormControl id="modeOfDelivery" isRequired isDisabled={disabled}>
               <FormLabel fontSize="sm" fontWeight="bold" color="gray.600" mb={4}>
                 MODE OF DELIVERY (PAANO ANG MODE OF DELIVERY NG INYONG PRODUKTO?)
               </FormLabel>
-              <RadioGroup name="mode_of_delivery" onChange={(value) => handleRadioChange('mode_of_delivery', value)} value={localFormData.mode_of_delivery}>
+              <RadioGroup name="mode_of_delivery" onChange={(value) => handleRadioChange('mode_of_delivery', value)} value={localFormData.mode_of_delivery} isDisabled={disabled}>
                 <Stack direction="column" spacing={4}>
                   {ModeOfDelivery.map((option) => (
                     <Radio key={option} value={option} colorScheme="blue">
@@ -297,7 +299,7 @@ const bc_other_fctHarvest = ({ onNext, onBack }) => {
                   <FormLabel fontSize="sm" fontWeight="bold" color="gray.600" textTransform="uppercase" letterSpacing="wide">
                     SPECIFY OTHER MODE OF DELIVERY
                   </FormLabel>
-                  <Input type="text" name="mode_of_delivery_others" value={otherDelivery} onChange={handleChange} placeholder="Please specify" />
+                  <Input type="text" name="mode_of_delivery_others" value={otherDelivery} onChange={handleChange} placeholder="Please specify" isDisabled={disabled} />
                 </Box>
               )}
             </FormControl>
@@ -318,6 +320,7 @@ const bc_other_fctHarvest = ({ onNext, onBack }) => {
           onClick={onBack}
           w={{ base: 'full', md: 'auto' }}
           borderRadius="md"
+          isDisabled={disabled}
         >
           Back
         </Button>
@@ -326,7 +329,7 @@ const bc_other_fctHarvest = ({ onNext, onBack }) => {
           color="white"
           _hover={{ bg: 'blue.700' }}
           onClick={handleContinue} 
-          isDisabled={!isFormValid} 
+          isDisabled={!isFormValid || disabled} 
           w={{ base: 'full', md: 'auto' }}
           borderRadius="md"
         >

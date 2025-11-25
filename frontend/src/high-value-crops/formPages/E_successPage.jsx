@@ -5,7 +5,7 @@ import { useFarmerFormStore } from '../store/farmerForm.store.js';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 const SuccessPage = () => {
-  const { resetForm, continueAnswering } = useFarmerFormStore();
+  const { resetForm } = useFarmerFormStore();
   const navigate = useNavigate();
   const location = useLocation();
   const toast = useToast();
@@ -30,7 +30,7 @@ const SuccessPage = () => {
     return () => {
       window.removeEventListener('popstate', blockBackNavigation);
     };
-  }, [toast]);
+  }, []);
   
   // Detect if user tries to access this page directly
   useLayoutEffect(() => {
@@ -39,26 +39,25 @@ const SuccessPage = () => {
     
     // If direct access and not from form submission, redirect to start
     if (directAccess) {
+      toast({
+        title: "Access Denied",
+        description: "Please submit the form first.",
+        status: "warning",
+        duration: 3000,
+        isClosable: true,
+      });
       navigate('/hvc/form/istcns', { replace: true });
     }
-  }, [location, navigate]);
+  }, []); // Run only once on mount
 
-  const handleNewForm = () => {
+  const handleReturnToStart = () => {
     // Clear completion flag before navigating
     sessionStorage.removeItem(FORM_COMPLETION_KEY);
     resetForm();
     navigate('/hvc/form/istcns');
   };
 
-  const handleContinueAnswering = () => {
-    // Clear completion flag before navigating
-    sessionStorage.removeItem(FORM_COMPLETION_KEY);
-    continueAnswering();
-    navigate('/hvc/form/a_fi');
-  };
-
   const cardBg = 'white';
-  const accentColor = 'blue.600';
   const borderColor = 'gray.200';
 
   return (
@@ -81,37 +80,25 @@ const SuccessPage = () => {
               letterSpacing="tight"
             >
               Form Submitted Successfully!
-              <Text mt={1} color="green.600" fontWeight="semibold"  fontSize="md">
+              <Text mt={1} color="green.600" fontWeight="semibold" fontSize="md">
                 Lahat ng impormasyon ay matagumpay nang naitala.
               </Text>
             </Heading>
-            <Text mt={5}  fontSize="sm">
+            <Text mt={5} fontSize="sm">
               Maraming salamat sa pagsagot ng High Value Crop Planting and Harvesting Report.
             </Text>  
-
           </Box>
+
           {/* Footer */}
-          <Box pt={8} pb={5} textAlign="center">
+          <Box pt={8} pb={8} textAlign="center">
             <Button
-              bg={'green.600'}
+              bg="green.600"
               color="white"
               _hover={{ bg: 'green.700' }}
               size="lg"
-              onClick={handleContinueAnswering}
+              onClick={handleReturnToStart}
             >
               Magpasa ng Panibago
-            </Button>
-          </Box>
-
-          <Box pb={8} textAlign="center">
-            <Button
-              bg={accentColor}
-              color="white"
-              _hover={{ bg: 'blue.700' }}
-              size="lg"
-              onClick={handleNewForm}
-            >
-              I-reset ang Form
             </Button>
           </Box>
         </Box>

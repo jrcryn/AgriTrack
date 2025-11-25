@@ -12,7 +12,7 @@ import {
 } from '@chakra-ui/react';
 import { useFarmerFormStore } from '../store/farmerForm.store.js';
 
-const CropTypes = ({ onNext, onBack, isDisabled }) => {
+const CropTypes = ({ onNext, onBack, isDisabled, disabled = false }) => {
 
   const { formData, updateCropType, isLoading } = useFarmerFormStore();
 
@@ -34,7 +34,7 @@ const CropTypes = ({ onNext, onBack, isDisabled }) => {
   return (
     <Box border="1px" borderColor="gray.200" p={6} borderRadius="lg" bg="white">
       <VStack spacing={6} align="stretch">
-        <FormControl id="cropType" isRequired>
+        <FormControl id="cropType" isRequired isDisabled={disabled}>
           <FormLabel 
             fontSize="sm" 
             fontWeight="bold"
@@ -49,6 +49,7 @@ const CropTypes = ({ onNext, onBack, isDisabled }) => {
           <RadioGroup 
             onChange={setSelectedCropType} 
             value={selectedCropType}
+            isDisabled={disabled}
           >
             <Stack direction="column" spacing={4}>
               {[
@@ -81,7 +82,7 @@ const CropTypes = ({ onNext, onBack, isDisabled }) => {
             variant="ghost" 
             colorScheme="blue"
             onClick={onBack} 
-            isDisabled
+            isDisabled={disabled}
             w={{ base: 'full', md: 'auto' }}
             borderRadius="md"
           >
@@ -92,7 +93,7 @@ const CropTypes = ({ onNext, onBack, isDisabled }) => {
             color="white"
             _hover={{ bg: 'blue.700' }}
             onClick={handleNext} 
-            isDisabled={!isFormValid || isDisabled} 
+            isDisabled={!isFormValid || isDisabled || disabled} 
             isLoading={isLoading}
             w={{ base: 'full', md: 'auto' }}
             borderRadius="md"
