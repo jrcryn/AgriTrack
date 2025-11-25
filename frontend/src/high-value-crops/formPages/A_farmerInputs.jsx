@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Box,
   Heading,
@@ -73,6 +73,10 @@ const CropFormAccordion = ({
   
   const [steps, setSteps] = useState([]);
   const [currentStepIndex, setCurrentStepIndex] = useState(-1);
+  
+  // Use ref to store the latest form data for the getter function
+  const formDataRef = useRef(accordionFormData);
+  formDataRef.current = accordionFormData;
   
   const handleFarmLocationChange = (e) => {
     setAccordionFormData(prev => ({ ...prev, farm_location: e.target.value }));
@@ -192,30 +196,38 @@ const CropFormAccordion = ({
     accordionFormData.cropIndusNew,
     accordionFormData.cropOtherHarvest,
     accordionFormData.cropOtherNew,
-    accordionId
+    accordionId,
+    onCompletionChange
   ]);
   
   // Expose form data getter to parent - return LOCAL data
+  // Use a stable getter function that reads from ref to avoid infinite loops
   useEffect(() => {
     if (onGetFormData) {
-      onGetFormData(accordionId, () => {
+      // Create a stable getter function that always reads the latest data from ref
+      const getter = () => {
+        const currentData = formDataRef.current;
         return {
           privacyConsent: '',
           farmerInput: {
             ...farmerInput,
-            farm_location: accordionFormData.farm_location,
+            farm_location: currentData.farm_location,
           },
-          cropType: accordionFormData.cropType,
-          cropRecordIndus: accordionFormData.cropRecordIndus,
-          cropRecordOther: accordionFormData.cropRecordOther,
-          cropIndusHarvest: accordionFormData.cropIndusHarvest,
-          cropIndusNew: accordionFormData.cropIndusNew,
-          cropOtherHarvest: accordionFormData.cropOtherHarvest,
-          cropOtherNew: accordionFormData.cropOtherNew,
+          cropType: currentData.cropType,
+          cropRecordIndus: currentData.cropRecordIndus,
+          cropRecordOther: currentData.cropRecordOther,
+          cropIndusHarvest: currentData.cropIndusHarvest,
+          cropIndusNew: currentData.cropIndusNew,
+          cropOtherHarvest: currentData.cropOtherHarvest,
+          cropOtherNew: currentData.cropOtherNew,
         };
-      });
+      };
+      onGetFormData(accordionId, getter);
     }
-  }, [accordionFormData, accordionId, onGetFormData]);
+    // Only update when accordionId or farmerInput changes, not when form data changes
+    // The getter function will always read the latest data from the ref
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accordionId, farmerInput._id, farmerInput.farmerId, onGetFormData]);
   
   const handleFinalSuccess = () => {
     // Get final data from store and save to LOCAL state
@@ -601,13 +613,13 @@ const FarmerInput = ({ onNext, onBack }) => {
     }
   };
   
-  const handleCompletionChange = (accordionId, isComplete) => {
+  const handleCompletionChange = useCallback((accordionId, isComplete) => {
     setAccordionCompletions(prev => ({ ...prev, [accordionId]: isComplete }));
-  };
+  }, []);
   
-  const handleGetFormData = (accordionId, getter) => {
+  const handleGetFormData = useCallback((accordionId, getter) => {
     setAccordionFormDataGetters(prev => ({ ...prev, [accordionId]: getter }));
-  };
+  }, []);
   
   // Check if all accordions are complete
   const areAllAccordionsComplete = () => {
