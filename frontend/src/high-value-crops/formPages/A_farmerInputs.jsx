@@ -24,6 +24,7 @@ import {
   AccordionIcon,
   IconButton,
 } from '@chakra-ui/react';
+import { useNavigate } from 'react-router-dom';
 import { useFarmerFormStore } from '../store/farmerForm.store.js';
 import { usePublicFormStore } from '../../global/publicForm.store.js';
 import Barangays from '../../components/barangays.js';
@@ -347,9 +348,17 @@ const FarmerInput = ({ onNext, onBack }) => {
   // Get the existing farmer input data from the store
   const { 
     formData, 
-    updateFarmerInput
+    updateFarmerInput,
+    updateCropType,
+    updateCropRecordIndus,
+    updateCropRecordOther,
+    updateCropIndusNew,
+    updateCropIndusHarvest,
+    updateCropOtherNew,
+    updateCropOtherHarvest
   } = useFarmerFormStore();
   const { getFarmerAccountByName } = usePublicFormStore();
+  const navigate = useNavigate();
   
   // Initialize form data with existing data from the store
   const [localFormData, setLocalFormData] = useState(formData.farmerInput);
@@ -449,33 +458,69 @@ const FarmerInput = ({ onNext, onBack }) => {
       setIsSearching(false);
     }
   };
-
+  const [isResettingFarmerSelection, setIsResettingFarmerSelection] = useState(false);
   // Reset farmer selection - FIXED
   const handleResetFarmerSelection = () => {
-    // First update the form data
-    const resetData = {
-      surname: '',
-      first_name: '',
-      middle_name: '',
-      suffix: '',
-      farm_location: '',
-    };
+    setIsResettingFarmerSelection(true);
     
-    // Update store first
-    updateFarmerInput(resetData);
-    
-    // Then update local state
-    setLocalFormData(resetData);
-    
-    // Finally update UI state with small delay to ensure re-render
-    setTimeout(() => {
-      setFarmerName('');
-      setFarmerSurname('');
-      setFarmerMiddleName('');
-      setFarmerSuffix('');
-      setFarmerLocation('');
-      setIsFarmerSelected(false);
-    }, 10);
+    try {
+      // First update the form data
+      const resetData = {
+        surname: '',
+        first_name: '',
+        middle_name: '',
+        suffix: '',
+        farm_location: '',
+      };
+      
+      // Update store first
+      updateFarmerInput(resetData);
+      
+      // Clear all crop-related data from store
+      updateCropType('');
+      updateCropRecordIndus(null);
+      updateCropRecordOther(null);
+      updateCropIndusNew(null);
+      updateCropIndusHarvest(null);
+      updateCropOtherNew(null);
+      updateCropOtherHarvest(null);
+      
+      // Reset all accordions to initial state
+      setAccordionIds([0]);
+      setAccordionCompletions({});
+      setAccordionFormDataGetters({});
+      
+      // Then update local state
+      setLocalFormData(resetData);
+      
+      // Finally update UI state with small delay to ensure re-render
+      setTimeout(() => {
+        try {
+          setFarmerName('');
+          setFarmerSurname('');
+          setFarmerMiddleName('');
+          setFarmerSuffix('');
+          setFarmerLocation('');
+          setIsFarmerSelected(false);
+        } catch (error) {
+          console.error('Error resetting UI state:', error);
+        } finally {
+          // Reset loading state after UI updates complete
+          setIsResettingFarmerSelection(false);
+        }
+      }, 10);
+    } catch (error) {
+      console.error('Error resetting farmer selection:', error);
+      toast({
+        title: "Error",
+        description: "Failed to reset farmer selection. Please try again.",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+      // Reset loading state on error
+      setIsResettingFarmerSelection(false);
+    }
   };
 
   useEffect(() => {
@@ -601,6 +646,8 @@ const FarmerInput = ({ onNext, onBack }) => {
         duration: 5000,
         isClosable: true,
       });
+
+      navigate('/hvc/form/success', { state: { fromSubmission: true } });
       
       // Clear all accordions and reset
       setAccordionIds([0]);
@@ -787,7 +834,7 @@ const FarmerInput = ({ onNext, onBack }) => {
                   <Button 
                     variant={'outline'}
                     colorScheme='green'
-                    isLoading={isSearching}
+                    isLoading={isSearching || isResettingFarmerSelection}
                     onClick={handleResetFarmerSelection}
                     px={8}
                     borderRadius="md"
