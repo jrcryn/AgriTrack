@@ -4186,9 +4186,46 @@ export const removeOperatorLicense = async (req, res) => {
         operator.operatorLicenses.pull(licenseId);
         await operator.save();
 
-        // Populate the remaining licenses with allowedMachineryTypes for response
-        const updatedOperator = await global.globalModels.EmployeeAccount.findById(operatorId)
-            .populate('operatorLicenses.allowedMachineryTypes', 'equipmentType ownerName ownerType');
+        // Fetch the updated operator
+        const updatedOperator = await global.globalModels.EmployeeAccount.findById(operatorId);
+        
+        // Manually populate allowedMachineryTypes for all remaining licenses
+        if (updatedOperator.operatorLicenses && updatedOperator.operatorLicenses.length > 0) {
+            // Collect all machinery type IDs from all licenses
+            const allMachineryTypeIds = [];
+            updatedOperator.operatorLicenses.forEach(license => {
+                if (license.allowedMachineryTypes && Array.isArray(license.allowedMachineryTypes)) {
+                    license.allowedMachineryTypes.forEach(typeId => {
+                        const typeIdStr = typeId.toString();
+                        if (!allMachineryTypeIds.includes(typeIdStr)) {
+                            allMachineryTypeIds.push(typeIdStr);
+                        }
+                    });
+                }
+            });
+
+            // Fetch all machinery types from machineries DB
+            const machineryTypesMap = new Map();
+            if (allMachineryTypeIds.length > 0) {
+                const machineryTypes = await global.machineriesModels.MachineriesType.find({
+                    _id: { $in: allMachineryTypeIds }
+                }).select('equipmentType ownerName ownerType').lean();
+
+                machineryTypes.forEach(type => {
+                    machineryTypesMap.set(type._id.toString(), type);
+                });
+            }
+
+            // Manually populate each license's allowedMachineryTypes
+            updatedOperator.operatorLicenses.forEach(license => {
+                if (license.allowedMachineryTypes && Array.isArray(license.allowedMachineryTypes)) {
+                    license.allowedMachineryTypes = license.allowedMachineryTypes.map(typeId => {
+                        const typeIdStr = typeId.toString();
+                        return machineryTypesMap.get(typeIdStr) || typeId;
+                    });
+                }
+            });
+        }
 
         return res.status(200).json({
             success: true,

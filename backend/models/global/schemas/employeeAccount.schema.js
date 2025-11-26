@@ -14,7 +14,7 @@ const OperatorLicenseSchema = new mongoose.Schema({
     isActive: { type: Boolean, default: true },
     issuedBy: { type: String, required: true }, // Issuing authority
     notes: { type: String }
-}, { _id: false, versionKey: false });
+}, { _id: true, versionKey: false });
 
 export const EmployeeAccountSchema = new mongoose.Schema({
     first_name: { type: String, required: true },
