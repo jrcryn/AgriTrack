@@ -3858,18 +3858,38 @@ export const getAllOperators = async (req, res) => {
             pipeline.push({ $match: { $and: searchConditions } });
         }
 
-        // Project only necessary fields
+        // Project all fields except sensitive ones (password, 2FA secrets, reset tokens)
+        // Note: Cannot mix inclusion and exclusion in $project, so we only include what we need
         pipeline.push({
             $project: {
+                // Personal information
                 first_name: 1,
                 last_name: 1,
                 middle_name: 1,
                 suffix: 1,
                 email: 1,
                 phone: 1,
+                
+                // Role and status
+                roles: 1,
+                office_position: 1,
                 isOperatorDisabled: 1,
+                isInLeave: 1,
+                isLocked: 1,
+                
+                // Operator licenses (will be populated later)
+                operatorLicenses: 1,
+                
+                // Login and account information
                 lastLogin: 1,
-                createdAt: 1
+                is2FAEnabled: 1,
+                
+                
+                // Timestamps
+                createdAt: 1,
+                _id: 1
+                // Note: Sensitive fields (password, twoFASecret, twoFAQRCode, resetPasswordToken, resetPasswordExpiresAt) 
+                // are excluded by default since we're only including specific fields
             }
         });
 
@@ -3889,11 +3909,73 @@ export const getAllOperators = async (req, res) => {
         const operators = result[0]?.paginatedResults || [];
         const totalCount = result[0]?.totalCount?.[0]?.count || 0;
 
+        // Collect all unique machinery type IDs from all operator licenses
+        const allMachineryTypeIds = new Set();
+        operators.forEach(operator => {
+            if (operator.operatorLicenses && Array.isArray(operator.operatorLicenses)) {
+                operator.operatorLicenses.forEach(license => {
+                    if (license.allowedMachineryTypes && Array.isArray(license.allowedMachineryTypes)) {
+                        license.allowedMachineryTypes.forEach(typeId => {
+                            allMachineryTypeIds.add(typeId.toString());
+                        });
+                    }
+                });
+            }
+        });
+
+        // Fetch all machinery types from machineries DB
+        const machineryTypesMap = new Map();
+        if (allMachineryTypeIds.size > 0) {
+            const machineryTypes = await global.machineriesModels.MachineriesType.find({
+                _id: { $in: Array.from(allMachineryTypeIds).map(id => new mongoose.Types.ObjectId(id)) }
+            }).select('equipmentType ownerName ownerType ratedCapacity').lean();
+
+            machineryTypes.forEach(type => {
+                machineryTypesMap.set(type._id.toString(), type);
+            });
+        }
+
+        // Manually populate operatorLicenses.allowedMachineryTypes for each operator
+        const operatorsWithPopulatedLicenses = operators.map(operator => {
+            const operatorObj = operator.toObject ? operator.toObject() : { ...operator };
+            
+            // Exclude sensitive fields
+            delete operatorObj.password;
+            delete operatorObj.twoFASecret;
+            delete operatorObj.twoFAQRCode;
+            delete operatorObj.resetPasswordToken;
+            delete operatorObj.resetPasswordExpiresAt;
+            delete operatorObj.failedOTPVerifications;
+            delete operatorObj.failedLoginAttempts;
+            delete operatorObj.is2FAEnabled;
+            delete operatorObj.office_position;
+            delete operatorObj.isLocked;
+            
+
+            // Populate licenses with machinery types
+            if (operatorObj.operatorLicenses && Array.isArray(operatorObj.operatorLicenses)) {
+                operatorObj.operatorLicenses = operatorObj.operatorLicenses.map(license => {
+                    const licenseObj = license.toObject ? license.toObject() : { ...license };
+                    
+                    if (licenseObj.allowedMachineryTypes && Array.isArray(licenseObj.allowedMachineryTypes)) {
+                        licenseObj.allowedMachineryTypes = licenseObj.allowedMachineryTypes.map(typeId => {
+                            const typeIdStr = typeId.toString();
+                            return machineryTypesMap.get(typeIdStr) || typeId;
+                        });
+                    }
+                    
+                    return licenseObj;
+                });
+            }
+
+            return operatorObj;
+        });
+
         return res.status(200).json({
             success: true,
             message: "Operators retrieved successfully.",
             data: {
-                operators,
+                operators: operatorsWithPopulatedLicenses,
                 totalCount,
                 totalPages: Math.ceil(totalCount / limit),
                 currentPage: page
@@ -4131,7 +4213,7 @@ export const addOperatorLicense = async (req, res) => {
     const { operatorId, licenseNumber, licenseType, issuedDate, expiryDate, allowedMachineryTypes, issuedBy, notes } = req.body;
 
     // Validate required fields
-    if (!operatorId || !licenseNumber || !licenseType || !issuedDate || !expiryDate) {
+    if (!operatorId || !licenseNumber || !licenseType || !issuedDate || !expiryDate || !issuedBy) {
         return res.status(400).json({
             success: false,
             message: "Please provide operatorId, licenseNumber, licenseType, issuedDate, and expiryDate."
@@ -4449,3 +4531,4 @@ export const setEmployeeLeaveStatus = async (req, res) => {
         });
     }
 };
+

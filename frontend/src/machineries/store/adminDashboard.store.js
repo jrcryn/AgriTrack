@@ -234,6 +234,10 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
     const [isSettingExtensionTicketToComplete, setIsSettingExtensionTicketToComplete] = useState(false);
     const [isUpdatingMachineryUnitStatus, setIsUpdatingMachineryUnitStatus] = useState(false);
     const [isEnablingDisablingOperatorAccount, setIsEnablingDisablingOperatorAccount] = useState(false);
+    const [isAddingOperatorLicense, setIsAddingOperatorLicense] = useState(false);
+    const [isUpdatingOperatorLicense, setIsUpdatingOperatorLicense] = useState(false);
+    const [isRemovingOperatorLicense, setIsRemovingOperatorLicense] = useState(false);
+    const [isSettingEmployeeLeaveStatus, setIsSettingEmployeeLeaveStatus] = useState(false);
 
     // Actions
     const createMachineryType = async (data) => {
@@ -477,6 +481,54 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         }
     };
 
+    const addOperatorLicense = async (data) => {
+        setIsAddingOperatorLicense(true);
+        try {
+            const res = await axios.post(`${API_URL}/api/machineries/add-operator-license`, data);
+            return res.data;
+        } catch (error) {
+            throw error;
+        } finally {
+            setIsAddingOperatorLicense(false);
+        }
+    };
+
+    const updateOperatorLicense = async (data) => {
+        setIsUpdatingOperatorLicense(true);
+        try {
+            const res = await axios.put(`${API_URL}/api/machineries/update-operator-license`, data);
+            return res.data;
+        } catch (error) {
+            throw error;
+        } finally {
+            setIsUpdatingOperatorLicense(false);
+        }
+    };
+
+    const removeOperatorLicense = async (data) => {
+        setIsRemovingOperatorLicense(true);
+        try {
+            const res = await axios.post(`${API_URL}/api/machineries/remove-operator-license`, data);
+            return res.data;
+        } catch (error) {
+            throw error;
+        } finally {
+            setIsRemovingOperatorLicense(false);
+        }
+    };
+
+    const setEmployeeLeaveStatus = async (data) => {
+        setIsSettingEmployeeLeaveStatus(true);
+        try {
+            const res = await axios.post(`${API_URL}/api/machineries/set-employee-leave-status`, data);
+            return res.data;
+        } catch (error) {
+            throw error;
+        } finally {
+            setIsSettingEmployeeLeaveStatus(false);
+        }
+    };
+
     
     return {
         // query data
@@ -517,6 +569,10 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         updateMachineryUnitStatus,
         disableOperatorAccount,
         enableOperatorAccount,
+        addOperatorLicense,
+        updateOperatorLicense,
+        removeOperatorLicense,
+        setEmployeeLeaveStatus,
 
         // loading states (queries)
         isLoadingPendingTicketRequests,
@@ -554,6 +610,10 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         isSettingExtensionTicketToComplete,
         isUpdatingMachineryUnitStatus,
         isEnablingDisablingOperatorAccount,
+        isAddingOperatorLicense,
+        isUpdatingOperatorLicense,
+        isRemovingOperatorLicense,
+        isSettingEmployeeLeaveStatus,
 
         // error states
         pendingTicketRequestsError,

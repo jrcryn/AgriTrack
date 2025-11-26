@@ -12,7 +12,7 @@ const OperatorLicenseSchema = new mongoose.Schema({
         required: true
     }], // Array of machinery type IDs this license allows
     isActive: { type: Boolean, default: true },
-    issuedBy: { type: String }, // Issuing authority
+    issuedBy: { type: String, required: true }, // Issuing authority
     notes: { type: String }
 }, { _id: false, versionKey: false });
 
