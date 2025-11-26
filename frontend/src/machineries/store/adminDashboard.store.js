@@ -19,41 +19,6 @@ const usePendingTicketRequestsQuery = (page = 1, searchQuery = {}, role) =>
         enabled: role === 'MIM' || role === 'MIS',
     });
 
-const useOngoingTicketRequestsQuery = (page = 1, searchQuery = {}, role) =>
-    useQuery({
-        queryKey: ['ongoingTicketRequests', page, searchQuery],
-        queryFn: async () => {
-            const res = await axios.get(`${API_URL}/api/machineries/get-ongoing-ticket-requests`, {
-                params: { page, limit: 10, ...searchQuery },
-            });
-            return res.data;
-        },
-        enabled: role === 'MIM' || role === 'MIS',
-    });
-
-const useScheduledTicketRequestsQuery = (page = 1, searchQuery = {}, role) =>
-    useQuery({
-        queryKey: ['scheduledTicketRequests', page, searchQuery],
-        queryFn: async () => {
-            const res = await axios.get(`${API_URL}/api/machineries/get-scheduled-ticket-requests`, {
-                params: { page, limit: 10, ...searchQuery },
-            });
-            return res.data;
-        },
-        enabled: role === 'MIM' || role === 'MIS',
-    });
-
-const useDeclinedTicketRequestsQuery = (page = 1, searchQuery = {}, role) =>
-    useQuery({
-        queryKey: ['declinedTicketRequests', page, searchQuery],
-        queryFn: async () => {
-            const res = await axios.get(`${API_URL}/api/machineries/get-declined-ticket-requests`, {
-                params: { page, limit: 10, ...searchQuery },
-            });
-            return res.data;
-        },
-        enabled: role === 'MIM' || role === 'MIS',
-    });
 
 const useAvailableMachineryTypesQuery = () =>
     useQuery({
@@ -200,9 +165,6 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
 
     const {
         pendingPage = 1,
-        ongoingPage = 1,
-        scheduledPage = 1,
-        declinedPage = 1,
         schedulesPage = 1,
         machineUnitsPage = 1,
         operatorAccountsPage = 1,
@@ -211,15 +173,6 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
 
     const { data: pendingTicketRequests = [], isLoading: isLoadingPendingTicketRequests, error: pendingTicketRequestsError } =
         usePendingTicketRequestsQuery(pendingPage, searchQuery, role);
-
-    const { data: ongoingTicketRequests = [], isLoading: isLoadingOngoingTicketRequests, error: ongoingTicketRequestsError } =
-        useOngoingTicketRequestsQuery(ongoingPage, searchQuery, role);
-
-    const { data: scheduledTicketRequests = [], isLoading: isLoadingScheduledTicketRequests, error: scheduledTicketRequestsError } =
-        useScheduledTicketRequestsQuery(scheduledPage, searchQuery, role);
-
-    const { data: declinedTicketRequests = [], isLoading: isLoadingDeclinedTicketRequests, error: declinedTicketRequestsError } =
-        useDeclinedTicketRequestsQuery(declinedPage, searchQuery, role);
 
     const { data: availableMachineryTypes = [], isLoading: isLoadingAvailableMachineryTypes, error: availableMachineryTypesError } =
         useAvailableMachineryTypesQuery();
@@ -528,9 +481,6 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
     return {
         // query data
         pendingTicketRequests,
-        ongoingTicketRequests,
-        scheduledTicketRequests,
-        declinedTicketRequests,
         availableMachineryTypes,
         operatorsList,
         plannedWeeklySchedules, 
@@ -570,9 +520,6 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
 
         // loading states (queries)
         isLoadingPendingTicketRequests,
-        isLoadingOngoingTicketRequests,
-        isLoadingScheduledTicketRequests,
-        isLoadingDeclinedTicketRequests,
         isLoadingAvailableMachineryTypes,
         isLoadingOperatorsList,
         isLoadingPlannedWeeklySchedules, 
@@ -610,9 +557,6 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
 
         // error states
         pendingTicketRequestsError,
-        ongoingTicketRequestsError,
-        scheduledTicketRequestsError,
-        declinedTicketRequestsError,
         availableMachineryTypesError,
         operatorsListError,
         plannedWeeklySchedulesError, 

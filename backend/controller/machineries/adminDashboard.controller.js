@@ -3154,6 +3154,13 @@ export const setRequestTicketToComplete = async (req, res) => { //kapag work don
             });
         }
 
+        if (operator.isOperatorDisabled === true) {
+            return res.status(400).json({
+                success: false,
+                message: "Your operator priviledges is currently disabled, cannot set the request ticket to complete."
+            })
+        }
+
         if (operator.isOperatorDisabled) {
             await session.abortTransaction();
             session.endSession();

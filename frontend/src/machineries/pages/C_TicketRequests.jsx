@@ -44,7 +44,6 @@ const TicketRequests = () => {
   const [pendingPage, setPendingPage] = useState(1);
   const [ongoingPage, setOngoingPage] = useState(1);
   const [schedulesPage, setSchedulesPage] = useState(1);
-  const [declinedPage, setDeclinedPage] = useState(1);
 
   const [reopenScheduleId, setReopenScheduleId] = useState(null);
 
@@ -54,18 +53,9 @@ const TicketRequests = () => {
 
   const {
     pendingTicketRequests,
-    ongoingTicketRequests,
-    scheduledTicketRequests,
-    declinedTicketRequests,
     
     isLoadingPendingTicketRequests,
-    isLoadingOngoingTicketRequests,
-    isLoadingScheduledTicketRequests,
-    isLoadingDeclinedTicketRequests,
 
-    ongoingTicketRequestsError,
-    scheduledTicketRequestsError,
-    declinedTicketRequestsError,
     pendingTicketRequestsError,
 
     plannedWeeklySchedules,
@@ -76,15 +66,13 @@ const TicketRequests = () => {
     isLoadingInProgressWeeklySchedules,
     inProgressWeeklySchedulesError,
   } = useAdminDashboard(
-    { pendingPage, ongoingPage, schedulesPage, declinedPage },
+    { pendingPage, schedulesPage },
     { searchQuery }
   );
 
   useEffect(() => {
     setPendingPage(1);
     setSchedulesPage(1);
-    setDeclinedPage(1);
-    setOngoingPage(1);
   }, [ searchQuery ]);
 
   const { isOpen, onOpen, onClose } = useDisclosure();
