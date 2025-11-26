@@ -1239,7 +1239,7 @@ const Operators = () => {
                             />
                           </FormControl>
 
-                          <Flex gap={2}>
+                          <Flex gap={2} mt={4}> 
                             {editingLicenseId ? (
                               <>
                                 <Button

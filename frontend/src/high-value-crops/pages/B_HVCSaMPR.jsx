@@ -6,10 +6,12 @@ import {
 } from "@chakra-ui/react";
 import { FaFileExcel, FaDownload, FaCalendarAlt, FaChartBar, FaWifi } from 'react-icons/fa';
 import { useAdminDashboard } from '../store/adminDashboard.store';
+import { useAuthStore } from '../../auth/store/authStore';
 
 const B_HVCSaMPR = () => {
   const [selectedRange, setSelectedRange] = useState('');
   
+  const { user } = useAuthStore();
   const { 
     availableYears, 
     availableMonths, 
@@ -92,8 +94,8 @@ const B_HVCSaMPR = () => {
     const [startDate, endDate] = selectedRange.split('_');
     
     try {
-      // Now use the function from the store
-      const reportData = await generateHVCSaMPR(startDate, endDate);
+      // Now use the function from the store, passing employee ID
+      const reportData = await generateHVCSaMPR(startDate, endDate, user?.id);
       
       // Handle the download in the component (UI concern)
       const url = window.URL.createObjectURL(new Blob([reportData]));

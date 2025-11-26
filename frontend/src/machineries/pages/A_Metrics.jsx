@@ -22,6 +22,7 @@ import {
   Tr,
   Th,
   Td,
+  Spinner,
 } from "@chakra-ui/react";
 import {
   FaClipboardList,
@@ -127,9 +128,13 @@ const A_Metrics = () => {
               <StatLabel fontSize="md" display="flex" alignItems="center">
                 <Icon as={FaClipboardList} mr={2} color="orange.500" /> TOTAL PENDING
               </StatLabel>
-              <StatNumber fontSize="4xl">
-                {isLoadingTicketStatusCounts ? 'Loading...' : pendingCount}
-              </StatNumber>
+              {isLoadingTicketStatusCounts ? (
+                <Center h="65px">
+                  <Spinner size="lg" thickness="3px" color="orange.500" />
+                </Center>
+              ) : (
+                <StatNumber fontSize="4xl">{pendingCount}</StatNumber>
+              )}
               <StatHelpText>Awaiting assignment</StatHelpText>
             </Stat>
           </Box>
@@ -148,9 +153,13 @@ const A_Metrics = () => {
               <StatLabel fontSize="md" display="flex" alignItems="center">
                 <Icon as={FaCheckCircle} mr={2} color="green.500" /> TOTAL SCHEDULED
               </StatLabel>
-              <StatNumber fontSize="4xl">
-                {isLoadingTicketStatusCounts ? 'Loading...' : scheduledCount}
-              </StatNumber>
+              {isLoadingTicketStatusCounts ? (
+                <Center h="65px">
+                  <Spinner size="lg" thickness="3px" color="green.500" />
+                </Center>
+              ) : (
+                <StatNumber fontSize="4xl">{scheduledCount}</StatNumber>
+              )}
               <StatHelpText>Upcoming schedules</StatHelpText>
             </Stat>
           </Box>
@@ -169,9 +178,13 @@ const A_Metrics = () => {
               <StatLabel fontSize="md" display="flex" alignItems="center">
                 <Icon as={FaHourglass} mr={2} color="purple.500" /> TOTAL ONGOING
               </StatLabel>
-              <StatNumber fontSize="4xl">
-                {isLoadingTicketStatusCounts ? 'Loading...' : ongoingCount}
-              </StatNumber>
+              {isLoadingTicketStatusCounts ? (
+                <Center h="65px">
+                  <Spinner size="lg" thickness="3px" color="purple.500" />
+                </Center>
+              ) : (
+                <StatNumber fontSize="4xl">{ongoingCount}</StatNumber>
+              )}
               <StatHelpText>Currently active</StatHelpText>
             </Stat>
           </Box>
@@ -190,9 +203,13 @@ const A_Metrics = () => {
               <StatLabel fontSize="md" display="flex" alignItems="center">
                 <Icon as={FaClock} mr={2} color="green.500" /> COMPLETED
               </StatLabel>
-              <StatNumber fontSize="4xl">
-                {isLoadingTicketStatusCounts ? 'Loading...' : completedCount}
-              </StatNumber>
+              {isLoadingTicketStatusCounts ? (
+                <Center h="65px">
+                  <Spinner size="lg" thickness="3px" color="green.500" />
+                </Center>
+              ) : (
+                <StatNumber fontSize="4xl">{completedCount}</StatNumber>
+              )}
               <StatHelpText>Finished jobs</StatHelpText>
             </Stat>
           </Box>
@@ -228,7 +245,7 @@ const A_Metrics = () => {
 
           {isLoadingUpcomingAndOngoingSchedules ? (
             <Center h="200px">
-              <Text color="gray.500" fontSize="xs">Loading schedules...</Text>
+              <Spinner size="lg" color="blue.500" />
             </Center>
           ) : upcoming.length === 0 ? (
             <Center h="200px">
@@ -323,7 +340,7 @@ const A_Metrics = () => {
 
           {isLoadingUpcomingAndOngoingSchedules ? (
             <Center h="200px">
-              <Text color="gray.500" fontSize="xs">Loading schedules...</Text>
+              <Spinner size="lg" color="purple.500" />
             </Center>
           ) : ongoing.length === 0 ? (
             <Center h="200px">
