@@ -26,9 +26,14 @@ import {
   Tooltip,
   HStack,
   useToast,
+  Stat,
+  StatLabel,
+  StatNumber,
+  StatHelpText,
+  Stack,
 } from '@chakra-ui/react';
 import { FiSearch, FiInbox } from 'react-icons/fi';
-import { FaUserCog, FaUserSlash, FaUserCheck, FaInfo } from 'react-icons/fa';
+import { FaUserCog, FaUserSlash, FaUserCheck, FaInfo, FaClipboardList } from 'react-icons/fa';
 import { useAdminDashboard } from '../store/adminDashboard.store';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../auth/store/authStore';
@@ -44,6 +49,9 @@ const Operators = () => {
     operatorAccounts,
     isLoadingOperatorAccounts,
     operatorAccountsError,
+    operatorAssignedNumbers,
+    isLoadingOperatorAssignedNumbers,
+    operatorAssignedNumbersError,
 
     enableOperatorAccount,
     disableOperatorAccount,
@@ -62,6 +70,16 @@ const Operators = () => {
   const operatorAccountsTotalPages = operatorAccounts?.data?.totalPages || 1;
   const operatorAccountsCurrentPage = operatorAccounts?.data?.currentPage || 1;
   const operatorAccountsTotalItems = operatorAccounts?.data?.totalCount || 0;
+
+  // Calculate operator statistics
+  const totalOperators = operatorAccountsTotalItems;
+  const activeOperators = operatorAccountsList.filter(op => op.isOperatorDisabled === false).length;
+  const disabledOperators = operatorAccountsList.filter(op => op.isOperatorDisabled === true).length;
+  const totalActiveAssignments = operatorAssignedNumbers?.data?.totalActiveAssignments || 0;
+  const operatorsWithAssignments = operatorAssignedNumbers?.data?.totalOperators || 0;
+  
+  // Check if search filter is active
+  const hasSearchFilter = searchQuery && searchQuery.trim() !== '';
 
   const PaginationControls = ({ currentPage, setCurrentPage, totalPages, totalItems, colorScheme }) => (
     <Flex
@@ -175,6 +193,145 @@ const Operators = () => {
       <Text color="gray.600" mb={5}>
         Manage operator accounts and their access to complete tickets.
       </Text>
+
+      {/* Operator Statistics Cards */}
+      <Box mb={8}>
+        <Flex
+          justify="space-between"
+          align="center"
+          mb={4}
+          bg="teal.50"
+          p={3}
+          borderRadius="md"
+          borderLeftWidth="4px"
+          borderLeftColor="teal.500"
+        >
+          <Heading as="h2" size="md" display="flex" alignItems="center">
+            <Icon as={FaInfo} mr={2} color="teal.600" /> OPERATOR STATISTICS
+          </Heading>
+        </Flex>
+
+        {/* Error Alert for Operator Statistics */}
+        {operatorAssignedNumbersError && (
+          <Alert status="error" mb={4} borderRadius="md">
+            <AlertIcon />
+            <Box>
+              <Text fontWeight="medium">Error loading operator statistics</Text>
+              <Text fontSize="sm">
+                {operatorAssignedNumbersError?.response?.data?.message ||
+                  operatorAssignedNumbersError?.message ||
+                  "An error occurred while fetching operator statistics."}
+              </Text>
+            </Box>
+          </Alert>
+        )}
+
+        <Stack direction={{ base: "column", md: "row" }} spacing={4} w="full">
+          {/* Total Operators */}
+          <Box
+            p={5}
+            flex={1}
+            borderRadius="md"
+            boxShadow="sm"
+            bg="white"
+            borderWidth="1px"
+            borderColor="gray.200"
+          >
+            <Stat>
+              <StatLabel fontSize="md" display="flex" alignItems="center">
+                <Icon as={FaUserCog} mr={2} color="teal.500" /> Total Operators
+              </StatLabel>
+              {isLoadingOperatorAccounts ? (
+                <Center h="65px">
+                  <Spinner size="lg" thickness="3px" color="teal.500" />
+                </Center>
+              ) : (
+                <StatNumber fontSize="4xl">{totalOperators}</StatNumber>
+              )}
+              <StatHelpText>All registered operators</StatHelpText>
+            </Stat>
+          </Box>
+
+          {/* Active Operators */}
+          <Box
+            p={5}
+            flex={1}
+            borderRadius="md"
+            boxShadow="sm"
+            bg="white"
+            borderWidth="1px"
+            borderColor="gray.200"
+          >
+            <Stat>
+              <StatLabel fontSize="md" display="flex" alignItems="center">
+                <Icon as={FaUserCheck} mr={2} color="green.500" /> Active Operators
+              </StatLabel>
+              {isLoadingOperatorAccounts ? (
+                <Center h="65px">
+                  <Spinner size="lg" thickness="3px" color="green.500" />
+                </Center>
+              ) : (
+                <StatNumber fontSize="4xl">{activeOperators}</StatNumber>
+              )}
+              <StatHelpText>
+                {hasSearchFilter ? 'From current view' : 'Currently enabled'}
+              </StatHelpText>
+            </Stat>
+          </Box>
+
+          {/* Disabled Operators */}
+          <Box
+            p={5}
+            flex={1}
+            borderRadius="md"
+            boxShadow="sm"
+            bg="white"
+            borderWidth="1px"
+            borderColor="gray.200"
+          >
+            <Stat>
+              <StatLabel fontSize="md" display="flex" alignItems="center">
+                <Icon as={FaUserSlash} mr={2} color="red.500" /> Disabled Operators
+              </StatLabel>
+              {isLoadingOperatorAccounts ? (
+                <Center h="65px">
+                  <Spinner size="lg" thickness="3px" color="red.500" />
+                </Center>
+              ) : (
+                <StatNumber fontSize="4xl">{disabledOperators}</StatNumber>
+              )}
+              <StatHelpText>
+                {hasSearchFilter ? 'From current view' : 'Currently disabled'}
+              </StatHelpText>
+            </Stat>
+          </Box>
+
+          {/* Total Active Assignments */}
+          <Box
+            p={5}
+            flex={1}
+            borderRadius="md"
+            boxShadow="sm"
+            bg="white"
+            borderWidth="1px"
+            borderColor="gray.200"
+          >
+            <Stat>
+              <StatLabel fontSize="md" display="flex" alignItems="center">
+                <Icon as={FaClipboardList} mr={2} color="blue.500" /> Active Assignments
+              </StatLabel>
+              {isLoadingOperatorAssignedNumbers ? (
+                <Center h="65px">
+                  <Spinner size="lg" thickness="3px" color="blue.500" />
+                </Center>
+              ) : (
+                <StatNumber fontSize="4xl">{totalActiveAssignments}</StatNumber>
+              )}
+              <StatHelpText>{operatorsWithAssignments} operators assigned</StatHelpText>
+            </Stat>
+          </Box>
+        </Stack>
+      </Box>
 
       {/* Filter Section */}
       <Flex direction="column" mb={6} gap={4} p={4} bg="teal.50" borderRadius="md" boxShadow="sm">

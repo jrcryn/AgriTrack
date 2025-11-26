@@ -33,6 +33,9 @@ import {
     enableOperator,
     getAllOperators,
     getOperatorAssignedNumbers,
+    addOperatorLicense,
+    updateOperatorLicense,
+    removeOperatorLicense,
     
     deleteScheduleAndTickets
 } from '../controller/machineries/adminDashboard.controller.js';
@@ -104,7 +107,9 @@ router.post('/disable-operator', verifyAuthToken, verifyRole(['MIM']), disableOp
 router.post('/enable-operator', verifyAuthToken, verifyRole(['MIM']), enableOperator);
 router.get('/get-all-operators', verifyAuthToken, verifyRole(['MIM']), getAllOperators);
 router.get('/get-operators-assigned-numbers', verifyAuthToken, verifyRole(['MIM']), getOperatorAssignedNumbers);
-
+router.post('/add-operator-license', verifyAuthToken, verifyRole(['MIM']), addOperatorLicense);
+router.put('/update-operator-license', verifyAuthToken, verifyRole(['MIM']), updateOperatorLicense);
+router.post('/remove-operator-license', verifyAuthToken, verifyRole(['MIM']), removeOperatorLicense);
 
 router.post('/delete-schedule-and-tickets/:scheduleId', deleteScheduleAndTickets); //FOR DEBUGGING AND TESTING PURPOSES ONLY
 export default router;

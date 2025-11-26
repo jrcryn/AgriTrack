@@ -4046,3 +4046,169 @@ export const enableOperator = async (req, res) => {
         });
     }
 };
+
+export const addOperatorLicense = async (req, res) => {
+    const { operatorId, licenseNumber, licenseType, issuedDate, expiryDate, allowedMachineryTypes, issuedBy, notes } = req.body;
+
+    if (!operatorId || !licenseNumber || !licenseType || !issuedDate || !expiryDate || !allowedMachineryTypes || !Array.isArray(allowedMachineryTypes) || allowedMachineryTypes.length === 0) {
+        return res.status(400).json({
+            success: false,
+            message: "Please provide operatorId, licenseNumber, licenseType, issuedDate, expiryDate, and at least one allowedMachineryType."
+        });
+    }
+
+    try {
+        const operator = await global.globalModels.EmployeeAccount.findById(operatorId);
+        if (!operator) {
+            return res.status(404).json({ success: false, message: "Operator not found." });
+        }
+
+        if (!operator.roles || !operator.roles.includes('MIS')) {
+            return res.status(400).json({ success: false, message: "The specified account is not an operator." });
+        }
+
+        // Validate all machinery types exist
+        const machineryTypes = await global.machineriesModels.MachineriesType.find({
+            _id: { $in: allowedMachineryTypes }
+        });
+
+        if (machineryTypes.length !== allowedMachineryTypes.length) {
+            return res.status(400).json({ success: false, message: "One or more machinery types not found." });
+        }
+
+        const newLicense = {
+            licenseNumber,
+            licenseType,
+            issuedDate: new Date(issuedDate),
+            expiryDate: new Date(expiryDate),
+            allowedMachineryTypes,
+            isActive: true,
+            issuedBy: issuedBy || null,
+            notes: notes || null
+        };
+
+        if (!operator.operatorLicenses) {
+            operator.operatorLicenses = [];
+        }
+
+        operator.operatorLicenses.push(newLicense);
+        await operator.save();
+
+        return res.status(200).json({
+            success: true,
+            message: "Operator license added successfully.",
+            data: operator
+        });
+
+    } catch (error) {
+        console.error("Error adding operator license:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Error adding operator license.",
+            error: error.message
+        });
+    }
+};
+
+export const updateOperatorLicense = async (req, res) => {
+    const { operatorId, licenseId, licenseNumber, licenseType, issuedDate, expiryDate, allowedMachineryTypes, issuedBy, notes, isActive } = req.body;
+
+    if (!operatorId || !licenseId) {
+        return res.status(400).json({
+            success: false,
+            message: "Please provide operatorId and licenseId."
+        });
+    }
+
+    try {
+        const operator = await global.globalModels.EmployeeAccount.findById(operatorId);
+        if (!operator) {
+            return res.status(404).json({ success: false, message: "Operator not found." });
+        }
+
+        const license = operator.operatorLicenses.id(licenseId);
+        if (!license) {
+            return res.status(404).json({ success: false, message: "License not found." });
+        }
+
+        // Update fields if provided
+        if (licenseNumber !== undefined) license.licenseNumber = licenseNumber;
+        if (licenseType !== undefined) license.licenseType = licenseType;
+        if (issuedDate !== undefined) license.issuedDate = new Date(issuedDate);
+        if (expiryDate !== undefined) license.expiryDate = new Date(expiryDate);
+        if (issuedBy !== undefined) license.issuedBy = issuedBy;
+        if (notes !== undefined) license.notes = notes;
+        if (isActive !== undefined) license.isActive = isActive;
+
+        // Update allowed machinery types if provided
+        if (allowedMachineryTypes !== undefined && Array.isArray(allowedMachineryTypes)) {
+            // Validate all machinery types exist
+            const machineryTypes = await global.machineriesModels.MachineriesType.find({
+                _id: { $in: allowedMachineryTypes }
+            });
+
+            if (machineryTypes.length !== allowedMachineryTypes.length) {
+                return res.status(400).json({ success: false, message: "One or more machinery types not found." });
+            }
+
+            license.allowedMachineryTypes = allowedMachineryTypes;
+        }
+
+        await operator.save();
+
+        return res.status(200).json({
+            success: true,
+            message: "Operator license updated successfully.",
+            data: operator
+        });
+
+    } catch (error) {
+        console.error("Error updating operator license:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Error updating operator license.",
+            error: error.message
+        });
+    }
+};
+
+export const removeOperatorLicense = async (req, res) => {
+    const { operatorId, licenseId } = req.body;
+
+    if (!operatorId || !licenseId) {
+        return res.status(400).json({
+            success: false,
+            message: "Please provide operatorId and licenseId."
+        });
+    }
+
+    try {
+        const operator = await global.globalModels.EmployeeAccount.findById(operatorId);
+        if (!operator) {
+            return res.status(404).json({ success: false, message: "Operator not found." });
+        }
+
+        const license = operator.operatorLicenses.id(licenseId);
+        if (!license) {
+            return res.status(404).json({ success: false, message: "License not found." });
+        }
+
+        operator.operatorLicenses.pull(licenseId);
+        await operator.save();
+
+        return res.status(200).json({
+            success: true,
+            message: "Operator license removed successfully.",
+            data: operator
+        });
+
+    } catch (error) {
+        console.error("Error removing operator license:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Error removing operator license.",
+            error: error.message
+        });
+    }
+};
+
