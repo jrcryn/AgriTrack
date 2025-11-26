@@ -31,6 +31,7 @@ import {
   StatNumber,
   StatHelpText,
   Stack,
+  SimpleGrid,
   Modal,
   ModalOverlay,
   ModalContent,
@@ -138,30 +139,39 @@ const Operators = () => {
       justifyContent="space-between"
       mt={4}
       alignItems="center"
-      direction={{ base: "column", md: "row" }}
-      gap={{ base: 3, md: 0 }}
+      direction={{ base: "column", sm: "row" }}
+      gap={{ base: 3, sm: 0 }}
       width={"100%"}
+      flexWrap="wrap"
     >
-      <Text color="gray.600" fontSize="md">
+      <Text 
+        color="gray.600" 
+        fontSize={{ base: "sm", md: "md" }}
+        textAlign={{ base: "center", sm: "left" }}
+        mb={{ base: 0, sm: 0 }}
+      >
         Page {currentPage} of {totalPages || 1} ({totalItems} total)
       </Text>
-      <Flex>
+      <Flex gap={2} width={{ base: "100%", sm: "auto" }} justifyContent={{ base: "center", sm: "flex-end" }}>
         <Button
-          size="sm"
+          size={{ base: "sm", md: "md" }}
           onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
           isDisabled={currentPage === 1}
           colorScheme={colorScheme}
           variant="outline"
-          mr={2}
+          width={{ base: "50%", sm: "auto" }}
+          fontSize={{ base: "xs", md: "sm" }}
         >
           Previous
         </Button>
         <Button
-          size="sm"
+          size={{ base: "sm", md: "md" }}
           onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
           isDisabled={currentPage >= totalPages}
           colorScheme={colorScheme}
           variant="outline"
+          width={{ base: "50%", sm: "auto" }}
+          fontSize={{ base: "xs", md: "sm" }}
         >
           Next
         </Button>
@@ -570,11 +580,19 @@ const Operators = () => {
   }, [operatorAccountsList]);
 
   return (
-    <Box overflow="hidden" bg="white" p={5} minH="100vh">
-      <Heading as="h1" size="xl" mb={2}>
+    <Box overflow="hidden" bg="white" p={{ base: 3, md: 5 }} minH="100vh">
+      <Heading 
+        as="h1" 
+        size={{ base: "lg", md: "xl" }} 
+        mb={2}
+      >
         Operator Accounts
       </Heading>
-      <Text color="gray.600" mb={5}>
+      <Text 
+        color="gray.600" 
+        mb={{ base: 4, md: 5 }}
+        fontSize={{ base: "sm", md: "md" }}
+      >
         Manage operator accounts and their access to complete tickets.
       </Text>
 
@@ -585,12 +603,18 @@ const Operators = () => {
           align="center"
           mb={4}
           bg="teal.50"
-          p={3}
+          p={{ base: 2, md: 3 }}
           borderRadius="md"
           borderLeftWidth="4px"
           borderLeftColor="teal.500"
         >
-          <Heading as="h2" size="md" display="flex" alignItems="center">
+          <Heading 
+            as="h2" 
+            size={{ base: "sm", md: "md" }} 
+            display="flex" 
+            alignItems="center"
+            flexWrap="wrap"
+          >
             <Icon as={FaInfo} mr={2} color="teal.600" /> OPERATOR STATISTICS
           </Heading>
         </Flex>
@@ -600,8 +624,10 @@ const Operators = () => {
           <Alert status="error" mb={4} borderRadius="md">
             <AlertIcon />
             <Box>
-              <Text fontWeight="medium">Error loading operator statistics</Text>
-              <Text fontSize="sm">
+              <Text fontWeight="medium" fontSize={{ base: "sm", md: "md" }}>
+                Error loading operator statistics
+              </Text>
+              <Text fontSize={{ base: "xs", md: "sm" }}>
                 {operatorAssignedNumbersError?.response?.data?.message ||
                   operatorAssignedNumbersError?.message ||
                   "An error occurred while fetching operator statistics."}
@@ -610,11 +636,14 @@ const Operators = () => {
           </Alert>
         )}
 
-        <Stack direction={{ base: "column", md: "row" }} spacing={4} w="full">
+        <SimpleGrid 
+          columns={{ base: 1, sm: 2, lg: 4 }} 
+          spacing={{ base: 3, md: 4 }} 
+          w="full"
+        >
           {/* Total Operators */}
           <Box
-            p={5}
-            flex={1}
+            p={{ base: 4, md: 5 }}
             borderRadius="md"
             boxShadow="sm"
             bg="white"
@@ -622,24 +651,36 @@ const Operators = () => {
             borderColor="gray.200"
           >
             <Stat>
-              <StatLabel fontSize="md" display="flex" alignItems="center">
-                <Icon as={FaUserCog} mr={2} color="teal.500" /> Total Operators
+              <StatLabel 
+                fontSize={{ base: "sm", md: "md" }} 
+                display="flex" 
+                alignItems="center"
+                mb={{ base: 2, md: 3 }}
+              >
+                <Icon as={FaUserCog} mr={2} color="teal.500" /> 
+                <Text as="span" noOfLines={1}>Total Operators</Text>
               </StatLabel>
               {isLoadingOperatorAccounts ? (
-                <Center h="65px">
-                  <Spinner size="lg" thickness="3px" color="teal.500" />
+                <Center h={{ base: "50px", md: "65px" }}>
+                  <Spinner size={{ base: "md", md: "lg" }} thickness="3px" color="teal.500" />
                 </Center>
               ) : (
-                <StatNumber fontSize="4xl">{totalOperators}</StatNumber>
+                <StatNumber 
+                  fontSize={{ base: "2xl", sm: "3xl", md: "4xl" }}
+                  lineHeight="shorter"
+                >
+                  {totalOperators}
+                </StatNumber>
               )}
-              <StatHelpText>All registered operators</StatHelpText>
+              <StatHelpText fontSize={{ base: "xs", md: "sm" }} mt={{ base: 1, md: 2 }}>
+                All registered operators
+              </StatHelpText>
             </Stat>
           </Box>
 
           {/* Active Operators */}
           <Box
-            p={5}
-            flex={1}
+            p={{ base: 4, md: 5 }}
             borderRadius="md"
             boxShadow="sm"
             bg="white"
@@ -647,17 +688,28 @@ const Operators = () => {
             borderColor="gray.200"
           >
             <Stat>
-              <StatLabel fontSize="md" display="flex" alignItems="center">
-                <Icon as={FaUserCheck} mr={2} color="green.500" /> Active Operators
+              <StatLabel 
+                fontSize={{ base: "sm", md: "md" }} 
+                display="flex" 
+                alignItems="center"
+                mb={{ base: 2, md: 3 }}
+              >
+                <Icon as={FaUserCheck} mr={2} color="green.500" /> 
+                <Text as="span" noOfLines={1}>Active Operators</Text>
               </StatLabel>
               {isLoadingOperatorAccounts ? (
-                <Center h="65px">
-                  <Spinner size="lg" thickness="3px" color="green.500" />
+                <Center h={{ base: "50px", md: "65px" }}>
+                  <Spinner size={{ base: "md", md: "lg" }} thickness="3px" color="green.500" />
                 </Center>
               ) : (
-                <StatNumber fontSize="4xl">{activeOperators}</StatNumber>
+                <StatNumber 
+                  fontSize={{ base: "2xl", sm: "3xl", md: "4xl" }}
+                  lineHeight="shorter"
+                >
+                  {activeOperators}
+                </StatNumber>
               )}
-              <StatHelpText>
+              <StatHelpText fontSize={{ base: "xs", md: "sm" }} mt={{ base: 1, md: 2 }}>
                 {hasSearchFilter ? 'From current view' : 'Currently enabled'}
               </StatHelpText>
             </Stat>
@@ -665,8 +717,7 @@ const Operators = () => {
 
           {/* Disabled Operators */}
           <Box
-            p={5}
-            flex={1}
+            p={{ base: 4, md: 5 }}
             borderRadius="md"
             boxShadow="sm"
             bg="white"
@@ -674,17 +725,28 @@ const Operators = () => {
             borderColor="gray.200"
           >
             <Stat>
-              <StatLabel fontSize="md" display="flex" alignItems="center">
-                <Icon as={FaUserSlash} mr={2} color="red.500" /> Disabled Operators
+              <StatLabel 
+                fontSize={{ base: "sm", md: "md" }} 
+                display="flex" 
+                alignItems="center"
+                mb={{ base: 2, md: 3 }}
+              >
+                <Icon as={FaUserSlash} mr={2} color="red.500" /> 
+                <Text as="span" noOfLines={1}>Disabled Operators</Text>
               </StatLabel>
               {isLoadingOperatorAccounts ? (
-                <Center h="65px">
-                  <Spinner size="lg" thickness="3px" color="red.500" />
+                <Center h={{ base: "50px", md: "65px" }}>
+                  <Spinner size={{ base: "md", md: "lg" }} thickness="3px" color="red.500" />
                 </Center>
               ) : (
-                <StatNumber fontSize="4xl">{disabledOperators}</StatNumber>
+                <StatNumber 
+                  fontSize={{ base: "2xl", sm: "3xl", md: "4xl" }}
+                  lineHeight="shorter"
+                >
+                  {disabledOperators}
+                </StatNumber>
               )}
-              <StatHelpText>
+              <StatHelpText fontSize={{ base: "xs", md: "sm" }} mt={{ base: 1, md: 2 }}>
                 {hasSearchFilter ? 'From current view' : 'Currently disabled'}
               </StatHelpText>
             </Stat>
@@ -692,8 +754,7 @@ const Operators = () => {
 
           {/* Total Active Assignments */}
           <Box
-            p={5}
-            flex={1}
+            p={{ base: 4, md: 5 }}
             borderRadius="md"
             boxShadow="sm"
             bg="white"
@@ -701,29 +762,60 @@ const Operators = () => {
             borderColor="gray.200"
           >
             <Stat>
-              <StatLabel fontSize="md" display="flex" alignItems="center">
-                <Icon as={FaClipboardList} mr={2} color="blue.500" /> Active Assignments
+              <StatLabel 
+                fontSize={{ base: "sm", md: "md" }} 
+                display="flex" 
+                alignItems="center"
+                mb={{ base: 2, md: 3 }}
+              >
+                <Icon as={FaClipboardList} mr={2} color="blue.500" /> 
+                <Text as="span" noOfLines={1}>Active Assignments</Text>
               </StatLabel>
               {isLoadingOperatorAssignedNumbers ? (
-                <Center h="65px">
-                  <Spinner size="lg" thickness="3px" color="blue.500" />
+                <Center h={{ base: "50px", md: "65px" }}>
+                  <Spinner size={{ base: "md", md: "lg" }} thickness="3px" color="blue.500" />
                 </Center>
               ) : (
-                <StatNumber fontSize="4xl">{totalActiveAssignments}</StatNumber>
+                <StatNumber 
+                  fontSize={{ base: "2xl", sm: "3xl", md: "4xl" }}
+                  lineHeight="shorter"
+                >
+                  {totalActiveAssignments}
+                </StatNumber>
               )}
-              <StatHelpText>{operatorsWithAssignments} operators assigned</StatHelpText>
+              <StatHelpText fontSize={{ base: "xs", md: "sm" }} mt={{ base: 1, md: 2 }}>
+                {operatorsWithAssignments} operators assigned
+              </StatHelpText>
             </Stat>
           </Box>
-        </Stack>
+        </SimpleGrid>
       </Box>
 
       {/* Filter Section */}
-      <Flex direction="column" mb={6} gap={4} p={4} bg="teal.50" borderRadius="md" boxShadow="sm">
-        <Flex direction={{ base: "column", md: "row" }} gap={4} alignItems={{ base: "stretch", md: "flex-end" }}>
+      <Flex 
+        direction="column" 
+        mb={6} 
+        gap={{ base: 3, md: 4 }} 
+        p={{ base: 3, md: 4 }} 
+        bg="teal.50" 
+        borderRadius="md" 
+        boxShadow="sm"
+      >
+        <Flex 
+          direction={{ base: "column", md: "row" }} 
+          gap={{ base: 3, md: 4 }} 
+          alignItems={{ base: "stretch", md: "flex-end" }}
+        >
           {/* Search */}
-          <FormControl flex="1">
-            <FormLabel fontSize="sm" fontWeight="medium" display="flex" alignItems="center" gap={2}>
-              <Icon as={FiSearch} color="teal.500" /> Search
+          <FormControl flex="1" minW={0}>
+            <FormLabel 
+              fontSize={{ base: "xs", md: "sm" }} 
+              fontWeight="medium" 
+              display="flex" 
+              alignItems="center" 
+              gap={2}
+            >
+              <Icon as={FiSearch} color="teal.500" boxSize={{ base: 3, md: 4 }} /> Search
             </FormLabel>
             <InputGroup>
               <Input
@@ -733,9 +825,11 @@ const Operators = () => {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 bg="white"
                 _focus={{ borderColor: "teal.400" }}
+                fontSize={{ base: "sm", md: "md" }}
+                size={{ base: "sm", md: "md" }}
               />
               <InputRightElement>
-                <Icon as={FiSearch} boxSize={5} />
+                <Icon as={FiSearch} boxSize={{ base: 4, md: 5 }} />
               </InputRightElement>
             </InputGroup>
           </FormControl>
@@ -749,12 +843,18 @@ const Operators = () => {
           align="center" 
           mb={4} 
           bg={'teal.50'} 
-          p={3} 
+          p={{ base: 2, md: 3 }} 
           borderRadius="md" 
           borderLeftWidth="4px" 
           borderLeftColor={'teal.500'}
         >
-          <Heading as="h2" size="md" display="flex" alignItems="center">
+          <Heading 
+            as="h2" 
+            size={{ base: "sm", md: "md" }} 
+            display="flex" 
+            alignItems="center"
+            flexWrap="wrap"
+          >
             <Icon as={FaUserCog} mr={2} color={'teal.500'} /> OPERATOR ACCOUNTS
           </Heading>
         </Flex>
@@ -764,8 +864,10 @@ const Operators = () => {
           <Alert status="error" mb={4} borderRadius="md">
             <AlertIcon />
             <Box>
-              <Text fontWeight="medium">Error loading operator accounts</Text>
-              <Text fontSize="sm">
+              <Text fontWeight="medium" fontSize={{ base: "sm", md: "md" }}>
+                Error loading operator accounts
+              </Text>
+              <Text fontSize={{ base: "xs", md: "sm" }}>
                 {operatorAccountsError?.response?.data?.message ||
                   operatorAccountsError?.message ||
                   "An error occurred while fetching operator accounts."}
@@ -779,25 +881,66 @@ const Operators = () => {
             <Spinner size="lg" color={'teal.500'} />
           </Center>
         ) : operatorAccountsList.length > 0 ? (
-          <Box overflowX="auto">
+          <Box 
+            overflowX="auto"
+            borderRadius="md"
+            borderWidth="1px"
+            borderColor="gray.200"
+          >
             <TableContainer>
-              <Table variant="simple" size="md">
+              <Table variant="simple" size={{ base: "sm", md: "md" }}>
                 <Thead bg="gray.50">
                   <Tr>
-                    <Th>Name</Th>
-                    <Th>Email</Th>
-                    <Th>Phone</Th>
-                    <Th>Status</Th>
-                    <Th>Leave Status</Th>
-                    <Th>Last Login</Th>
-                    <Th>Date Created</Th>
+                    <Th fontSize={{ base: "xs", md: "sm" }} py={{ base: 2, md: 3 }}>
+                      Name
+                    </Th>
+                    <Th 
+                      fontSize={{ base: "xs", md: "sm" }} 
+                      py={{ base: 2, md: 3 }}
+                      display={{ base: "none", md: "table-cell" }}
+                    >
+                      Email
+                    </Th>
+                    <Th 
+                      fontSize={{ base: "xs", md: "sm" }} 
+                      py={{ base: 2, md: 3 }}
+                      display={{ base: "none", lg: "table-cell" }}
+                    >
+                      Phone
+                    </Th>
+                    <Th fontSize={{ base: "xs", md: "sm" }} py={{ base: 2, md: 3 }}>
+                      Status
+                    </Th>
+                    <Th 
+                      fontSize={{ base: "xs", md: "sm" }} 
+                      py={{ base: 2, md: 3 }}
+                      display={{ base: "none", sm: "table-cell" }}
+                    >
+                      Leave Status
+                    </Th>
+                    <Th 
+                      fontSize={{ base: "xs", md: "sm" }} 
+                      py={{ base: 2, md: 3 }}
+                      display={{ base: "none", lg: "table-cell" }}
+                    >
+                      Last Login
+                    </Th>
+                    <Th 
+                      fontSize={{ base: "xs", md: "sm" }} 
+                      py={{ base: 2, md: 3 }}
+                      display={{ base: "none", xl: "table-cell" }}
+                    >
+                      Date Created
+                    </Th>
                     <Th
                       position={{ base: 'static', md: 'sticky' }}
                       right={0}
                       bg="gray.50"
                       zIndex={{ base: 0, md: 1 }}
                       textAlign="center"
-                      width="150px"
+                      width={{ base: "100px", md: "150px" }}
+                      fontSize={{ base: "xs", md: "sm" }}
+                      py={{ base: 2, md: 3 }}
                     >
                       <Box display={{ base: 'none', md: 'block' }}>Scroll →</Box>
                       <Box display={{ base: 'block', md: 'none' }}>Actions</Box>
@@ -808,43 +951,77 @@ const Operators = () => {
                   {operatorAccountsList.map((operator) => {
                     const fullName = `${operator.first_name || ''} ${operator.middle_name || ''} ${operator.last_name || ''}`.trim();
                     return (
-                      <Tr key={operator._id} fontSize="sm">
-                        <Td fontWeight={'semibold'}>{fullName || '—'}</Td>
-                        <Td>{operator.email || '—'}</Td>
-                        <Td>{operator.phone || '—'}</Td>
-                        <Td>
+                      <Tr key={operator._id} fontSize={{ base: "xs", md: "sm" }}>
+                        <Td fontWeight={'semibold'} py={{ base: 2, md: 3 }}>
+                          {fullName || '—'}
+                        </Td>
+                        <Td 
+                          py={{ base: 2, md: 3 }}
+                          display={{ base: "none", md: "table-cell" }}
+                        >
+                          {operator.email || '—'}
+                        </Td>
+                        <Td 
+                          py={{ base: 2, md: 3 }}
+                          display={{ base: "none", lg: "table-cell" }}
+                        >
+                          {operator.phone || '—'}
+                        </Td>
+                        <Td py={{ base: 2, md: 3 }}>
                           <Badge
                             colorScheme={getStatusColor(operator.isOperatorDisabled === false)}
-                            size="sm"
+                            size={{ base: "xs", md: "sm" }}
+                            fontSize={{ base: "xs", md: "sm" }}
                           >
                             {getStatusText(operator.isOperatorDisabled === false)}
                           </Badge>
                         </Td>
-                        <Td>
+                        <Td 
+                          py={{ base: 2, md: 3 }}
+                          display={{ base: "none", sm: "table-cell" }}
+                        >
                           <Badge
                             colorScheme={operator.isInLeave ? 'orange' : 'purple'}
-                            size="sm"
+                            size={{ base: "xs", md: "sm" }}
+                            fontSize={{ base: "xs", md: "sm" }}
                           >
                             {operator.isInLeave ? 'On Leave' : 'Not On Leave'}
                           </Badge>
                         </Td>
-                        <Td>{formatDate(operator.lastLogin)}</Td>
-                        <Td>{formatDate(operator.createdAt)}</Td>
+                        <Td 
+                          py={{ base: 2, md: 3 }}
+                          display={{ base: "none", lg: "table-cell" }}
+                        >
+                          {formatDate(operator.lastLogin)}
+                        </Td>
+                        <Td 
+                          py={{ base: 2, md: 3 }}
+                          display={{ base: "none", xl: "table-cell" }}
+                        >
+                          {formatDate(operator.createdAt)}
+                        </Td>
                         <Td
                           isNumeric
                           position={{ base: 'static', md: 'sticky' }}
                           right={0}
                           zIndex={1}
                           bg="white"
+                          py={{ base: 2, md: 3 }}
                         >
                           <HStack spacing={2} justify="flex-end">
                             <Button
-                              size="xs"
+                              size={{ base: "xs", md: "sm" }}
                               colorScheme='teal'
                               leftIcon={<FaUserCog />}
                               onClick={() => handleOpenModal(operator)}
+                              fontSize={{ base: "xs", md: "sm" }}
                             >
-                              Manage
+                              <Box as="span" display={{ base: "none", sm: "inline" }}>
+                                Manage
+                              </Box>
+                              <Box as="span" display={{ base: "inline", sm: "none" }}>
+                                View
+                              </Box>
                             </Button>
                           </HStack>
                         </Td>

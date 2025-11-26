@@ -76,8 +76,8 @@ const FAQButton = () => {
       </Text>
     },
     {
-       question: <Text color="blue.500">AgriTrack User Manual</Text>,
-       answer: 'Link to be included here.',
+       question: "AgriTrack User Manual",
+       answer: <Text textColor={'blue'} fontStyle={'italic'}><a target="_blank" href='https://drive.google.com/file/d/1PJygTswY-aNc80nF_EGL0Aal9fmB7kt4/view?usp=sharing'>View Here</a></Text>
     },
   ];
 

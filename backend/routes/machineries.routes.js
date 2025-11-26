@@ -98,12 +98,14 @@ router.post('/extension-ticket-complete',
   setExtenstionTicketToComplete
 );
 router.post('/get-occupied-dates-for-scheduling', verifyAuthToken, verifyRole(['MIM']), getOccupiedDatesForScheduling);
-router.get('/get-machine-units', verifyAuthToken, verifyRole(['MIM']), getMachineUnits);
-router.get('/get-machine-overview', verifyAuthToken, verifyRole(['MIM']), getMachineOverview);
-router.post('/update-machinery-unit-status', verifyAuthToken, verifyRole(['MIM']), updateMachineryUnitStatus);
-router.get('/get-machine-types-for-adding-units', verifyAuthToken, verifyRole(['MIM']), getMachineTypesForAddingUnits);
+router.get('/get-machine-units', verifyAuthToken, verifyRole(['MIM', 'MIS']), getMachineUnits);
+router.get('/get-machine-overview', verifyAuthToken, verifyRole(['MIM','MIS' ]), getMachineOverview);
+router.post('/update-machinery-unit-status', verifyAuthToken, verifyRole(['MIM', 'MIS']), updateMachineryUnitStatus);
+router.get('/get-machine-types-for-adding-units', verifyAuthToken, verifyRole(['MIM', 'MIS']), getMachineTypesForAddingUnits);
+
 router.get('/get-ticket-status-counts', verifyAuthToken, verifyRole(['MIM']), getTicketStatusCounts);
 router.get('/get-upcoming-and-ongoing-schedules', verifyAuthToken, verifyRole(['MIM']), getUpcomingAndOngoingSchedules);
+
 router.post('/disable-operator', verifyAuthToken, verifyRole(['MIM']), disableOperator);
 router.post('/enable-operator', verifyAuthToken, verifyRole(['MIM']), enableOperator);
 router.get('/get-all-operators', getAllOperators);

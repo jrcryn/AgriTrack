@@ -360,30 +360,39 @@ const B_MachineInventory = () => {
       justifyContent="space-between"
       mt={4}
       alignItems="center"
-      direction={{ base: "column", md: "row" }}
-      gap={{ base: 3, md: 0 }}
+      direction={{ base: "column", sm: "row" }}
+      gap={{ base: 3, sm: 0 }}
       width={"100%"}
+      flexWrap="wrap"
     >
-      <Text color="gray.600" fontSize="md">
+      <Text 
+        color="gray.600" 
+        fontSize={{ base: "sm", md: "md" }}
+        textAlign={{ base: "center", sm: "left" }}
+        mb={{ base: 0, sm: 0 }}
+      >
         Page {currentPage} of {totalPages || 1} ({totalItems} total)
       </Text>
-      <Flex>
+      <Flex gap={2} width={{ base: "100%", sm: "auto" }} justifyContent={{ base: "center", sm: "flex-end" }}>
         <Button
-          size="sm"
+          size={{ base: "sm", md: "md" }}
           onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
           isDisabled={currentPage === 1}
           colorScheme={colorScheme}
           variant="outline"
-          mr={2}
+          width={{ base: "50%", sm: "auto" }}
+          fontSize={{ base: "xs", md: "sm" }}
         >
           Previous
         </Button>
         <Button
-          size="sm"
+          size={{ base: "sm", md: "md" }}
           onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
           isDisabled={currentPage >= totalPages}
           colorScheme={colorScheme}
           variant="outline"
+          width={{ base: "50%", sm: "auto" }}
+          fontSize={{ base: "xs", md: "sm" }}
         >
           Next
         </Button>
@@ -393,11 +402,20 @@ const B_MachineInventory = () => {
 
   return (
     <>
-    <Box overflow="hidden" bg="white" p={5} minH="100vh">
-      <Heading as="h1" size="xl" mb={2} color="black">
+    <Box overflow="hidden" bg="white" p={{ base: 3, md: 5 }} minH="100vh">
+      <Heading 
+        as="h1" 
+        size={{ base: "lg", md: "xl" }} 
+        mb={2} 
+        color="black"
+      >
         Machinery Inventory
       </Heading>
-      <Text color="gray.600" mb={5}>
+      <Text 
+        color="gray.600" 
+        mb={{ base: 4, md: 5 }}
+        fontSize={{ base: "sm", md: "md" }}
+      >
         Overview of agricultural machinery assets and their operational status.
       </Text>
 
@@ -408,23 +426,29 @@ const B_MachineInventory = () => {
           align="center"
           mb={4}
           bg="blue.50"
-          p={3}
+          p={{ base: 2, md: 3 }}
           borderRadius="md"
           borderLeftWidth="4px"
           borderLeftColor="blue.500"
         >
-          <Heading as="h2" size="md" display="flex" alignItems="center">
+          <Heading 
+            as="h2" 
+            size={{ base: "sm", md: "md" }} 
+            display="flex" 
+            alignItems="center"
+            flexWrap="wrap"
+          >
             <Icon as={FaTractor} mr={2} color="blue.600" /> MACHINE OVERVIEW
           </Heading>
         </Flex>
 
         {/* Error Alert for Machine Overview */}
         {machineOverviewError && (
-          <Alert status="error" mb={4}>
+          <Alert status="error" mb={4} borderRadius="md">
             <AlertIcon />
             <Box>
-              <AlertTitle>Error loading machine overview</AlertTitle>
-              <AlertDescription>
+              <AlertTitle fontSize={{ base: "sm", md: "md" }}>Error loading machine overview</AlertTitle>
+              <AlertDescription fontSize={{ base: "xs", md: "sm" }}>
                 {machineOverviewError?.response?.data?.message ||
                   machineOverviewError?.message ||
                   "An error occurred while fetching machine overview."}
@@ -433,127 +457,183 @@ const B_MachineInventory = () => {
           </Alert>
         )}
 
-        <Stack direction={{ base: "column", md: "row" }} spacing={4} w="full">
+        <SimpleGrid 
+          columns={{ base: 1, sm: 2, lg: 4 }} 
+          spacing={{ base: 3, md: 4 }} 
+          w="full"
+        >
           {/* Total Machines */}
           <Box
-            p={5}
-            flex={1}
+            p={{ base: 4, md: 5 }}
             borderRadius="md"
             boxShadow="sm"
             bg="white"
             borderWidth="1px"
             borderColor="gray.200"
+            transition="all 0.2s"
           >
             <Stat>
-              <StatLabel fontSize="md" display="flex" alignItems="center">
-                <Icon as={FaTractor} mr={2} color="blue.500" /> Total Machines
+              <StatLabel 
+                fontSize={{ base: "sm", md: "md" }} 
+                display="flex" 
+                alignItems="center"
+                mb={{ base: 2, md: 3 }}
+              >
+                <Icon as={FaTractor} mr={2} color="blue.500" /> 
+                <Text as="span" noOfLines={1}>Total Machines</Text>
               </StatLabel>
               {isLoadingMachineOverview ? (
-                <Center h="65px">
-                  <Spinner size="lg" thickness="3px" color="blue.500" />
+                <Center h={{ base: "50px", md: "65px" }}>
+                  <Spinner size={{ base: "md", md: "lg" }} thickness="3px" color="blue.500" />
                 </Center>
               ) : (
-                <StatNumber fontSize="4xl">{stats.totalMachines}</StatNumber>
+                <StatNumber 
+                  fontSize={{ base: "2xl", sm: "3xl", md: "4xl" }}
+                  lineHeight="shorter"
+                >
+                  {stats.totalMachines}
+                </StatNumber>
               )}
-              <StatHelpText>{selectedYear}</StatHelpText>
+              <StatHelpText fontSize={{ base: "xs", md: "sm" }} mt={{ base: 1, md: 2 }}>
+                {selectedYear}
+              </StatHelpText>
             </Stat>
           </Box>
 
           {/* Functional Machines */}
           <Box
-            p={5}
-            flex={1}
+            p={{ base: 4, md: 5 }}
             borderRadius="md"
             boxShadow="sm"
             bg="white"
             borderWidth="1px"
             borderColor="gray.200"
+            transition="all 0.2s"
           >
             <Stat>
-              <StatLabel fontSize="md" display="flex" alignItems="center">
-                <Icon as={FaCheckCircle} mr={2} color="green.500" /> Functional
+              <StatLabel 
+                fontSize={{ base: "sm", md: "md" }} 
+                display="flex" 
+                alignItems="center"
+                mb={{ base: 2, md: 3 }}
+              >
+                <Icon as={FaCheckCircle} mr={2} color="green.500" /> 
+                <Text as="span" noOfLines={1}>Functional</Text>
               </StatLabel>
               {isLoadingMachineOverview ? (
-                <Center h="65px">
-                  <Spinner size="lg" thickness="3px" color="green.500" />
+                <Center h={{ base: "50px", md: "65px" }}>
+                  <Spinner size={{ base: "md", md: "lg" }} thickness="3px" color="green.500" />
                 </Center>
               ) : (
-                <StatNumber fontSize="4xl">{stats.functional}</StatNumber>
+                <StatNumber 
+                  fontSize={{ base: "2xl", sm: "3xl", md: "4xl" }}
+                  lineHeight="shorter"
+                >
+                  {stats.functional}
+                </StatNumber>
               )}
-              <StatHelpText>In good condition</StatHelpText>
+              <StatHelpText fontSize={{ base: "xs", md: "sm" }} mt={{ base: 1, md: 2 }}>
+                In good condition
+              </StatHelpText>
             </Stat>
           </Box>
 
           {/* Under Repair */}
           <Box
-            p={5}
-            flex={1}
+            p={{ base: 4, md: 5 }}
             borderRadius="md"
             boxShadow="sm"
             bg="white"
             borderWidth="1px"
             borderColor="gray.200"
+            transition="all 0.2s"
           >
             <Stat>
-              <StatLabel fontSize="md" display="flex" alignItems="center">
-                <Icon as={FaExclamationTriangle} mr={2} color="orange.500" /> Under Repair
+              <StatLabel 
+                fontSize={{ base: "sm", md: "md" }} 
+                display="flex" 
+                alignItems="center"
+                mb={{ base: 2, md: 3 }}
+              >
+                <Icon as={FaExclamationTriangle} mr={2} color="orange.500" /> 
+                <Text as="span" noOfLines={1}>Under Repair</Text>
               </StatLabel>
               {isLoadingMachineOverview ? (
-                <Center h="65px">
-                  <Spinner size="lg" thickness="3px" color="orange.500" />
+                <Center h={{ base: "50px", md: "65px" }}>
+                  <Spinner size={{ base: "md", md: "lg" }} thickness="3px" color="orange.500" />
                 </Center>
               ) : (
-                <StatNumber fontSize="4xl">{stats.underRepair}</StatNumber>
+                <StatNumber 
+                  fontSize={{ base: "2xl", sm: "3xl", md: "4xl" }}
+                  lineHeight="shorter"
+                >
+                  {stats.underRepair}
+                </StatNumber>
               )}
-              <StatHelpText>Maintenance ongoing</StatHelpText>
+              <StatHelpText fontSize={{ base: "xs", md: "sm" }} mt={{ base: 1, md: 2 }}>
+                Maintenance ongoing
+              </StatHelpText>
             </Stat>
           </Box>
 
           {/* Retired Machines */}
           <Box
-            p={5}
-            flex={1}
+            p={{ base: 4, md: 5 }}
             borderRadius="md"
             boxShadow="sm"
             bg="white"
             borderWidth="1px"
             borderColor="gray.200"
+            transition="all 0.2s"
           >
             <Stat>
-              <StatLabel fontSize="md" display="flex" alignItems="center">
-                <Icon as={FaTools} mr={2} color="gray.500" /> Retired
+              <StatLabel 
+                fontSize={{ base: "sm", md: "md" }} 
+                display="flex" 
+                alignItems="center"
+                mb={{ base: 2, md: 3 }}
+              >
+                <Icon as={FaTools} mr={2} color="gray.500" /> 
+                <Text as="span" noOfLines={1}>Retired</Text>
               </StatLabel>
               {isLoadingMachineOverview ? (
-                <Center h="65px">
-                  <Spinner size="lg" thickness="3px" color="gray.500" />
+                <Center h={{ base: "50px", md: "65px" }}>
+                  <Spinner size={{ base: "md", md: "lg" }} thickness="3px" color="gray.500" />
                 </Center>
               ) : (
-                <StatNumber fontSize="4xl">{stats.retired}</StatNumber>
+                <StatNumber 
+                  fontSize={{ base: "2xl", sm: "3xl", md: "4xl" }}
+                  lineHeight="shorter"
+                >
+                  {stats.retired}
+                </StatNumber>
               )}
-              <StatHelpText>Out of service</StatHelpText>
+              <StatHelpText fontSize={{ base: "xs", md: "sm" }} mt={{ base: 1, md: 2 }}>
+                Out of service
+              </StatHelpText>
             </Stat>
           </Box>
-        </Stack>
+        </SimpleGrid>
       </Box>
       
       {/* Search / Filters Bar (adapted from provided snippet) */}
       <Box 
         mb={6}
-        p={4}
+        p={{ base: 3, md: 4 }}
         bg="orange.50"
         borderRadius="md"
         boxShadow="sm"
       >
         <Flex 
           direction={{ base: "column", lg: "row" }} 
-          gap={4}
+          gap={{ base: 3, md: 4 }}
           align={{ base: "stretch", lg: "flex-end" }}
         >
           {/* General Search */}
-          <Box flex={{ base: "1", lg: "2" }}>
-            <HStack spacing={2} mb={2} justifyContent="flex-start">
-              <Icon as={FaSearch} color="orange.500" />
-              <Text fontWeight="medium" fontSize={'sm'}>
+          <Box flex={{ base: "1", lg: "2" }} minW={0}>
+            <HStack spacing={2} mb={2} justifyContent="flex-start" flexWrap="wrap">
+              <Icon as={FaSearch} color="orange.500" boxSize={{ base: 3, md: 4 }} />
+              <Text fontWeight="medium" fontSize={{ base: "xs", md: "sm" }}>
                 Search by:{" "}
                 <Tooltip label="Wrong spelling and extra spaces may give no results." placement="bottom" hasArrow>
                   <span>(<Icon as={FaInfo} color="orange.500" boxSize={3} />)</span>
@@ -567,6 +647,8 @@ const B_MachineInventory = () => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 _focus={{ borderColor: "orange.400" }}
+                fontSize={{ base: "sm", md: "md" }}
+                size={{ base: "sm", md: "md" }}
               />
               <InputRightElement pointerEvents="none">
                 <FaSearch color="gray.300" />
@@ -580,8 +662,9 @@ const B_MachineInventory = () => {
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
               bg="white"
-              size="md"
-              height="40px"
+              size={{ base: "sm", md: "md" }}
+              height={{ base: "36px", md: "40px" }}
+              fontSize={{ base: "sm", md: "md" }}
             >
               <option value="all">All Statuses</option>
               <option value="Available">Available</option>
@@ -595,12 +678,13 @@ const B_MachineInventory = () => {
           {/* Register Machine Button */}
           <Button
             colorScheme="orange"
-            size="md"
-            height="40px"
+            size={{ base: "sm", md: "md" }}
+            height={{ base: "36px", md: "40px" }}
             width={{ base: "100%", lg: "auto" }}
             flexShrink={0}
             onClick={onOpenRegister}
             leftIcon={<FaPlus />}
+            fontSize={{ base: "sm", md: "md" }}
           >
             Register Machine
           </Button>
@@ -614,12 +698,18 @@ const B_MachineInventory = () => {
           align="center"
           mb={4}
           bg="orange.50"
-          p={3}
+          p={{ base: 2, md: 3 }}
           borderRadius="md"
           borderLeftWidth="4px"
           borderLeftColor="orange.500"
         >
-          <Heading as="h2" size="md" display="flex" alignItems="center">
+          <Heading 
+            as="h2" 
+            size={{ base: "sm", md: "md" }} 
+            display="flex" 
+            alignItems="center"
+            flexWrap="wrap"
+          >
             <Icon as={FaTractor} mr={2} color="orange.600" /> MACHINE UNITS
           </Heading>
         </Flex>
@@ -648,25 +738,73 @@ const B_MachineInventory = () => {
               </Text>
             </Center>
           ) : (
-            <Box overflowX="auto">
+            <Box 
+              overflowX="auto"
+              borderRadius="md"
+              borderWidth="1px"
+              borderColor="gray.200"
+            >
               <TableContainer>
-                <Table variant="simple">
+                <Table variant="simple" size={{ base: "sm", md: "md" }}>
                   <Thead bg="gray.50">
                     <Tr>
-                      <Th textAlign={'center'}>Unit Number</Th>
-                      <Th>Equipment Type</Th>
-                      <Th>Owner</Th>
-                      <Th>Engine Brand</Th>
-                      <Th>Horsepower</Th>
-                      <Th>Status</Th>
-                      <Th>Condition</Th>
+                      <Th 
+                        textAlign={'center'}
+                        fontSize={{ base: "xs", md: "sm" }}
+                        py={{ base: 2, md: 3 }}
+                      >
+                        Unit Number
+                      </Th>
+                      <Th 
+                        fontSize={{ base: "xs", md: "sm" }}
+                        py={{ base: 2, md: 3 }}
+                        display={{ base: "none", sm: "table-cell" }}
+                      >
+                        Equipment Type
+                      </Th>
+                      <Th 
+                        fontSize={{ base: "xs", md: "sm" }}
+                        py={{ base: 2, md: 3 }}
+                        display={{ base: "none", md: "table-cell" }}
+                      >
+                        Owner
+                      </Th>
+                      <Th 
+                        fontSize={{ base: "xs", md: "sm" }}
+                        py={{ base: 2, md: 3 }}
+                        display={{ base: "none", lg: "table-cell" }}
+                      >
+                        Engine Brand
+                      </Th>
+                      <Th 
+                        fontSize={{ base: "xs", md: "sm" }}
+                        py={{ base: 2, md: 3 }}
+                        display={{ base: "none", lg: "table-cell" }}
+                      >
+                        Horsepower
+                      </Th>
+                      <Th 
+                        fontSize={{ base: "xs", md: "sm" }}
+                        py={{ base: 2, md: 3 }}
+                      >
+                        Status
+                      </Th>
+                      <Th 
+                        fontSize={{ base: "xs", md: "sm" }}
+                        py={{ base: 2, md: 3 }}
+                        display={{ base: "none", sm: "table-cell" }}
+                      >
+                        Condition
+                      </Th>
                       <Th
                         position={{ base: 'static', md: 'sticky' }}
                         right={0}
                         bg="gray.50"
                         zIndex={{ base: 0, md: 1 }}
                         textAlign="center"
-                        width="120px"
+                        width={{ base: "100px", md: "120px" }}
+                        fontSize={{ base: "xs", md: "sm" }}
+                        py={{ base: 2, md: 3 }}
                       >
                         <Box display={{ base: 'none', md: 'block' }}>Scroll →</Box>
                         <Box display={{ base: 'block', md: 'none' }}>Actions</Box>
@@ -677,23 +815,59 @@ const B_MachineInventory = () => {
                     {filteredMachineUnits.map((type) =>
                       type.machineUnits?.map((unit) => (
                         <Tr key={unit._id} _hover={{ bg: "gray.50" }}>
-                          <Td fontWeight="semibold" fontSize={'sm'} textAlign={'center'}>{unit.unitNumber}</Td>
-                          <Td fontSize={'sm'}>{type.equipmentType}</Td>
-                          <Td fontSize={'sm'}>{type.ownerName}</Td>
-                          <Td fontSize={'sm'}>{unit.engineBrand || "N/A"}</Td>
-                          <Td fontSize={'sm'}>{unit.engineHorsepower}</Td>
-                          <Td>
+                          <Td 
+                            fontWeight="semibold" 
+                            fontSize={{ base: "xs", md: "sm" }} 
+                            textAlign={'center'}
+                            py={{ base: 2, md: 3 }}
+                          >
+                            {unit.unitNumber}
+                          </Td>
+                          <Td 
+                            fontSize={{ base: "xs", md: "sm" }}
+                            py={{ base: 2, md: 3 }}
+                            display={{ base: "none", sm: "table-cell" }}
+                          >
+                            {type.equipmentType}
+                          </Td>
+                          <Td 
+                            fontSize={{ base: "xs", md: "sm" }}
+                            py={{ base: 2, md: 3 }}
+                            display={{ base: "none", md: "table-cell" }}
+                          >
+                            {type.ownerName}
+                          </Td>
+                          <Td 
+                            fontSize={{ base: "xs", md: "sm" }}
+                            py={{ base: 2, md: 3 }}
+                            display={{ base: "none", lg: "table-cell" }}
+                          >
+                            {unit.engineBrand || "N/A"}
+                          </Td>
+                          <Td 
+                            fontSize={{ base: "xs", md: "sm" }}
+                            py={{ base: 2, md: 3 }}
+                            display={{ base: "none", lg: "table-cell" }}
+                          >
+                            {unit.engineHorsepower}
+                          </Td>
+                          <Td py={{ base: 2, md: 3 }}>
                             <Tag
                               colorScheme={getStatusColor(unit.status)}
-                              size="sm"
+                              size={{ base: "xs", md: "sm" }}
+                              fontSize={{ base: "xs", md: "sm" }}
                             >
                               {unit.status}
                             </Tag>
                           </Td>
-                          <Td>
+                          <Td 
+                            py={{ base: 2, md: 3 }}
+                            display={{ base: "none", sm: "table-cell" }}
+                          >
                             <Tag
                               colorScheme={getConditionColor(unit.condition)}
-                              size="sm"
+                              size={{ base: "xs", md: "sm" }}
+                              fontSize={{ base: "xs", md: "sm" }}
                             >
                               {unit.condition}
                             </Tag>
@@ -704,9 +878,10 @@ const B_MachineInventory = () => {
                             right={0}
                             zIndex={1}
                             bg="white"
+                            py={{ base: 2, md: 3 }}
                           >
                             <Button
-                              size="xs"
+                              size={{ base: "xs", md: "sm" }}
                               colorScheme='orange'
                               leftIcon={<FaEye />}
                               onClick={() => {
@@ -720,8 +895,14 @@ const B_MachineInventory = () => {
                                 });
                                 onOpen();
                               }}
+                              fontSize={{ base: "xs", md: "sm" }}
                             >
-                              Details
+                              <Box as="span" display={{ base: "none", sm: "inline" }}>
+                                Details
+                              </Box>
+                              <Box as="span" display={{ base: "inline", sm: "none" }}>
+                                View
+                              </Box>
                             </Button>
                           </Td>
                         </Tr>
