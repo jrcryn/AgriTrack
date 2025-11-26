@@ -36,6 +36,7 @@ import {
     addOperatorLicense,
     updateOperatorLicense,
     removeOperatorLicense,
+    setEmployeeLeaveStatus,
     
     deleteScheduleAndTickets
 } from '../controller/machineries/adminDashboard.controller.js';
@@ -110,6 +111,7 @@ router.get('/get-operators-assigned-numbers', verifyAuthToken, verifyRole(['MIM'
 router.post('/add-operator-license', verifyAuthToken, verifyRole(['MIM']), addOperatorLicense);
 router.put('/update-operator-license', verifyAuthToken, verifyRole(['MIM']), updateOperatorLicense);
 router.post('/remove-operator-license', verifyAuthToken, verifyRole(['MIM']), removeOperatorLicense);
+router.post('/set-employee-leave-status', verifyAuthToken, verifyRole(['MIS']), setEmployeeLeaveStatus);
 
 router.post('/delete-schedule-and-tickets/:scheduleId', deleteScheduleAndTickets); //FOR DEBUGGING AND TESTING PURPOSES ONLY
 export default router;

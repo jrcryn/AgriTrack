@@ -4054,24 +4054,143 @@ export const enableOperator = async (req, res) => {
     }
 };
 
-export const addOperatorLicense = async (req, res) => {
-    const { operatorId, licenseNumber, licenseType, issuedDate, expiryDate, allowedMachineryTypes, issuedBy, notes } = req.body;
+export const removeOperatorLicense = async (req, res) => {
+    const { operatorId, licenseId } = req.body;
 
-    if (!operatorId || !licenseNumber || !licenseType || !issuedDate || !expiryDate || !allowedMachineryTypes || !Array.isArray(allowedMachineryTypes) || allowedMachineryTypes.length === 0) {
+    // Validate required fields
+    if (!operatorId || !licenseId) {
         return res.status(400).json({
             success: false,
-            message: "Please provide operatorId, licenseNumber, licenseType, issuedDate, expiryDate, and at least one allowedMachineryType."
+            message: "Please provide operatorId and licenseId."
         });
     }
 
     try {
+        // Validate operator exists and is an operator
         const operator = await global.globalModels.EmployeeAccount.findById(operatorId);
         if (!operator) {
-            return res.status(404).json({ success: false, message: "Operator not found." });
+            return res.status(404).json({ 
+                success: false, 
+                message: "Operator not found." 
+            });
+        }
+
+        // Verify the account is an operator
+        if (!operator.roles || !operator.roles.includes('MIS')) {
+            return res.status(400).json({ 
+                success: false, 
+                message: "The specified account is not an operator." 
+            });
+        }
+
+        // Find the license
+        const license = operator.operatorLicenses.id(licenseId);
+        if (!license) {
+            return res.status(404).json({ 
+                success: false, 
+                message: "License not found." 
+            });
+        }
+
+        // Store license details before removal for response
+        const removedLicense = {
+            licenseNumber: license.licenseNumber,
+            licenseType: license.licenseType,
+            issuedDate: license.issuedDate,
+            expiryDate: license.expiryDate
+        };
+
+        // Remove the license
+        operator.operatorLicenses.pull(licenseId);
+        await operator.save();
+
+        // Populate the remaining licenses with allowedMachineryTypes for response
+        const updatedOperator = await global.globalModels.EmployeeAccount.findById(operatorId)
+            .populate('operatorLicenses.allowedMachineryTypes', 'equipmentType ownerName ownerType');
+
+        return res.status(200).json({
+            success: true,
+            message: "Operator license removed successfully.",
+            data: {
+                operator: updatedOperator,
+                removedLicense: removedLicense
+            }
+        });
+
+    } catch (error) {
+        console.error("Error removing operator license:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Error removing operator license.",
+            error: error.message
+        });
+    }
+};
+
+export const addOperatorLicense = async (req, res) => {
+    const { operatorId, licenseNumber, licenseType, issuedDate, expiryDate, allowedMachineryTypes, issuedBy, notes } = req.body;
+
+    // Validate required fields
+    if (!operatorId || !licenseNumber || !licenseType || !issuedDate || !expiryDate) {
+        return res.status(400).json({
+            success: false,
+            message: "Please provide operatorId, licenseNumber, licenseType, issuedDate, and expiryDate."
+        });
+    }
+
+    if (!allowedMachineryTypes || !Array.isArray(allowedMachineryTypes) || allowedMachineryTypes.length === 0) {
+        return res.status(400).json({
+            success: false,
+            message: "Please provide at least one allowedMachineryType."
+        });
+    }
+
+    try {
+        // Validate operator exists and is an operator
+        const operator = await global.globalModels.EmployeeAccount.findById(operatorId);
+        if (!operator) {
+            return res.status(404).json({ 
+                success: false, 
+                message: "Operator not found." 
+            });
         }
 
         if (!operator.roles || !operator.roles.includes('MIS')) {
-            return res.status(400).json({ success: false, message: "The specified account is not an operator." });
+            return res.status(400).json({ 
+                success: false, 
+                message: "The specified account is not an operator." 
+            });
+        }
+
+        // Validate date format and logic
+        const issued = new Date(issuedDate);
+        const expiry = new Date(expiryDate);
+        
+        if (isNaN(issued.getTime()) || isNaN(expiry.getTime())) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid date format for issuedDate or expiryDate."
+            });
+        }
+
+        if (issued >= expiry) {
+            return res.status(400).json({
+                success: false,
+                message: "Issued date must be before expiry date."
+            });
+        }
+
+        // Check for duplicate license number for this operator
+        if (operator.operatorLicenses && operator.operatorLicenses.length > 0) {
+            const duplicateLicense = operator.operatorLicenses.find(
+                license => license.licenseNumber === licenseNumber
+            );
+            if (duplicateLicense) {
+                return res.status(400).json({
+                    success: false,
+                    message: "A license with this license number already exists for this operator."
+                });
+            }
         }
 
         // Validate all machinery types exist
@@ -4080,20 +4199,25 @@ export const addOperatorLicense = async (req, res) => {
         });
 
         if (machineryTypes.length !== allowedMachineryTypes.length) {
-            return res.status(400).json({ success: false, message: "One or more machinery types not found." });
+            return res.status(400).json({ 
+                success: false, 
+                message: "One or more machinery types not found." 
+            });
         }
 
+        // Create new license
         const newLicense = {
             licenseNumber,
             licenseType,
-            issuedDate: new Date(issuedDate),
-            expiryDate: new Date(expiryDate),
+            issuedDate: issued,
+            expiryDate: expiry,
             allowedMachineryTypes,
             isActive: true,
-            issuedBy: issuedBy || null,
-            notes: notes || null
+            issuedBy: issuedBy || undefined,
+            notes: notes || undefined
         };
 
+        // Initialize operatorLicenses array if it doesn't exist
         if (!operator.operatorLicenses) {
             operator.operatorLicenses = [];
         }
@@ -4101,10 +4225,17 @@ export const addOperatorLicense = async (req, res) => {
         operator.operatorLicenses.push(newLicense);
         await operator.save();
 
-        return res.status(200).json({
+        // Populate the allowedMachineryTypes for response
+        const savedOperator = await global.globalModels.EmployeeAccount.findById(operatorId)
+            .populate('operatorLicenses.allowedMachineryTypes', 'equipmentType ownerName ownerType');
+
+        return res.status(201).json({
             success: true,
             message: "Operator license added successfully.",
-            data: operator
+            data: {
+                operator: savedOperator,
+                newLicense: savedOperator.operatorLicenses[savedOperator.operatorLicenses.length - 1]
+            }
         });
 
     } catch (error) {
@@ -4118,7 +4249,18 @@ export const addOperatorLicense = async (req, res) => {
 };
 
 export const updateOperatorLicense = async (req, res) => {
-    const { operatorId, licenseId, licenseNumber, licenseType, issuedDate, expiryDate, allowedMachineryTypes, issuedBy, notes, isActive } = req.body;
+    const { 
+        operatorId, 
+        licenseId, 
+        licenseNumber, 
+        licenseType, 
+        issuedDate, 
+        expiryDate, 
+        allowedMachineryTypes, 
+        issuedBy, 
+        notes, 
+        isActive 
+    } = req.body;
 
     if (!operatorId || !licenseId) {
         return res.status(400).json({
@@ -4128,14 +4270,57 @@ export const updateOperatorLicense = async (req, res) => {
     }
 
     try {
+        // Validate operator exists
         const operator = await global.globalModels.EmployeeAccount.findById(operatorId);
         if (!operator) {
-            return res.status(404).json({ success: false, message: "Operator not found." });
+            return res.status(404).json({ 
+                success: false, 
+                message: "Operator not found." 
+            });
         }
 
+        // Find the license
         const license = operator.operatorLicenses.id(licenseId);
         if (!license) {
-            return res.status(404).json({ success: false, message: "License not found." });
+            return res.status(404).json({ 
+                success: false, 
+                message: "License not found." 
+            });
+        }
+
+        // Validate date logic if dates are being updated
+        if (issuedDate !== undefined || expiryDate !== undefined) {
+            const issued = issuedDate !== undefined ? new Date(issuedDate) : license.issuedDate;
+            const expiry = expiryDate !== undefined ? new Date(expiryDate) : license.expiryDate;
+            
+            if (isNaN(issued.getTime()) || isNaN(expiry.getTime())) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Invalid date format for issuedDate or expiryDate."
+                });
+            }
+
+            if (issued >= expiry) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Issued date must be before expiry date."
+                });
+            }
+        }
+
+        // Check for duplicate license number if licenseNumber is being updated
+        if (licenseNumber !== undefined && licenseNumber !== license.licenseNumber) {
+            if (operator.operatorLicenses && operator.operatorLicenses.length > 0) {
+                const duplicateLicense = operator.operatorLicenses.find(
+                    lic => lic._id.toString() !== licenseId && lic.licenseNumber === licenseNumber
+                );
+                if (duplicateLicense) {
+                    return res.status(400).json({
+                        success: false,
+                        message: "A license with this license number already exists for this operator."
+                    });
+                }
+            }
         }
 
         // Update fields if provided
@@ -4143,19 +4328,29 @@ export const updateOperatorLicense = async (req, res) => {
         if (licenseType !== undefined) license.licenseType = licenseType;
         if (issuedDate !== undefined) license.issuedDate = new Date(issuedDate);
         if (expiryDate !== undefined) license.expiryDate = new Date(expiryDate);
-        if (issuedBy !== undefined) license.issuedBy = issuedBy;
-        if (notes !== undefined) license.notes = notes;
+        if (issuedBy !== undefined) license.issuedBy = issuedBy || undefined;
+        if (notes !== undefined) license.notes = notes || undefined;
         if (isActive !== undefined) license.isActive = isActive;
 
         // Update allowed machinery types if provided
-        if (allowedMachineryTypes !== undefined && Array.isArray(allowedMachineryTypes)) {
+        if (allowedMachineryTypes !== undefined) {
+            if (!Array.isArray(allowedMachineryTypes) || allowedMachineryTypes.length === 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: "allowedMachineryTypes must be a non-empty array."
+                });
+            }
+
             // Validate all machinery types exist
             const machineryTypes = await global.machineriesModels.MachineriesType.find({
                 _id: { $in: allowedMachineryTypes }
             });
 
             if (machineryTypes.length !== allowedMachineryTypes.length) {
-                return res.status(400).json({ success: false, message: "One or more machinery types not found." });
+                return res.status(400).json({ 
+                    success: false, 
+                    message: "One or more machinery types not found." 
+                });
             }
 
             license.allowedMachineryTypes = allowedMachineryTypes;
@@ -4163,10 +4358,19 @@ export const updateOperatorLicense = async (req, res) => {
 
         await operator.save();
 
+        // Populate the allowedMachineryTypes for response
+        const updatedOperator = await global.globalModels.EmployeeAccount.findById(operatorId)
+            .populate('operatorLicenses.allowedMachineryTypes', 'equipmentType ownerName ownerType');
+
+        const updatedLicense = updatedOperator.operatorLicenses.id(licenseId);
+
         return res.status(200).json({
             success: true,
             message: "Operator license updated successfully.",
-            data: operator
+            data: {
+                operator: updatedOperator,
+                updatedLicense: updatedLicense
+            }
         });
 
     } catch (error) {
@@ -4179,43 +4383,69 @@ export const updateOperatorLicense = async (req, res) => {
     }
 };
 
-export const removeOperatorLicense = async (req, res) => {
-    const { operatorId, licenseId } = req.body;
+export const setEmployeeLeaveStatus = async (req, res) => {
+    const { employeeId, isInLeave } = req.body;
 
-    if (!operatorId || !licenseId) {
+    // Validate required fields
+    if (!employeeId || isInLeave === undefined) {
         return res.status(400).json({
             success: false,
-            message: "Please provide operatorId and licenseId."
+            message: "Please provide employeeId and isInLeave status."
+        });
+    }
+
+    // Validate isInLeave is a boolean
+    if (typeof isInLeave !== 'boolean') {
+        return res.status(400).json({
+            success: false,
+            message: "isInLeave must be a boolean value (true or false)."
         });
     }
 
     try {
-        const operator = await global.globalModels.EmployeeAccount.findById(operatorId);
-        if (!operator) {
-            return res.status(404).json({ success: false, message: "Operator not found." });
+        // Find the employee
+        const employee = await global.globalModels.EmployeeAccount.findById(employeeId);
+        if (!employee) {
+            return res.status(404).json({
+                success: false,
+                message: "Employee account not found."
+            });
         }
 
-        const license = operator.operatorLicenses.id(licenseId);
-        if (!license) {
-            return res.status(404).json({ success: false, message: "License not found." });
+        // Check if leave status is already set to the requested value
+        if (employee.isInLeave === isInLeave) {
+            return res.status(400).json({
+                success: false,
+                message: `Employee is already ${isInLeave ? 'on leave' : 'not on leave'}.`
+            });
         }
 
-        operator.operatorLicenses.pull(licenseId);
-        await operator.save();
+        // Update the leave status
+        employee.isInLeave = isInLeave;
+        await employee.save();
 
         return res.status(200).json({
             success: true,
-            message: "Operator license removed successfully.",
-            data: operator
+            message: `Employee leave status ${isInLeave ? 'set to on leave' : 'set to not on leave'} successfully.`,
+            data: {
+                employee: {
+                    _id: employee._id,
+                    first_name: employee.first_name,
+                    last_name: employee.last_name,
+                    middle_name: employee.middle_name,
+                    suffix: employee.suffix,
+                    email: employee.email,
+                    isInLeave: employee.isInLeave
+                }
+            }
         });
 
     } catch (error) {
-        console.error("Error removing operator license:", error);
+        console.error("Error setting employee leave status:", error);
         return res.status(500).json({
             success: false,
-            message: "Error removing operator license.",
+            message: "Error setting employee leave status.",
             error: error.message
         });
     }
 };
-

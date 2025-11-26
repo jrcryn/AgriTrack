@@ -14,7 +14,7 @@ const OperatorLicenseSchema = new mongoose.Schema({
     isActive: { type: Boolean, default: true },
     issuedBy: { type: String }, // Issuing authority
     notes: { type: String }
-}, { _id: true, versionKey: false });
+}, { _id: false, versionKey: false });
 
 export const EmployeeAccountSchema = new mongoose.Schema({
     first_name: { type: String, required: true },
@@ -53,5 +53,6 @@ export const EmployeeAccountSchema = new mongoose.Schema({
     
     isLocked: { type: Boolean, default: false },
     createdAt: { type: Date, default: Date.now },
+    isInLeave: { type: Boolean, default: false },
     
 }, { versionKey: false, timestamps: false });
