@@ -738,62 +738,26 @@ const B_MachineInventory = () => {
               </Text>
             </Center>
           ) : (
-            <Box 
-              overflowX="auto"
-              borderRadius="md"
-              borderWidth="1px"
-              borderColor="gray.200"
-            >
+            <Box overflowX="auto">
               <TableContainer>
-                <Table variant="simple" size={{ base: "sm", md: "md" }}>
+                <Table variant="simple" size="md">
                   <Thead bg="gray.50">
                     <Tr>
-                      <Th 
-                        textAlign={'center'}
-                        fontSize={{ base: "xs", md: "sm" }}
-                        py={{ base: 2, md: 3 }}
-                      >
-                        Unit Number
-                      </Th>
-                      <Th 
-                        fontSize={{ base: "xs", md: "sm" }}
-                        py={{ base: 2, md: 3 }}
-                        display={{ base: "none", sm: "table-cell" }}
-                      >
+                      <Th textAlign={'center'}>Unit Number</Th>
+                      <Th display={{ base: "none", sm: "table-cell" }}>
                         Equipment Type
                       </Th>
-                      <Th 
-                        fontSize={{ base: "xs", md: "sm" }}
-                        py={{ base: 2, md: 3 }}
-                        display={{ base: "none", md: "table-cell" }}
-                      >
+                      <Th display={{ base: "none", md: "table-cell" }}>
                         Owner
                       </Th>
-                      <Th 
-                        fontSize={{ base: "xs", md: "sm" }}
-                        py={{ base: 2, md: 3 }}
-                        display={{ base: "none", lg: "table-cell" }}
-                      >
+                      <Th display={{ base: "none", lg: "table-cell" }}>
                         Engine Brand
                       </Th>
-                      <Th 
-                        fontSize={{ base: "xs", md: "sm" }}
-                        py={{ base: 2, md: 3 }}
-                        display={{ base: "none", lg: "table-cell" }}
-                      >
+                      <Th display={{ base: "none", lg: "table-cell" }}>
                         Horsepower
                       </Th>
-                      <Th 
-                        fontSize={{ base: "xs", md: "sm" }}
-                        py={{ base: 2, md: 3 }}
-                      >
-                        Status
-                      </Th>
-                      <Th 
-                        fontSize={{ base: "xs", md: "sm" }}
-                        py={{ base: 2, md: 3 }}
-                        display={{ base: "none", sm: "table-cell" }}
-                      >
+                      <Th>Status</Th>
+                      <Th display={{ base: "none", sm: "table-cell" }}>
                         Condition
                       </Th>
                       <Th
@@ -802,9 +766,7 @@ const B_MachineInventory = () => {
                         bg="gray.50"
                         zIndex={{ base: 0, md: 1 }}
                         textAlign="center"
-                        width={{ base: "100px", md: "120px" }}
-                        fontSize={{ base: "xs", md: "sm" }}
-                        py={{ base: 2, md: 3 }}
+                        width="120px"
                       >
                         <Box display={{ base: 'none', md: 'block' }}>Scroll →</Box>
                         <Box display={{ base: 'block', md: 'none' }}>Actions</Box>
@@ -814,60 +776,34 @@ const B_MachineInventory = () => {
                   <Tbody>
                     {filteredMachineUnits.map((type) =>
                       type.machineUnits?.map((unit) => (
-                        <Tr key={unit._id} _hover={{ bg: "gray.50" }}>
-                          <Td 
-                            fontWeight="semibold" 
-                            fontSize={{ base: "xs", md: "sm" }} 
-                            textAlign={'center'}
-                            py={{ base: 2, md: 3 }}
-                          >
+                        <Tr key={unit._id} fontSize="sm">
+                          <Td fontWeight="semibold" textAlign={'center'}>
                             {unit.unitNumber}
                           </Td>
-                          <Td 
-                            fontSize={{ base: "xs", md: "sm" }}
-                            py={{ base: 2, md: 3 }}
-                            display={{ base: "none", sm: "table-cell" }}
-                          >
+                          <Td display={{ base: "none", sm: "table-cell" }}>
                             {type.equipmentType}
                           </Td>
-                          <Td 
-                            fontSize={{ base: "xs", md: "sm" }}
-                            py={{ base: 2, md: 3 }}
-                            display={{ base: "none", md: "table-cell" }}
-                          >
+                          <Td display={{ base: "none", md: "table-cell" }}>
                             {type.ownerName}
                           </Td>
-                          <Td 
-                            fontSize={{ base: "xs", md: "sm" }}
-                            py={{ base: 2, md: 3 }}
-                            display={{ base: "none", lg: "table-cell" }}
-                          >
+                          <Td display={{ base: "none", lg: "table-cell" }}>
                             {unit.engineBrand || "N/A"}
                           </Td>
-                          <Td 
-                            fontSize={{ base: "xs", md: "sm" }}
-                            py={{ base: 2, md: 3 }}
-                            display={{ base: "none", lg: "table-cell" }}
-                          >
+                          <Td display={{ base: "none", lg: "table-cell" }}>
                             {unit.engineHorsepower}
                           </Td>
-                          <Td py={{ base: 2, md: 3 }}>
+                          <Td>
                             <Tag
                               colorScheme={getStatusColor(unit.status)}
-                              size={{ base: "xs", md: "sm" }}
-                              fontSize={{ base: "xs", md: "sm" }}
+                              size="sm"
                             >
                               {unit.status}
                             </Tag>
                           </Td>
-                          <Td 
-                            py={{ base: 2, md: 3 }}
-                            display={{ base: "none", sm: "table-cell" }}
-                          >
+                          <Td display={{ base: "none", sm: "table-cell" }}>
                             <Tag
                               colorScheme={getConditionColor(unit.condition)}
-                              size={{ base: "xs", md: "sm" }}
-                              fontSize={{ base: "xs", md: "sm" }}
+                              size="sm"
                             >
                               {unit.condition}
                             </Tag>
@@ -878,10 +814,9 @@ const B_MachineInventory = () => {
                             right={0}
                             zIndex={1}
                             bg="white"
-                            py={{ base: 2, md: 3 }}
                           >
                             <Button
-                              size={{ base: "xs", md: "sm" }}
+                              size="xs"
                               colorScheme='orange'
                               leftIcon={<FaEye />}
                               onClick={() => {
@@ -895,14 +830,8 @@ const B_MachineInventory = () => {
                                 });
                                 onOpen();
                               }}
-                              fontSize={{ base: "xs", md: "sm" }}
                             >
-                              <Box as="span" display={{ base: "none", sm: "inline" }}>
-                                Details
-                              </Box>
-                              <Box as="span" display={{ base: "inline", sm: "none" }}>
-                                View
-                              </Box>
+                              Details
                             </Button>
                           </Td>
                         </Tr>

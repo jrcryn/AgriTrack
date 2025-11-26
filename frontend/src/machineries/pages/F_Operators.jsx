@@ -881,55 +881,26 @@ const Operators = () => {
             <Spinner size="lg" color={'teal.500'} />
           </Center>
         ) : operatorAccountsList.length > 0 ? (
-          <Box 
-            overflowX="auto"
-            borderRadius="md"
-            borderWidth="1px"
-            borderColor="gray.200"
-          >
+          <Box overflowX="auto">
             <TableContainer>
-              <Table variant="simple" size={{ base: "sm", md: "md" }}>
+              <Table variant="simple" size="md">
                 <Thead bg="gray.50">
                   <Tr>
-                    <Th fontSize={{ base: "xs", md: "sm" }} py={{ base: 2, md: 3 }}>
-                      Name
-                    </Th>
-                    <Th 
-                      fontSize={{ base: "xs", md: "sm" }} 
-                      py={{ base: 2, md: 3 }}
-                      display={{ base: "none", md: "table-cell" }}
-                    >
+                    <Th>Name</Th>
+                    <Th display={{ base: "none", md: "table-cell" }}>
                       Email
                     </Th>
-                    <Th 
-                      fontSize={{ base: "xs", md: "sm" }} 
-                      py={{ base: 2, md: 3 }}
-                      display={{ base: "none", lg: "table-cell" }}
-                    >
+                    <Th display={{ base: "none", lg: "table-cell" }}>
                       Phone
                     </Th>
-                    <Th fontSize={{ base: "xs", md: "sm" }} py={{ base: 2, md: 3 }}>
-                      Status
-                    </Th>
-                    <Th 
-                      fontSize={{ base: "xs", md: "sm" }} 
-                      py={{ base: 2, md: 3 }}
-                      display={{ base: "none", sm: "table-cell" }}
-                    >
+                    <Th>Status</Th>
+                    <Th display={{ base: "none", sm: "table-cell" }}>
                       Leave Status
                     </Th>
-                    <Th 
-                      fontSize={{ base: "xs", md: "sm" }} 
-                      py={{ base: 2, md: 3 }}
-                      display={{ base: "none", lg: "table-cell" }}
-                    >
+                    <Th display={{ base: "none", lg: "table-cell" }}>
                       Last Login
                     </Th>
-                    <Th 
-                      fontSize={{ base: "xs", md: "sm" }} 
-                      py={{ base: 2, md: 3 }}
-                      display={{ base: "none", xl: "table-cell" }}
-                    >
+                    <Th display={{ base: "none", xl: "table-cell" }}>
                       Date Created
                     </Th>
                     <Th
@@ -938,9 +909,7 @@ const Operators = () => {
                       bg="gray.50"
                       zIndex={{ base: 0, md: 1 }}
                       textAlign="center"
-                      width={{ base: "100px", md: "150px" }}
-                      fontSize={{ base: "xs", md: "sm" }}
-                      py={{ base: 2, md: 3 }}
+                      width="150px"
                     >
                       <Box display={{ base: 'none', md: 'block' }}>Scroll →</Box>
                       <Box display={{ base: 'block', md: 'none' }}>Actions</Box>
@@ -951,53 +920,36 @@ const Operators = () => {
                   {operatorAccountsList.map((operator) => {
                     const fullName = `${operator.first_name || ''} ${operator.middle_name || ''} ${operator.last_name || ''}`.trim();
                     return (
-                      <Tr key={operator._id} fontSize={{ base: "xs", md: "sm" }}>
-                        <Td fontWeight={'semibold'} py={{ base: 2, md: 3 }}>
+                      <Tr key={operator._id} fontSize="sm">
+                        <Td fontWeight={'semibold'}>
                           {fullName || '—'}
                         </Td>
-                        <Td 
-                          py={{ base: 2, md: 3 }}
-                          display={{ base: "none", md: "table-cell" }}
-                        >
+                        <Td display={{ base: "none", md: "table-cell" }}>
                           {operator.email || '—'}
                         </Td>
-                        <Td 
-                          py={{ base: 2, md: 3 }}
-                          display={{ base: "none", lg: "table-cell" }}
-                        >
+                        <Td display={{ base: "none", lg: "table-cell" }}>
                           {operator.phone || '—'}
                         </Td>
-                        <Td py={{ base: 2, md: 3 }}>
+                        <Td>
                           <Badge
                             colorScheme={getStatusColor(operator.isOperatorDisabled === false)}
-                            size={{ base: "xs", md: "sm" }}
-                            fontSize={{ base: "xs", md: "sm" }}
+                            size="sm"
                           >
                             {getStatusText(operator.isOperatorDisabled === false)}
                           </Badge>
                         </Td>
-                        <Td 
-                          py={{ base: 2, md: 3 }}
-                          display={{ base: "none", sm: "table-cell" }}
-                        >
+                        <Td display={{ base: "none", sm: "table-cell" }}>
                           <Badge
                             colorScheme={operator.isInLeave ? 'orange' : 'purple'}
-                            size={{ base: "xs", md: "sm" }}
-                            fontSize={{ base: "xs", md: "sm" }}
+                            size="sm"
                           >
                             {operator.isInLeave ? 'On Leave' : 'Not On Leave'}
                           </Badge>
                         </Td>
-                        <Td 
-                          py={{ base: 2, md: 3 }}
-                          display={{ base: "none", lg: "table-cell" }}
-                        >
+                        <Td display={{ base: "none", lg: "table-cell" }}>
                           {formatDate(operator.lastLogin)}
                         </Td>
-                        <Td 
-                          py={{ base: 2, md: 3 }}
-                          display={{ base: "none", xl: "table-cell" }}
-                        >
+                        <Td display={{ base: "none", xl: "table-cell" }}>
                           {formatDate(operator.createdAt)}
                         </Td>
                         <Td
@@ -1006,22 +958,15 @@ const Operators = () => {
                           right={0}
                           zIndex={1}
                           bg="white"
-                          py={{ base: 2, md: 3 }}
                         >
                           <HStack spacing={2} justify="flex-end">
                             <Button
-                              size={{ base: "xs", md: "sm" }}
+                              size="xs"
                               colorScheme='teal'
                               leftIcon={<FaUserCog />}
                               onClick={() => handleOpenModal(operator)}
-                              fontSize={{ base: "xs", md: "sm" }}
                             >
-                              <Box as="span" display={{ base: "none", sm: "inline" }}>
-                                Manage
-                              </Box>
-                              <Box as="span" display={{ base: "inline", sm: "none" }}>
-                                View
-                              </Box>
+                              Manage
                             </Button>
                           </HStack>
                         </Td>
