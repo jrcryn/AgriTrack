@@ -4307,18 +4307,31 @@ export const addOperatorLicense = async (req, res) => {
         operator.operatorLicenses.push(newLicense);
         await operator.save();
 
-        // Populate the allowedMachineryTypes for response
-        const savedOperator = await global.globalModels.EmployeeAccount.findById(operatorId)
-            .populate('operatorLicenses.allowedMachineryTypes', 'equipmentType ownerName ownerType');
+        
+        const savedOperator = await global.globalModels.EmployeeAccount.findById(operatorId);
+        
+        // Get the newly added license (last one in array)
+        const newLicenseDoc = savedOperator.operatorLicenses[savedOperator.operatorLicenses.length - 1];
+        
+        // Manually populate allowedMachineryTypes
+        if (newLicenseDoc.allowedMachineryTypes && newLicenseDoc.allowedMachineryTypes.length > 0) {
+            const populatedTypes = await global.machineriesModels.MachineriesType.find({
+                _id: { $in: newLicenseDoc.allowedMachineryTypes }
+            }).select('equipmentType ownerName ownerType');
+            
+            // Convert to plain objects for response
+            newLicenseDoc.allowedMachineryTypes = populatedTypes;
+        }
 
         return res.status(201).json({
             success: true,
             message: "Operator license added successfully.",
             data: {
                 operator: savedOperator,
-                newLicense: savedOperator.operatorLicenses[savedOperator.operatorLicenses.length - 1]
+                newLicense: newLicenseDoc
             }
         });
+
 
     } catch (error) {
         console.error("Error adding operator license:", error);
@@ -4440,11 +4453,21 @@ export const updateOperatorLicense = async (req, res) => {
 
         await operator.save();
 
-        // Populate the allowedMachineryTypes for response
-        const updatedOperator = await global.globalModels.EmployeeAccount.findById(operatorId)
-            .populate('operatorLicenses.allowedMachineryTypes', 'equipmentType ownerName ownerType');
-
+        // Fetch the updated operator
+        const updatedOperator = await global.globalModels.EmployeeAccount.findById(operatorId);
+        
+        // Get the updated license
         const updatedLicense = updatedOperator.operatorLicenses.id(licenseId);
+        
+        // Manually populate allowedMachineryTypes
+        if (updatedLicense.allowedMachineryTypes && updatedLicense.allowedMachineryTypes.length > 0) {
+            const populatedTypes = await global.machineriesModels.MachineriesType.find({
+                _id: { $in: updatedLicense.allowedMachineryTypes }
+            }).select('equipmentType ownerName ownerType');
+            
+            // Convert to plain objects for response
+            updatedLicense.allowedMachineryTypes = populatedTypes;
+        }
 
         return res.status(200).json({
             success: true,

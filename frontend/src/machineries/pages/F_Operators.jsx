@@ -58,6 +58,7 @@ import {
 } from '@chakra-ui/react';
 import { FiSearch, FiInbox, FiEdit2, FiTrash2, FiPlus } from 'react-icons/fi';
 import { FaUserCog, FaUserSlash, FaUserCheck, FaInfo, FaClipboardList, FaIdCard } from 'react-icons/fa';
+import { GoAlertFill } from 'react-icons/go';
 import { useAdminDashboard } from '../store/adminDashboard.store';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../auth/store/authStore';
@@ -77,11 +78,13 @@ const Operators = () => {
   });
   const [editingLicenseId, setEditingLicenseId] = useState(null);
   const [accordionIndex, setAccordionIndex] = useState([]);
+  const [selectedLicenseForRemoval, setSelectedLicenseForRemoval] = useState(null);
   
   const toast = useToast();
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const { isOpen: isOpenRemoveModal, onOpen: onOpenRemoveModal, onClose: onCloseRemoveModal } = useDisclosure();
 
   const {
     operatorAccounts,
@@ -485,17 +488,18 @@ const Operators = () => {
     }
   };
 
-  const handleRemoveLicense = async (licenseId) => {
-    if (!selectedOperator) return;
+  const handleRemoveLicense = (licenseId) => {
+    setSelectedLicenseForRemoval(licenseId);
+    onOpenRemoveModal();
+  };
 
-    if (!window.confirm('Are you sure you want to remove this license?')) {
-      return;
-    }
+  const handleConfirmRemoveLicense = async () => {
+    if (!selectedOperator || !selectedLicenseForRemoval) return;
 
     try {
       await removeOperatorLicense({
         operatorId: selectedOperator._id,
-        licenseId,
+        licenseId: selectedLicenseForRemoval,
       });
 
       toast({
@@ -508,7 +512,9 @@ const Operators = () => {
 
       await queryClient.invalidateQueries({ queryKey: ['operatorAccounts'] });
       
-      // Close modal after successful removal
+      // Close modals after successful removal
+      setSelectedLicenseForRemoval(null);
+      onCloseRemoveModal();
       handleCloseModal();
     } catch (error) {
       toast({
@@ -518,6 +524,8 @@ const Operators = () => {
         duration: 5000,
         isClosable: true,
       });
+      setSelectedLicenseForRemoval(null);
+      onCloseRemoveModal();
     }
   };
 
@@ -1109,7 +1117,7 @@ const Operators = () => {
                             <Box flex="1" textAlign="left">
                               <Heading size="sm" display="flex" alignItems="center" gap={2}>
                                 <Icon as={editingLicenseId ? FiEdit2 : FiPlus} />
-                                {editingLicenseId ? 'Edit License' : 'Add New License'}
+                                {editingLicenseId ? 'Edit Existing License' : 'Add New License'}
                               </Heading>
                             </Box>
                             <AccordionIcon />
@@ -1205,8 +1213,7 @@ const Operators = () => {
                                 {licenseFormData.allowedMachineryTypes.length} type(s) selected
                               </Text>
                             )}
-                          </FormControl>
-
+                          </FormControl>        
                           <FormControl isRequired>
                             <FormLabel fontSize="sm">Issued By</FormLabel>
                             <Input
@@ -1240,7 +1247,7 @@ const Operators = () => {
                                   flex={1}
                                   size="sm"
                                 >
-                                  Update License
+                                  Update License Details
                                 </Button>
                                 <Button
                                   variant="outline"
@@ -1283,6 +1290,62 @@ const Operators = () => {
               size="md"
             >
               Close
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* Remove License Confirmation Modal */}
+      <Modal 
+        isOpen={isOpenRemoveModal} 
+        onClose={onCloseRemoveModal} 
+        size="xs" 
+        closeOnOverlayClick={false} 
+        scrollBehavior="inside" 
+        isCentered 
+        motionPreset="none"
+      >
+        <ModalOverlay />
+        <ModalContent borderRadius="lg" overflow="hidden">
+          <ModalHeader
+            bg="yellow.50" 
+            borderBottomWidth="1px"
+            borderColor="gray.200"
+            py={4}
+            display="flex" 
+            alignItems="center"
+          >
+            <Icon as={GoAlertFill} mr={2} color="yellow.500" />
+            Confirm Removal
+          </ModalHeader>
+
+          <ModalBody py={6}>
+            <Text>
+              Are you sure you want to remove this license? This action cannot be undone.
+            </Text>
+          </ModalBody>
+
+          <ModalFooter bg="gray.50" borderTopWidth="1px" borderColor="gray.200">
+            <Button 
+              variant="outline" 
+              mr={3} 
+              onClick={() => {
+                setSelectedLicenseForRemoval(null);
+                onCloseRemoveModal();
+              }}
+              size="md"
+              _hover={{ bg: "gray.100" }}
+            >
+              Cancel
+            </Button>
+            <Button 
+              colorScheme="red"
+              onClick={handleConfirmRemoveLicense}
+              isLoading={isRemovingOperatorLicense}
+              size="md"
+              _hover={{ boxShadow: "md", bg: "red.600" }}
+            >
+              Remove
             </Button>
           </ModalFooter>
         </ModalContent>
