@@ -84,7 +84,7 @@ const useMachineUnitsQuery = (page = 1, searchQuery = {}, role) =>
             });
             return response.data;
         },
-        enabled: role === 'MIM',
+        enabled: role === 'MIM' || role === 'MIS',
 });
 
 const useOperatorAccountsQuery = (page = 1, searchQuery = {}, role) =>
@@ -126,7 +126,7 @@ const useMachineOverviewQuery = (role) =>
             const res = await axios.get(`${API_URL}/api/machineries/get-machine-overview`);
             return res.data;
         },
-        enabled: role === 'MIM',
+        enabled: role === 'MIM' || role === 'MIS',
     });
 
 const useMachineTypesQuery = (role) =>
@@ -136,7 +136,7 @@ const useMachineTypesQuery = (role) =>
             const res = await axios.get(`${API_URL}/api/machineries/get-machine-types-for-adding-units`);
             return res.data;
         },
-        enabled: role === 'MIM',
+        enabled: role === 'MIM' || role === 'MIS',
     });
 
 const useMachineTypeUnitCountsQuery = (role) =>
@@ -146,7 +146,7 @@ const useMachineTypeUnitCountsQuery = (role) =>
             const res = await axios.get(`${API_URL}/api/machineries/get-machine-type-unit-counts`);
             return res.data;
         },
-        enabled: role === 'MIM',
+        enabled: role === 'MIM' || role === 'MIS',
     });
 
 const useTicketStatusCountsQuery = (role) =>
