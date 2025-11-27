@@ -40,7 +40,7 @@ import userSettingsRoutes from './routes/userSettings.route.js';
 
 import googleDriveRoutes from './routes/googleDrive.routes.js';
 
-import { updateScheduleStatus, disableEditingForTodayTickets } from './utils/scheduleUpdater.js'; 
+import { updateScheduleStatus, disableEditingForTodayTickets, updateMachineUnitStatusToInUse, updateMachineUnitStatusToAvailable } from './utils/scheduleUpdater.js'; 
 import { startScheduleStatusCron } from './utils/cronScheduleUpdater.js';
 
 async function startServer() {
@@ -55,9 +55,11 @@ async function startServer() {
     try {
         await updateScheduleStatus();
         await disableEditingForTodayTickets();
-        console.log('Schedule status update completed at startup.');
+        await updateMachineUnitStatusToInUse();
+        await updateMachineUnitStatusToAvailable();
+        console.log('Schedule status and machine unit status update completed at startup.');
     } catch (err) {
-        console.error('Schedule updater failed at startup:', err);
+        console.error('Schedule and machine unit status updater failed at startup:', err);
     }
 
     // Start daily cron updater

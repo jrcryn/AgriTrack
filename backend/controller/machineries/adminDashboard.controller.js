@@ -196,155 +196,6 @@ export const deleteScheduleAndTickets = async (req, res) => {//FOR TESTING PURPO
     }
 };
 
-export const updateMachineryUnitStatus = async (req, res) => {
-    const { 
-        machineryUnitId, 
-        employeeId, 
-        newStatus, 
-        newCondition, 
-        reason
-    } = req.body;
-
-    // Validate required fields
-    if (!machineryUnitId || !employeeId || !newStatus || !newCondition || !reason) {
-        return res.status(400).json({
-            success: false,
-            message: "Please provide machinery unit ID, employee ID, new status, and new condition."
-        });
-    }
-
-    // Validate reason is provided
-    if (!reason || !reason.trim()) {
-        return res.status(400).json({
-            success: false,
-            message: "Please provide a reason for the status change."
-        });
-    }
-
-    // Validate status and condition enums
-    const validStatuses = ['Available', 'In Use', 'Under Repair', 'Retired', 'Not for Use'];
-    const validConditions = ['Functional', 'Non-Functional'];
-
-    if (!validStatuses.includes(newStatus)) {
-        return res.status(400).json({
-            success: false,
-            message: "Invalid status. Must be one of: " + validStatuses.join(', ')
-        });
-    }
-
-    if (!validConditions.includes(newCondition)) {
-        return res.status(400).json({
-            success: false,
-            message: "Invalid condition. Must be one of: " + validConditions.join(', ')
-        });
-    }
-
-    try {
-        // Find the machinery unit
-        const machineryUnit = await global.machineriesModels.MachineriesUnit.findById(machineryUnitId);
-        
-        if (!machineryUnit) {
-            return res.status(404).json({
-                success: false,
-                message: "Machinery unit not found."
-            });
-        }
-
-        // Find the employee
-        const employee = await global.globalModels.EmployeeAccount.findById(employeeId).lean();
-        
-        if (!employee) {
-            return res.status(404).json({
-                success: false,
-                message: "Employee account not found."
-            });
-        }
-
-        // Check if machinery unit is currently assigned to any active ticket (except when setting to 'In Use')
-        if (newStatus !== 'In Use') {
-            const activeAssignment = await global.machineriesModels.TicketRequest.findOne({
-                'assignedMachineUnit.assignedMachineUnitId': machineryUnitId,
-                status: { $in: ['Scheduled', 'Ongoing'] }
-            }).populate('scheduleId', 'refNumber');
-
-            if (activeAssignment) {
-                const scheduleRef = activeAssignment.scheduleId?.refNumber || 'Unknown Schedule';
-                return res.status(400).json({
-                    success: false,
-                    message: `Cannot change status. Machinery unit is currently assigned to an active ticket in schedule ${scheduleRef}.`
-                });
-            }
-
-            // Also check extension tickets
-            const activeExtensionAssignment = await global.machineriesModels.ExtensionTicket.findOne({
-                'assignedMachineUnit.assignedMachineUnitId': machineryUnitId,
-                status: { $in: ['Scheduled', 'Ongoing'] }
-            }).populate('scheduleId', 'refNumber');
-
-            if (activeExtensionAssignment) {
-                const scheduleRef = activeExtensionAssignment.scheduleId?.refNumber || 'Unknown Schedule';
-                return res.status(400).json({
-                    success: false,
-                    message: `Cannot change status. Machinery unit is currently assigned to an active extension ticket in schedule ${scheduleRef}.`
-                });
-            }
-        }
-
-        // Build status history entry
-        const historyEntry = {
-            status: newStatus,
-            condition: newCondition,
-            reason: reason.trim(),
-            changedBy: {
-                _id: employee._id,
-                first_name: employee.first_name,
-                last_name: employee.last_name,
-                middle_name: employee.middle_name,
-                suffix: employee.suffix,
-                email: employee.email,
-                phone: employee.phone
-            },
-            changedAt: new Date()
-        };
-
-        // Handle retirement
-        if (newStatus === 'Retired') {
-            machineryUnit.isRetired = true;
-            machineryUnit.retiredDate = new Date();
-        } else {
-            // If changing from Retired to another status, clear retirement flags
-            if (machineryUnit.isRetired) {
-                machineryUnit.isRetired = false;
-                machineryUnit.retiredDate = undefined;
-            }
-        }
-
-        // Update machinery unit status
-        machineryUnit.status = newStatus;
-        machineryUnit.condition = newCondition;
-        machineryUnit.remarks = reason.trim();
-
-        // Add to status history
-        machineryUnit.statusHistory.push(historyEntry);
-
-        await machineryUnit.save();
-
-        return res.status(200).json({
-            success: true,
-            message: "Machinery unit status updated successfully.",
-            data: machineryUnit
-        });
-
-    } catch (error) {
-        console.error("Error updating machinery unit status:", error);
-        return res.status(500).json({
-            success: false,
-            message: "Error updating machinery unit status.",
-            error: error.message
-        });
-    }
-};
-
 export const getMachineryUnitStatusHistory = async (req, res) => {
     const { machineryUnitId } = req.params;
 
@@ -1738,6 +1589,286 @@ export const addMachineryUnit = async (req, res) => {
             error: error.message 
         });
     }
+};
+
+export const updateMachineryUnitStatus = async (req, res) => { //FOR TESTING
+    const { 
+        machineryUnitId, 
+        employeeId, 
+        newStatus, 
+        newCondition, 
+        reason
+    } = req.body;
+
+    // Validate required fields
+    if (!machineryUnitId || !employeeId || !newStatus || !newCondition || !reason) {
+        return res.status(400).json({
+            success: false,
+            message: "Please provide machinery unit ID, employee ID, new status, and new condition."
+        });
+    }
+
+    // Validate reason is provided
+    if (!reason || !reason.trim()) {
+        return res.status(400).json({
+            success: false,
+            message: "Please provide a reason for the status change."
+        });
+    }
+
+    // Validate status and condition enums
+    const validStatuses = ['Available', 'In Use', 'Under Repair', 'Retired', 'Not for Use'];
+    const validConditions = ['Functional', 'Non-Functional'];
+
+    if (!validStatuses.includes(newStatus)) {
+        return res.status(400).json({
+            success: false,
+            message: "Invalid status. Must be one of: " + validStatuses.join(', ')
+        });
+    }
+
+    if (!validConditions.includes(newCondition)) {
+        return res.status(400).json({
+            success: false,
+            message: "Invalid condition. Must be one of: " + validConditions.join(', ')
+        });
+    }
+
+    try {
+        // Find the machinery unit
+        const machineryUnit = await global.machineriesModels.MachineriesUnit.findById(machineryUnitId);
+        
+        if (!machineryUnit) {
+            return res.status(404).json({
+                success: false,
+                message: "Machinery unit not found."
+            });
+        }
+
+        // Find the employee
+        const employee = await global.globalModels.EmployeeAccount.findById(employeeId).lean();
+        
+        if (!employee) {
+            return res.status(404).json({
+                success: false,
+                message: "Employee account not found."
+            });
+        }
+
+        // Build status history entry
+        const historyEntry = {
+            status: newStatus,
+            condition: newCondition,
+            reason: reason.trim(),
+            changedBy: {
+                _id: employee._id,
+                first_name: employee.first_name,
+                last_name: employee.last_name,
+                middle_name: employee.middle_name,
+                suffix: employee.suffix,
+                email: employee.email,
+                phone: employee.phone
+            },
+            changedAt: new Date()
+        };
+
+        // Handle retirement
+        if (newStatus === 'Retired') {
+            machineryUnit.isRetired = true;
+            machineryUnit.retiredDate = new Date();
+        } else {
+            // If changing from Retired to another status, clear retirement flags
+            if (machineryUnit.isRetired) {
+                machineryUnit.isRetired = false;
+                machineryUnit.retiredDate = undefined;
+            }
+        }
+
+        // Update machinery unit status
+        machineryUnit.status = newStatus;
+        machineryUnit.condition = newCondition;
+        machineryUnit.remarks = reason.trim();
+
+        // Add to status history
+        machineryUnit.statusHistory.push(historyEntry);
+
+        await machineryUnit.save();
+
+        return res.status(200).json({
+            success: true,
+            message: "Machinery unit status updated successfully.",
+            data: machineryUnit
+        });
+
+    } catch (error) {
+        console.error("Error updating machinery unit status:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Error updating machinery unit status.",
+            error: error.message
+        });
+    }
+};
+
+export const createIncidentReport = async (req, res) => {// FOR TESTING
+    const {
+        machineryUnitId,
+        machineryTypeId,
+        ticketRequestId,
+        incidentType,
+        description,
+        adminAssessment,
+        assignedOperatorId
+    } = req.body;
+
+    // Validate required fields
+    if (!machineryUnitId || !machineryTypeId || !incidentType || !description || !assignedOperatorId) {
+        return res.status(400).json({
+            success: false,
+            message: "Please provide machineryUnitId, machineryTypeId, incidentType, description, and assignedOperatorId."
+        });
+    }
+
+    // Validate incidentType enum
+    const validIncidentTypes = ['Mechanical Failure', 'Electrical Failure', 'Hydraulic/Pneumatic Failure', 'Flat Tire or Track Issue', 'Machine Overheating', 'Fuel System Issue'];
+    if (!validIncidentTypes.includes(incidentType)) {
+        return res.status(400).json({
+            success: false,
+            message: "Invalid incident type. Must be one of: " + validIncidentTypes.join(', ')
+        });
+    }
+
+    // Automatically set status and condition for machinery unit
+    const newStatus = 'Under Repair';
+    const newCondition = 'Non-Functional';
+
+    try {
+        // Validate machinery unit exists
+        const machineryUnit = await global.machineriesModels.MachineriesUnit.findById(machineryUnitId);
+        if (!machineryUnit) {
+            return res.status(404).json({
+                success: false,
+                message: "Machinery unit not found."
+            });
+        }
+
+        // Validate machinery type exists
+        const machineryType = await global.machineriesModels.MachineriesType.findById(machineryTypeId);
+        if (!machineryType) {
+            return res.status(404).json({
+                success: false,
+                message: "Machinery type not found."
+            });
+        }
+
+        // Validate assigned operator exists
+        const assignedOperator = await global.globalModels.EmployeeAccount.findById(assignedOperatorId).lean();
+        if (!assignedOperator) {
+            return res.status(404).json({
+                success: false,
+                message: "Assigned operator not found."
+            });
+        }
+
+        // Validate ticket request if provided
+        if (ticketRequestId) {
+            const ticketRequest = await global.machineriesModels.TicketRequest.findById(ticketRequestId);
+            if (!ticketRequest) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Ticket request not found."
+                });
+            }
+        }
+
+        // Create incident report
+        const incidentReportData = {
+            machineryUnitId,
+            machineryTypeId,
+            ticketRequestId: ticketRequestId || undefined,
+            incidentType,
+            description: description.trim(),
+            adminAssessment: adminAssessment ? adminAssessment.trim() : undefined,
+            assignedOperator: {
+                operatorId: assignedOperator._id,
+                first_name: assignedOperator.first_name,
+                last_name: assignedOperator.last_name,
+                middle_name: assignedOperator.middle_name,
+                suffix: assignedOperator.suffix,
+                email: assignedOperator.email,
+                phone: assignedOperator.phone
+            },
+            status: 'Pending Review'
+        };
+
+        const incidentReport = await global.machineriesModels.IncidentReport.create(incidentReportData);
+
+        // Find the employee who created the report (we'll use the assigned operator as the employee)
+        const employee = assignedOperator; // Using assigned operator as the employee who made the change
+
+        // Build status history entry
+        const historyEntry = {
+            status: newStatus,
+            condition: newCondition,
+            reason: description.trim(), // Use description as reason as requested
+            changedBy: {
+                _id: employee._id,
+                first_name: employee.first_name,
+                last_name: employee.last_name,
+                middle_name: employee.middle_name,
+                suffix: employee.suffix,
+                email: employee.email,
+                phone: employee.phone
+            },
+            changedAt: new Date()
+        };
+
+        // Handle retirement (not applicable for 'Under Repair', but keeping for consistency)
+        if (newStatus === 'Retired') {
+            machineryUnit.isRetired = true;
+            machineryUnit.retiredDate = new Date();
+        } else {
+            // If changing from Retired to another status, clear retirement flags
+            if (machineryUnit.isRetired) {
+                machineryUnit.isRetired = false;
+                machineryUnit.retiredDate = undefined;
+            }
+        }
+
+        // Update machinery unit status
+        machineryUnit.status = newStatus;
+        machineryUnit.condition = newCondition;
+        machineryUnit.remarks = description.trim(); // Use description as remarks
+
+        // Add to status history
+        machineryUnit.statusHistory.push(historyEntry);
+
+        await machineryUnit.save();
+
+        // Populate the incident report for response
+        const populatedIncidentReport = await global.machineriesModels.IncidentReport.findById(incidentReport._id)
+            .populate('machineryUnitId', 'unitNumber')
+            .populate('machineryTypeId', 'equipmentType')
+            .populate('ticketRequestId', 'refNumber');
+
+        return res.status(201).json({
+            success: true,
+            message: "Incident report created successfully.",
+            data: populatedIncidentReport
+        });
+
+    } catch (error) {
+        console.error("Error creating incident report:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Error creating incident report.",
+            error: error.message
+        });
+    }
+};
+
+export const approveIncidentReport = async (req, res) => {
+
 };
 
 //============================================================TICKET REQUESTS (PENDING, SCHEDULED, ONGOING)============================================================
