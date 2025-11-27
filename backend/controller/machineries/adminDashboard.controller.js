@@ -2114,20 +2114,83 @@ export const getMachineryUnitsForDropDown = async (req, res) => {
 
 export const getOperatorsList = async (req, res) => {
     try {
+        const { requestedMachineTypeId } = req.query;
+
         const projection = {
             first_name: 1,
             last_name: 1,
             middle_name: 1,
             suffix: 1,
             email: 1,
-            phone: 1
+            phone: 1,
+            operatorLicenses: 1,
+            isOperatorDisabled: 1
+        };
+
+        // Find all operators with MIS role
+        let operators = await global.globalModels.EmployeeAccount.find({ roles: 'MIS' }, projection).lean();
+
+        // If requestedMachineTypeId is provided, filter operators by their licenses
+        if (requestedMachineTypeId) {
+            // Validate that the machine type exists
+            const machineType = await global.machineriesModels.MachineriesType.findById(requestedMachineTypeId).lean();
+            if (!machineType) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Requested machine type not found."
+                });
+            }
+
+            // Filter operators who:
+            // 1. Are not disabled
+            // 2. Have at least one active license that includes the requested machine type
+            operators = operators.filter(operator => {
+                // Skip disabled operators
+                if (operator.isOperatorDisabled === true) {
+                    return false;
+                }
+
+                // Check if operator has any active license with the requested machine type
+                if (!operator.operatorLicenses || !Array.isArray(operator.operatorLicenses)) {
+                    return false;
+                }
+
+                return operator.operatorLicenses.some(license => {
+                    // License must be active
+                    if (license.isActive !== true) {
+                        return false;
+                    }
+
+                    // Check if license includes the requested machine type
+                    if (!license.allowedMachineryTypes || !Array.isArray(license.allowedMachineryTypes)) {
+                        return false;
+                    }
+
+                    return license.allowedMachineryTypes.some(typeId => 
+                        typeId.toString() === requestedMachineTypeId.toString()
+                    );
+                });
+            });
+        } else {
+            // If no machine type specified, still filter out disabled operators
+            operators = operators.filter(operator => operator.isOperatorDisabled !== true);
         }
-        const operators = await global.globalModels.EmployeeAccount.find({ roles: 'MIS' }, projection).lean();
+
+        // Remove sensitive fields from response
+        const filteredOperators = operators.map(operator => ({
+            _id: operator._id,
+            first_name: operator.first_name,
+            last_name: operator.last_name,
+            middle_name: operator.middle_name,
+            suffix: operator.suffix,
+            email: operator.email,
+            phone: operator.phone
+        }));
 
         return res.status(200).json({
             success: true,
             message: "Operators list retrieved successfully.",
-            data: operators
+            data: filteredOperators
         });
 
     } catch (error) {

@@ -30,11 +30,12 @@ const useAvailableMachineryTypesQuery = () =>
         enabled: true,
     });
 
-const useOperatorsListQuery = () =>
+const useOperatorsListQuery = (requestedMachineTypeId = null) =>
     useQuery({
-        queryKey: ['operatorsList'],
+        queryKey: ['operatorsList', requestedMachineTypeId],
         queryFn: async () => {
-            const res = await axios.get(`${API_URL}/api/machineries/get-operators-list`);
+            const params = requestedMachineTypeId ? { requestedMachineTypeId } : {};
+            const res = await axios.get(`${API_URL}/api/machineries/get-operators-list`, { params });
             return res.data;
         },
         enabled: true, // Enable for all roles since we need this data in the TicketRequestPanel
@@ -188,7 +189,7 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         useAvailableMachineryTypesQuery();
 
     const { data: operatorsList = [], isLoading: isLoadingOperatorsList, error: operatorsListError } =
-        useOperatorsListQuery(role);
+        useOperatorsListQuery(null); // Pass null to get all operators (for backward compatibility)
 
     const { data: plannedWeeklySchedules = [], isLoading: isLoadingPlannedWeeklySchedules, error: plannedWeeklySchedulesError } =
         usePlannedWeeklySchedulesQuery(schedulesPage, searchQuery, role);
@@ -402,6 +403,18 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         }
     };
 
+    // Fetch operators filtered by requestedMachineTypeId
+    const getOperatorsListByMachineType = async (requestedMachineTypeId) => {
+        try {
+            const res = await axios.get(`${API_URL}/api/machineries/get-operators-list`, {
+                params: { requestedMachineTypeId }
+            });
+            return res.data;
+        } catch (error) {
+            throw error;
+        }
+    };
+
     const setTicketToComplete = async (formData) => {
         setIsSettingTicketToComplete(true);
         try {
@@ -575,6 +588,7 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         //declineTicketRequests, 
         //undeclineTicketRequest, 
         getMachineryUnitsForDropDownByType,
+        getOperatorsListByMachineType,
         updateWeeklySchedule, 
         setTicketToComplete,
         approveExtensionRequest,
