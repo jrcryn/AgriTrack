@@ -44,9 +44,10 @@ export const IncidentReportSchema = new mongoose.Schema({
     
     //yung machine status and condition after the incident, sa misning machineries unit schema na
 
-    adminAssessment: {
-        type: String
-    },
+    // adminAssessment: {
+    //     type: String
+    // },
+
     assignedOperator: {
         operatorId: {
             type: mongoose.Schema.Types.ObjectId,
@@ -63,8 +64,8 @@ export const IncidentReportSchema = new mongoose.Schema({
     status: {
         type: String,
         required: true,
-        enum: ['Pending Review', 'Approved', 'Resolved'],
-        default: 'Pending Review'
+        enum: ['Pending', 'Declined', 'Resolved'],
+        default: 'Pending'
     }
 }, { versionKey: false, timestamps: true });
 

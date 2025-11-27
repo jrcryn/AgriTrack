@@ -1591,7 +1591,7 @@ export const addMachineryUnit = async (req, res) => {
     }
 };
 
-export const updateMachineryUnitStatus = async (req, res) => { //FOR TESTING
+export const updateMachineryUnitStatus = async (req, res) => { 
     const { 
         machineryUnitId, 
         employeeId, 
@@ -1708,167 +1708,6 @@ export const updateMachineryUnitStatus = async (req, res) => { //FOR TESTING
             error: error.message
         });
     }
-};
-
-export const createIncidentReport = async (req, res) => {// FOR TESTING
-    const {
-        machineryUnitId,
-        machineryTypeId,
-        ticketRequestId,
-        incidentType,
-        description,
-        adminAssessment,
-        assignedOperatorId
-    } = req.body;
-
-    // Validate required fields
-    if (!machineryUnitId || !machineryTypeId || !incidentType || !description || !assignedOperatorId) {
-        return res.status(400).json({
-            success: false,
-            message: "Please provide machineryUnitId, machineryTypeId, incidentType, description, and assignedOperatorId."
-        });
-    }
-
-    // Validate incidentType enum
-    const validIncidentTypes = ['Mechanical Failure', 'Electrical Failure', 'Hydraulic/Pneumatic Failure', 'Flat Tire or Track Issue', 'Machine Overheating', 'Fuel System Issue'];
-    if (!validIncidentTypes.includes(incidentType)) {
-        return res.status(400).json({
-            success: false,
-            message: "Invalid incident type. Must be one of: " + validIncidentTypes.join(', ')
-        });
-    }
-
-    // Automatically set status and condition for machinery unit
-    const newStatus = 'Under Repair';
-    const newCondition = 'Non-Functional';
-
-    try {
-        // Validate machinery unit exists
-        const machineryUnit = await global.machineriesModels.MachineriesUnit.findById(machineryUnitId);
-        if (!machineryUnit) {
-            return res.status(404).json({
-                success: false,
-                message: "Machinery unit not found."
-            });
-        }
-
-        // Validate machinery type exists
-        const machineryType = await global.machineriesModels.MachineriesType.findById(machineryTypeId);
-        if (!machineryType) {
-            return res.status(404).json({
-                success: false,
-                message: "Machinery type not found."
-            });
-        }
-
-        // Validate assigned operator exists
-        const assignedOperator = await global.globalModels.EmployeeAccount.findById(assignedOperatorId).lean();
-        if (!assignedOperator) {
-            return res.status(404).json({
-                success: false,
-                message: "Assigned operator not found."
-            });
-        }
-
-        // Validate ticket request if provided
-        if (ticketRequestId) {
-            const ticketRequest = await global.machineriesModels.TicketRequest.findById(ticketRequestId);
-            if (!ticketRequest) {
-                return res.status(404).json({
-                    success: false,
-                    message: "Ticket request not found."
-                });
-            }
-        }
-
-        // Create incident report
-        const incidentReportData = {
-            machineryUnitId,
-            machineryTypeId,
-            ticketRequestId: ticketRequestId || undefined,
-            incidentType,
-            description: description.trim(),
-            adminAssessment: adminAssessment ? adminAssessment.trim() : undefined,
-            assignedOperator: {
-                operatorId: assignedOperator._id,
-                first_name: assignedOperator.first_name,
-                last_name: assignedOperator.last_name,
-                middle_name: assignedOperator.middle_name,
-                suffix: assignedOperator.suffix,
-                email: assignedOperator.email,
-                phone: assignedOperator.phone
-            },
-            status: 'Pending Review'
-        };
-
-        const incidentReport = await global.machineriesModels.IncidentReport.create(incidentReportData);
-
-        // Find the employee who created the report (we'll use the assigned operator as the employee)
-        const employee = assignedOperator; // Using assigned operator as the employee who made the change
-
-        // Build status history entry
-        const historyEntry = {
-            status: newStatus,
-            condition: newCondition,
-            reason: description.trim(), // Use description as reason as requested
-            changedBy: {
-                _id: employee._id,
-                first_name: employee.first_name,
-                last_name: employee.last_name,
-                middle_name: employee.middle_name,
-                suffix: employee.suffix,
-                email: employee.email,
-                phone: employee.phone
-            },
-            changedAt: new Date()
-        };
-
-        // Handle retirement (not applicable for 'Under Repair', but keeping for consistency)
-        if (newStatus === 'Retired') {
-            machineryUnit.isRetired = true;
-            machineryUnit.retiredDate = new Date();
-        } else {
-            // If changing from Retired to another status, clear retirement flags
-            if (machineryUnit.isRetired) {
-                machineryUnit.isRetired = false;
-                machineryUnit.retiredDate = undefined;
-            }
-        }
-
-        // Update machinery unit status
-        machineryUnit.status = newStatus;
-        machineryUnit.condition = newCondition;
-        machineryUnit.remarks = description.trim(); // Use description as remarks
-
-        // Add to status history
-        machineryUnit.statusHistory.push(historyEntry);
-
-        await machineryUnit.save();
-
-        // Populate the incident report for response
-        const populatedIncidentReport = await global.machineriesModels.IncidentReport.findById(incidentReport._id)
-            .populate('machineryUnitId', 'unitNumber')
-            .populate('machineryTypeId', 'equipmentType')
-            .populate('ticketRequestId', 'refNumber');
-
-        return res.status(201).json({
-            success: true,
-            message: "Incident report created successfully.",
-            data: populatedIncidentReport
-        });
-
-    } catch (error) {
-        console.error("Error creating incident report:", error);
-        return res.status(500).json({
-            success: false,
-            message: "Error creating incident report.",
-            error: error.message
-        });
-    }
-};
-
-export const approveIncidentReport = async (req, res) => {
-
 };
 
 //============================================================TICKET REQUESTS (PENDING, SCHEDULED, ONGOING)============================================================
@@ -2223,7 +2062,7 @@ export const getMachineryUnitsForDropDown = async (req, res) => {
             unitNumber: 1,
         };
 
-        const filter = { status: "Available" };
+        const filter = { status: "Available", condition: "Functional" };
         if (machineryTypeId) {
             filter.machineryTypeId = machineryTypeId; // add the machinery type filter if provided
         }
@@ -3922,6 +3761,449 @@ export const setExtenstionTicketToComplete = async (req, res) => {
         return res.status(500).json({
             success: false,
             message: "Error marking extension ticket as completed.",
+            error: error.message
+        });
+    }
+};
+
+export const createIncidentReport = async (req, res) => {// FOR TESTING
+    const {
+        machineryUnitId,
+        machineryTypeId,
+        ticketRequestId,
+        incidentType,
+        description,
+        assignedOperatorId
+    } = req.body;
+
+    // Validate required fields
+    if (!machineryUnitId || !machineryTypeId || !incidentType || !description || !assignedOperatorId) {
+        return res.status(400).json({
+            success: false,
+            message: "Please provide machineryUnitId, machineryTypeId, incidentType, description, and assignedOperatorId."
+        });
+    }
+
+    // Validate incidentType enum
+    const validIncidentTypes = ['Mechanical Failure', 'Electrical Failure', 'Hydraulic/Pneumatic Failure', 'Flat Tire or Track Issue', 'Machine Overheating', 'Fuel System Issue'];
+    if (!validIncidentTypes.includes(incidentType)) {
+        return res.status(400).json({
+            success: false,
+            message: "Invalid incident type. Must be one of: " + validIncidentTypes.join(', ')
+        });
+    }
+
+    // Automatically set status and condition for machinery unit
+    const newStatus = 'Under Repair';
+    const newCondition = 'Non-Functional';
+
+    try {
+        // Validate machinery unit exists
+        const machineryUnit = await global.machineriesModels.MachineriesUnit.findById(machineryUnitId);
+        if (!machineryUnit) {
+            return res.status(404).json({
+                success: false,
+                message: "Machinery unit not found."
+            });
+        }
+
+        // Validate machinery type exists
+        const machineryType = await global.machineriesModels.MachineriesType.findById(machineryTypeId);
+        if (!machineryType) {
+            return res.status(404).json({
+                success: false,
+                message: "Machinery type not found."
+            });
+        }
+
+        // Validate assigned operator exists
+        const assignedOperator = await global.globalModels.EmployeeAccount.findById(assignedOperatorId).lean();
+        if (!assignedOperator) {
+            return res.status(404).json({
+                success: false,
+                message: "Assigned operator not found."
+            });
+        }
+
+        // Validate ticket request if provided
+        if (ticketRequestId) {
+            const ticketRequest = await global.machineriesModels.TicketRequest.findById(ticketRequestId);
+            if (!ticketRequest) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Ticket request not found."
+                });
+            }
+        }
+
+        // Create incident report
+        const incidentReportData = {
+            machineryUnitId,
+            machineryTypeId,
+            ticketRequestId: ticketRequestId || undefined,
+            incidentType,
+            description: description.trim(),
+            assignedOperator: {
+                operatorId: assignedOperator._id,
+                first_name: assignedOperator.first_name,
+                last_name: assignedOperator.last_name,
+                middle_name: assignedOperator.middle_name,
+                suffix: assignedOperator.suffix,
+                email: assignedOperator.email,
+                phone: assignedOperator.phone
+            },
+            status: 'Pending'
+        };
+
+        const incidentReport = await global.machineriesModels.IncidentReport.create(incidentReportData);
+
+        // Find the employee who created the report (we'll use the assigned operator as the employee)
+        const employee = assignedOperator; // Using assigned operator as the employee who made the change
+
+        // Build status history entry
+        const historyEntry = {
+            status: newStatus,
+            condition: newCondition,
+            reason: 'Incident Report Filed: ' + description.trim(), // Use description as reason as requested
+            changedBy: {
+                _id: employee._id,
+                first_name: employee.first_name,
+                last_name: employee.last_name,
+                middle_name: employee.middle_name,
+                suffix: employee.suffix,
+                email: employee.email,
+                phone: employee.phone
+            },
+            changedAt: new Date()
+        };
+
+        // Handle retirement (not applicable for 'Under Repair', but keeping for consistency)
+        if (newStatus === 'Retired') {
+            machineryUnit.isRetired = true;
+            machineryUnit.retiredDate = new Date();
+        } else {
+            // If changing from Retired to another status, clear retirement flags
+            if (machineryUnit.isRetired) {
+                machineryUnit.isRetired = false;
+                machineryUnit.retiredDate = undefined;
+            }
+        }
+
+        // Update machinery unit status
+        machineryUnit.status = newStatus;
+        machineryUnit.condition = newCondition;
+        machineryUnit.remarks = description.trim(); // Use description as remarks
+
+        // Add to status history
+        machineryUnit.statusHistory.push(historyEntry);
+
+        await machineryUnit.save();
+
+        // Populate the incident report for response
+        const populatedIncidentReport = await global.machineriesModels.IncidentReport.findById(incidentReport._id)
+            .populate('machineryUnitId', 'unitNumber')
+            .populate('machineryTypeId', 'equipmentType')
+            .populate('ticketRequestId', 'refNumber');
+
+        return res.status(201).json({
+            success: true,
+            message: "Incident report created successfully.",
+            data: populatedIncidentReport
+        });
+
+    } catch (error) {
+        console.error("Error creating incident report:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Error creating incident report.",
+            error: error.message
+        });
+    }
+};
+
+export const declineIncidentReport = async (req, res) => {//FOR TESTING
+    const { incidentReportId, employeeId, reason } = req.body;
+
+    if (!incidentReportId || !employeeId) {
+        return res.status(400).json({
+            success: false,
+            message: "Please provide incident report ID and employee ID."
+        });
+    }
+
+    if (!reason || !reason.trim()) {
+        return res.status(400).json({
+            success: false,
+            message: "Please provide a reason for declining the incident report."
+        });
+    }
+
+    try {
+        // Validate employee
+        const employee = await global.globalModels.EmployeeAccount.findById(employeeId).lean();
+        if (!employee) {
+            return res.status(404).json({ 
+                success: false, 
+                message: "Employee account not found." 
+            });
+        }
+        if (!employee.roles || !employee.roles.includes('MIM')) {
+            return res.status(400).json({ 
+                success: false, 
+                message: "The provided user is not an authorized manager." 
+            });
+        }
+
+        // Find incident report
+        const incidentReport = await global.machineriesModels.IncidentReport.findById(incidentReportId);
+        if (!incidentReport) {
+            return res.status(404).json({ 
+                success: false, 
+                message: "Incident report not found." 
+            });
+        }
+
+        // Validate incident report status
+        if (incidentReport.status !== 'Pending') {
+            return res.status(400).json({
+                success: false,
+                message: "Only pending incident reports can be declined."
+            });
+        }
+
+        // Update incident report status to Declined
+        incidentReport.status = 'Declined';
+        await incidentReport.save();
+
+        // Revert machine unit back to Available and Functional
+        const machineryUnit = await global.machineriesModels.MachineriesUnit.findById(incidentReport.machineryUnitId);
+        if (machineryUnit) {
+            // Check if this machine unit is still assigned to any ongoing tickets
+            const ongoingTicketCount = await global.machineriesModels.TicketRequest.countDocuments({
+                status: 'Ongoing',
+                'assignedMachineUnit.assignedMachineUnitId': incidentReport.machineryUnitId
+            });
+
+            const ongoingExtTicketCount = await global.machineriesModels.ExtensionTicket.countDocuments({
+                status: 'Ongoing',
+                'assignedMachineUnit.assignedMachineUnitId': incidentReport.machineryUnitId
+            });
+
+            // Only set to Available if no ongoing tickets are using it
+            if (ongoingTicketCount === 0 && ongoingExtTicketCount === 0) {
+                // Build status history entry
+                const historyEntry = {
+                    status: 'Available',
+                    condition: 'Functional',
+                    reason: reason.trim(),
+                    changedBy: {
+                        _id: employee._id,
+                        first_name: employee.first_name,
+                        last_name: employee.last_name,
+                        middle_name: employee.middle_name,
+                        suffix: employee.suffix,
+                        email: employee.email,
+                        phone: employee.phone
+                    },
+                    changedAt: new Date()
+                };
+
+                // Update machinery unit status
+                machineryUnit.status = 'Available';
+                machineryUnit.condition = 'Functional';
+                machineryUnit.remarks = reason.trim();
+
+                // Add to status history
+                machineryUnit.statusHistory.push(historyEntry);
+
+                await machineryUnit.save();
+            } else {
+                // If still in use, just update condition to Functional but keep status as 'In Use'
+                const historyEntry = {
+                    status: machineryUnit.status, // Keep current status
+                    condition: 'Functional',
+                    reason: reason.trim(),
+                    changedBy: {
+                        _id: employee._id,
+                        first_name: employee.first_name,
+                        last_name: employee.last_name,
+                        middle_name: employee.middle_name,
+                        suffix: employee.suffix,
+                        email: employee.email,
+                        phone: employee.phone
+                    },
+                    changedAt: new Date()
+                };
+
+                machineryUnit.condition = 'Functional';
+                machineryUnit.remarks = reason.trim();
+                machineryUnit.statusHistory.push(historyEntry);
+
+                await machineryUnit.save();
+            }
+        }
+
+        // Populate the incident report for response
+        const populatedIncidentReport = await global.machineriesModels.IncidentReport.findById(incidentReport._id)
+            .populate('machineryUnitId', 'unitNumber')
+            .populate('machineryTypeId', 'equipmentType')
+            .populate('ticketRequestId', 'refNumber');
+
+        return res.status(200).json({
+            success: true,
+            message: "Incident report declined successfully.",
+            data: populatedIncidentReport
+        });
+
+    } catch (error) {
+        console.error("Error declining incident report:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Error declining incident report.",
+            error: error.message
+        });
+    }
+};
+
+export const resolveIncidentReport = async (req, res) => {//FOR TESTING
+    const { incidentReportId, employeeId, reason } = req.body;
+
+    if (!incidentReportId || !employeeId) {
+        return res.status(400).json({
+            success: false,
+            message: "Please provide incident report ID and employee ID."
+        });
+    }
+
+    if (!reason || !reason.trim()) {
+        return res.status(400).json({
+            success: false,
+            message: "Please provide a reason/notes for resolving the incident report."
+        });
+    }
+
+    try {
+        // Validate employee
+        const employee = await global.globalModels.EmployeeAccount.findById(employeeId).lean();
+        if (!employee) {
+            return res.status(404).json({ 
+                success: false, 
+                message: "Employee account not found." 
+            });
+        }
+        if (!employee.roles || !employee.roles.includes('MIM')) {
+            return res.status(400).json({ 
+                success: false, 
+                message: "The provided user is not an authorized manager." 
+            });
+        }
+
+        // Find incident report
+        const incidentReport = await global.machineriesModels.IncidentReport.findById(incidentReportId);
+        if (!incidentReport) {
+            return res.status(404).json({ 
+                success: false, 
+                message: "Incident report not found." 
+            });
+        }
+
+        // Validate incident report status
+        if (incidentReport.status !== 'Pending') {
+            return res.status(400).json({
+                success: false,
+                message: "Only pending incident reports can be resolved."
+            });
+        }
+
+        // Update incident report status to Resolved
+        incidentReport.status = 'Resolved';
+        await incidentReport.save();
+
+        // Set machine unit to Available and Functional
+        const machineryUnit = await global.machineriesModels.MachineriesUnit.findById(incidentReport.machineryUnitId);
+        if (machineryUnit) {
+            // Check if this machine unit is still assigned to any ongoing tickets
+            const ongoingTicketCount = await global.machineriesModels.TicketRequest.countDocuments({
+                status: 'Ongoing',
+                'assignedMachineUnit.assignedMachineUnitId': incidentReport.machineryUnitId
+            });
+
+            const ongoingExtTicketCount = await global.machineriesModels.ExtensionTicket.countDocuments({
+                status: 'Ongoing',
+                'assignedMachineUnit.assignedMachineUnitId': incidentReport.machineryUnitId
+            });
+
+            // Only set to Available if no ongoing tickets are using it
+            if (ongoingTicketCount === 0 && ongoingExtTicketCount === 0) {
+                // Build status history entry
+                const historyEntry = {
+                    status: 'Available',
+                    condition: 'Functional',
+                    reason: reason.trim(),
+                    changedBy: {
+                        _id: employee._id,
+                        first_name: employee.first_name,
+                        last_name: employee.last_name,
+                        middle_name: employee.middle_name,
+                        suffix: employee.suffix,
+                        email: employee.email,
+                        phone: employee.phone
+                    },
+                    changedAt: new Date()
+                };
+
+                // Update machinery unit status
+                machineryUnit.status = 'Available';
+                machineryUnit.condition = 'Functional';
+                machineryUnit.remarks = reason.trim();
+
+                // Add to status history
+                machineryUnit.statusHistory.push(historyEntry);
+
+                await machineryUnit.save();
+            } else {
+                // If still in use, just update condition to Functional but keep status as 'In Use'
+                const historyEntry = {
+                    status: machineryUnit.status, // Keep current status
+                    condition: 'Functional',
+                    reason: reason.trim(),
+                    changedBy: {
+                        _id: employee._id,
+                        first_name: employee.first_name,
+                        last_name: employee.last_name,
+                        middle_name: employee.middle_name,
+                        suffix: employee.suffix,
+                        email: employee.email,
+                        phone: employee.phone
+                    },
+                    changedAt: new Date()
+                };
+
+                machineryUnit.condition = 'Functional';
+                machineryUnit.remarks = reason.trim();
+                machineryUnit.statusHistory.push(historyEntry);
+
+                await machineryUnit.save();
+            }
+        }
+
+        // Populate the incident report for response
+        const populatedIncidentReport = await global.machineriesModels.IncidentReport.findById(incidentReport._id)
+            .populate('machineryUnitId', 'unitNumber')
+            .populate('machineryTypeId', 'equipmentType')
+            .populate('ticketRequestId', 'refNumber');
+
+        return res.status(200).json({
+            success: true,
+            message: "Incident report resolved successfully.",
+            data: populatedIncidentReport
+        });
+
+    } catch (error) {
+        console.error("Error resolving incident report:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Error resolving incident report.",
             error: error.message
         });
     }
