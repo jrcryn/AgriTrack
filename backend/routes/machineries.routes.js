@@ -37,6 +37,7 @@ import {
     updateOperatorLicense,
     removeOperatorLicense,
     setEmployeeLeaveStatus,
+    getMachineTypeUnitCounts,
     
     deleteScheduleAndTickets
 } from '../controller/machineries/adminDashboard.controller.js';
@@ -102,6 +103,7 @@ router.get('/get-machine-units', verifyAuthToken, verifyRole(['MIM', 'MIS']), ge
 router.get('/get-machine-overview', verifyAuthToken, verifyRole(['MIM','MIS' ]), getMachineOverview);
 router.post('/update-machinery-unit-status', verifyAuthToken, verifyRole(['MIM', 'MIS']), updateMachineryUnitStatus);
 router.get('/get-machine-types-for-adding-units', verifyAuthToken, verifyRole(['MIM', 'MIS']), getMachineTypesForAddingUnits);
+router.get('/get-machine-type-unit-counts', verifyAuthToken, verifyRole(['MIM', 'MIS']), getMachineTypeUnitCounts);
 
 router.get('/get-ticket-status-counts', verifyAuthToken, verifyRole(['MIM']), getTicketStatusCounts);
 router.get('/get-upcoming-and-ongoing-schedules', verifyAuthToken, verifyRole(['MIM']), getUpcomingAndOngoingSchedules);

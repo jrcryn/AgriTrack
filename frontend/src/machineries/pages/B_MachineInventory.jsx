@@ -87,6 +87,10 @@ const B_MachineInventory = () => {
     isLoadingMachineTypes,
     machineTypesError,
 
+    machineTypeUnitCounts,
+    isLoadingMachineTypeUnitCounts,
+    machineTypeUnitCountsError,
+
     createMachineryType,
     isCreatingMachineryType,
     createMachineryUnit,
@@ -354,49 +358,42 @@ const B_MachineInventory = () => {
   const machineUnitsCurrentPage = machineUnits?.data?.currentPage || 1;
   const machineUnitsTotalItems = machineUnits?.data?.totalCount || 0;
 
+  // Get units per machine type from API
+  const unitsPerMachineType = machineTypeUnitCounts?.data || [];
+
   // Pagination Controls Component
   const PaginationControls = ({ currentPage, setCurrentPage, totalPages, totalItems, colorScheme }) => (
     <Flex
       justifyContent="space-between"
       mt={4}
       alignItems="center"
-      direction={{ base: "column", sm: "row" }}
-      gap={{ base: 3, sm: 0 }}
+      direction={{ base: "column", md: "row" }}
+      gap={{ base: 3, md: 0 }}
       width={"100%"}
-      flexWrap="wrap"
     >
-      <Text 
-        color="gray.600" 
-        fontSize={{ base: "sm", md: "md" }}
-        textAlign={{ base: "center", sm: "left" }}
-        mb={{ base: 0, sm: 0 }}
-      >
+      <Text color="gray.600" fontSize="md">
         Page {currentPage} of {totalPages || 1} ({totalItems} total)
       </Text>
-      <Flex gap={2} width={{ base: "100%", sm: "auto" }} justifyContent={{ base: "center", sm: "flex-end" }}>
+      <HStack spacing={2}>
         <Button
-          size={{ base: "sm", md: "md" }}
+          size="sm"
           onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
           isDisabled={currentPage === 1}
           colorScheme={colorScheme}
           variant="outline"
-          width={{ base: "50%", sm: "auto" }}
-          fontSize={{ base: "xs", md: "sm" }}
         >
           Previous
         </Button>
         <Button
-          size={{ base: "sm", md: "md" }}
+          size="sm"
           onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
           isDisabled={currentPage >= totalPages}
           colorScheme={colorScheme}
           variant="outline"
-          width={{ base: "50%", sm: "auto" }}
-          fontSize={{ base: "xs", md: "sm" }}
         >
           Next
         </Button>
-      </Flex>
+      </HStack>
     </Flex>
   );
 
@@ -614,6 +611,72 @@ const B_MachineInventory = () => {
             </Stat>
           </Box>
         </SimpleGrid>
+
+        {/* Machine Units Per Type Cards */}
+        {machineTypeUnitCountsError && (
+          <Alert status="error" mt={4} borderRadius="md">
+            <AlertIcon />
+            <Box>
+              <AlertTitle fontSize={{ base: "sm", md: "md" }}>Error loading machine type unit counts</AlertTitle>
+              <AlertDescription fontSize={{ base: "xs", md: "sm" }}>
+                {machineTypeUnitCountsError?.response?.data?.message ||
+                  machineTypeUnitCountsError?.message ||
+                  "An error occurred while fetching machine type unit counts."}
+              </AlertDescription>
+            </Box>
+          </Alert>
+        )}
+        
+        {isLoadingMachineTypeUnitCounts ? (
+          <Center mt={4} py={8}>
+            <Spinner size="md" thickness="3px" color="purple.500" />
+          </Center>
+        ) : unitsPerMachineType.length > 0 ? (
+          <SimpleGrid 
+            columns={{ base: 2, sm: 3, md: 4, lg: 5, xl: 6 }} 
+            spacing={{ base: 2, md: 3 }} 
+            w="full"
+            mt={4}
+          >
+            {unitsPerMachineType.map((type, index) => (
+              <Tooltip
+                key={type._id || index}
+                label={type.equipmentType || 'N/A'}
+                placement="top"
+                hasArrow
+              >
+                <Box
+                  p={{ base: 2, md: 3 }}
+                  borderRadius="md"
+                  boxShadow="sm"
+                  bg="white"
+                  borderWidth="1px"
+                  borderColor="gray.200"
+                >
+                  <Stat>
+                    <StatLabel 
+                      fontSize={{ base: "xs", md: "sm" }} 
+                      display="flex" 
+                      alignItems="center"
+                      mb={{ base: 1, md: 2 }}
+                    >
+                      <Icon as={FaTractor} mr={1} color="purple.500" boxSize={{ base: 3, md: 4 }} /> 
+                      <Text as="span" noOfLines={1} fontSize={{ base: "xs", md: "sm" }}>
+                        {type.equipmentType || 'N/A'}
+                      </Text>
+                    </StatLabel>
+                    <StatNumber 
+                      fontSize={{ base: "lg", sm: "xl", md: "2xl" }}
+                      lineHeight="shorter"
+                    >
+                      {type.unitCount || 0}
+                    </StatNumber>
+                  </Stat>
+                </Box>
+              </Tooltip>
+            ))}
+          </SimpleGrid>
+        ) : null}
       </Box>
       
       {/* Search / Filters Bar (adapted from provided snippet) */}
@@ -1423,19 +1486,36 @@ const B_MachineInventory = () => {
                     <FormLabel fontSize="sm" fontWeight="medium">
                       Machine Type
                     </FormLabel>
+                    {machineTypesError ? (
+                      <Alert status="error" borderRadius="md" mb={2}>
+                        <AlertIcon />
+                        <AlertDescription fontSize="xs">
+                          {machineTypesError?.response?.data?.message ||
+                            machineTypesError?.message ||
+                            "Failed to load machine types"}
+                        </AlertDescription>
+                      </Alert>
+                    ) : null}
                     <Select
-                      placeholder="Select machine type"
+                      placeholder={isLoadingMachineTypes ? "Loading machine types..." : "Select machine type"}
                       value={machineUnitData.machineryTypeId}
                       onChange={(e) => setMachineUnitData({ ...machineUnitData, machineryTypeId: e.target.value })}
                       bg="white"
+                      isDisabled={isLoadingMachineTypes || !!machineTypesError}
                     >
                       {isLoadingMachineTypes ? (
                         <option disabled>Loading...</option>
-                      ) : machineTypes?.data?.map((type) => (
-                        <option key={type._id} value={type._id}>
-                          {type.equipmentType} - {type.ownerName}
-                        </option>
-                      ))}
+                      ) : machineTypesError ? (
+                        <option disabled>Error loading machine types</option>
+                      ) : machineTypes?.data?.length > 0 ? (
+                        machineTypes.data.map((type) => (
+                          <option key={type._id} value={type._id}>
+                            {type.equipmentType} - {type.ownerName}
+                          </option>
+                        ))
+                      ) : (
+                        <option disabled>No machine types available</option>
+                      )}
                     </Select>
                   </FormControl>
 

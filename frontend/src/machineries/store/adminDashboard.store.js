@@ -138,6 +138,16 @@ const useMachineTypesQuery = (role) =>
         enabled: role === 'MIM',
     });
 
+const useMachineTypeUnitCountsQuery = (role) =>
+    useQuery({
+        queryKey: ['machineTypeUnitCounts'],
+        queryFn: async () => {
+            const res = await axios.get(`${API_URL}/api/machineries/get-machine-type-unit-counts`);
+            return res.data;
+        },
+        enabled: role === 'MIM',
+    });
+
 const useTicketStatusCountsQuery = (role) =>
     useQuery({
         queryKey: ['ticketStatusCounts'],
@@ -203,6 +213,9 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
 
     const { data: machineTypes = [], isLoading: isLoadingMachineTypes, error: machineTypesError } =
         useMachineTypesQuery(role);
+
+    const { data: machineTypeUnitCounts = [], isLoading: isLoadingMachineTypeUnitCounts, error: machineTypeUnitCountsError } =
+        useMachineTypeUnitCountsQuery(role);
 
     const { data: ticketStatusCounts = {}, isLoading: isLoadingTicketStatusCounts, error: ticketStatusCountsError } =
         useTicketStatusCountsQuery(role);
@@ -543,6 +556,7 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         machineUnits, 
         machineOverview,
         machineTypes,
+        machineTypeUnitCounts,
         ticketStatusCounts,
         upcomingAndOngoingSchedules,
         operatorAccounts,
@@ -586,6 +600,7 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         isLoadingMachineUnits,
         isLoadingMachineOverview,
         isLoadingMachineTypes,
+        isLoadingMachineTypeUnitCounts,
         isLoadingTicketStatusCounts,
         isLoadingUpcomingAndOngoingSchedules,
         isLoadingOperatorAccounts,
@@ -627,6 +642,7 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         machineUnitsError,
         machineOverviewError,
         machineTypesError,
+        machineTypeUnitCountsError,
         ticketStatusCountsError,
         upcomingAndOngoingSchedulesError,
         isLoadingOperatorAccounts,

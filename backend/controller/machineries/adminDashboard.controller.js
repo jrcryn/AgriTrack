@@ -1551,6 +1551,60 @@ export const getMachineUnits = async (req, res) => {
     }
 };
 
+export const getMachineTypeUnitCounts = async (req, res) => {
+    try {
+        const machineTypeColl = global.machineriesModels.MachineriesType.collection.name;
+
+        const pipeline = [
+            {
+                $group: {
+                    _id: '$machineryTypeId',
+                    unitCount: { $sum: 1 }
+                }
+            },
+            {
+                $lookup: {
+                    from: machineTypeColl,
+                    localField: '_id',
+                    foreignField: '_id',
+                    as: 'machineTypeDetails'
+                }
+            },
+            {
+                $unwind: {
+                    path: '$machineTypeDetails',
+                    preserveNullAndEmptyArrays: true
+                }
+            },
+            {
+                $project: {
+                    unitCount: 1,
+                    equipmentType: '$machineTypeDetails.equipmentType',
+                }
+            },
+            {
+                $sort: { unitCount: -1 }
+            }
+        ];
+
+        const result = await global.machineriesModels.MachineriesUnit.aggregate(pipeline);
+
+        return res.status(200).json({
+            success: true,
+            message: "Machine type unit counts retrieved successfully.",
+            data: result
+        });
+
+    } catch (error) {
+        console.error("Error fetching machine type unit counts:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Error fetching machine type unit counts.",
+            error: error.message
+        });
+    }
+};
+
 export const getMachineTypesForAddingUnits = async (req, res) => { //ginagamit sa register/add machine units 
     try {
         const machineTypes = await global.machineriesModels.MachineriesType
