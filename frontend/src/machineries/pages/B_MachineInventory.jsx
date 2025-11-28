@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Box,
   Heading,
@@ -180,6 +180,14 @@ const B_MachineInventory = () => {
   };
 
   const stats = getOverviewStats();
+
+  // Check if there are any unresolved discrepancies
+  const hasUnresolvedDiscrepancy = useMemo(() => {
+    if (!physicalCountingRecords?.data?.physicalCountingRecords) return false;
+    return physicalCountingRecords.data.physicalCountingRecords.some(
+      (record) => record.discrepancyFound === 'Discrepancy Found'
+    );
+  }, [physicalCountingRecords]);
 
   // Reset to page 1 when search query changes
   useEffect(() => {
@@ -570,6 +578,27 @@ const B_MachineInventory = () => {
     </Flex>
   );
 
+  const ButtonWithNotification = ({ children, showNotification, dotColor }) => {
+    return (
+      <Box position="relative" display="inline-block">
+        {children}
+        {showNotification && (
+          <Box
+            position="absolute"
+            top="-5px"
+            right="-5px"
+            width="12px"
+            height="12px"
+            bg={dotColor}
+            borderRadius="full"
+            boxShadow="0 0 0 2px white"
+            zIndex={1}
+          />
+        )}
+      </Box>
+    );
+  };
+
   return (
     <>
     <Box overflow="hidden" bg="white" p={{ base: 3, md: 5 }} minH="100vh">
@@ -609,15 +638,20 @@ const B_MachineInventory = () => {
         >
           Count Machines
         </Button>
-        <Button 
-          colorScheme="orange" 
-          alignSelf={{ base: 'stretch', md: 'flex-end' }}
-          size={'sm'}
-          leftIcon={<FaStickyNote />}
-          onClick={onOpenPreviousCounts}
+        <ButtonWithNotification 
+          showNotification={hasUnresolvedDiscrepancy}
+          dotColor="red.500"
         >
-          Previous Machine Counts
-        </Button>
+          <Button 
+            colorScheme="orange" 
+            alignSelf={{ base: 'stretch', md: 'flex-end' }}
+            size={'sm'}
+            leftIcon={<FaStickyNote />}
+            onClick={onOpenPreviousCounts}
+          >
+            Previous Machine Counts
+          </Button>
+        </ButtonWithNotification>
       </Flex>
 
       {/* Inventory Data Cards */}
@@ -2175,41 +2209,25 @@ const B_MachineInventory = () => {
               </Center>
             ) : (
               <>
-                <Box overflowX="auto">
-                  <TableContainer>
-                    <Table variant="simple" size="md">
-                      <Thead bg="gray.50" position="sticky" top={0} zIndex={1}>
-                        <Tr>
-                          <Th>Date</Th>
-                          <Th display={{ base: "none", sm: "table-cell" }}>
-                            Assigned Employee
-                          </Th>
-                          <Th textAlign="center">Found Units</Th>
-                          <Th textAlign="center">Not Found Units</Th>
-                          <Th display={{ base: "none", md: "table-cell" }}>
-                            Discrepancy Status
-                          </Th>
-                          <Th display={{ base: "none", lg: "table-cell" }}>
-                            Remarks
-                          </Th>
-                          <Th
-                            position={{ base: 'static', md: 'sticky' }}
-                            right={0}
-                            bg="gray.50"
-                            zIndex={{ base: 0, md: 2 }}
-                            textAlign="center"
-                            width="120px"
-                          >
-                            <Box display={{ base: 'none', md: 'block' }}>Scroll →</Box>
-                            <Box display={{ base: 'block', md: 'none' }}>Actions</Box>
-                          </Th>
-                        </Tr>
-                      </Thead>
-                      <Tbody>
-                        {physicalCountingRecords.data.physicalCountingRecords.map((record) => (
-                          <Tr key={record._id} fontSize="sm">
-                            <Td>
-                              <Text fontSize="sm" fontWeight="medium">
+                <Stack spacing={3}>
+                  {physicalCountingRecords.data.physicalCountingRecords.map((record) => (
+                    <Box
+                      key={record._id}
+                      p={3}
+                      borderRadius="md"
+                      borderWidth="1px"
+                      borderColor="gray.200"
+                      bg="white"
+                      boxShadow="sm"
+                    >
+                      <Flex direction="column" gap={2}>
+                        {/* Header Row: Date/Time, Employee, and Status */}
+                        <Flex justify="space-between" align="flex-start" wrap="wrap" gap={3}>
+                          <Flex gap={4} flex={1} minW={0} wrap="wrap">
+                            {/* Date/Time */}
+                            <Box flex="1" minW="120px">
+                              <Text fontSize="xs" color="gray.500" fontWeight="medium">Date & Time</Text>
+                              <Text fontSize="sm" fontWeight="semibold" color="gray.700">
                                 {record.countingDate 
                                   ? new Date(record.countingDate).toLocaleDateString('en-US', {
                                       year: 'numeric',
@@ -2226,98 +2244,89 @@ const B_MachineInventory = () => {
                                     })
                                   : ''}
                               </Text>
-                              <Text fontSize="xs" color="gray.500" display={{ base: "block", sm: "none" }} mt={1}>
+                            </Box>
+                            
+                            {/* Employee Info */}
+                            <Box flex="1" minW="150px">
+                              <Text fontSize="xs" color="gray.500" fontWeight="medium">Assigned Employee</Text>
+                              <Text fontSize="sm" color="gray.700">
                                 {record.assignedEmployee?.first_name && record.assignedEmployee?.last_name
                                   ? `${record.assignedEmployee.first_name} ${record.assignedEmployee.last_name}`
                                   : 'N/A'}
                               </Text>
-                              <Box display={{ base: "block", md: "none" }} mt={1}>
-                                <Tag
-                                  colorScheme={
-                                    record.discrepancyFound === 'Resolved' ? 'green' :
-                                    record.discrepancyFound === 'Discrepancy Found' ? 'red' :
-                                    'gray'
-                                  }
-                                  size="sm"
-                                >
-                                  {record.discrepancyFound || 'N/A'}
-                                </Tag>
-                              </Box>
-                              <Box display={{ base: "block", lg: "none" }} mt={1}>
-                                <Tooltip label={record.remarks || 'No remarks'} placement="top" hasArrow>
-                                  <Text fontSize="xs" color="gray.500" noOfLines={1} cursor="help">
-                                    {record.remarks ? `Remarks: ${record.remarks}` : 'No remarks'}
-                                  </Text>
-                                </Tooltip>
-                              </Box>
-                            </Td>
-                            <Td display={{ base: "none", sm: "table-cell" }}>
-                              <Text fontSize="sm">
-                                {record.assignedEmployee?.first_name && record.assignedEmployee?.last_name
-                                  ? `${record.assignedEmployee.first_name} ${record.assignedEmployee.last_name}`
-                                  : 'N/A'}
-                              </Text>
-                            </Td>
-                            <Td textAlign="center">
-                              <Text fontSize="sm" fontWeight="semibold" color="green.600">
-                                {record.machineUnits?.length || 0}
-                              </Text>
-                            </Td>
-                            <Td textAlign="center">
-                              <Text fontSize="sm" fontWeight="semibold" color="red.600">
-                                {record.notFoundMachineUnits?.length || 0}
-                              </Text>
-                            </Td>
-                            <Td display={{ base: "none", md: "table-cell" }}>
-                              <Tag
-                                colorScheme={
-                                  record.discrepancyFound === 'Resolved' ? 'green' :
-                                  record.discrepancyFound === 'Discrepancy Found' ? 'red' :
-                                  'gray'
-                                }
-                                size="sm"
-                              >
-                                {record.discrepancyFound || 'N/A'}
-                              </Tag>
-                            </Td>
-                            <Td display={{ base: "none", lg: "table-cell" }}>
-                              <Tooltip label={record.remarks || 'No remarks'} placement="top" hasArrow>
-                                <Text fontSize="sm" noOfLines={2} maxW="200px" cursor="help">
-                                  {record.discrepancyFound === 'Resolved' ? record.resolveRemarks : record.remarks || 'N/A'}
-                                </Text>
-                              </Tooltip>
-                            </Td>
-                            <Td
-                              position={{ base: 'static', md: 'sticky' }}
-                              right={0}
-                              zIndex={1}
-                              bg="white"
-                              textAlign="center"
+                            </Box>
+                          </Flex>
+                          
+                          {/* Status Tag */}
+                          <Tag
+                            colorScheme={
+                              record.discrepancyFound === 'Resolved' ? 'green' :
+                              record.discrepancyFound === 'Discrepancy Found' ? 'red' :
+                              'gray'
+                            }
+                            size="sm"
+                            alignSelf="flex-start"
+                          >
+                            {record.discrepancyFound || 'N/A'}
+                          </Tag>
+                        </Flex>
+
+                        {/* Units Count Row */}
+                        <Flex gap={4} align="center">
+                          <Box>
+                            <Text fontSize="xs" color="gray.500" fontWeight="medium">Found Units</Text>
+                            <Text fontSize="sm" fontWeight="semibold" color="green.600">
+                              {record.machineUnits?.length || 0}
+                            </Text>
+                          </Box>
+                          <Box>
+                            <Text fontSize="xs" color="gray.500" fontWeight="medium">Not Found Units</Text>
+                            <Text fontSize="sm" fontWeight="semibold" color="red.600">
+                              {record.notFoundMachineUnits?.length || 0}
+                            </Text>
+                          </Box>
+                        </Flex>
+
+                        {/* Remarks */}
+                        {(record.remarks || record.resolveRemarks) && (
+                          <Box>
+                            <Text fontSize="xs" color="gray.500" fontWeight="medium">
+                              {record.discrepancyFound === 'Resolved' ? 'Resolution Remarks' : 'Remarks'}
+                            </Text>
+                            <Tooltip 
+                              label={record.discrepancyFound === 'Resolved' ? record.resolveRemarks : record.remarks} 
+                              placement="top" 
+                              hasArrow
                             >
-                              {record.discrepancyFound === 'Discrepancy Found' ? (
-                                <Button
-                                  size="xs"
-                                  colorScheme="orange"
-                                  variant="outline"
-                                  onClick={() => {
-                                    setSelectedPhysicalCountingRecord(record);
-                                    setResolveRemarks("");
-                                    onOpenResolveDiscrepancy();
-                                  }}
-                                  isDisabled={isResolvingDiscrepancyInPhysicalCount}
-                                >
-                                  Resolve
-                                </Button>
-                              ) : (
-                                <Text fontSize="xs" color="gray.400">-</Text>
-                              )}
-                            </Td>
-                          </Tr>
-                        ))}
-                      </Tbody>
-                    </Table>
-                  </TableContainer>
-                </Box>
+                              <Text fontSize="sm" color="gray.700" noOfLines={2} cursor="help">
+                                {record.discrepancyFound === 'Resolved' ? record.resolveRemarks : record.remarks}
+                              </Text>
+                            </Tooltip>
+                          </Box>
+                        )}
+
+                        {/* Action Button */}
+                        {record.discrepancyFound === 'Discrepancy Found' && (
+                          <Flex justify="flex-end" mt={1}>
+                            <Button
+                              size="xs"
+                              colorScheme="orange"
+                              variant="outline"
+                              onClick={() => {
+                                setSelectedPhysicalCountingRecord(record);
+                                setResolveRemarks("");
+                                onOpenResolveDiscrepancy();
+                              }}
+                              isDisabled={isResolvingDiscrepancyInPhysicalCount}
+                            >
+                              Resolve
+                            </Button>
+                          </Flex>
+                        )}
+                      </Flex>
+                    </Box>
+                  ))}
+                </Stack>
 
                 {/* Pagination Controls */}
                 {physicalCountingRecords?.data?.totalPages > 1 && (
