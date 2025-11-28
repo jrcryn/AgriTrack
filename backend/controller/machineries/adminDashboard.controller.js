@@ -1860,6 +1860,10 @@ export const getMachineIncidentReports = async (req, res) => {
     }
 };
 
+export const performMachineCountCheck = async (req, res) => {
+    
+};
+
 //============================================================TICKET REQUESTS (PENDING, SCHEDULED, ONGOING)============================================================
 
 const buildTicketSearchMatch = (searchQuery) => {

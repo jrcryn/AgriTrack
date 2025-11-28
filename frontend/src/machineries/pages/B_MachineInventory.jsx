@@ -64,6 +64,9 @@ import {
 import { useAdminDashboard } from "../store/adminDashboard.store";
 import { useAuthStore } from "../../auth/store/authStore";
 import { useQueryClient } from '@tanstack/react-query';
+import { FaListCheck } from "react-icons/fa6";
+import { FaStickyNote } from "react-icons/fa";
+
 
 const B_MachineInventory = () => {
   const [selectedYear] = useState(new Date().getFullYear());
@@ -415,6 +418,35 @@ const B_MachineInventory = () => {
       >
         Overview of agricultural machinery assets and their operational status.
       </Text>
+
+      {/* BUtton Section */}
+      <Flex
+        direction={{ base: 'column', md: 'row' }}
+        alignItems="center"
+        mb={6}
+        gap={4}
+        p={3}
+        bg="blue.50"
+        borderRadius="md"
+        boxShadow="sm"
+      >
+        <Button 
+          colorScheme="blue" 
+          alignSelf={{ base: 'stretch', md: 'flex-end' }}
+          size={'sm'}
+          leftIcon={<FaListCheck />}
+        >
+          Count Machines
+        </Button>
+        <Button 
+          colorScheme="orange" 
+          alignSelf={{ base: 'stretch', md: 'flex-end' }}
+          size={'sm'}
+          leftIcon={<FaStickyNote />}
+        >
+          Previous Machine Counts
+        </Button>
+      </Flex>
 
       {/* Inventory Data Cards */}
       <Box mb={8}>
