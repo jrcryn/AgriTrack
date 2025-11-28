@@ -17,9 +17,8 @@ export const MachinePhysicalCountingSchema = new mongoose.Schema({
         default: Date.now
     },
     discrepancyFound: {
-        type: Boolean,
-        required: true,
-        default: false
+        type: String,
+        enum: ['Discrepancy Found', 'No Discrepancy Found', 'Resolved'],
     },
     assignedEmployee: {
         employeeId: {
@@ -33,7 +32,9 @@ export const MachinePhysicalCountingSchema = new mongoose.Schema({
         suffix: String,
         email: String,
         phone: String,
-    }
+    },
+    remarks: { type: String },
+    resolveRemarks: { type: String },
 }, { versionKey: false, timestamps: true });
 
 // Add index for better query performance on counting date

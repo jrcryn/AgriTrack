@@ -50,6 +50,8 @@ import {
   FormLabel,
   RadioGroup,
   Radio,
+  Checkbox,
+  Textarea,
 } from "@chakra-ui/react";
 import {
   FaTractor,
@@ -63,9 +65,12 @@ import {
 } from "react-icons/fa";
 import { useAdminDashboard } from "../store/adminDashboard.store";
 import { useAuthStore } from "../../auth/store/authStore";
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { FaListCheck } from "react-icons/fa6";
 import { FaStickyNote } from "react-icons/fa";
+import axios from 'axios';
+
+const API_URL = import.meta.env.VITE_API_URL;
 
 
 const B_MachineInventory = () => {
@@ -73,6 +78,46 @@ const B_MachineInventory = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [machineUnitsPage, setMachineUnitsPage] = useState(1);
+  const [previousCountsPage, setPreviousCountsPage] = useState(1);
+
+  // Modal disclosures - declared early to be used in useEffect
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const { isOpen: isOpenUpdateStatus, onOpen: onOpenUpdateStatus, onClose: onCloseUpdateStatus } = useDisclosure();
+  const { isOpen: isOpenRegister, onOpen: onOpenRegister, onClose: onCloseRegister } = useDisclosure();
+  const { isOpen: isOpenCountCheck, onOpen: onOpenCountCheck, onClose: onCloseCountCheck } = useDisclosure();
+  const { isOpen: isOpenPreviousCounts, onOpen: onOpenPreviousCounts, onClose: onClosePreviousCounts } = useDisclosure();
+
+  // Other state declarations
+  const [selectedUnit, setSelectedUnit] = useState(null);
+  const [statusUpdateData, setStatusUpdateData] = useState({
+    status: '',
+    condition: '',
+    reason: '',
+  });
+  const [activeTab, setActiveTab] = useState(0);
+  const [selectedMachineUnits, setSelectedMachineUnits] = useState(new Set());
+  const [countRemarks, setCountRemarks] = useState("");
+  const [machineTypeData, setMachineTypeData] = useState({
+    equipmentType: '',
+    ownerName: '',
+    ownerType: '',
+    ratedCapacity: '',
+  });
+  const [machineUnitData, setMachineUnitData] = useState({
+    machineryTypeId: '',
+    unitNumber: '',
+    engineBrand: '',
+    engineHorsepower: '',
+    modeOfAcquisition: '',
+    otherModeOfAcquisition: '', 
+    costOfAcquisition: '',
+    yearAcquired: '',
+  });
+
+  // Hooks
+  const toast = useToast();
+  const queryClient = useQueryClient();
+  const { user } = useAuthStore();
 
   const {
     machineUnits,
@@ -97,8 +142,18 @@ const B_MachineInventory = () => {
     createMachineryType,
     isCreatingMachineryType,
     createMachineryUnit,
-    isCreatingMachineryUnit
-  } = useAdminDashboard({ machineUnitsPage }, { searchQuery });
+    isCreatingMachineryUnit,
+    performMachineCountCheck,
+    isPerformingMachineCountCheck,
+
+    machineUnitsForPhysicalCounting,
+    isLoadingMachineUnitsForPhysicalCounting,
+    machineUnitsForPhysicalCountingError,
+
+    physicalCountingRecords,
+    isLoadingPhysicalCountingRecords,
+    physicalCountingRecordsError
+  } = useAdminDashboard({ machineUnitsPage, previousCountsPage }, { searchQuery });
 
   const getOverviewStats = () => {
     if (!machineOverview?.data) {
@@ -124,6 +179,13 @@ const B_MachineInventory = () => {
   useEffect(() => {
     setMachineUnitsPage(1);
   }, [searchQuery]);
+
+  // Reset previous counts page when modal closes
+  useEffect(() => {
+    if (!isOpenPreviousCounts) {
+      setPreviousCountsPage(1);
+    }
+  }, [isOpenPreviousCounts]);
 
   // Get status color helper
   const getStatusColor = (status) => {
@@ -183,19 +245,96 @@ const B_MachineInventory = () => {
   const filteredMachineUnits = filterMachineUnits();
   
   console.log(filteredMachineUnits);
-  const { user } = useAuthStore();
-  const toast = useToast();
-  const queryClient = useQueryClient();
 
-  const { isOpen, onOpen, onClose } = useDisclosure();
-  const [selectedUnit, setSelectedUnit] = useState(null);
+  // Get all machine units for count check from the dedicated query
+  const getAllMachineUnitsForCount = () => {
+    if (!machineUnitsForPhysicalCounting?.data?.machineTypesWithUnits) return [];
+    
+    const allUnits = [];
+    machineUnitsForPhysicalCounting.data.machineTypesWithUnits.forEach((type) => {
+      type.machineUnits?.forEach((unit) => {
+        allUnits.push({
+          ...unit,
+          equipmentType: type.equipmentType,
+          ownerName: type.ownerName,
+        });
+      });
+    });
+    return allUnits;
+  };
 
-  const { isOpen: isOpenUpdateStatus, onOpen: onOpenUpdateStatus, onClose: onCloseUpdateStatus } = useDisclosure();
-  const [statusUpdateData, setStatusUpdateData] = useState({
-    status: '',
-    condition: '',
-    reason: '',
-  });
+  const allMachineUnitsForCount = getAllMachineUnitsForCount();
+
+  // Handle machine unit checkbox change
+  const handleMachineUnitToggle = (unitId) => {
+    const newSelected = new Set(selectedMachineUnits);
+    if (newSelected.has(unitId)) {
+      newSelected.delete(unitId);
+    } else {
+      newSelected.add(unitId);
+    }
+    setSelectedMachineUnits(newSelected);
+  };
+
+  // Handle select all / deselect all
+  const handleSelectAll = () => {
+    if (selectedMachineUnits.size === allMachineUnitsForCount.length) {
+      setSelectedMachineUnits(new Set());
+    } else {
+      const allIds = new Set(allMachineUnitsForCount.map(unit => unit._id.toString()));
+      setSelectedMachineUnits(allIds);
+    }
+  };
+
+  // Handle machine count check submission
+  const handleSubmitMachineCount = async () => {
+    if (!user?.id) {
+      toast({
+        title: "Error",
+        description: "User information not found",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    try {
+      const machineUnitIds = Array.from(selectedMachineUnits);
+      
+      const result = await performMachineCountCheck({
+        machineUnitIds,
+        employeeId: user.id,
+        remarks: countRemarks.trim() || '',
+      });
+
+      toast({
+        title: "Success",
+        description: result.message || "Machine count check completed successfully",
+        status: "success",
+        duration: 5000,
+        isClosable: true,
+      });
+
+      // Reset form and close modal
+      setSelectedMachineUnits(new Set());
+      setCountRemarks("");
+      onCloseCountCheck();
+
+      // Invalidate queries to refresh data
+      await queryClient.invalidateQueries({ queryKey: ['machineUnits'] });
+      await queryClient.invalidateQueries({ queryKey: ['machineOverview'] });
+
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error?.response?.data?.message || error?.message || "Failed to perform machine count check",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  };
 
   const handleUpdateStatus = async () => {
     if (!selectedUnit?._id || !user?.id || !statusUpdateData.status || !statusUpdateData.condition || !statusUpdateData.reason.trim()) {
@@ -247,29 +386,6 @@ const B_MachineInventory = () => {
       });
     }
   };
-
-  const { isOpen: isOpenRegister, onOpen: onOpenRegister, onClose: onCloseRegister } = useDisclosure();
-  const [activeTab, setActiveTab] = useState(0);
-
-  // State for creating machine type
-  const [machineTypeData, setMachineTypeData] = useState({
-    equipmentType: '',
-    ownerName: '',
-    ownerType: '',
-    ratedCapacity: '',
-  });
-
-  // State for adding machine unit
-  const [machineUnitData, setMachineUnitData] = useState({
-    machineryTypeId: '',
-    unitNumber: '',
-    engineBrand: '',
-    engineHorsepower: '',
-    modeOfAcquisition: '',
-    otherModeOfAcquisition: '', 
-    costOfAcquisition: '',
-    yearAcquired: '',
-  });
 
   const resetMachineTypeForm = () => {
     setMachineTypeData({
@@ -435,6 +551,7 @@ const B_MachineInventory = () => {
           alignSelf={{ base: 'stretch', md: 'flex-end' }}
           size={'sm'}
           leftIcon={<FaListCheck />}
+          onClick={onOpenCountCheck}
         >
           Count Machines
         </Button>
@@ -443,6 +560,7 @@ const B_MachineInventory = () => {
           alignSelf={{ base: 'stretch', md: 'flex-end' }}
           size={'sm'}
           leftIcon={<FaStickyNote />}
+          onClick={onOpenPreviousCounts}
         >
           Previous Machine Counts
         </Button>
@@ -1735,6 +1853,484 @@ const B_MachineInventory = () => {
         </ModalFooter>
       </ModalContent>
     </Modal>
+
+    {/* Machine Count Check Modal */}
+    <Modal
+      isOpen={isOpenCountCheck}
+      onClose={() => {
+        setSelectedMachineUnits(new Set());
+        setCountRemarks("");
+        onCloseCountCheck();
+      }}
+      size="4xl"
+      closeOnOverlayClick={false}
+      scrollBehavior="inside"
+      isCentered
+      motionPreset="none"
+      blockScrollOnMount={false}
+    >
+      <ModalOverlay />
+      <ModalContent borderRadius="lg" overflow="hidden">
+        <ModalHeader
+          bg="blue.50"
+          borderBottomWidth="1px"
+          borderColor="gray.200"
+          py={4}
+          display="flex"
+          alignItems="center"
+        >
+          <Icon as={FaListCheck} mr={2} color="blue.500" />
+          Machine Count Check
+        </ModalHeader>
+        
+        <ModalBody py={6}>
+          <Stack spacing={4}>
+            <Alert status="info" borderRadius="md" variant="left-accent">
+              <AlertIcon />
+              <Box>
+                <AlertTitle fontSize="sm">Instructions</AlertTitle>
+                <AlertDescription fontSize="xs">
+                  Check the boxes next to machine units that you found during the physical inventory count. 
+                  Units that are not checked will be marked as not found.
+                </AlertDescription>
+              </Box>
+            </Alert>
+
+            {/* Select All / Deselect All */}
+            <Flex justify="space-between" align="center" p={3} bg="gray.50" borderRadius="md">
+              <Text fontSize="sm" fontWeight="medium">
+                {selectedMachineUnits.size} of {allMachineUnitsForCount.length} units selected
+              </Text>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleSelectAll}
+                colorScheme="blue"
+              >
+                {selectedMachineUnits.size === allMachineUnitsForCount.length ? "Deselect All" : "Select All"}
+              </Button>
+            </Flex>
+
+            {/* Machine Units Table */}
+            <Box
+              maxH="400px"
+              overflowY="auto"
+              borderWidth="1px"
+              borderColor="gray.200"
+              borderRadius="md"
+            >
+              {isLoadingMachineUnitsForPhysicalCounting ? (
+                <Center py={8}>
+                  <Spinner size="md" thickness="3px" color="blue.500" />
+                </Center>
+              ) : machineUnitsForPhysicalCountingError ? (
+                <Center py={8}>
+                  <Alert status="error" borderRadius="md">
+                    <AlertIcon />
+                    <AlertDescription fontSize="sm">
+                      {machineUnitsForPhysicalCountingError?.response?.data?.message ||
+                        machineUnitsForPhysicalCountingError?.message ||
+                        "Failed to load machine units"}
+                    </AlertDescription>
+                  </Alert>
+                </Center>
+              ) : allMachineUnitsForCount.length === 0 ? (
+                <Center py={8}>
+                  <Text color="gray.500">No machine units available for counting</Text>
+                </Center>
+              ) : (
+                <TableContainer>
+                  <Table variant="simple" size="sm">
+                    <Thead bg="gray.50" position="sticky" top={0} zIndex={1}>
+                      <Tr>
+                        <Th width="50px" textAlign="center">
+                        </Th>
+                        <Th>Unit #</Th>
+                        <Th>Equipment Type</Th>
+                        <Th display={{ base: "none", md: "table-cell" }}>Owner</Th>
+                        <Th display={{ base: "none", lg: "table-cell" }}>Engine</Th>
+                        <Th>Status</Th>
+                        <Th display={{ base: "none", sm: "table-cell" }}>Condition</Th>
+                      </Tr>
+                    </Thead>
+                    <Tbody>
+                      {allMachineUnitsForCount.map((unit) => (
+                        <Tr
+                          key={unit._id}
+                          bg={selectedMachineUnits.has(unit._id.toString()) ? "blue.50" : "white"}
+                          _hover={{ bg: selectedMachineUnits.has(unit._id.toString()) ? "blue.100" : "gray.50" }}
+                          cursor="pointer"
+                          onClick={() => handleMachineUnitToggle(unit._id.toString())}
+                        >
+                          <Td textAlign="center" onClick={(e) => e.stopPropagation()}>
+                            <Checkbox
+                              isChecked={selectedMachineUnits.has(unit._id.toString())}
+                              onChange={() => handleMachineUnitToggle(unit._id.toString())}
+                              colorScheme="blue"
+                              size="md"
+                            />
+                          </Td>
+                          <Td fontWeight="semibold">
+                            {unit.unitNumber}
+                          </Td>
+                          <Td>
+                            <Text fontSize="sm">{unit.equipmentType}</Text>
+                            <Text fontSize="xs" color="gray.500" display={{ base: "block", md: "none" }}>
+                              {unit.ownerName}
+                            </Text>
+                          </Td>
+                          <Td display={{ base: "none", md: "table-cell" }}>
+                            {unit.ownerName}
+                          </Td>
+                          <Td display={{ base: "none", lg: "table-cell" }}>
+                            {unit.engineBrand ? (
+                              <Text fontSize="sm">
+                                {unit.engineBrand} {unit.engineHorsepower && `(${unit.engineHorsepower})`}
+                              </Text>
+                            ) : (
+                              <Text fontSize="sm" color="gray.400">N/A</Text>
+                            )}
+                          </Td>
+                          <Td>
+                            <Tag
+                              colorScheme={getStatusColor(unit.status)}
+                              size="sm"
+                            >
+                              {unit.status}
+                            </Tag>
+                          </Td>
+                          <Td display={{ base: "none", sm: "table-cell" }}>
+                            <Tag
+                              colorScheme={getConditionColor(unit.condition)}
+                              size="sm"
+                            >
+                              {unit.condition}
+                            </Tag>
+                          </Td>
+                        </Tr>
+                      ))}
+                    </Tbody>
+                  </Table>
+                </TableContainer>
+              )}
+            </Box>
+
+            <Divider />
+
+            {/* Remarks Textarea */}
+            <FormControl>
+              <FormLabel fontSize="sm" fontWeight="medium">
+                Remarks (Optional)
+              </FormLabel>
+              <Textarea
+                placeholder="Enter any additional remarks about the machine count..."
+                value={countRemarks}
+                onChange={(e) => setCountRemarks(e.target.value)}
+                bg="white"
+                minH="100px"
+                resize="vertical"
+              />
+              <Text fontSize="xs" color="gray.500" mt={1}>
+                Add any notes or observations about the physical count
+              </Text>
+            </FormControl>
+          </Stack>
+        </ModalBody>
+        
+        <ModalFooter
+          bg="gray.50"
+          borderTopWidth="1px"
+          borderColor="gray.200"
+          py={4}
+          gap={2}
+        >
+          <Button
+            variant="outline"
+            onClick={() => {
+              setSelectedMachineUnits(new Set());
+              setCountRemarks("");
+              onCloseCountCheck();
+            }}
+            size="md"
+            _hover={{ bg: "gray.100" }}
+          >
+            Cancel
+          </Button>
+          <Button
+            colorScheme="blue"
+            onClick={handleSubmitMachineCount}
+            size="md"
+            isLoading={isPerformingMachineCountCheck}
+            isDisabled={isPerformingMachineCountCheck}
+            leftIcon={<FaListCheck />}
+          >
+            Submit Machine Count
+          </Button>
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
+
+    {/* Previous Machine Counts Modal */}
+    <Modal
+      isOpen={isOpenPreviousCounts}
+      onClose={onClosePreviousCounts}
+      size="4xl"
+      closeOnOverlayClick={false}
+      scrollBehavior="inside"
+      isCentered
+      motionPreset="none"
+      blockScrollOnMount={false}
+    >
+      <ModalOverlay />
+      <ModalContent borderRadius="lg" overflow="hidden">
+        <ModalHeader
+          bg="orange.50"
+          borderBottomWidth="1px"
+          borderColor="gray.200"
+          py={4}
+          display="flex"
+          alignItems="center"
+        >
+          <Icon as={FaStickyNote} mr={2} color="orange.500" />
+          Previous Machine Counts
+        </ModalHeader>
+        
+        <ModalBody py={6} maxH="70vh" overflowY="auto">
+          <Stack spacing={4}>
+            {isLoadingPhysicalCountingRecords ? (
+              <Center py={8}>
+                <Spinner size="xl" thickness="4px" color="orange.500" />
+              </Center>
+            ) : physicalCountingRecordsError ? (
+              <Alert status="error" borderRadius="md">
+                <AlertIcon />
+                <Box>
+                  <AlertTitle>Error loading physical counting records</AlertTitle>
+                  <AlertDescription>
+                    {physicalCountingRecordsError?.response?.data?.message ||
+                      physicalCountingRecordsError?.message ||
+                      "An error occurred while fetching physical counting records."}
+                  </AlertDescription>
+                </Box>
+              </Alert>
+            ) : !physicalCountingRecords?.data?.physicalCountingRecords?.length ? (
+              <Center py={8}>
+                <Text color="gray.500" fontSize="lg">
+                  No physical counting records found
+                </Text>
+              </Center>
+            ) : (
+              <>
+                <Box overflowX="auto">
+                  <TableContainer>
+                    <Table variant="simple" size="md">
+                      <Thead bg="gray.50" position="sticky" top={0} zIndex={1}>
+                        <Tr>
+                          <Th>Date</Th>
+                          <Th display={{ base: "none", sm: "table-cell" }}>
+                            Assigned Employee
+                          </Th>
+                          <Th textAlign="center">Found Units</Th>
+                          <Th textAlign="center">Not Found Units</Th>
+                          <Th display={{ base: "none", md: "table-cell" }}>
+                            Discrepancy Status
+                          </Th>
+                          <Th display={{ base: "none", lg: "table-cell" }}>
+                            Remarks
+                          </Th>
+                          <Th
+                            position={{ base: 'static', md: 'sticky' }}
+                            right={0}
+                            bg="gray.50"
+                            zIndex={{ base: 0, md: 2 }}
+                            textAlign="center"
+                            width="120px"
+                          >
+                            <Box display={{ base: 'none', md: 'block' }}>Scroll →</Box>
+                            <Box display={{ base: 'block', md: 'none' }}>Actions</Box>
+                          </Th>
+                        </Tr>
+                      </Thead>
+                      <Tbody>
+                        {physicalCountingRecords.data.physicalCountingRecords.map((record) => (
+                          <Tr key={record._id} fontSize="sm">
+                            <Td>
+                              <Text fontSize="sm" fontWeight="medium">
+                                {record.countingDate 
+                                  ? new Date(record.countingDate).toLocaleDateString('en-US', {
+                                      year: 'numeric',
+                                      month: 'short',
+                                      day: 'numeric'
+                                    })
+                                  : 'N/A'}
+                              </Text>
+                              <Text fontSize="xs" color="gray.500">
+                                {record.countingDate 
+                                  ? new Date(record.countingDate).toLocaleTimeString('en-US', {
+                                      hour: '2-digit',
+                                      minute: '2-digit'
+                                    })
+                                  : ''}
+                              </Text>
+                              <Text fontSize="xs" color="gray.500" display={{ base: "block", sm: "none" }} mt={1}>
+                                {record.assignedEmployee?.first_name && record.assignedEmployee?.last_name
+                                  ? `${record.assignedEmployee.first_name} ${record.assignedEmployee.last_name}`
+                                  : 'N/A'}
+                              </Text>
+                              <Box display={{ base: "block", md: "none" }} mt={1}>
+                                <Tag
+                                  colorScheme={
+                                    record.discrepancyFound === 'Resolved' ? 'green' :
+                                    record.discrepancyFound === 'Discrepancy Found' ? 'red' :
+                                    'gray'
+                                  }
+                                  size="sm"
+                                >
+                                  {record.discrepancyFound || 'N/A'}
+                                </Tag>
+                              </Box>
+                              <Box display={{ base: "block", lg: "none" }} mt={1}>
+                                <Tooltip label={record.remarks || 'No remarks'} placement="top" hasArrow>
+                                  <Text fontSize="xs" color="gray.500" noOfLines={1} cursor="help">
+                                    {record.remarks ? `Remarks: ${record.remarks}` : 'No remarks'}
+                                  </Text>
+                                </Tooltip>
+                              </Box>
+                            </Td>
+                            <Td display={{ base: "none", sm: "table-cell" }}>
+                              <Text fontSize="sm">
+                                {record.assignedEmployee?.first_name && record.assignedEmployee?.last_name
+                                  ? `${record.assignedEmployee.first_name} ${record.assignedEmployee.last_name}`
+                                  : 'N/A'}
+                              </Text>
+                            </Td>
+                            <Td textAlign="center">
+                              <Text fontSize="sm" fontWeight="semibold" color="green.600">
+                                {record.machineUnits?.length || 0}
+                              </Text>
+                            </Td>
+                            <Td textAlign="center">
+                              <Text fontSize="sm" fontWeight="semibold" color="red.600">
+                                {record.notFoundMachineUnits?.length || 0}
+                              </Text>
+                            </Td>
+                            <Td display={{ base: "none", md: "table-cell" }}>
+                              <Tag
+                                colorScheme={
+                                  record.discrepancyFound === 'Resolved' ? 'green' :
+                                  record.discrepancyFound === 'Discrepancy Found' ? 'red' :
+                                  'gray'
+                                }
+                                size="sm"
+                              >
+                                {record.discrepancyFound || 'N/A'}
+                              </Tag>
+                            </Td>
+                            <Td display={{ base: "none", lg: "table-cell" }}>
+                              <Tooltip label={record.remarks || 'No remarks'} placement="top" hasArrow>
+                                <Text fontSize="sm" noOfLines={2} maxW="200px" cursor="help">
+                                  {record.remarks || 'N/A'}
+                                </Text>
+                              </Tooltip>
+                            </Td>
+                            <Td
+                              position={{ base: 'static', md: 'sticky' }}
+                              right={0}
+                              zIndex={1}
+                              bg="white"
+                              textAlign="center"
+                            >
+                              {record.discrepancyFound === 'Discrepancy Found' ? (
+                                <Button
+                                  size="xs"
+                                  colorScheme="orange"
+                                  variant="outline"
+                                  onClick={() => {
+                                    // TODO: Implement resolve functionality
+                                    toast({
+                                      title: "Resolve Discrepancy",
+                                      description: "Resolve functionality will be implemented later",
+                                      status: "info",
+                                      duration: 3000,
+                                      isClosable: true,
+                                    });
+                                  }}
+                                >
+                                  Resolve
+                                </Button>
+                              ) : (
+                                <Text fontSize="xs" color="gray.400">-</Text>
+                              )}
+                            </Td>
+                          </Tr>
+                        ))}
+                      </Tbody>
+                    </Table>
+                  </TableContainer>
+                </Box>
+
+                {/* Pagination Controls */}
+                {physicalCountingRecords?.data?.totalPages > 1 && (
+                  <Flex
+                    justifyContent="space-between"
+                    alignItems="center"
+                    mt={4}
+                    pt={4}
+                    borderTopWidth="1px"
+                    borderColor="gray.200"
+                  >
+                    <Text color="gray.600" fontSize="sm">
+                      Page {physicalCountingRecords.data.currentPage} of {physicalCountingRecords.data.totalPages} 
+                      ({physicalCountingRecords.data.totalCount} total records)
+                    </Text>
+                    <HStack spacing={2}>
+                      <Button
+                        size="sm"
+                        onClick={() => setPreviousCountsPage(Math.max(1, previousCountsPage - 1))}
+                        isDisabled={previousCountsPage === 1 || isLoadingPhysicalCountingRecords}
+                        colorScheme="orange"
+                        variant="outline"
+                      >
+                        Previous
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => setPreviousCountsPage(Math.min(physicalCountingRecords.data.totalPages, previousCountsPage + 1))}
+                        isDisabled={previousCountsPage >= physicalCountingRecords.data.totalPages || isLoadingPhysicalCountingRecords}
+                        colorScheme="orange"
+                        variant="outline"
+                      >
+                        Next
+                      </Button>
+                    </HStack>
+                  </Flex>
+                )}
+              </>
+            )}
+          </Stack>
+        </ModalBody>
+        
+        <ModalFooter
+          bg="gray.50"
+          borderTopWidth="1px"
+          borderColor="gray.200"
+          py={4}
+        >
+          <Button
+            variant="outline"
+            onClick={() => {
+              setPreviousCountsPage(1);
+              onClosePreviousCounts();
+            }}
+            size="md"
+            _hover={{ bg: "gray.100" }}
+          >
+            Close
+          </Button>
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
+    
     </>
   );
 }

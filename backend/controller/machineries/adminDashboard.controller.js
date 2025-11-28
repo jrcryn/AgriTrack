@@ -1861,7 +1861,7 @@ export const getMachineIncidentReports = async (req, res) => {
 };
 
 export const performMachineCountCheck = async (req, res) => {
-    const { machineUnitIds, employeeId } = req.body;
+    const { machineUnitIds, employeeId, remarks } = req.body;
 
     // Validate required fields
     if (!machineUnitIds || !Array.isArray(machineUnitIds) || machineUnitIds.length === 0) {
@@ -1916,7 +1916,7 @@ export const performMachineCountCheck = async (req, res) => {
             machineUnits: foundMachineUnits,
             notFoundMachineUnits: notFoundMachineUnits,
             countingDate: new Date(),
-            discrepancyFound,
+            discrepancyFound: discrepancyFound ? 'Discrepancy Found' : 'No Discrepancy Found',
             assignedEmployee: {
                 employeeId: employee._id,
                 first_name: employee.first_name,
@@ -1925,7 +1925,8 @@ export const performMachineCountCheck = async (req, res) => {
                 suffix: employee.suffix,
                 email: employee.email,
                 phone: employee.phone
-            }
+            },
+            remarks: remarks || ''
         });
 
         // Populate the machine units for detailed response
@@ -1962,7 +1963,202 @@ export const performMachineCountCheck = async (req, res) => {
 };
 
 export const resolveDiscrepancyInPhysicalCount = async (req, res) => {
+    const { physicalCountingId, resolveRemarks} = req.body;
 
+    if (!physicalCountingId) {
+        return res.status(400).json({
+            success: false,
+            message: "Please provide physical counting ID."
+        });
+    }
+
+    try {
+        // Find physical counting record
+        const physicalCounting = await global.machineriesModels.MachinePhysicalCounting.findById(physicalCountingId);
+        if (!physicalCounting) {
+            return res.status(404).json({
+                success: false,
+                message: "Physical counting record not found."
+            });
+        }
+
+        // Validate that the record has a discrepancy that can be resolved
+        if (physicalCounting.discrepancyFound !== 'Discrepancy Found') {
+            return res.status(400).json({
+                success: false,
+                message: "Only physical counting records with 'Discrepancy Found' status can be resolved."
+            });
+        }
+
+        // Update discrepancy status to Resolved
+        physicalCounting.discrepancyFound = 'Resolved';
+        
+        // Update resolve remarks if provided
+        if (resolveRemarks !== undefined) {
+            physicalCounting.resolveRemarks = resolveRemarks || '';
+        }
+
+        await physicalCounting.save();
+
+        // Populate the machine units for detailed response
+        const populatedCounting = await global.machineriesModels.MachinePhysicalCounting
+            .findById(physicalCounting._id)
+            .populate('machineUnits', 'unitNumber status')
+            .populate('notFoundMachineUnits', 'unitNumber status')
+            .lean();
+
+        return res.status(200).json({
+            success: true,
+            message: "Discrepancy in physical count has been resolved successfully.",
+            data: {
+                physicalCounting: populatedCounting
+            }
+        });
+
+    } catch (error) {
+        console.error("Error resolving discrepancy in physical count:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Failed to resolve discrepancy in physical count.",
+            error: error.message
+        });
+    }
+};
+
+export const getMachineunitsForPhysicalCounting = async (req, res) => {
+    try {
+        // Get all machine units from the database (excluding retired ones)
+        // This matches the logic in performMachineCountCheck
+        const allMachineUnits = await global.machineriesModels.MachineriesUnit
+            .find({ isRetired: { $ne: true } })
+            .populate({
+                path: 'machineryTypeId',
+                select: 'equipmentType ownerName ownerType'
+            })
+            .select('_id unitNumber status condition engineBrand engineHorsepower machineryTypeId')
+            .lean();
+
+        // Group by machinery type for display
+        const machineTypesMap = new Map();
+        
+        allMachineUnits.forEach(unit => {
+            const typeId = unit.machineryTypeId?._id?.toString();
+            if (!typeId) return;
+
+            if (!machineTypesMap.has(typeId)) {
+                machineTypesMap.set(typeId, {
+                    _id: unit.machineryTypeId._id,
+                    equipmentType: unit.machineryTypeId.equipmentType,
+                    ownerName: unit.machineryTypeId.ownerName,
+                    ownerType: unit.machineryTypeId.ownerType,
+                    machineUnits: []
+                });
+            }
+
+            machineTypesMap.get(typeId).machineUnits.push({
+                _id: unit._id,
+                unitNumber: unit.unitNumber,
+                engineBrand: unit.engineBrand,
+                engineHorsepower: unit.engineHorsepower,
+                condition: unit.condition,
+                status: unit.status,
+            });
+        });
+
+        const machineTypesWithUnits = Array.from(machineTypesMap.values());
+
+        return res.status(200).json({
+            success: true,
+            message: "Machine units for physical counting retrieved successfully.",
+            data: {
+                machineTypesWithUnits,
+                totalCount: allMachineUnits.length
+            }
+        });
+    } catch (error) {
+        console.error("Error fetching machine units for physical counting:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Error fetching machine units for physical counting.",
+            error: error.message
+        });
+    }
+};
+
+export const getPhysicalCountingRecords = async (req, res) => {
+    const { searchQuery, discrepancyStatus } = req.query;
+    
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+
+        // Build match criteria
+        const matchCriteria = {};
+        
+        // Filter by discrepancy status if provided
+        if (discrepancyStatus && discrepancyStatus.trim() !== '') {
+            const validStatuses = ['Discrepancy Found', 'No Discrepancy Found', 'Resolved'];
+            if (validStatuses.includes(discrepancyStatus)) {
+                matchCriteria.discrepancyFound = discrepancyStatus;
+            }
+        }
+
+        // Build search match if searchQuery is provided
+        let searchMatch = null;
+        if (searchQuery && searchQuery.trim() !== '') {
+            const words = searchQuery.trim().split(/\s+/);
+            const searchConditions = words.map((word) => ({
+                $or: [
+                    { remarks: { $regex: word, $options: 'i' } },
+                    { resolveRemarks: { $regex: word, $options: 'i' } },
+                    { 'assignedEmployee.first_name': { $regex: word, $options: 'i' } },
+                    { 'assignedEmployee.last_name': { $regex: word, $options: 'i' } },
+                    { 'assignedEmployee.email': { $regex: word, $options: 'i' } },
+                    { discrepancyFound: { $regex: word, $options: 'i' } }
+                ]
+            }));
+            searchMatch = { $and: searchConditions };
+        }
+
+        // Combine match criteria
+        const finalMatch = searchMatch 
+            ? { ...matchCriteria, ...searchMatch }
+            : matchCriteria;
+
+        // Fetch physical counting records with pagination
+        const physicalCountingRecords = await global.machineriesModels.MachinePhysicalCounting
+            .find(finalMatch)
+            .populate('machineUnits', 'unitNumber status')
+            .populate('notFoundMachineUnits', 'unitNumber status')
+            .sort({ countingDate: -1, createdAt: -1 })
+            .skip(skip)
+            .limit(limit)
+            .lean();
+
+        // Get total count
+        const totalCount = await global.machineriesModels.MachinePhysicalCounting
+            .countDocuments(finalMatch);
+
+        return res.status(200).json({
+            success: true,
+            message: "Physical counting records retrieved successfully.",
+            data: {
+                physicalCountingRecords,
+                totalCount,
+                totalPages: Math.ceil(totalCount / limit),
+                currentPage: page
+            }
+        });
+
+    } catch (error) {
+        console.error("Error fetching physical counting records:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Error fetching physical counting records.",
+            error: error.message
+        });
+    }
 };
 
 //============================================================TICKET REQUESTS (PENDING, SCHEDULED, ONGOING)============================================================

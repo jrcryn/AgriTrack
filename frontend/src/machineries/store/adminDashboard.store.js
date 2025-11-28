@@ -2,7 +2,6 @@ import axios from 'axios';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useAuthStore } from '../../auth/store/authStore.js';
-import { useMutation } from '@tanstack/react-query';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -84,6 +83,40 @@ const usePendingIncidentReportsCountQuery = (role) =>
         },
         enabled: role === 'MIM' || role === 'MIS',
 });
+
+const useMachineIncidentReportsQuery = (page = 1, searchQuery = {}, role) =>
+    useQuery({
+        queryKey: ['machineIncidentReports', page, searchQuery],
+        queryFn: async () => {
+            const res = await axios.get(`${API_URL}/api/machineries/get-machine-incident-reports`, {
+                params: { page, limit: 10, ...searchQuery },
+            });
+            return res.data;
+        },
+        enabled: role === 'MIM' || role === 'MIS',
+    });
+
+const useMachineUnitsForPhysicalCountingQuery = (role) =>
+    useQuery({
+        queryKey: ['machineUnitsForPhysicalCounting'],
+        queryFn: async () => {
+            const res = await axios.get(`${API_URL}/api/machineries/get-machine-units-for-physical-counting`);
+            return res.data;
+        },
+        enabled: role === 'MIM' || role === 'MIS',
+    });
+
+const usePhysicalCountingRecordsQuery = (page = 1, searchQuery = {}, role) =>
+    useQuery({
+        queryKey: ['physicalCountingRecords', page, searchQuery],
+        queryFn: async () => {
+            const res = await axios.get(`${API_URL}/api/machineries/get-physical-counting-records`, {
+                params: { page, limit: 10, ...searchQuery },
+            });
+            return res.data;
+        },
+        enabled: role === 'MIM' || role === 'MIS',
+    });
 
 const useMachineUnitsQuery = (page = 1, searchQuery = {}, role) =>
     useQuery({
@@ -189,6 +222,8 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         schedulesPage = 1,
         machineUnitsPage = 1,
         operatorAccountsPage = 1,
+        machineIncidentReportsPage = 1,
+        previousCountsPage = 1,
     } = pages;
 
 
@@ -212,6 +247,15 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
     
     const { data: pendingIncidentReportsCount = 0, isLoading: isLoadingPendingIncidentReportsCount, error: pendingIncidentReportsCountError } =
         usePendingIncidentReportsCountQuery(role);
+    
+    const { data: machineIncidentReports = [], isLoading: isLoadingMachineIncidentReports, error: machineIncidentReportsError } =
+        useMachineIncidentReportsQuery(machineIncidentReportsPage, searchQuery, role);
+    
+    const { data: machineUnitsForPhysicalCounting = [], isLoading: isLoadingMachineUnitsForPhysicalCounting, error: machineUnitsForPhysicalCountingError } =
+        useMachineUnitsForPhysicalCountingQuery(role);
+    
+    const { data: physicalCountingRecords = [], isLoading: isLoadingPhysicalCountingRecords, error: physicalCountingRecordsError } =
+        usePhysicalCountingRecordsQuery(previousCountsPage, {}, role);
     
     const { data: occupiedDatesForScheduling = [], isLoading: isLoadingOccupiedDatesForScheduling, error: occupiedDatesForSchedulingError } =
         useOccupiedDatesForSchedulingQuery(role);
@@ -268,6 +312,8 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
     const [isDecliningIncidentReport, setIsDecliningIncidentReport] = useState(false);
     const [isResolvingIncidentReport, setIsResolvingIncidentReport] = useState(false);
     const [isConfirmingIncidentReport, setIsConfirmingIncidentReport] = useState(false);
+    const [isPerformingMachineCountCheck, setIsPerformingMachineCountCheck] = useState(false);
+    const [isResolvingDiscrepancyInPhysicalCount, setIsResolvingDiscrepancyInPhysicalCount] = useState(false);
 
     // Actions
     const createMachineryType = async (data) => {
@@ -607,6 +653,30 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         }
     };
 
+    const performMachineCountCheck = async (data) => {
+        setIsPerformingMachineCountCheck(true);
+        try {
+            const res = await axios.post(`${API_URL}/api/machineries/perform-machine-count-check`, data);
+            return res.data;
+        } catch (error) {
+            throw error;
+        } finally {
+            setIsPerformingMachineCountCheck(false);
+        }
+    };
+
+    const resolveDiscrepancyInPhysicalCount = async (data) => {
+        setIsResolvingDiscrepancyInPhysicalCount(true);
+        try {
+            const res = await axios.post(`${API_URL}/api/machineries/resolve-discrepancy-in-physical-count`, data);
+            return res.data;
+        } catch (error) {
+            throw error;
+        } finally {
+            setIsResolvingDiscrepancyInPhysicalCount(false);
+        }
+    };
+
     
     return {
         // query data
@@ -617,6 +687,9 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         inProgressWeeklySchedules,
         pendingExtensionCount,
         pendingIncidentReportsCount,
+        machineIncidentReports,
+        machineUnitsForPhysicalCounting,
+        physicalCountingRecords,
         occupiedDatesForScheduling,
         operatorAssignedNumbers,
         machineUnits, 
@@ -657,6 +730,8 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         declineIncidentReport,
         resolveIncidentReport,
         confirmIncidentReport,
+        performMachineCountCheck,
+        resolveDiscrepancyInPhysicalCount,
 
         // loading states (queries)
         isLoadingPendingTicketRequests,
@@ -666,6 +741,9 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         isLoadingInProgressWeeklySchedules,
         isLoadingPendingExtensionCount,
         isLoadingPendingIncidentReportsCount,
+        isLoadingMachineIncidentReports,
+        isLoadingMachineUnitsForPhysicalCounting,
+        isLoadingPhysicalCountingRecords,
         isLoadingOccupiedDatesForScheduling,
         isLoadingOperatorAssignedNumbers,
         isLoadingMachineUnits,
@@ -703,6 +781,8 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         isDecliningIncidentReport,
         isResolvingIncidentReport,
         isConfirmingIncidentReport,
+        isPerformingMachineCountCheck,
+        isResolvingDiscrepancyInPhysicalCount,
 
         // error states
         pendingTicketRequestsError,
@@ -712,6 +792,9 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         inProgressWeeklySchedulesError,
         pendingExtensionCountError,
         pendingIncidentReportsCountError,
+        machineIncidentReportsError,
+        machineUnitsForPhysicalCountingError,
+        physicalCountingRecordsError,
         occupiedDatesForSchedulingError,
         operatorAssignedNumbersError,
         machineUnitsError,

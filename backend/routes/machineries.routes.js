@@ -42,7 +42,11 @@ import {
     resolveIncidentReport,
     confirmIncidentReport,
     getPendingIncidentReportsCount,
+    getMachineIncidentReports,
     performMachineCountCheck,
+    resolveDiscrepancyInPhysicalCount,
+    getMachineunitsForPhysicalCounting,
+    getPhysicalCountingRecords,
     
     deleteScheduleAndTickets
 } from '../controller/machineries/adminDashboard.controller.js';
@@ -127,7 +131,11 @@ router.post('/decline-incident-report', verifyAuthToken, verifyRole(['MIM', 'MIS
 router.post('/resolve-incident-report', verifyAuthToken, verifyRole(['MIM', 'MIS']), resolveIncidentReport);
 router.post('/confirm-incident-report', verifyAuthToken, verifyRole(['MIM', 'MIS']), confirmIncidentReport);
 
+router.get('/get-machine-incident-reports', verifyAuthToken, verifyRole(['MIM', 'MIS']), getMachineIncidentReports);
+router.get('/get-machine-units-for-physical-counting', verifyAuthToken, verifyRole(['MIM', 'MIS']), getMachineunitsForPhysicalCounting);
+router.get('/get-physical-counting-records', getPhysicalCountingRecords);
 router.post('/perform-machine-count-check', verifyAuthToken, verifyRole(['MIM', 'MIS']), performMachineCountCheck);
+router.post('/resolve-discrepancy-in-physical-count', verifyAuthToken, verifyRole(['MIM', 'MIS']), resolveDiscrepancyInPhysicalCount);
 
 router.post('/delete-schedule-and-tickets/:scheduleId', deleteScheduleAndTickets); //FOR DEBUGGING AND TESTING PURPOSES ONLY
 export default router;
