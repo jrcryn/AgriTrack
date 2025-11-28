@@ -3368,8 +3368,8 @@ export const setRequestTicketToComplete = async (req, res) => { //kapag work don
         let incidentReportCreated = false;
         if (incidentReport === 'true') {
             await createIncidentReportHelper({
-                machineryUnitId: ticket.assignedMachineUnit,
-                machineryTypeId: ticket.requestedMachineType,
+                machineryUnitId: ticket.assignedMachineUnit.assignedMachineUnitId,
+                machineryTypeId: ticket.requestedMachineType.requestedMachineTypeId,
                 ticketRequestId: ticket._id,
                 incidentType: incidentType,
                 description: incidentDescription,
