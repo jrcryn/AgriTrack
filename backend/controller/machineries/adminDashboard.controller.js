@@ -1961,6 +1961,10 @@ export const performMachineCountCheck = async (req, res) => {
     }
 };
 
+export const resolveDiscrepancyInPhysicalCount = async (req, res) => {
+
+};
+
 //============================================================TICKET REQUESTS (PENDING, SCHEDULED, ONGOING)============================================================
 
 const buildTicketSearchMatch = (searchQuery) => {
