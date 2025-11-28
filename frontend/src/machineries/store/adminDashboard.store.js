@@ -265,7 +265,6 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
     const [isUpdatingOperatorLicense, setIsUpdatingOperatorLicense] = useState(false);
     const [isRemovingOperatorLicense, setIsRemovingOperatorLicense] = useState(false);
     const [isSettingEmployeeLeaveStatus, setIsSettingEmployeeLeaveStatus] = useState(false);
-    const [isCreatingIncidentReport, setIsCreatingIncidentReport] = useState(false);
     const [isDecliningIncidentReport, setIsDecliningIncidentReport] = useState(false);
     const [isResolvingIncidentReport, setIsResolvingIncidentReport] = useState(false);
 
@@ -571,18 +570,6 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         }
     };
 
-    const createIncidentReport = async (data) => {
-        setIsCreatingIncidentReport(true);
-        try {
-            const res = await axios.post(`${API_URL}/api/machineries/create-incident-report`, data);
-            return res.data;
-        } catch (error) {
-            throw error;
-        } finally {
-            setIsCreatingIncidentReport(false);
-        }
-    };
-
     const declineIncidentReport = async (data) => {
         setIsDecliningIncidentReport(true);
         try {
@@ -654,7 +641,6 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         updateOperatorLicense,
         removeOperatorLicense,
         setEmployeeLeaveStatus,
-        createIncidentReport,
         declineIncidentReport,
         resolveIncidentReport,
 
@@ -700,7 +686,6 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         isUpdatingOperatorLicense,
         isRemovingOperatorLicense,
         isSettingEmployeeLeaveStatus,
-        isCreatingIncidentReport,
         isDecliningIncidentReport,
         isResolvingIncidentReport,
 

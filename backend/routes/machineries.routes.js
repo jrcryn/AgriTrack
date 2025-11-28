@@ -38,7 +38,6 @@ import {
     removeOperatorLicense,
     setEmployeeLeaveStatus,
     getMachineTypeUnitCounts,
-    createIncidentReport,
     declineIncidentReport,
     resolveIncidentReport,
     getPendingIncidentReportsCount,
@@ -122,7 +121,6 @@ router.put('/update-operator-license', verifyAuthToken, verifyRole(['MIM']), upd
 router.post('/remove-operator-license', verifyAuthToken, verifyRole(['MIM']), removeOperatorLicense);
 router.post('/set-employee-leave-status', verifyAuthToken, verifyRole(['MIM']), setEmployeeLeaveStatus);
 
-router.post('/create-incident-report', verifyAuthToken, verifyRole(['MIM', 'MIS']), createIncidentReport);
 router.post('/decline-incident-report', verifyAuthToken, verifyRole(['MIM', 'MIS']), declineIncidentReport);
 router.post('/resolve-incident-report', verifyAuthToken, verifyRole(['MIM', 'MIS']), resolveIncidentReport);
 

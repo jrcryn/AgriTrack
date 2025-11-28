@@ -3017,10 +3017,122 @@ export const getPendingIncidentReportsCount = async (req, res) => {
     }
 };
 
+// Helper function to create incident report (not exported, used internally)
+const createIncidentReportHelper = async ({
+    machineryUnitId,
+    machineryTypeId,
+    ticketRequestId,
+    incidentType,
+    description,
+    assignedOperatorId,
+    session = null
+}) => {
+    // Validate required fields
+    if (!machineryUnitId || !machineryTypeId || !incidentType || !description || !assignedOperatorId) {
+        throw new Error("Please provide machineryUnitId, machineryTypeId, incidentType, description, and assignedOperatorId.");
+    }
+
+    // Validate incidentType enum
+    const validIncidentTypes = ['Mechanical Failure', 'Electrical Failure', 'Hydraulic/Pneumatic Failure', 'Flat Tire or Track Issue', 'Machine Overheating', 'Fuel System Issue'];
+    if (!validIncidentTypes.includes(incidentType)) {
+        throw new Error("Invalid incident type. Must be one of: " + validIncidentTypes.join(', '));
+    }
+
+    // Automatically set status and condition for machinery unit
+    const newStatus = 'Under Repair';
+    const newCondition = 'Non-Functional';
+
+    // Validate machinery unit exists
+    const machineryUnitQuery = global.machineriesModels.MachineriesUnit.findById(machineryUnitId);
+    if (session) machineryUnitQuery.session(session);
+    const machineryUnit = await machineryUnitQuery;
+    if (!machineryUnit) {
+        throw new Error("Machinery unit not found.");
+    }
+
+    // Validate machinery type exists
+    const machineryTypeQuery = global.machineriesModels.MachineriesType.findById(machineryTypeId);
+    if (session) machineryTypeQuery.session(session);
+    const machineryType = await machineryTypeQuery;
+    if (!machineryType) {
+        throw new Error("Machinery type not found.");
+    }
+
+    // Validate assigned operator exists
+    const assignedOperator = await global.globalModels.EmployeeAccount.findById(assignedOperatorId).lean();
+    if (!assignedOperator) {
+        throw new Error("Assigned operator not found.");
+    }
+
+    // Validate ticket request if provided
+    if (ticketRequestId) {
+        const ticketRequestQuery = global.machineriesModels.TicketRequest.findById(ticketRequestId);
+        if (session) ticketRequestQuery.session(session);
+        const ticketRequest = await ticketRequestQuery;
+        if (!ticketRequest) {
+            throw new Error("Ticket request not found.");
+        }
+    }
+
+    // Create incident report
+    const incidentReportData = {
+        machineryUnitId,
+        machineryTypeId,
+        ticketRequestId: ticketRequestId || undefined,
+        incidentType,
+        description: description.trim(),
+        assignedOperator: {
+            operatorId: assignedOperator._id,
+            first_name: assignedOperator.first_name,
+            last_name: assignedOperator.last_name,
+            middle_name: assignedOperator.middle_name,
+            suffix: assignedOperator.suffix,
+            email: assignedOperator.email,
+            phone: assignedOperator.phone
+        },
+        status: 'Pending'
+    };
+
+    const incidentReport = session 
+        ? await global.machineriesModels.IncidentReport.create([incidentReportData], { session })
+        : await global.machineriesModels.IncidentReport.create(incidentReportData);
+
+    // Find the employee who created the report (we'll use the assigned operator as the employee)
+    const employee = assignedOperator; // Using assigned operator as the employee who made the change
+
+    // Build status history entry
+    const historyEntry = {
+        status: newStatus,
+        condition: newCondition,
+        reason: 'Incident Report Filed: ' + description.trim(), // Use description as reason as requested
+        changedBy: {
+            _id: employee._id,
+            first_name: employee.first_name,
+            last_name: employee.last_name,
+            middle_name: employee.middle_name,
+            suffix: employee.suffix,
+            email: employee.email,
+            phone: employee.phone
+        },
+        changedAt: new Date()
+    };
+
+    // Update machinery unit status
+    machineryUnit.status = 'Under Repair';
+    machineryUnit.condition = 'Non-Functional';
+
+    // Add to status history
+    machineryUnit.statusHistory.push(historyEntry);
+
+    await machineryUnit.save({ session });
+
+    return session ? incidentReport[0] : incidentReport;
+};
+
 import { uploadFileToDrive } from '../googleDrive.controller.js';
 
 export const setRequestTicketToComplete = async (req, res) => { //kapag work done na
-    const { ticketRequestId, extensionRequest, areaServiced, remainingArea, remarks, operatorId } = req.body; 
+    const { ticketRequestId, extensionRequest, areaServiced, remainingArea, remarks, operatorId, incidentReport, incidentType, incidentDescription } = req.body; 
 
     if (!ticketRequestId) {
         return res.status(400).json({
@@ -3065,11 +3177,26 @@ export const setRequestTicketToComplete = async (req, res) => { //kapag work don
         }
     }
 
+    // Validate incident report fields if incident report is requested
+    if (incidentReport === 'true') {
+        if (!incidentType || !incidentDescription || !incidentDescription.trim()) {
+            return res.status(400).json({
+                success: false,
+                message: "Please provide incident type and description for incident report."
+            });
+        }
+    }
+
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
     try {
         // Find the ticket request
-        const ticket = await global.machineriesModels.TicketRequest.findById(ticketRequestId);
+        const ticket = await global.machineriesModels.TicketRequest.findById(ticketRequestId).session(session);
         
         if (!ticket) {
+            await session.abortTransaction();
+            session.endSession();
             return res.status(404).json({
                 success: false,
                 message: "Ticket request not found."
@@ -3078,6 +3205,8 @@ export const setRequestTicketToComplete = async (req, res) => { //kapag work don
 
         // Validate ticket status
         if (ticket.status !== 'Ongoing') {
+            await session.abortTransaction();
+            session.endSession();
             return res.status(400).json({
                 success: false,
                 message: "Only ongoing tickets can be marked as completed."
@@ -3086,6 +3215,8 @@ export const setRequestTicketToComplete = async (req, res) => { //kapag work don
 
         // Validate schedule exists
         if (!ticket.scheduleId) {
+            await session.abortTransaction();
+            session.endSession();
             return res.status(400).json({
                 success: false,
                 message: "Ticket is not assigned to any schedule."
@@ -3105,6 +3236,8 @@ export const setRequestTicketToComplete = async (req, res) => { //kapag work don
 
         const operator = await global.globalModels.EmployeeAccount.findById(operatorId).lean();
         if (!operator) {
+            await session.abortTransaction();
+            session.endSession();
             return res.status(404).json({
                 success: false,
                 message: "Operator account not found. If issue persists, please contact IT."
@@ -3112,6 +3245,8 @@ export const setRequestTicketToComplete = async (req, res) => { //kapag work don
         }
 
         if (!operator.roles || !operator.roles.includes('MIS') && !operator.roles.includes('MIM')) {
+            await session.abortTransaction();
+            session.endSession();
             return res.status(400).json({
                 success: false,
                 message: "The provided user is not an authorized operator."
@@ -3119,6 +3254,8 @@ export const setRequestTicketToComplete = async (req, res) => { //kapag work don
         }
 
         if (operator.isOperatorDisabled === true) {
+            await session.abortTransaction();
+            session.endSession();
             return res.status(400).json({
                 success: false,
                 message: "Your operator priviledges is currently disabled, cannot set the request ticket to complete."
@@ -3182,18 +3319,18 @@ export const setRequestTicketToComplete = async (req, res) => { //kapag work don
             const extensionRefNumber = ticket.refNumber.replace(/^TR-/, 'EXT-');
             
             // Create new ExtensionTicket document
-            const extensionTicket = await global.machineriesModels.ExtensionTicket.create({
+            const extensionTicket = await global.machineriesModels.ExtensionTicket.create([{
                 refNumber: extensionRefNumber,
                 parentTicketId: ticket._id,
                 areaServiced: parseFloat(areaServiced),
                 remainingArea: parseFloat(remainingArea),
                 extensionReason: remarks && remarks.trim() ? remarks.trim() : undefined,
                 status: 'Pending'
-            });
+            }], { session });
 
             // Mark that extension is needed
             updateData.extensionNeeded = true;
-            updateData.extensionTicketId = extensionTicket._id;
+            updateData.extensionTicketId = extensionTicket[0]._id;
         } else {
             // If no extension, add remarks to the main document
             if (remarks && remarks.trim()) {
@@ -3205,16 +3342,16 @@ export const setRequestTicketToComplete = async (req, res) => { //kapag work don
         const updatedTicket = await global.machineriesModels.TicketRequest.findByIdAndUpdate(
             ticketRequestId,
             updateData,
-            { new: true }
+            { new: true, session }
         );
 
         // Check if all tickets in the schedule are completed
-        const schedule = await global.machineriesModels.WeeklySchedule.findById(ticket.scheduleId);
+        const schedule = await global.machineriesModels.WeeklySchedule.findById(ticket.scheduleId).session(session);
         const allTicketIds = schedule.ticketRequests.map(tr => tr.ticketRequestId);
         
         const allTickets = await global.machineriesModels.TicketRequest.find({
             _id: { $in: allTicketIds }
-        });
+        }).session(session);
 
         const allCompleted = allTickets.every(t => t.status === 'Completed');
 
@@ -3222,9 +3359,28 @@ export const setRequestTicketToComplete = async (req, res) => { //kapag work don
         if (allCompleted) {
             await global.machineriesModels.WeeklySchedule.findByIdAndUpdate(
                 ticket.scheduleId,
-                { status: 'Completed' }
+                { status: 'Completed' },
+                { session }
             );
         }
+
+        // Create incident report if requested (must succeed or transaction will rollback)
+        let incidentReportCreated = false;
+        if (incidentReport === 'true') {
+            await createIncidentReportHelper({
+                machineryUnitId: ticket.assignedMachineUnit,
+                machineryTypeId: ticket.requestedMachineType,
+                ticketRequestId: ticket._id,
+                incidentType: incidentType,
+                description: incidentDescription,
+                assignedOperatorId: operatorId,
+                session: session
+            });
+            incidentReportCreated = true;
+        }
+
+        await session.commitTransaction();
+        session.endSession();
 
         return res.status(200).json({
             success: true,
@@ -3234,11 +3390,14 @@ export const setRequestTicketToComplete = async (req, res) => { //kapag work don
             data: {
                 ticket: updatedTicket,
                 scheduleCompleted: allCompleted,
-                extensionRequested: extensionRequest === 'true'
+                extensionRequested: extensionRequest === 'true',
+                incidentReportCreated: incidentReportCreated
             }
         });
 
     } catch (error) {
+        await session.abortTransaction();
+        session.endSession();
         console.error("Error marking ticket as completed:", error);
         return res.status(500).json({
             success: false,
@@ -3622,7 +3781,7 @@ export const declineExtensionRequest = async (req, res) => {
 };
 
 export const setExtenstionTicketToComplete = async (req, res) => {
-    const { extensionTicketId, operatorId, remarks } = req.body;
+    const { extensionTicketId, operatorId, remarks, incidentReport, incidentType, incidentDescription } = req.body;
 
     if (!extensionTicketId) {
         return res.status(400).json({ success: false, message: "Please provide the extension ticket ID." });
@@ -3635,6 +3794,16 @@ export const setExtenstionTicketToComplete = async (req, res) => {
             success: false,
             message: "Please provide both proof image and signature."
         });
+    }
+
+    // Validate incident report fields if incident report is requested
+    if (incidentReport === 'true') {
+        if (!incidentType || !incidentDescription || !incidentDescription.trim()) {
+            return res.status(400).json({
+                success: false,
+                message: "Please provide incident type and description for incident report."
+            });
+        }
     }
 
     const session = await mongoose.startSession();
@@ -3658,26 +3827,6 @@ export const setExtenstionTicketToComplete = async (req, res) => {
                 message: "Only ongoing extension tickets can be marked as completed."
             });
         }
-
-        // Validate assigned date is today
-        // if (extTicket.assignedDate) {
-        //     const toDateKey = (d) => {
-        //     const date = new Date(d);
-        //     return date.getFullYear() + '-' + 
-        //             String(date.getMonth() + 1).padStart(2, '0') + '-' + 
-        //             String(date.getDate()).padStart(2, '0');
-        //     };
-        //     const todayKey = toDateKey(new Date());
-        //     const assignedDateKey = toDateKey(extTicket.assignedDate);
-        //     if (assignedDateKey !== todayKey) {
-        //         await session.abortTransaction();
-        //         session.endSession();
-        //         return res.status(400).json({
-        //             success: false,
-        //             message: "Extension ticket can only be marked as completed on its assigned date."
-        //         });
-        //     }
-        // }
 
 
         // Validate operator
@@ -3764,6 +3913,23 @@ export const setExtenstionTicketToComplete = async (req, res) => {
 
         await parentTicket.save({ session });
 
+        // Create incident report if requested (must succeed or transaction will rollback)
+        let incidentReportCreated = false;
+        if (incidentReport === 'true') {
+            // Get parent ticket details for incident report
+            const parentTicketDetails = await global.machineriesModels.TicketRequest.findById(parentTicketId).session(session).lean();
+            await createIncidentReportHelper({
+                machineryUnitId: parentTicketDetails.assignedMachineUnit,
+                machineryTypeId: parentTicketDetails.requestedMachineType,
+                ticketRequestId: parentTicketId,
+                incidentType: incidentType,
+                description: incidentDescription,
+                assignedOperatorId: operatorId,
+                session: session
+            });
+            incidentReportCreated = true;
+        }
+
         await session.commitTransaction();
         session.endSession();
 
@@ -3772,7 +3938,8 @@ export const setExtenstionTicketToComplete = async (req, res) => {
             message: "Extension ticket and parent ticket marked as completed successfully.",
             data: {
                 extensionTicket: extTicket,
-                parentTicket
+                parentTicket,
+                incidentReportCreated: incidentReportCreated
             }
         });
 
@@ -3788,147 +3955,7 @@ export const setExtenstionTicketToComplete = async (req, res) => {
     }
 };
 
-export const createIncidentReport = async (req, res) => {// FOR TESTING
-    const {
-        machineryUnitId,
-        machineryTypeId,
-        ticketRequestId,
-        incidentType,
-        description,
-        assignedOperatorId
-    } = req.body;
 
-    // Validate required fields
-    if (!machineryUnitId || !machineryTypeId || !incidentType || !description || !assignedOperatorId) {
-        return res.status(400).json({
-            success: false,
-            message: "Please provide machineryUnitId, machineryTypeId, incidentType, description, and assignedOperatorId."
-        });
-    }
-
-    // Validate incidentType enum
-    const validIncidentTypes = ['Mechanical Failure', 'Electrical Failure', 'Hydraulic/Pneumatic Failure', 'Flat Tire or Track Issue', 'Machine Overheating', 'Fuel System Issue'];
-    if (!validIncidentTypes.includes(incidentType)) {
-        return res.status(400).json({
-            success: false,
-            message: "Invalid incident type. Must be one of: " + validIncidentTypes.join(', ')
-        });
-    }
-
-    // Automatically set status and condition for machinery unit
-    const newStatus = 'Under Repair';
-    const newCondition = 'Non-Functional';
-
-    try {
-        // Validate machinery unit exists
-        const machineryUnit = await global.machineriesModels.MachineriesUnit.findById(machineryUnitId);
-        if (!machineryUnit) {
-            return res.status(404).json({
-                success: false,
-                message: "Machinery unit not found."
-            });
-        }
-
-        // Validate machinery type exists
-        const machineryType = await global.machineriesModels.MachineriesType.findById(machineryTypeId);
-        if (!machineryType) {
-            return res.status(404).json({
-                success: false,
-                message: "Machinery type not found."
-            });
-        }
-
-        // Validate assigned operator exists
-        const assignedOperator = await global.globalModels.EmployeeAccount.findById(assignedOperatorId).lean();
-        if (!assignedOperator) {
-            return res.status(404).json({
-                success: false,
-                message: "Assigned operator not found."
-            });
-        }
-
-        // Validate ticket request if provided
-        if (ticketRequestId) {
-            const ticketRequest = await global.machineriesModels.TicketRequest.findById(ticketRequestId);
-            if (!ticketRequest) {
-                return res.status(404).json({
-                    success: false,
-                    message: "Ticket request not found."
-                });
-            }
-        }
-
-        // Create incident report
-        const incidentReportData = {
-            machineryUnitId,
-            machineryTypeId,
-            ticketRequestId: ticketRequestId || undefined,
-            incidentType,
-            description: description.trim(),
-            assignedOperator: {
-                operatorId: assignedOperator._id,
-                first_name: assignedOperator.first_name,
-                last_name: assignedOperator.last_name,
-                middle_name: assignedOperator.middle_name,
-                suffix: assignedOperator.suffix,
-                email: assignedOperator.email,
-                phone: assignedOperator.phone
-            },
-            status: 'Pending'
-        };
-
-        const incidentReport = await global.machineriesModels.IncidentReport.create(incidentReportData);
-
-        // Find the employee who created the report (we'll use the assigned operator as the employee)
-        const employee = assignedOperator; // Using assigned operator as the employee who made the change
-
-        // Build status history entry
-        const historyEntry = {
-            status: newStatus,
-            condition: newCondition,
-            reason: 'Incident Report Filed: ' + description.trim(), // Use description as reason as requested
-            changedBy: {
-                _id: employee._id,
-                first_name: employee.first_name,
-                last_name: employee.last_name,
-                middle_name: employee.middle_name,
-                suffix: employee.suffix,
-                email: employee.email,
-                phone: employee.phone
-            },
-            changedAt: new Date()
-        };
-
-        // Update machinery unit status
-        machineryUnit.status = 'Under Repair';
-        machineryUnit.condition = 'Non-Functional';
-
-        // Add to status history
-        machineryUnit.statusHistory.push(historyEntry);
-
-        await machineryUnit.save();
-
-        // Populate the incident report for response
-        const populatedIncidentReport = await global.machineriesModels.IncidentReport.findById(incidentReport._id)
-            .populate('machineryUnitId', 'unitNumber')
-            .populate('machineryTypeId', 'equipmentType')
-            .populate('ticketRequestId', 'refNumber');
-
-        return res.status(201).json({
-            success: true,
-            message: "Incident report created successfully.",
-            data: populatedIncidentReport
-        });
-
-    } catch (error) {
-        console.error("Error creating incident report:", error);
-        return res.status(500).json({
-            success: false,
-            message: "Error creating incident report.",
-            error: error.message
-        });
-    }
-};
 
 export const declineIncidentReport = async (req, res) => {//FOR TESTING
     const { incidentReportId, employeeId, reason } = req.body;
