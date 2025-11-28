@@ -267,6 +267,7 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
     const [isSettingEmployeeLeaveStatus, setIsSettingEmployeeLeaveStatus] = useState(false);
     const [isDecliningIncidentReport, setIsDecliningIncidentReport] = useState(false);
     const [isResolvingIncidentReport, setIsResolvingIncidentReport] = useState(false);
+    const [isConfirmingIncidentReport, setIsConfirmingIncidentReport] = useState(false);
 
     // Actions
     const createMachineryType = async (data) => {
@@ -594,6 +595,18 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         }
     };
 
+    const confirmIncidentReport = async (data) => {
+        setIsConfirmingIncidentReport(true);
+        try {
+            const res = await axios.post(`${API_URL}/api/machineries/confirm-incident-report`, data);
+            return res.data;
+        } catch (error) {
+            throw error;
+        } finally {
+            setIsConfirmingIncidentReport(false);
+        }
+    };
+
     
     return {
         // query data
@@ -643,6 +656,7 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         setEmployeeLeaveStatus,
         declineIncidentReport,
         resolveIncidentReport,
+        confirmIncidentReport,
 
         // loading states (queries)
         isLoadingPendingTicketRequests,
@@ -688,6 +702,7 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         isSettingEmployeeLeaveStatus,
         isDecliningIncidentReport,
         isResolvingIncidentReport,
+        isConfirmingIncidentReport,
 
         // error states
         pendingTicketRequestsError,

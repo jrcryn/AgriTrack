@@ -1710,6 +1710,156 @@ export const updateMachineryUnitStatus = async (req, res) => {
     }
 };
 
+export const confirmIncidentReport = async (req, res) => {
+    const { incidentReportId, employeeId } = req.body;
+
+    if (!incidentReportId || !employeeId) {
+        return res.status(400).json({
+            success: false,
+            message: "Please provide incident report ID and employee ID."
+        });
+    }
+
+    try {
+        // Validate employee
+        const employee = await global.globalModels.EmployeeAccount.findById(employeeId).lean();
+        if (!employee) {
+            return res.status(404).json({ 
+                success: false, 
+                message: "Employee account not found." 
+            });
+        }
+        if (!employee.roles || !employee.roles.includes('MIM')) {
+            return res.status(400).json({ 
+                success: false, 
+                message: "The provided user is not an authorized manager." 
+            });
+        }
+
+        // Find incident report
+        const incidentReport = await global.machineriesModels.IncidentReport.findById(incidentReportId);
+        if (!incidentReport) {
+            return res.status(404).json({ 
+                success: false, 
+                message: "Incident report not found." 
+            });
+        }
+
+        // Validate incident report status
+        if (incidentReport.status !== 'Pending') {
+            return res.status(400).json({
+                success: false,
+                message: "Only pending incident reports can be confirmed."
+            });
+        }
+
+        // Update incident report status to Confirmed
+        incidentReport.status = 'Confirmed';
+        await incidentReport.save();
+
+        // Note: When confirming, we keep the machinery unit in "Under Repair" status
+        // as it was already set when the incident report was created
+        // No need to change the machinery unit status here
+
+        // Populate the incident report for response
+        const populatedIncidentReport = await global.machineriesModels.IncidentReport.findById(incidentReport._id)
+            .populate('machineryUnitId', 'unitNumber')
+            .populate('machineryTypeId', 'equipmentType')
+            .populate('ticketRequestId', 'refNumber');
+
+        return res.status(200).json({
+            success: true,
+            message: "Incident report confirmed successfully.",
+            data: populatedIncidentReport
+        });
+
+    } catch (error) {
+        console.error("Error confirming incident report:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Error confirming incident report.",
+            error: error.message
+        });
+    }
+};
+
+export const getMachineIncidentReports = async (req, res) => {
+    const { searchQuery, status } = req.query;
+    
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+
+        // Build match criteria
+        const matchCriteria = {};
+        
+        // Filter by status if provided
+        if (status && status.trim() !== '') {
+            const validStatuses = ['Pending', 'Declined', 'Resolved', 'Confirmed'];
+            if (validStatuses.includes(status)) {
+                matchCriteria.status = status;
+            }
+        }
+
+        // Build search match if searchQuery is provided
+        let searchMatch = null;
+        if (searchQuery && searchQuery.trim() !== '') {
+            const words = searchQuery.trim().split(/\s+/);
+            const searchConditions = words.map((word) => ({
+                $or: [
+                    { incidentType: { $regex: word, $options: 'i' } },
+                    { description: { $regex: word, $options: 'i' } },
+                    { status: { $regex: word, $options: 'i' } },
+                    { 'assignedOperator.first_name': { $regex: word, $options: 'i' } },
+                    { 'assignedOperator.last_name': { $regex: word, $options: 'i' } },
+                    { 'assignedOperator.email': { $regex: word, $options: 'i' } }
+                ]
+            }));
+            searchMatch = { $and: searchConditions };
+        }
+
+        // Combine match criteria
+        const finalMatch = searchMatch 
+            ? { ...matchCriteria, ...searchMatch }
+            : matchCriteria;
+
+        // Fetch incident reports with pagination
+        const incidentReports = await global.machineriesModels.IncidentReport
+            .find(finalMatch)
+            .populate('machineryUnitId', 'unitNumber')
+            .populate('machineryTypeId', 'equipmentType ownerName')
+            .populate('ticketRequestId', 'refNumber')
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit)
+            .lean();
+
+        // Get total count
+        const totalCount = await global.machineriesModels.IncidentReport
+            .countDocuments(finalMatch);
+
+        return res.status(200).json({
+            success: true,
+            message: "Incident reports retrieved successfully.",
+            data: {
+                incidentReports,
+                totalCount,
+                totalPages: Math.ceil(totalCount / limit),
+                currentPage: page
+            }
+        });
+
+    } catch (error) {
+        console.error("Error fetching incident reports:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Error fetching incident reports.",
+            error: error.message
+        });
+    }
+};
+
 //============================================================TICKET REQUESTS (PENDING, SCHEDULED, ONGOING)============================================================
 
 const buildTicketSearchMatch = (searchQuery) => {
@@ -1892,7 +2042,7 @@ export const getPlannedWeeklySchedules = async (req, res) => { //planned or sche
     }
 };
 
-export const getInProgressWeeklySchedules = async (req, res) => { //in progress weekly schedules or ongoing schedules in the dashboard
+export const getInProgressWeeklySchedules = async (req, res) => { //in progress weekly schedules or ongoing schedules in the dashboard, also used in the returns page
     const { searchQuery } = req.query;
     try {
         const page = parseInt(req.query.page) || 1;
@@ -1939,6 +2089,14 @@ export const getInProgressWeeklySchedules = async (req, res) => { //in progress 
                 .lean();
         }
 
+        // Fetch incident reports for all tickets
+        let incidentReports = [];
+        if (ticketIds.length > 0) {
+            incidentReports = await global.machineriesModels.IncidentReport
+                .find({ ticketRequestId: { $in: ticketIds } })
+                .lean();
+        }
+
         // If searchQuery is present, filter tickets using buildTicketSearchMatch
         if (ticketSearchMatch) {
             ticketRequests = await global.machineriesModels.TicketRequest
@@ -1952,11 +2110,19 @@ export const getInProgressWeeklySchedules = async (req, res) => { //in progress 
             const enhancedTickets = schedule.ticketRequests.map(tr => {
                 let ticketDetails = null;
                 let extensionDetails = null;
+                let incidentReportDetails = null;
 
                 if (tr.ticketRequestId) {
                     ticketDetails = ticketRequests.find(
                         t => t._id && t._id.toString() === tr.ticketRequestId.toString()
                     );
+                    
+                    // Find incident report for this ticket if it exists
+                    if (ticketDetails) {
+                        incidentReportDetails = incidentReports.find(
+                            ir => ir.ticketRequestId && ir.ticketRequestId.toString() === tr.ticketRequestId.toString()
+                        ) || null;
+                    }
                 }
                 if (tr.extensionRequestId) {
                     extensionDetails = extensionTickets.find(
@@ -1966,7 +2132,10 @@ export const getInProgressWeeklySchedules = async (req, res) => { //in progress 
 
                 return {
                     ...tr,
-                    ticketDetails: ticketDetails || null,
+                    ticketDetails: ticketDetails ? {
+                        ...ticketDetails,
+                        incidentReport: incidentReportDetails
+                    } : null,
                     extensionDetails: extensionDetails || null
                 };
             }).filter(tr => {

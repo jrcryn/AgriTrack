@@ -64,7 +64,7 @@ export const IncidentReportSchema = new mongoose.Schema({
     status: {
         type: String,
         required: true,
-        enum: ['Pending', 'Declined', 'Resolved'],
+        enum: ['Pending', 'Declined', 'Resolved', 'Confirmed'],
         default: 'Pending'
     }
 }, { versionKey: false, timestamps: true });

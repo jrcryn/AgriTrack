@@ -212,7 +212,7 @@ const NavItem = ({ icon, children, path, linkName, onClick, ...rest }) => {
       case 'Returns':
         return { bg: "orange.500", color: "white" };
       case 'Machinery Management':
-        return { bg: "purple.500", color: "white" };
+        return { bg: "red.500", color: "white" };
       default:
         return { bg: "gray.500", color: "white" };
     }
@@ -250,16 +250,45 @@ const NavItem = ({ icon, children, path, linkName, onClick, ...rest }) => {
             as={icon} />
         )}
         <Text flex="1">{children}</Text>
-        {count !== undefined && count > 0 && (
-          <Badge
-            bg={badgeStyles.bg}
-            color={badgeStyles.color}
-            borderRadius="full"
-            px="2"
-            fontSize="0.8em"
-          >
-            {count}
-          </Badge>
+        {count !== undefined && (
+          linkName === 'Returns' && typeof count === 'object' ? (
+            <HStack spacing={1}>
+              {count.extension > 0 && (
+                <Badge
+                  bg={badgeStyles.bg}
+                  color={badgeStyles.color}
+                  borderRadius="full"
+                  px="2"
+                  fontSize="0.8em"
+                >
+                  {count.extension}
+                </Badge>
+              )}
+              {count.incident > 0 && (
+                <Badge
+                  bg="red.500"
+                  color="white"
+                  borderRadius="full"
+                  px="2"
+                  fontSize="0.8em"
+                >
+                  {count.incident}
+                </Badge>
+              )}
+            </HStack>
+          ) : (
+            typeof count === 'number' && count > 0 && (
+              <Badge
+                bg={badgeStyles.bg}
+                color={badgeStyles.color}
+                borderRadius="full"
+                px="2"
+                fontSize="0.8em"
+              >
+                {count}
+              </Badge>
+            )
+          )
         )}
       </Flex>
     </Box>

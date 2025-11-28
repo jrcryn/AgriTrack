@@ -377,6 +377,60 @@ console.log('Selected Ticket in CompletedDetailsPanel:', selectedTicket);
                 </>
               )}
 
+              {/* Incident Report Section */}
+              {selectedTicket?.incidentReport && (
+                <>
+                  <Box>
+                    <Heading size="sm" mb={4}>Incident Report</Heading>
+                    <Box bg="red.50" p={4} borderRadius="md" borderWidth="1px" borderColor="red.200">
+                      <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+                        <Box>
+                          <Text fontWeight="bold" fontSize="sm" color="gray.600">Incident Type</Text>
+                          <Badge colorScheme="red" mt={1} mb={2}>
+                            {selectedTicket.incidentReport.incidentType || 'N/A'}
+                          </Badge>
+                        </Box>
+                        <Box>
+                          <Text fontWeight="bold" fontSize="sm" color="gray.600">Status</Text>
+                          <Badge 
+                            colorScheme={
+                              selectedTicket.incidentReport.status === 'Pending' ? 'yellow' :
+                              selectedTicket.incidentReport.status === 'Resolved' ? 'green' :
+                              selectedTicket.incidentReport.status === 'Declined' ? 'red' :
+                              selectedTicket.incidentReport.status === 'Confirmed' ? 'blue' : 'gray'
+                            }
+                            mt={1}
+                            mb={2}
+                          >
+                            {selectedTicket.incidentReport.status || 'N/A'}
+                          </Badge>
+                        </Box>
+                        <Box gridColumn={{ base: '1', md: '1 / -1' }}>
+                          <Text fontWeight="bold" fontSize="sm" color="gray.600" mb={1}>Description</Text>
+                          <Text fontSize="sm" whiteSpace="pre-wrap">
+                            {selectedTicket.incidentReport.description || 'N/A'}
+                          </Text>
+                        </Box>
+                        {selectedTicket.incidentReport.assignedOperator && (
+                          <Box>
+                            <Text fontWeight="bold" fontSize="sm" color="gray.600">Reported By</Text>
+                            <Text fontSize="sm">
+                              {`${selectedTicket.incidentReport.assignedOperator.first_name || ''} ${selectedTicket.incidentReport.assignedOperator.last_name || ''}`}
+                            </Text>
+                          </Box>
+                        )}
+                        {selectedTicket.incidentReport.createdAt && (
+                          <Box>
+                            <Text fontWeight="bold" fontSize="sm" color="gray.600">Reported Date</Text>
+                            <Text fontSize="sm">{formatDate(selectedTicket.incidentReport.createdAt)}</Text>
+                          </Box>
+                        )}
+                      </SimpleGrid>
+                    </Box>
+                  </Box>
+                  <Divider />
+                </>
+              )}
 
               {/* Proof Images Section */}
               <Box>

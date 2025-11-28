@@ -40,6 +40,7 @@ import {
     getMachineTypeUnitCounts,
     declineIncidentReport,
     resolveIncidentReport,
+    confirmIncidentReport,
     getPendingIncidentReportsCount,
     
     deleteScheduleAndTickets
@@ -123,6 +124,7 @@ router.post('/set-employee-leave-status', verifyAuthToken, verifyRole(['MIM']), 
 
 router.post('/decline-incident-report', verifyAuthToken, verifyRole(['MIM', 'MIS']), declineIncidentReport);
 router.post('/resolve-incident-report', verifyAuthToken, verifyRole(['MIM', 'MIS']), resolveIncidentReport);
+router.post('/confirm-incident-report', verifyAuthToken, verifyRole(['MIM', 'MIS']), confirmIncidentReport);
 
 router.post('/delete-schedule-and-tickets/:scheduleId', deleteScheduleAndTickets); //FOR DEBUGGING AND TESTING PURPOSES ONLY
 export default router;
