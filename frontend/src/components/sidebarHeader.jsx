@@ -108,9 +108,10 @@ const SidebarContent = ({ onClose, ...rest }) => {
     outgoingDocuments,
   } = useDocTrackDashboard();
 
-  const { pendingExtensionCount } = useMachineriesDashboard();
+  const { pendingExtensionCount, pendingIncidentReportsCount } = useMachineriesDashboard();
 
   const extensionCount = pendingExtensionCount?.data?.count ?? 0;
+  const incidentReportsCount = pendingIncidentReportsCount?.data?.count ?? 0;
 
   const incomingCount = forwardedDocuments?.data?.totalCount ?? 0;
   const pendingCount = pendingDocuments?.data?.totalCount ?? 0;
@@ -163,6 +164,7 @@ const SidebarContent = ({ onClose, ...rest }) => {
             link.name === 'Pending' ? pendingCount :
             link.name === 'Forwarded' ? outgoingCount :
             link.name === 'Returns' ? extensionCount :
+            link.name === 'Machinery Management' ? incidentReportsCount :
             undefined
           }
           linkName={link.name}
@@ -209,6 +211,8 @@ const NavItem = ({ icon, children, path, linkName, onClick, ...rest }) => {
         return { bg: "red.500", color: "white" };
       case 'Returns':
         return { bg: "orange.500", color: "white" };
+      case 'Machinery Management':
+        return { bg: "purple.500", color: "white" };
       default:
         return { bg: "gray.500", color: "white" };
     }

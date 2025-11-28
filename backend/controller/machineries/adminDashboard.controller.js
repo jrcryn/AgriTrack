@@ -2995,6 +2995,28 @@ export const getPendingExtensionRequestsCount = async (req, res) => {
     }
 };
 
+export const getPendingIncidentReportsCount = async (req, res) => {
+    try {
+        // Find all incident reports with pending status
+        const count = await global.machineriesModels.IncidentReport.countDocuments({ status: 'Pending' });
+
+        return res.status(200).json({
+            success: true,
+            message: "Pending incident reports count retrieved successfully.",
+            data: {
+                count
+            }
+        });
+    } catch (error) {
+        console.error("Error fetching pending incident reports count:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Error fetching pending incident reports count.",
+            error: error.message
+        });
+    }
+};
+
 import { uploadFileToDrive } from '../googleDrive.controller.js';
 
 export const setRequestTicketToComplete = async (req, res) => { //kapag work done na
@@ -3877,22 +3899,9 @@ export const createIncidentReport = async (req, res) => {// FOR TESTING
             changedAt: new Date()
         };
 
-        // Handle retirement (not applicable for 'Under Repair', but keeping for consistency)
-        if (newStatus === 'Retired') {
-            machineryUnit.isRetired = true;
-            machineryUnit.retiredDate = new Date();
-        } else {
-            // If changing from Retired to another status, clear retirement flags
-            if (machineryUnit.isRetired) {
-                machineryUnit.isRetired = false;
-                machineryUnit.retiredDate = undefined;
-            }
-        }
-
         // Update machinery unit status
-        machineryUnit.status = newStatus;
-        machineryUnit.condition = newCondition;
-        machineryUnit.remarks = description.trim(); // Use description as remarks
+        machineryUnit.status = 'Under Repair';
+        machineryUnit.condition = 'Non-Functional';
 
         // Add to status history
         machineryUnit.statusHistory.push(historyEntry);
@@ -3978,69 +3987,32 @@ export const declineIncidentReport = async (req, res) => {//FOR TESTING
         // Revert machine unit back to Available and Functional
         const machineryUnit = await global.machineriesModels.MachineriesUnit.findById(incidentReport.machineryUnitId);
         if (machineryUnit) {
-            // Check if this machine unit is still assigned to any ongoing tickets
-            const ongoingTicketCount = await global.machineriesModels.TicketRequest.countDocuments({
-                status: 'Ongoing',
-                'assignedMachineUnit.assignedMachineUnitId': incidentReport.machineryUnitId
-            });
+            // Build status history entry
+            const historyEntry = {
+                status: 'Available',
+                condition: 'Functional',
+                reason: 'Incident Report Declined: ' + reason.trim(),
+                changedBy: {
+                    _id: employee._id,
+                    first_name: employee.first_name,
+                    last_name: employee.last_name,
+                    middle_name: employee.middle_name,
+                    suffix: employee.suffix,
+                    email: employee.email,
+                    phone: employee.phone
+                },
+                changedAt: new Date()
+            };
 
-            const ongoingExtTicketCount = await global.machineriesModels.ExtensionTicket.countDocuments({
-                status: 'Ongoing',
-                'assignedMachineUnit.assignedMachineUnitId': incidentReport.machineryUnitId
-            });
+            // Update machinery unit status
+            machineryUnit.status = 'Available';
+            machineryUnit.condition = 'Functional';
+            machineryUnit.remarks = 'Incident Report Declined: ' + reason.trim();
 
-            // Only set to Available if no ongoing tickets are using it
-            if (ongoingTicketCount === 0 && ongoingExtTicketCount === 0) {
-                // Build status history entry
-                const historyEntry = {
-                    status: 'Available',
-                    condition: 'Functional',
-                    reason: reason.trim(),
-                    changedBy: {
-                        _id: employee._id,
-                        first_name: employee.first_name,
-                        last_name: employee.last_name,
-                        middle_name: employee.middle_name,
-                        suffix: employee.suffix,
-                        email: employee.email,
-                        phone: employee.phone
-                    },
-                    changedAt: new Date()
-                };
+            // Add to status history
+            machineryUnit.statusHistory.push(historyEntry);
 
-                // Update machinery unit status
-                machineryUnit.status = 'Available';
-                machineryUnit.condition = 'Functional';
-                machineryUnit.remarks = reason.trim();
-
-                // Add to status history
-                machineryUnit.statusHistory.push(historyEntry);
-
-                await machineryUnit.save();
-            } else {
-                // If still in use, just update condition to Functional but keep status as 'In Use'
-                const historyEntry = {
-                    status: machineryUnit.status, // Keep current status
-                    condition: 'Functional',
-                    reason: reason.trim(),
-                    changedBy: {
-                        _id: employee._id,
-                        first_name: employee.first_name,
-                        last_name: employee.last_name,
-                        middle_name: employee.middle_name,
-                        suffix: employee.suffix,
-                        email: employee.email,
-                        phone: employee.phone
-                    },
-                    changedAt: new Date()
-                };
-
-                machineryUnit.condition = 'Functional';
-                machineryUnit.remarks = reason.trim();
-                machineryUnit.statusHistory.push(historyEntry);
-
-                await machineryUnit.save();
-            }
+            await machineryUnit.save();
         }
 
         // Populate the incident report for response
@@ -4066,7 +4038,7 @@ export const declineIncidentReport = async (req, res) => {//FOR TESTING
 };
 
 export const resolveIncidentReport = async (req, res) => {//FOR TESTING
-    const { incidentReportId, employeeId, reason } = req.body;
+    const { incidentReportId, employeeId, newStatus, newCondition, reason } = req.body;
 
     if (!incidentReportId || !employeeId) {
         return res.status(400).json({
@@ -4075,10 +4047,35 @@ export const resolveIncidentReport = async (req, res) => {//FOR TESTING
         });
     }
 
+    if (!newStatus || !newCondition) {
+        return res.status(400).json({
+            success: false,
+            message: "Please provide new status and new condition for the machine unit."
+        });
+    }
+
     if (!reason || !reason.trim()) {
         return res.status(400).json({
             success: false,
             message: "Please provide a reason/notes for resolving the incident report."
+        });
+    }
+
+    // Validate status and condition enums
+    const validStatuses = ['Available', 'In Use', 'Under Repair', 'Retired', 'Not for Use'];
+    const validConditions = ['Functional', 'Non-Functional'];
+
+    if (!validStatuses.includes(newStatus)) {
+        return res.status(400).json({
+            success: false,
+            message: "Invalid status. Must be one of: " + validStatuses.join(', ')
+        });
+    }
+
+    if (!validConditions.includes(newCondition)) {
+        return res.status(400).json({
+            success: false,
+            message: "Invalid condition. Must be one of: " + validConditions.join(', ')
         });
     }
 
@@ -4119,73 +4116,53 @@ export const resolveIncidentReport = async (req, res) => {//FOR TESTING
         incidentReport.status = 'Resolved';
         await incidentReport.save();
 
-        // Set machine unit to Available and Functional
+        // Update machine unit status and condition as specified by user
         const machineryUnit = await global.machineriesModels.MachineriesUnit.findById(incidentReport.machineryUnitId);
-        if (machineryUnit) {
-            // Check if this machine unit is still assigned to any ongoing tickets
-            const ongoingTicketCount = await global.machineriesModels.TicketRequest.countDocuments({
-                status: 'Ongoing',
-                'assignedMachineUnit.assignedMachineUnitId': incidentReport.machineryUnitId
+        if (!machineryUnit) {
+            return res.status(404).json({
+                success: false,
+                message: "Machinery unit not found."
             });
+        }
 
-            const ongoingExtTicketCount = await global.machineriesModels.ExtensionTicket.countDocuments({
-                status: 'Ongoing',
-                'assignedMachineUnit.assignedMachineUnitId': incidentReport.machineryUnitId
-            });
+        // Build status history entry
+        const historyEntry = {
+            status: newStatus,
+            condition: newCondition,
+            reason: 'Incident Report Resolved: ' + reason.trim(),
+            changedBy: {
+                _id: employee._id,
+                first_name: employee.first_name,
+                last_name: employee.last_name,
+                middle_name: employee.middle_name,
+                suffix: employee.suffix,
+                email: employee.email,
+                phone: employee.phone
+            },
+            changedAt: new Date()
+        };
 
-            // Only set to Available if no ongoing tickets are using it
-            if (ongoingTicketCount === 0 && ongoingExtTicketCount === 0) {
-                // Build status history entry
-                const historyEntry = {
-                    status: 'Available',
-                    condition: 'Functional',
-                    reason: reason.trim(),
-                    changedBy: {
-                        _id: employee._id,
-                        first_name: employee.first_name,
-                        last_name: employee.last_name,
-                        middle_name: employee.middle_name,
-                        suffix: employee.suffix,
-                        email: employee.email,
-                        phone: employee.phone
-                    },
-                    changedAt: new Date()
-                };
-
-                // Update machinery unit status
-                machineryUnit.status = 'Available';
-                machineryUnit.condition = 'Functional';
-                machineryUnit.remarks = reason.trim();
-
-                // Add to status history
-                machineryUnit.statusHistory.push(historyEntry);
-
-                await machineryUnit.save();
-            } else {
-                // If still in use, just update condition to Functional but keep status as 'In Use'
-                const historyEntry = {
-                    status: machineryUnit.status, // Keep current status
-                    condition: 'Functional',
-                    reason: reason.trim(),
-                    changedBy: {
-                        _id: employee._id,
-                        first_name: employee.first_name,
-                        last_name: employee.last_name,
-                        middle_name: employee.middle_name,
-                        suffix: employee.suffix,
-                        email: employee.email,
-                        phone: employee.phone
-                    },
-                    changedAt: new Date()
-                };
-
-                machineryUnit.condition = 'Functional';
-                machineryUnit.remarks = reason.trim();
-                machineryUnit.statusHistory.push(historyEntry);
-
-                await machineryUnit.save();
+        // Handle retirement
+        if (newStatus === 'Retired') {
+            machineryUnit.isRetired = true;
+            machineryUnit.retiredDate = new Date();
+        } else {
+            // If changing from Retired to another status, clear retirement flags
+            if (machineryUnit.isRetired) {
+                machineryUnit.isRetired = false;
+                machineryUnit.retiredDate = undefined;
             }
         }
+
+        // Update machinery unit status
+        machineryUnit.status = newStatus;
+        machineryUnit.condition = newCondition;
+        machineryUnit.remarks = reason.trim();
+
+        // Add to status history
+        machineryUnit.statusHistory.push(historyEntry);
+
+        await machineryUnit.save();
 
         // Populate the incident report for response
         const populatedIncidentReport = await global.machineriesModels.IncidentReport.findById(incidentReport._id)

@@ -38,6 +38,10 @@ import {
     removeOperatorLicense,
     setEmployeeLeaveStatus,
     getMachineTypeUnitCounts,
+    createIncidentReport,
+    declineIncidentReport,
+    resolveIncidentReport,
+    getPendingIncidentReportsCount,
     
     deleteScheduleAndTickets
 } from '../controller/machineries/adminDashboard.controller.js';
@@ -87,6 +91,7 @@ router.get('/get-available-machinery-types', availableMachineryTypes); //working
 router.post('/submit-ticket-request', createTicketRequestForm); //working
 
 router.get('/pending-extension-count', verifyAuthToken, verifyRole(['MIM', 'MIS']), getPendingExtensionRequestsCount);
+router.get('/pending-incident-reports-count', verifyAuthToken, verifyRole(['MIM', 'MIS']), getPendingIncidentReportsCount);
 router.post('/approve-extension-request', verifyAuthToken, verifyRole(['MIM', 'MIS']), approveExtensionRequest);
 router.post('/decline-extension-request', verifyAuthToken, verifyRole(['MIM', 'MIS']), declineExtensionRequest);
 router.post('/extension-ticket-complete', 
@@ -116,6 +121,10 @@ router.post('/add-operator-license', verifyAuthToken, verifyRole(['MIM']), addOp
 router.put('/update-operator-license', verifyAuthToken, verifyRole(['MIM']), updateOperatorLicense);
 router.post('/remove-operator-license', verifyAuthToken, verifyRole(['MIM']), removeOperatorLicense);
 router.post('/set-employee-leave-status', verifyAuthToken, verifyRole(['MIM']), setEmployeeLeaveStatus);
+
+router.post('/create-incident-report', verifyAuthToken, verifyRole(['MIM', 'MIS']), createIncidentReport);
+router.post('/decline-incident-report', verifyAuthToken, verifyRole(['MIM', 'MIS']), declineIncidentReport);
+router.post('/resolve-incident-report', verifyAuthToken, verifyRole(['MIM', 'MIS']), resolveIncidentReport);
 
 router.post('/delete-schedule-and-tickets/:scheduleId', deleteScheduleAndTickets); //FOR DEBUGGING AND TESTING PURPOSES ONLY
 export default router;

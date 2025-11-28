@@ -65,11 +65,21 @@ const useInProgressWeeklySchedulesQuery = (page = 1, searchQuery = {}, role) =>
         enabled: role === 'MIM' || role === 'MIS',
     });
 
-export const usePendingExtensionRequestsCountQuery = (role) =>
+const usePendingExtensionRequestsCountQuery = (role) =>
     useQuery({
         queryKey: ['pendingExtensionCount'],
         queryFn: async () => {
             const response = await axios.get(`${API_URL}/api/machineries/pending-extension-count`);
+            return response.data;
+        },
+        enabled: role === 'MIM' || role === 'MIS',
+});
+
+const usePendingIncidentReportsCountQuery = (role) =>
+    useQuery({
+        queryKey: ['pendingIncidentReportsCount'],
+        queryFn: async () => {
+            const response = await axios.get(`${API_URL}/api/machineries/pending-incident-reports-count`);
             return response.data;
         },
         enabled: role === 'MIM' || role === 'MIS',
@@ -200,6 +210,9 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
     const { data: pendingExtensionCount = 0, isLoading: isLoadingPendingExtensionCount, error: pendingExtensionCountError } =
         usePendingExtensionRequestsCountQuery(role);
     
+    const { data: pendingIncidentReportsCount = 0, isLoading: isLoadingPendingIncidentReportsCount, error: pendingIncidentReportsCountError } =
+        usePendingIncidentReportsCountQuery(role);
+    
     const { data: occupiedDatesForScheduling = [], isLoading: isLoadingOccupiedDatesForScheduling, error: occupiedDatesForSchedulingError } =
         useOccupiedDatesForSchedulingQuery(role);
 
@@ -252,6 +265,9 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
     const [isUpdatingOperatorLicense, setIsUpdatingOperatorLicense] = useState(false);
     const [isRemovingOperatorLicense, setIsRemovingOperatorLicense] = useState(false);
     const [isSettingEmployeeLeaveStatus, setIsSettingEmployeeLeaveStatus] = useState(false);
+    const [isCreatingIncidentReport, setIsCreatingIncidentReport] = useState(false);
+    const [isDecliningIncidentReport, setIsDecliningIncidentReport] = useState(false);
+    const [isResolvingIncidentReport, setIsResolvingIncidentReport] = useState(false);
 
     // Actions
     const createMachineryType = async (data) => {
@@ -555,6 +571,42 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         }
     };
 
+    const createIncidentReport = async (data) => {
+        setIsCreatingIncidentReport(true);
+        try {
+            const res = await axios.post(`${API_URL}/api/machineries/create-incident-report`, data);
+            return res.data;
+        } catch (error) {
+            throw error;
+        } finally {
+            setIsCreatingIncidentReport(false);
+        }
+    };
+
+    const declineIncidentReport = async (data) => {
+        setIsDecliningIncidentReport(true);
+        try {
+            const res = await axios.post(`${API_URL}/api/machineries/decline-incident-report`, data);
+            return res.data;
+        } catch (error) {
+            throw error;
+        } finally {
+            setIsDecliningIncidentReport(false);
+        }
+    };
+
+    const resolveIncidentReport = async (data) => {
+        setIsResolvingIncidentReport(true);
+        try {
+            const res = await axios.post(`${API_URL}/api/machineries/resolve-incident-report`, data);
+            return res.data;
+        } catch (error) {
+            throw error;
+        } finally {
+            setIsResolvingIncidentReport(false);
+        }
+    };
+
     
     return {
         // query data
@@ -564,6 +616,7 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         plannedWeeklySchedules, 
         inProgressWeeklySchedules,
         pendingExtensionCount,
+        pendingIncidentReportsCount,
         occupiedDatesForScheduling,
         operatorAssignedNumbers,
         machineUnits, 
@@ -601,6 +654,9 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         updateOperatorLicense,
         removeOperatorLicense,
         setEmployeeLeaveStatus,
+        createIncidentReport,
+        declineIncidentReport,
+        resolveIncidentReport,
 
         // loading states (queries)
         isLoadingPendingTicketRequests,
@@ -609,6 +665,7 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         isLoadingPlannedWeeklySchedules, 
         isLoadingInProgressWeeklySchedules,
         isLoadingPendingExtensionCount,
+        isLoadingPendingIncidentReportsCount,
         isLoadingOccupiedDatesForScheduling,
         isLoadingOperatorAssignedNumbers,
         isLoadingMachineUnits,
@@ -643,6 +700,9 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         isUpdatingOperatorLicense,
         isRemovingOperatorLicense,
         isSettingEmployeeLeaveStatus,
+        isCreatingIncidentReport,
+        isDecliningIncidentReport,
+        isResolvingIncidentReport,
 
         // error states
         pendingTicketRequestsError,
@@ -651,6 +711,7 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         plannedWeeklySchedulesError, 
         inProgressWeeklySchedulesError,
         pendingExtensionCountError,
+        pendingIncidentReportsCountError,
         occupiedDatesForSchedulingError,
         operatorAssignedNumbersError,
         machineUnitsError,
