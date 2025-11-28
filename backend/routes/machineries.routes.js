@@ -42,6 +42,7 @@ import {
     resolveIncidentReport,
     confirmIncidentReport,
     getPendingIncidentReportsCount,
+    performMachineCountCheck,
     
     deleteScheduleAndTickets
 } from '../controller/machineries/adminDashboard.controller.js';
@@ -125,6 +126,8 @@ router.post('/set-employee-leave-status', verifyAuthToken, verifyRole(['MIM']), 
 router.post('/decline-incident-report', verifyAuthToken, verifyRole(['MIM', 'MIS']), declineIncidentReport);
 router.post('/resolve-incident-report', verifyAuthToken, verifyRole(['MIM', 'MIS']), resolveIncidentReport);
 router.post('/confirm-incident-report', verifyAuthToken, verifyRole(['MIM', 'MIS']), confirmIncidentReport);
+
+router.post('/perform-machine-count-check', verifyAuthToken, verifyRole(['MIM', 'MIS']), performMachineCountCheck);
 
 router.post('/delete-schedule-and-tickets/:scheduleId', deleteScheduleAndTickets); //FOR DEBUGGING AND TESTING PURPOSES ONLY
 export default router;

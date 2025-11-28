@@ -1861,7 +1861,104 @@ export const getMachineIncidentReports = async (req, res) => {
 };
 
 export const performMachineCountCheck = async (req, res) => {
-    
+    const { machineUnitIds, employeeId } = req.body;
+
+    // Validate required fields
+    if (!machineUnitIds || !Array.isArray(machineUnitIds) || machineUnitIds.length === 0) {
+        return res.status(400).json({
+            success: false,
+            message: "Please provide an array of machine unit IDs."
+        });
+    }
+
+    if (!employeeId) {
+        return res.status(400).json({
+            success: false,
+            message: "Please provide employee ID."
+        });
+    }
+
+    try {
+        // Validate employee exists
+        const employee = await global.globalModels.EmployeeAccount.findById(employeeId).lean();
+        if (!employee) {
+            return res.status(404).json({
+                success: false,
+                message: "Employee account not found."
+            });
+        }
+
+        // Get all machine units from the database (excluding retired ones)
+        const allMachineUnits = await global.machineriesModels.MachineriesUnit
+            .find({ isRetired: { $ne: true } })
+            .select('_id unitNumber status')
+            .lean();
+
+        // Find machine units that exist in the provided array
+        const foundMachineUnits = [];
+        const notFoundMachineUnits = [];
+
+        // Check each machine unit ID from the database
+        allMachineUnits.forEach(unit => {
+            const unitIdStr = unit._id.toString();
+            if (machineUnitIds.includes(unitIdStr)) {
+                foundMachineUnits.push(unit._id);
+            } else {
+                notFoundMachineUnits.push(unit._id);
+            }
+        });
+
+        // Determine if there's a discrepancy
+        const discrepancyFound = notFoundMachineUnits.length > 0;
+
+        // Create physical counting record
+        const physicalCounting = await global.machineriesModels.MachinePhysicalCounting.create({
+            machineUnits: foundMachineUnits,
+            notFoundMachineUnits: notFoundMachineUnits,
+            countingDate: new Date(),
+            discrepancyFound,
+            assignedEmployee: {
+                employeeId: employee._id,
+                first_name: employee.first_name,
+                last_name: employee.last_name,
+                middle_name: employee.middle_name,
+                suffix: employee.suffix,
+                email: employee.email,
+                phone: employee.phone
+            }
+        });
+
+        // Populate the machine units for detailed response
+        const populatedCounting = await global.machineriesModels.MachinePhysicalCounting
+            .findById(physicalCounting._id)
+            .populate('machineUnits', 'unitNumber status')
+            .populate('notFoundMachineUnits', 'unitNumber status')
+            .lean();
+
+        return res.status(201).json({
+            success: true,
+            message: discrepancyFound 
+                ? `Physical count completed with discrepancies. ${notFoundMachineUnits.length} machine unit(s) not found.`
+                : "Physical count completed successfully. All machines accounted for.",
+            data: {
+                physicalCounting: populatedCounting,
+                summary: {
+                    totalMachineUnits: allMachineUnits.length,
+                    foundCount: foundMachineUnits.length,
+                    notFoundCount: notFoundMachineUnits.length,
+                    discrepancyFound
+                }
+            }
+        });
+
+    } catch (error) {
+        console.error("Error performing machine count check:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Error performing machine count check.",
+            error: error.message
+        });
+    }
 };
 
 //============================================================TICKET REQUESTS (PENDING, SCHEDULED, ONGOING)============================================================
