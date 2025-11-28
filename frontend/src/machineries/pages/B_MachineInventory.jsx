@@ -86,6 +86,7 @@ const B_MachineInventory = () => {
   const { isOpen: isOpenRegister, onOpen: onOpenRegister, onClose: onCloseRegister } = useDisclosure();
   const { isOpen: isOpenCountCheck, onOpen: onOpenCountCheck, onClose: onCloseCountCheck } = useDisclosure();
   const { isOpen: isOpenPreviousCounts, onOpen: onOpenPreviousCounts, onClose: onClosePreviousCounts } = useDisclosure();
+  const { isOpen: isOpenResolveDiscrepancy, onOpen: onOpenResolveDiscrepancy, onClose: onCloseResolveDiscrepancy } = useDisclosure();
 
   // Other state declarations
   const [selectedUnit, setSelectedUnit] = useState(null);
@@ -97,6 +98,8 @@ const B_MachineInventory = () => {
   const [activeTab, setActiveTab] = useState(0);
   const [selectedMachineUnits, setSelectedMachineUnits] = useState(new Set());
   const [countRemarks, setCountRemarks] = useState("");
+  const [selectedPhysicalCountingRecord, setSelectedPhysicalCountingRecord] = useState(null);
+  const [resolveRemarks, setResolveRemarks] = useState("");
   const [machineTypeData, setMachineTypeData] = useState({
     equipmentType: '',
     ownerName: '',
@@ -152,7 +155,10 @@ const B_MachineInventory = () => {
 
     physicalCountingRecords,
     isLoadingPhysicalCountingRecords,
-    physicalCountingRecordsError
+    physicalCountingRecordsError,
+
+    resolveDiscrepancyInPhysicalCount,
+    isResolvingDiscrepancyInPhysicalCount
   } = useAdminDashboard({ machineUnitsPage, previousCountsPage }, { searchQuery });
 
   const getOverviewStats = () => {
@@ -329,6 +335,54 @@ const B_MachineInventory = () => {
       toast({
         title: "Error",
         description: error?.response?.data?.message || error?.message || "Failed to perform machine count check",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  };
+
+  // Handle resolve discrepancy in physical count
+  const handleResolveDiscrepancy = async () => {
+    if (!selectedPhysicalCountingRecord?._id) {
+      toast({
+        title: "Error",
+        description: "Physical counting record not found",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    try {
+      const result = await resolveDiscrepancyInPhysicalCount({
+        physicalCountingId: selectedPhysicalCountingRecord._id,
+        resolveRemarks: resolveRemarks.trim() || '',
+      });
+
+      toast({
+        title: "Success",
+        description: result.message || "Discrepancy resolved successfully",
+        status: "success",
+        duration: 5000,
+        isClosable: true,
+      });
+
+      // Reset form and close modal
+      setSelectedPhysicalCountingRecord(null);
+      setResolveRemarks("");
+      onCloseResolveDiscrepancy();
+
+      // Invalidate queries to refresh data
+      await queryClient.invalidateQueries({ queryKey: ['physicalCountingRecords'] });
+      await queryClient.invalidateQueries({ queryKey: ['machineUnits'] });
+      await queryClient.invalidateQueries({ queryKey: ['machineOverview'] });
+
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error?.response?.data?.message || error?.message || "Failed to resolve discrepancy",
         status: "error",
         duration: 5000,
         isClosable: true,
@@ -2229,7 +2283,7 @@ const B_MachineInventory = () => {
                             <Td display={{ base: "none", lg: "table-cell" }}>
                               <Tooltip label={record.remarks || 'No remarks'} placement="top" hasArrow>
                                 <Text fontSize="sm" noOfLines={2} maxW="200px" cursor="help">
-                                  {record.remarks || 'N/A'}
+                                  {record.discrepancyFound === 'Resolved' ? record.resolveRemarks : record.remarks || 'N/A'}
                                 </Text>
                               </Tooltip>
                             </Td>
@@ -2246,15 +2300,11 @@ const B_MachineInventory = () => {
                                   colorScheme="orange"
                                   variant="outline"
                                   onClick={() => {
-                                    // TODO: Implement resolve functionality
-                                    toast({
-                                      title: "Resolve Discrepancy",
-                                      description: "Resolve functionality will be implemented later",
-                                      status: "info",
-                                      duration: 3000,
-                                      isClosable: true,
-                                    });
+                                    setSelectedPhysicalCountingRecord(record);
+                                    setResolveRemarks("");
+                                    onOpenResolveDiscrepancy();
                                   }}
+                                  isDisabled={isResolvingDiscrepancyInPhysicalCount}
                                 >
                                   Resolve
                                 </Button>
@@ -2326,6 +2376,142 @@ const B_MachineInventory = () => {
             _hover={{ bg: "gray.100" }}
           >
             Close
+          </Button>
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
+
+    {/* Resolve Discrepancy Modal */}
+    <Modal
+      isOpen={isOpenResolveDiscrepancy}
+      onClose={() => {
+        setSelectedPhysicalCountingRecord(null);
+        setResolveRemarks("");
+        onCloseResolveDiscrepancy();
+      }}
+      size="md"
+      closeOnOverlayClick={false}
+      scrollBehavior="inside"
+      isCentered
+      motionPreset="none"
+      blockScrollOnMount={false}
+    >
+      <ModalOverlay />
+      <ModalContent borderRadius="lg" overflow="hidden">
+        <ModalHeader
+          bg="orange.50"
+          borderBottomWidth="1px"
+          borderColor="gray.200"
+          py={4}
+          display="flex"
+          alignItems="center"
+        >
+          <Icon as={FaCheckCircle} mr={2} color="orange.500" />
+          Resolve Discrepancy
+        </ModalHeader>
+        
+        <ModalBody py={6}>
+          <Stack spacing={4}>
+            <Alert status="info" borderRadius="md" variant="left-accent">
+              <AlertIcon />
+              <Box>
+                <AlertTitle fontSize="sm">Resolve Physical Count Discrepancy</AlertTitle>
+                <AlertDescription fontSize="xs">
+                  This will mark the discrepancy as resolved. You can optionally add remarks about how the discrepancy was resolved.
+                </AlertDescription>
+              </Box>
+            </Alert>
+
+            {/* Record Information */}
+            {selectedPhysicalCountingRecord && (
+              <Box
+                p={3}
+                bg="gray.50"
+                borderRadius="md"
+                borderWidth="1px"
+                borderColor="gray.200"
+              >
+                <Text fontSize="xs" color="gray.500" fontWeight="medium" mb={2}>Counting Date</Text>
+                <Text fontWeight="semibold" fontSize="sm">
+                  {selectedPhysicalCountingRecord.countingDate 
+                    ? new Date(selectedPhysicalCountingRecord.countingDate).toLocaleString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })
+                    : 'N/A'}
+                </Text>
+                <Text fontSize="xs" color="gray.500" fontWeight="medium" mt={2} mb={1}>Summary</Text>
+                <Flex gap={4} mt={1}>
+                  <Box>
+                    <Text fontSize="xs" color="gray.500">Found Units</Text>
+                    <Text fontWeight="semibold" color="green.600">
+                      {selectedPhysicalCountingRecord.machineUnits?.length || 0}
+                    </Text>
+                  </Box>
+                  <Box>
+                    <Text fontSize="xs" color="gray.500">Not Found Units</Text>
+                    <Text fontWeight="semibold" color="red.600">
+                      {selectedPhysicalCountingRecord.notFoundMachineUnits?.length || 0}
+                    </Text>
+                  </Box>
+                </Flex>
+              </Box>
+            )}
+
+            <Divider />
+
+            {/* Resolve Remarks Textarea */}
+            <FormControl>
+              <FormLabel fontSize="sm" fontWeight="medium">
+                Resolution Remarks (Optional)
+              </FormLabel>
+              <Textarea
+                placeholder="Enter remarks about how the discrepancy was resolved..."
+                value={resolveRemarks}
+                onChange={(e) => setResolveRemarks(e.target.value)}
+                bg="white"
+                minH="100px"
+                resize="vertical"
+              />
+              <Text fontSize="xs" color="gray.500" mt={1}>
+                Add any notes about how the discrepancy was resolved
+              </Text>
+            </FormControl>
+          </Stack>
+        </ModalBody>
+        
+        <ModalFooter
+          bg="gray.50"
+          borderTopWidth="1px"
+          borderColor="gray.200"
+          py={4}
+          gap={2}
+        >
+          <Button
+            variant="outline"
+            onClick={() => {
+              setSelectedPhysicalCountingRecord(null);
+              setResolveRemarks("");
+              onCloseResolveDiscrepancy();
+            }}
+            size="md"
+            _hover={{ bg: "gray.100" }}
+            isDisabled={isResolvingDiscrepancyInPhysicalCount}
+          >
+            Cancel
+          </Button>
+          <Button
+            colorScheme="orange"
+            onClick={handleResolveDiscrepancy}
+            size="md"
+            isLoading={isResolvingDiscrepancyInPhysicalCount}
+            isDisabled={isResolvingDiscrepancyInPhysicalCount}
+            leftIcon={<FaCheckCircle />}
+          >
+            Resolve Discrepancy
           </Button>
         </ModalFooter>
       </ModalContent>
