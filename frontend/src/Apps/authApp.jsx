@@ -28,10 +28,8 @@ const RedirectAuthenticatedUser = ({ children }) => {
       return <Navigate to='/hvc/metrics' replace />;
     } else if (role === 'DMM' || role === 'DMS') {
       return <Navigate to='/doc-track/metrics' replace />;
-    } else if (role === 'MIM') {
+    } else if (role === 'MIM' || role === 'MIS') {
       return <Navigate to='/machineries/metrics' replace />;
-    } else if (role === 'MIS') {
-      return <Navigate to='/machineries/machine-inventory' replace />;
     } else {
       return <Navigate to='/404' replace />;
     }

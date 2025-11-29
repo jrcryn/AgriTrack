@@ -47,6 +47,10 @@ import {
     resolveDiscrepancyInPhysicalCount,
     getMachineunitsForPhysicalCounting,
     getPhysicalCountingRecords,
+
+    formStatusEnable,
+    formStatusDisable,
+    checkFormStatus,
     
     deleteScheduleAndTickets
 } from '../controller/machineries/adminDashboard.controller.js';
@@ -136,6 +140,10 @@ router.get('/get-machine-units-for-physical-counting', verifyAuthToken, verifyRo
 router.get('/get-physical-counting-records', getPhysicalCountingRecords);
 router.post('/perform-machine-count-check', verifyAuthToken, verifyRole(['MIM', 'MIS']), performMachineCountCheck);
 router.post('/resolve-discrepancy-in-physical-count', verifyAuthToken, verifyRole(['MIM', 'MIS']), resolveDiscrepancyInPhysicalCount);
+
+router.post('/form-status-enable', verifyAuthToken, verifyRole(['MIM']), formStatusEnable);
+router.post('/form-status-disable', verifyAuthToken, verifyRole(['MIM']), formStatusDisable);
+router.get('/check-form-status', checkFormStatus);
 
 router.post('/delete-schedule-and-tickets/:scheduleId', deleteScheduleAndTickets); //FOR DEBUGGING AND TESTING PURPOSES ONLY
 export default router;

@@ -68,7 +68,6 @@ import { useAuthStore } from "../../auth/store/authStore";
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { FaListCheck } from "react-icons/fa6";
 import { FaStickyNote } from "react-icons/fa";
-import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -121,6 +120,7 @@ const B_MachineInventory = () => {
   const toast = useToast();
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
+  const role = user?.role?.toString();
 
   const {
     machineUnits,
@@ -977,18 +977,21 @@ const B_MachineInventory = () => {
           </FormControl>
 
           {/* Register Machine Button */}
-          <Button
-            colorScheme="orange"
-            size={{ base: "sm", md: "md" }}
-            height={{ base: "36px", md: "40px" }}
-            width={{ base: "100%", lg: "auto" }}
-            flexShrink={0}
-            onClick={onOpenRegister}
-            leftIcon={<FaPlus />}
-            fontSize={{ base: "sm", md: "md" }}
-          >
-            Register Machine
-          </Button>
+          {role === 'MIM' && (
+            <Button
+              colorScheme="orange"
+              size={{ base: "sm", md: "md" }}
+              height={{ base: "36px", md: "40px" }}
+              width={{ base: "100%", lg: "auto" }}
+              flexShrink={0}
+              onClick={onOpenRegister}
+              leftIcon={<FaPlus />}
+              fontSize={{ base: "sm", md: "md" }}
+            >
+              Register Machine
+            </Button>
+          )}
+
         </Flex>
       </Box>
 

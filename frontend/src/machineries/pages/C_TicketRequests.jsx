@@ -25,11 +25,12 @@ import {
   Checkbox,
   useToast, // Add import for toast
   Badge, // Add import for badge
-  Tooltip
+  Tooltip,
+  Spacer
 } from '@chakra-ui/react';
 import { FiSearch, FiInbox } from 'react-icons/fi';
 import { LuLogs } from "react-icons/lu";
-import { FaEye } from 'react-icons/fa';
+import { FaEye, FaLink, FaExternalLinkAlt } from 'react-icons/fa';
 
 import { useAdminDashboard } from '../store/adminDashboard.store.js';
 import TicketRequestPanel from '../../components/ticketRequestPanel.jsx';
@@ -50,6 +51,7 @@ const TicketRequests = () => {
   
   const [pageType, setPageType] = useState(user?.role === 'MIM' ? 'pending' : 'scheduled'); // 'pending', 'ongoing', 'scheduled', 'declined'
   const [isViewingDetails, setIsViewingDetails] = useState(false)
+  const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL;
 
   const {
     pendingTicketRequests,
@@ -275,8 +277,49 @@ const TicketRequests = () => {
         </Flex>
       </Flex>
 
-      {/* Documents Section */}
+        {/* Search Section */}
+        <Flex 
+          direction={{ base: "column", md: "row" }} 
+          mb={4} 
+          p={4}
+          bg="blue.50"
+          borderRadius="md"
+          alignItems={{ base: "flex-start", md: "center" }}
+          gap={2}
+        >
 
+          <Button 
+            colorScheme='blue' 
+            size="sm" 
+            width={{ base: "full", md: "auto" }} 
+            onClick={() => {
+              navigator.clipboard.writeText(`${FRONTEND_URL}/machineries/form/istcns`);
+              toast({
+                title: "Link Copied",
+                description: "The form link has been copied to your clipboard.",
+                status: "success",
+                duration: 3000,
+                isClosable: true,
+              });
+            }}
+            >
+            <Icon as={FaLink} mr={2}/>
+            Copy Form Link
+          </Button>
+
+          <Button 
+            colorScheme='blue' 
+            size="sm" 
+            width={{ base: "full", md: "auto" }} 
+            onClick={() => { window.open(`${FRONTEND_URL}/machineries/form/istcns`, '_blank') }} 
+            >
+            <Icon as={FaExternalLinkAlt} mr={2}/>
+            Open Form in New Tab
+          </Button>
+
+        </Flex>
+
+      {/* Documents Section */}
       {pageType === 'pending' && (
         <>
         {/* Archived Document Section */}
