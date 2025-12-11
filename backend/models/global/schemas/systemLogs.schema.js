@@ -77,8 +77,9 @@ const actions = [
     
     // High Value Crops - Edit Requests
     'SMS_SENT_FOR_EDIT_REQUEST', //DONE
-    'VALIDATION_VISIT_SCHEDULED_FOR_EDIT_REQUEST', 
+    'VALIDATION_VISIT_SCHEDULED_FOR_EDIT_REQUEST', //DONE 
     'EDIT_REQUEST_CONSENT_HANDLED',
+    
     // High Value Crops - Validation
     'VALIDATION_VISIT_COMPLETED',
     'FARMER_RESPONSE_FIELDS_UPDATED',

@@ -551,14 +551,15 @@ export const createUnifiedFarmerResponse = async (req, res) => {
 
   } catch (error) {
 
+    await session.abortTransaction();
+
     await logAction({
       action: 'FARMER_RESPONSE_SUBMITTED_TO_METRICS',
       module: 'HIGH-VALUE CROPS',
       details: `Error pushing farmer response to unified records: ${error.message}`,
       status: 'FAILED'
-    }, { session });
+    });
 
-    await session.abortTransaction();
     res.status(500).json({ message: 'Error pushing to the main records.', error: error.message });
   } finally {
     session.endSession();
@@ -992,14 +993,15 @@ export const requestEdit = async (req, res) => {
     });
   } catch (error) {
     // Rollback transaction on any error
+    await session.abortTransaction();
+
     await logAction({
       action: 'SMS_SENT_FOR_EDIT_REQUEST',
       module: 'HIGH-VALUE CROPS',
       details: `Error recording edit request: ${error.message}`,
       status: 'FAILED'
-    }, {session});
+    });
 
-    await session.abortTransaction();
     console.log(error);
     return res.status(500).json({ message: 'Error recording edit request.', error: error.message });
   } finally {
@@ -1505,6 +1507,13 @@ export const createValidationScheduleVisit = async (req, res) => { // for schedu
       { session }
     );
 
+    await logAction({
+      action: 'VALIDATION_VISIT_SCHEDULED_FOR_EDIT_REQUEST',
+      module: 'HIGH-VALUE CROPS',
+      details: `Validation visit scheduled for farmer response: ${farmerId} with edit request: ${editDoc[0]._id}`,
+      status: 'SUCCESS'
+    }, {session});
+
     await session.commitTransaction();
 
     return res.status(200).json({
@@ -1518,6 +1527,14 @@ export const createValidationScheduleVisit = async (req, res) => { // for schedu
 
   } catch (error) {
     await session.abortTransaction();
+
+    await logAction({
+      action: 'VALIDATION_VISIT_SCHEDULED_FOR_EDIT_REQUEST',
+      module: 'HIGH-VALUE CROPS',
+      details: `Error scheduling validation visit for farmer response: ${farmerId} with edit request: ${editDoc[0]._id}. Error: ${error.message}`,
+      status: 'FAILED'
+    });
+
     console.error('Error creating validation schedule visit:', error);
     return res.status(500).json({ 
       message: 'Error creating validation schedule visit.', 
