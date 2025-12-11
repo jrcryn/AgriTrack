@@ -535,6 +535,13 @@ export const createUnifiedFarmerResponse = async (req, res) => {
       await deleteRelatedDocuments(original_farmer_input_id, session);
     }
 
+    await logAction({
+      action: 'FARMER_RESPONSE_SUBMITTED_TO_METRICS',
+      module: 'HIGH-VALUE CROPS',
+      details: `Pushed farmer response with ID: ${original_farmer_input_id} to unified records for year ${year}`,
+      status: 'SUCCESS'
+    }, { session });
+
     await session.commitTransaction();
 
     return res.status(201).json({
@@ -543,6 +550,14 @@ export const createUnifiedFarmerResponse = async (req, res) => {
     });
 
   } catch (error) {
+
+    await logAction({
+      action: 'FARMER_RESPONSE_SUBMITTED_TO_METRICS',
+      module: 'HIGH-VALUE CROPS',
+      details: `Error pushing farmer response to unified records: ${error.message}`,
+      status: 'FAILED'
+    }, { session });
+
     await session.abortTransaction();
     res.status(500).json({ message: 'Error pushing to the main records.', error: error.message });
   } finally {
@@ -608,9 +623,22 @@ export const flagResponseForReview = async (req, res) => {
       { $set: { isForReview: true } }
     );
 
+    await logAction({
+      action: 'FARMER_RESPONSE_FLAGGED',
+      module: 'HIGH-VALUE CROPS',
+      details: `Flagged farmer response with ID: ${farmerId} for review`,
+      status: 'SUCCESS'
+    });
+
     return res.status(200).json({ message: 'Farmer response flagged for review.' });
 
   } catch (error) {
+    await logAction({
+      action: 'FARMER_RESPONSE_FLAGGED',
+      module: 'HIGH-VALUE CROPS',
+      details: `Error flagging farmer response for review: ${error.message}`,
+      status: 'FAILED'
+    });
     res.status(500).json({ message: 'Error flagging response for review', error: error.message });
   }
 };
@@ -630,9 +658,24 @@ export const unflagResponseForReview = async (req, res) => {
       { $set: { isForReview: false } }
     );
 
+    await logAction({
+      action: 'FARMER_RESPONSE_UNFLAGGED',
+      module: 'HIGH-VALUE CROPS',
+      details: `Unflagged farmer response with ID: ${farmerId} for review`,
+      status: 'SUCCESS'
+    });
+
     return res.status(200).json({ message: 'Farmer response unflagged for review.' });
 
   } catch (error) {
+
+    await logAction({
+      action: 'FARMER_RESPONSE_UNFLAGGED',
+      module: 'HIGH-VALUE CROPS',
+      details: `Error unflagging farmer response for review: ${error.message}`,
+      status: 'FAILED'
+    });
+
     res.status(500).json({ message: 'Error unflagging response for review', error: error.message });
   }
 };
@@ -934,6 +977,13 @@ export const requestEdit = async (req, res) => {
       });
     }
 
+    await logAction({
+      action: 'SMS_SENT_FOR_EDIT_REQUEST',
+      module: 'HIGH-VALUE CROPS',
+      details: `Edit request SMS sent for response: ${farmerId} and created edit request: ${editDoc[0]._id}`,
+      status: 'SUCCESS'
+    }, {session});
+
     // Commit the transaction only if everything succeeded
     await session.commitTransaction();
 
@@ -942,6 +992,13 @@ export const requestEdit = async (req, res) => {
     });
   } catch (error) {
     // Rollback transaction on any error
+    await logAction({
+      action: 'SMS_SENT_FOR_EDIT_REQUEST',
+      module: 'HIGH-VALUE CROPS',
+      details: `Error recording edit request: ${error.message}`,
+      status: 'FAILED'
+    }, {session});
+
     await session.abortTransaction();
     console.log(error);
     return res.status(500).json({ message: 'Error recording edit request.', error: error.message });
