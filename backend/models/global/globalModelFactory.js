@@ -1,6 +1,7 @@
 import { FarmerAccountSchema } from './schemas/farmerAccount.schema.js';
 import { CounterSchema } from './schemas/counter.schema.js'
 import { EmployeeAccountSchema } from './schemas/employeeAccount.schema.js';
+import { GranularLogSchema } from './schemas/systemLogs.schema.js';
 
 import { getGlobalDB } from '../../config/dbAccessHelper.js';
 
@@ -13,5 +14,7 @@ export const initializeGlobalModels = () => {
     Counter: db.model('Counter', CounterSchema),
     
     EmployeeAccount: db.model('Employee_Account', EmployeeAccountSchema),
+
+    GranularLog: db.model('Granular_Log', GranularLogSchema),
   };
 };

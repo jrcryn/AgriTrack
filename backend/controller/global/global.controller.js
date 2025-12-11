@@ -38,3 +38,15 @@ export const getFarmerAccountByName = async (req, res) => {
     res.status(500).json({ message: 'Error fetching farmer account.', error: error.message });
   }
 };
+
+export const deleteExpiredLogs = async (req, res) => {
+  try {
+    const result = await global.globalModels.GranularLog.deleteMany({
+      logExpiry: { $lte: new Date() }
+    });
+    res.status(200).json({ message: 'Expired logs deleted successfully.', deletedCount: result.deletedCount });
+  } catch (error) {
+    console.error('Error deleting expired logs:', error);
+    res.status(500).json({ message: 'Error deleting expired logs.', error: error.message });
+  }
+};
