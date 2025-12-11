@@ -1,7 +1,10 @@
 import { getHighValueCropsDB } from '../../config/dbAccessHelper.js'; // import hvc db access
 import mongoose from 'mongoose';
 
-const logAction = async (req, userId, action, module, description, status) => {
+const logAction = async (req, action, module, description, status) => {
+
+  const userId =  req.decodedAuthToken ? req.decodedAuthToken.userId : 'Unknown';
+
   await global.globalModels.GranularLog.create({
     userId,
     action,
@@ -12,6 +15,7 @@ const logAction = async (req, userId, action, module, description, status) => {
     userAgent: req.headers['user-agent'],
   });
 };
+
 //________________________________ FARMERS NEW RESPONSES PAGE ____________________________________
 
 
@@ -1438,6 +1442,7 @@ export const createValidationScheduleVisit = async (req, res) => { // for schedu
 };
 
 import { uploadFileToDrive, deleteFileFromDrive } from '../googleDrive.controller.js'; 
+import { stat } from 'fs';
 
 export const setValidationVisitCompleted = async (req, res) => { //for submitting a selfie proof and signature after validation visit
   const session = await mongoose.startSession();
@@ -1872,6 +1877,13 @@ export const createFarmerAccount = async (req, res) => {
       mobile_number,
       facebook,
       birthdate
+    });
+
+    await logAction({
+      action: 'CREATE_FARMER_ACCOUNT',
+      module: 'HIGH-VALUE CROPS',
+      details: `Created farmer account with ID: ${farmerId}`,
+      status: 'SUCCESS'
     });
     return res.status(201).json({
       message: 'Farmer account created successfully',

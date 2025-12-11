@@ -118,7 +118,7 @@ const GranularLogSchema = new mongoose.Schema({
   action: { type: String, required: true, enum: actions },
   module: { type: String }, // e.g. 'machinery', 'documents', 'users'
   description: { type: String }, 
-  status: { type: String, enum: ['success', 'failed'] },
+  status: { type: String, enum: ['SUCCESS', 'FAILED'] },
   ip: { type: String },
   userAgent: { type: String }, //what browser/device was used
   createdAt: { type: Date, default: Date.now },
