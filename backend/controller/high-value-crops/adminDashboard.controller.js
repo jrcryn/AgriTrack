@@ -1880,7 +1880,7 @@ export const createFarmerAccount = async (req, res) => {
     });
 
     await logAction({
-      action: 'CREATE_FARMER_ACCOUNT',
+      action: 'FARMER_ACCOUNT_CREATED',
       module: 'HIGH-VALUE CROPS',
       details: `Created farmer account with ID: ${farmerId}`,
       status: 'SUCCESS'
@@ -1893,6 +1893,13 @@ export const createFarmerAccount = async (req, res) => {
     if (error.code === 11000) {
       return res.status(409).json({ message: 'Farmer account already exists with the same farmer ID, try again.' });
     }
+    await logAction({
+      action: 'FARMER_ACCOUNT_CREATED',
+      module: 'HIGH-VALUE CROPS',
+      details: `Error creating farmer account: ${error.message}`,
+      status: 'FAILED'
+    });
+
     return res.status(500).json({ message: 'Error creating farmer account', error });
   }
 };
@@ -1914,9 +1921,24 @@ export const archiveFarmerAccount = async (req, res) => {
       { farmerId: farmerId },
       { $set: { isArchived: true } }
     );
+
+    await logAction({
+      action: 'FARMER_ACCOUNT_ARCHIVED',
+      module: 'HIGH-VALUE CROPS',
+      details: `Archived farmer account with ID: ${farmerId}`,
+      status: 'SUCCESS'
+    });
     
     return res.status(200).json({ message: 'Farmer account archived successfully.' });
   } catch (error) {
+
+    await logAction({
+      action: 'FARMER_ACCOUNT_ARCHIVED',
+      module: 'HIGH-VALUE CROPS',
+      details: `Error archiving farmer account: ${error.message}`,
+      status: 'FAILED'
+    });
+
     return res.status(500).json({ message: 'Error archiving farmer account.', error: error.message });
   }
 };

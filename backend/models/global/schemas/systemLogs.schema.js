@@ -114,13 +114,13 @@ const actions = [
 ];
 
 const GranularLogSchema = new mongoose.Schema({
-  userId: { type: String },
+  userId: { type: String, required: true },
   action: { type: String, required: true, enum: actions },
-  module: { type: String }, // e.g. 'machinery', 'documents', 'users'
-  description: { type: String }, 
-  status: { type: String, enum: ['SUCCESS', 'FAILED'] },
-  ip: { type: String },
-  userAgent: { type: String }, //what browser/device was used
-  createdAt: { type: Date, default: Date.now },
-  logExpiry: { type: Date, default: () => new Date(Date.now() + 1095*24*60*60*1000) }, // 3 years expiration
+  module: { type: String, required: true }, // e.g. 'machinery', 'documents', 'users'
+  description: { type: String, required: true }, 
+  status: { type: String, enum: ['SUCCESS', 'FAILED'], required: true },
+  ip: { type: String, required: true },
+  userAgent: { type: String, required: true }, //what browser/device was used
+  createdAt: { type: Date, default: Date.now, required: true },
+  logExpiry: { type: Date, default: () => new Date(Date.now() + 1095*24*60*60*1000), required: true }, // 3 years expiration
 });
