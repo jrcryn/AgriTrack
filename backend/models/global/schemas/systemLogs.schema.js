@@ -57,7 +57,9 @@ const actions = [
     
     // Machinery Management - Reports
     'MACHINERY_USAGE_REPORT_GENERATED',
-    
+
+    /*-----------------------------------------------------------------------------------------*/ 
+
     // High Value Crops - Farmer Accounts
     'FARMER_ACCOUNT_CREATED',
     'FARMER_ACCOUNT_UPDATED',
@@ -65,23 +67,19 @@ const actions = [
     'FARMER_ACCOUNT_UNARCHIVED',
     
     // High Value Crops - Responses
-    'FARMER_FORM_SUBMITTED',
-    'FARMER_FORMS_BULK_SUBMITTED',
-    'FARMER_RESPONSE_CREATED',
-    'FARMER_RESPONSE_UPDATED',
-    'FARMER_RESPONSE_DELETED',
     'FARMER_RESPONSE_ARCHIVED',
     'FARMER_RESPONSE_UNARCHIVED',
     'FARMER_RESPONSE_FLAGGED',
     'FARMER_RESPONSE_UNFLAGGED',
+    'FARMER_RESPONSE_SUBMIITED_TO_METRICS',
     
     // High Value Crops - Edit Requests
-    'EDIT_REQUEST_CREATED',
+    'SMS_SENT_FOR_EDIT_REQUEST',
+    'VALIDATION_VISIT_SCHEDULED_FOR_EDIT_REQUEST',
     'EDIT_REQUEST_CONSENT_HANDLED',
     'FARMER_RESPONSE_FIELDS_UPDATED',
     
     // High Value Crops - Validation
-    'VALIDATION_VISIT_SCHEDULED',
     'VALIDATION_VISIT_COMPLETED',
     'VALIDATION_VISIT_APPROVED',
     'VALIDATION_VISIT_REJECTED',
@@ -94,6 +92,8 @@ const actions = [
     'HVC_SAMPR_REPORT_GENERATED',
     'HVC_PR_REPORT_GENERATED',
     
+    /*-----------------------------------------------------------------------------------------*/ 
+
     // Document Tracking - Document Types
     'DOCUMENT_TYPE_CREATED',
     'DOCUMENT_TYPE_UPDATED',
