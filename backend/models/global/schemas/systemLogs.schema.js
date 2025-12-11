@@ -119,10 +119,8 @@ const GranularLogSchema = new mongoose.Schema({
   module: { type: String }, // e.g. 'machinery', 'documents', 'users'
   description: { type: String }, 
   status: { type: String, enum: ['success', 'failed'] },
-  oldData: { type: Object },
-  newData: { type: Object },
   ip: { type: String },
-  userAgent: { type: String },
+  userAgent: { type: String }, //what browser/device was used
   createdAt: { type: Date, default: Date.now },
   logExpiry: { type: Date, default: () => new Date(Date.now() + 1095*24*60*60*1000) }, // 3 years expiration
 });

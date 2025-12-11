@@ -1,7 +1,17 @@
 import { getHighValueCropsDB } from '../../config/dbAccessHelper.js'; // import hvc db access
 import mongoose from 'mongoose';
 
-
+const logAction = async (req, userId, action, module, description, status) => {
+  await global.globalModels.GranularLog.create({
+    userId,
+    action,
+    module,
+    description,
+    status,
+    ip: req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress,
+    userAgent: req.headers['user-agent'],
+  });
+};
 //________________________________ FARMERS NEW RESPONSES PAGE ____________________________________
 
 
