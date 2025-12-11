@@ -1,3 +1,5 @@
+import mongoose from "mongoose";
+
 const actions = [
     // Authentication & Authorization
     'USER_REGISTER',
@@ -61,14 +63,14 @@ const actions = [
     /*-----------------------------------------------------------------------------------------*/ 
 
     // High Value Crops - Farmer Accounts
-    'FARMER_ACCOUNT_CREATED',
-    'FARMER_ACCOUNT_UPDATED',
-    'FARMER_ACCOUNT_ARCHIVED',
-    'FARMER_ACCOUNT_UNARCHIVED',
+    'FARMER_ACCOUNT_CREATED', //DONE
+    'FARMER_ACCOUNT_UPDATED', //DONE
+    'FARMER_ACCOUNT_ARCHIVED', //DONE
+    'FARMER_ACCOUNT_UNARCHIVED', //DONE
     
     // High Value Crops - Responses
-    'FARMER_RESPONSE_ARCHIVED',
-    'FARMER_RESPONSE_UNARCHIVED',
+    'FARMER_RESPONSE_ARCHIVED', //DONE
+    'FARMER_RESPONSE_UNARCHIVED', //DONE
     'FARMER_RESPONSE_FLAGGED',
     'FARMER_RESPONSE_UNFLAGGED',
     'FARMER_RESPONSE_SUBMIITED_TO_METRICS',
@@ -113,7 +115,7 @@ const actions = [
     'DOCUMENT_QR_CODE_DOWNLOADED',
 ];
 
-const GranularLogSchema = new mongoose.Schema({
+export const GranularLogSchema = new mongoose.Schema({
   userId: { type: String, required: true },
   action: { type: String, required: true, enum: actions },
   module: { type: String, required: true }, // e.g. 'machinery', 'documents', 'users'

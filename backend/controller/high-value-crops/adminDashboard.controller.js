@@ -703,12 +703,27 @@ export const archiveResponse = async (req, res) => {
       { $set: { isArchived: true } }
     );
 
+    await logAction({
+      action: 'FARMER_RESPONSE_ARCHIVED',
+      module: 'HIGH-VALUE CROPS',
+      details: `Archived farmer response with ID: ${inputId}`,
+      status: 'SUCCESS'
+    });
+
     return res.status(200).json({ 
       message: 'Farmer response archived successfully.',
       inputId: inputId 
     });
 
   } catch (error) {
+
+    await logAction({
+      action: 'FARMER_RESPONSE_ARCHIVED',
+      module: 'HIGH-VALUE CROPS',
+      details: `Error archiving farmer response with ID: ${inputId}`,
+      status: 'FAILED'
+    });
+
     return res.status(500).json({ 
       message: 'Error archiving farmer response', 
       error: error.message 
@@ -741,12 +756,27 @@ export const unarchiveResponse = async (req, res) => {
       { $set: { isArchived: false } }
     );
 
+    await logAction({
+      action: 'FARMER_RESPONSE_UNARCHIVED',
+      module: 'HIGH-VALUE CROPS',
+      details: `Unarchived farmer response with ID: ${inputId}`,
+      status: 'SUCCESS'
+    });
+
     return res.status(200).json({ 
       message: 'Farmer response unarchived successfully.',
       inputId: inputId 
     });
 
   } catch (error) {
+
+    await logAction({
+      action: 'FARMER_RESPONSE_UNARCHIVED',
+      module: 'HIGH-VALUE CROPS',
+      details: `Error unarchiving farmer response: ${error.message}`,
+      status: 'FAILED'
+    });
+
     return res.status(500).json({ 
       message: 'Error unarchiving farmer response', 
       error: error.message 
@@ -1442,7 +1472,6 @@ export const createValidationScheduleVisit = async (req, res) => { // for schedu
 };
 
 import { uploadFileToDrive, deleteFileFromDrive } from '../googleDrive.controller.js'; 
-import { stat } from 'fs';
 
 export const setValidationVisitCompleted = async (req, res) => { //for submitting a selfie proof and signature after validation visit
   const session = await mongoose.startSession();
@@ -1959,10 +1988,25 @@ export const unarchiveFarmerAccount = async (req, res) => {
       { farmerId: farmerId },
       { $set: { isArchived: false } }
     );
+
+    await logAction({
+      action: 'FARMER_ACCOUNT_UNARCHIVED',
+      module: 'HIGH-VALUE CROPS',
+      details: `Unarchived farmer account with ID: ${farmerId}`,
+      status: 'SUCCESS'
+    });
     
-    return res.status(200).json({ message: 'Farmer account archived successfully.' });
+    return res.status(200).json({ message: 'Farmer account unarchived successfully.' });
   } catch (error) {
-    return res.status(500).json({ message: 'Error archiving farmer account.', error: error.message });
+
+    await logAction({
+      action: 'FARMER_ACCOUNT_UNARCHIVED',
+      module: 'HIGH-VALUE CROPS',
+      details: `Error unarchiving farmer account: ${error.message}`,
+      status: 'FAILED'
+    });
+
+    return res.status(500).json({ message: 'Error unarchiving farmer account.', error: error.message });
   }
 };
 
@@ -2209,11 +2253,26 @@ export const updateFarmerAccount = async (req, res) => {
     // Save the updated farmer account
     const updatedFarmer = await farmerAccount.save();
     
+    await logAction({
+      action: 'FARMER_ACCOUNT_UPDATED',
+      module: 'HIGH-VALUE CROPS',
+      details: `Updated farmer account with ID: ${farmerId}`,
+      status: 'SUCCESS'
+    });
+
     return res.status(200).json({
       message: 'Farmer account updated successfully',
       data: updatedFarmer
     });
   } catch (error) {
+
+    await logAction({
+      action: 'FARMER_ACCOUNT_UPDATED',
+      module: 'HIGH-VALUE CROPS',
+      details: `Error updating farmer account with ID: ${farmerId}`,
+      status: 'FAILED'
+    });
+
     return res.status(500).json({ 
       message: 'Error updating farmer account', 
       error: error.message 
