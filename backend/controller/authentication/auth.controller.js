@@ -29,10 +29,12 @@ export const register = async (req, res) => {  //system admin level access only 
 
         const employee = await global.globalModels.EmployeeAccount.find({ $or: [{ email }, { phone }, { first_name }, { last_name }] });
         if (employee.length > 0) {
+            await logAction(req, 'USER_REGISTER', 'AUTHENTICATION', `Registration attempt failed - Employee already exists: ${email}`, 'VALIDATION_FAILED');
             return res.status(400).json({ success: false, message: 'Employee already exists.' });
         }
 
         if (!first_name || !last_name || !email || !phone || !roles || (roles.includes('DMS') && !office_position)) {
+            await logAction(req, 'USER_REGISTER', 'AUTHENTICATION', `Registration attempt failed - Missing required fields for email: ${email || 'unknown'}`, 'VALIDATION_FAILED');
             return res.status(400).json({ success: false, message: 'All fields are required.' });
         }
         const position = roles.includes('DMS') ? office_position : null;
@@ -122,17 +124,20 @@ export const switchRole = async (req, res) => {
     try{
         const { targetRole } = req.body;
         if (!targetRole) {
+            await logAction(req, 'USER_SWITCH_ROLE', 'AUTHENTICATION', `Role switch attempt failed - Target role not provided`, 'VALIDATION_FAILED');
             return res.status(400).json({success: false, message: 'Target role is not found.'})
         };
 
         const user = await global.globalModels.EmployeeAccount.findById(req.decodedAuthToken.payload.userId);
 
         if (!user) {
+            await logAction(req, 'USER_SWITCH_ROLE', 'AUTHENTICATION', `Role switch attempt failed - User not found: ${req.decodedAuthToken.payload.userId}`, 'VALIDATION_FAILED');
             return res.status(400).json({success: false, message: 'User not found.'})
         };
 
         const targetAccount = await global.globalModels.EmployeeAccount.findOne({ _id: user._id, email: user.email, roles: targetRole });
         if (!targetAccount) {
+            await logAction(req, 'USER_SWITCH_ROLE', 'AUTHENTICATION', `Role switch attempt failed - User ${user.email} does not have access to role: ${targetRole}`, 'VALIDATION_FAILED');
             return res.status(404).json({success: false, message: 'You don\'t have access to this role or role does not exist.'})
         };
 
@@ -166,15 +171,18 @@ export const login = async (req, res) => {
 
     try {
         if (!email || !password) {
+            await logAction(req, 'USER_LOGIN', 'AUTHENTICATION', `Login attempt failed - Missing email or password`, 'VALIDATION_FAILED');
             return res.status(400).json({ success: false, message: 'All fields are required.'})
         }
 
         const user = await global.globalModels.EmployeeAccount.findOne({ email }) 
         if (!user) {
+            await logAction(req, 'USER_LOGIN', 'AUTHENTICATION', `Login attempt failed - User not found: ${email}`, 'VALIDATION_FAILED');
             return res.status(404).json({ success: false, message: 'Invalid credentials.' });
         }
 
         if (user.isLocked) {
+            await logAction(req, 'USER_LOGIN', 'AUTHENTICATION', `Login attempt failed - Account is locked: ${email}`, 'VALIDATION_FAILED');
             return res.status(403).json({ success: false, message: 'Account locked. Contact IT support to regain access.' });
         }
 
@@ -191,11 +199,14 @@ export const login = async (req, res) => {
             if (user.failedLoginAttempts.count >= 11) {
                 user.isLocked = true;
                 await user.save();
+                await logAction(req, 'USER_LOGIN', 'AUTHENTICATION', `Account locked due to multiple failed login attempts: ${email}`, 'VALIDATION_FAILED');
                 return res.status(403).json({ success: false, message: 'Account is now locked due to multiple failed login attempts. Contact IT support to regain access.' });
             }
 
             const delay = Math.min(user.failedLoginAttempts.count * 1000, 10000); // up to 10s
             await new Promise(res => setTimeout(res, delay));
+
+            await logAction(req, 'USER_LOGIN', 'AUTHENTICATION', `Login error: Invalid credentials for email: ${email}`, 'FAILED');
 
             return res.status(401).json({ success: false, message: 'Invalid credentials.'})
         }
@@ -208,6 +219,7 @@ export const login = async (req, res) => {
         await logAction(req, 'USER_LOGIN', 'AUTHENTICATION', `User login successful: ${email}`, 'SUCCESS');
 
         if(!user.is2FAEnabled) {
+            await logAction(req, 'USER_LOGIN', 'AUTHENTICATION', `Login redirected to 2FA setup - 2FA not enabled for: ${email}`, 'VALIDATION_FAILED');
             return res.status(401).json({ 
                 success: false, 
                 message: 'You are required to set up 2FA first.',
@@ -234,6 +246,7 @@ export const generate2FASecret = async (req, res) => {
     try {
         const user = await global.globalModels.EmployeeAccount.findById( userId );
         if (!user) {
+            await logAction(req, '2FA_SECRET_GENERATED', 'AUTHENTICATION', `2FA setup attempt failed - User not found: ${userId}`, 'VALIDATION_FAILED');
             return res.status(404).json({ success: false, message: 'User not found.' });
         }
 
@@ -283,14 +296,17 @@ export const verify2FA = async (req, res) => {
 
         const user = await global.globalModels.EmployeeAccount.findById(userId);
         if (user.isLocked) {
+            await logAction(req, '2FA_VERIFIED', 'AUTHENTICATION', `2FA verification attempt failed - Account is locked: ${userId}`, 'VALIDATION_FAILED');
             return res.status(403).json({ success: false, message: 'Account locked. Contact IT support to regain access.' });
         }
 
         if (!user) {
+            await logAction(req, '2FA_VERIFIED', 'AUTHENTICATION', `2FA verification attempt failed - User not found: ${userId}`, 'VALIDATION_FAILED');
             return res.status(404).json({ success: false, message: 'User not found.' });
         }
 
         if (!user.twoFASecret) {
+            await logAction(req, '2FA_VERIFIED', 'AUTHENTICATION', `2FA verification attempt failed - 2FA not enabled for user: ${userId}`, 'VALIDATION_FAILED');
             return res.status(400).json({ success: false, message: '2FA is not enabled for this user.' });
         }
 
@@ -315,6 +331,7 @@ export const verify2FA = async (req, res) => {
             if (user.failedOTPVerifications.count >= 11) {
                 user.isLocked = true;
                 await user.save();
+                await logAction(req, '2FA_VERIFIED', 'AUTHENTICATION', `Account locked due to multiple failed 2FA attempts for user: ${user.email}`, 'VALIDATION_FAILED');
                 return res.status(403).json({ success: false, message: 'Account is now locked due to multiple failed 2FA attempts. Contact IT support to regain access.' });
             }
 
@@ -386,11 +403,13 @@ export const forgotPassword = async (req, res) => {
 
     try {   
         if (!email) {
+            await logAction(req, 'PASSWORD_RESET_REQUESTED', 'AUTHENTICATION', `Password reset attempt failed - Email not provided`, 'VALIDATION_FAILED');
             return res.status(400).json({ success: false, message: 'Email is required.'})
         }
 
         let user = await global.globalModels.EmployeeAccount.findOne({ email });
         if (!user) {
+            await logAction(req, 'PASSWORD_RESET_REQUESTED', 'AUTHENTICATION', `Password reset attempt failed - Email not found: ${email}`, 'VALIDATION_FAILED');
             return res.status(404).json({ success: false, message: 'We cannot find your email.' });
         }
 
@@ -424,6 +443,7 @@ export const resetPassword = async (req, res) => {
     try {
         let user = await global.globalModels.EmployeeAccount.findOne({ resetPasswordToken: token, resetPasswordExpiresAt: { $gt: Date.now() } });
         if (!user) {
+            await logAction(req, 'PASSWORD_RESET', 'AUTHENTICATION', `Password reset attempt failed - Invalid or expired token`, 'VALIDATION_FAILED');
             return res.status(404).json({ success: false, message: 'Invalid or expired reset token.' });
         }
 
