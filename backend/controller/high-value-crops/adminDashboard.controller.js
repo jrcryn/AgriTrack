@@ -1734,6 +1734,13 @@ export const setValidationVisitCompleted = async (req, res) => { //for submittin
       { session }
     );
 
+    await logAction({
+      action: 'VALIDATION_VISIT_COMPLETED',
+      module: 'HIGH-VALUE CROPS',
+      details: `Validation visit completed for farmer response: ${farmerId} by validator: ${validatorEmployeeId}`,
+      status: 'SUCCESS'
+    }, {session});
+    
     await session.commitTransaction();
 
     return res.status(200).json({
@@ -1742,6 +1749,14 @@ export const setValidationVisitCompleted = async (req, res) => { //for submittin
 
   } catch (error) {
     await session.abortTransaction();
+
+    await logAction({
+      action: 'VALIDATION_VISIT_COMPLETED',
+      module: 'HIGH-VALUE CROPS',
+      details: `Error completing validation visit: ${error.message}`,
+      status: 'FAILED'
+    }, {session});
+
     console.error('Error completing validation visit:', error);
     return res.status(500).json({ 
       message: 'Error completing validation visit.', 

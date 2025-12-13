@@ -78,18 +78,17 @@ const actions = [
     // High Value Crops - Edit Requests
     'SMS_SENT_FOR_EDIT_REQUEST', //DONE
     'VALIDATION_VISIT_SCHEDULED_FOR_EDIT_REQUEST', //DONE 
-    'EDIT_REQUEST_CONSENT_HANDLED',
     
     // High Value Crops - Validation
-    'VALIDATION_VISIT_COMPLETED',
-    'FARMER_RESPONSE_FIELDS_UPDATED',
+    'VALIDATION_VISIT_COMPLETED', //
+    'FARMER_RESPONSE_FIELDS_UPDATED', //
     
-    'VALIDATION_VISIT_APPROVED',
-    'VALIDATION_VISIT_REJECTED',
+    'VALIDATION_VISIT_APPROVED', //
+    'VALIDATION_VISIT_REJECTED', //
     
     // High Value Crops - Form Status
-    'HVC_FORM_ENABLED',
-    'HVC_FORM_DISABLED',
+    'HVC_FORM_ENABLED', //
+    'HVC_FORM_DISABLED', //
     
     // High Value Crops - Reports
     'HVC_SAMPR_REPORT_GENERATED',
