@@ -389,7 +389,7 @@ export const updateFarmerResponseFields = async (req, res) => {
 
 
 // Function to delete a complete farmer response and all related records
-export const deleteFarmerResponse = async (req, res) => {
+export const deleteFarmerResponse = async (req, res) => { //not in use
   const { farmerId } = req.body;
   
   if (!farmerId) {

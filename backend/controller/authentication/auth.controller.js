@@ -8,6 +8,21 @@ import { sendWelcomeEmail, sendPasswordResetEmail, sendPasswordResetSuccessEmail
 import { generateTokenAndSetCookie } from '../../utils/generateTokenAndSetCookie.js'
 import { generatePreTokenAndSetCookie } from '../../utils/generatePreTokenAndSetCookie.js';
 
+const logAction = async (req, action, module, description, status) => {
+
+  const userId =  req.decodedAuthToken ? req.decodedAuthToken.userId : 'Unknown';
+
+  await global.globalModels.GranularLog.create({
+    userId,
+    action,
+    module,
+    description,
+    status,
+    ip: req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress,
+    userAgent: req.headers['user-agent'],
+  });
+};
+
 export const register = async (req, res) => {  //system admin level access only (ililipat in the future to a separate route for admin job controllers)
     const { first_name, last_name, middle_name, suffix, email, phone, roles, office_position } = req.body;
     try {
@@ -43,6 +58,8 @@ export const register = async (req, res) => {  //system admin level access only 
         });
         await newEmployee.save();
         
+        await logAction(req, 'USER_REGISTER', 'SYSTEM ADMIN', `User registered: ${email}`, 'SUCCESS');
+
         res.status(201).json({ 
             message: 'User registered successfully', 
             success: true,
@@ -59,8 +76,12 @@ export const register = async (req, res) => {  //system admin level access only 
 
     } catch (error) {
         if (error.code === 11000) {
+            await logAction(req, 'USER_REGISTER', 'AUTHENTICATION', `Registration failed - User already exists: ${req.body.email}`, 'FAILED');
             return res.status(400).json({ success: false, message: 'User already exists.' });
         }
+
+        await logAction(req, 'USER_REGISTER', 'AUTHENTICATION', `Registration error: ${error.message}`, 'FAILED');
+
         console.error('Error signing up:', error);
         return res.status(500).json({ success: false ,message: 'Internal server error.' });
     }
@@ -117,6 +138,8 @@ export const switchRole = async (req, res) => {
 
         generateTokenAndSetCookie(res, targetAccount._id, targetRole);
 
+        await logAction(req, 'USER_SWITCH_ROLE', 'AUTHENTICATION', `User switched to role: ${targetRole}`, 'SUCCESS');
+
         return res.status(200).json({
             success: true,
             message: 'Role switched.',
@@ -133,6 +156,7 @@ export const switchRole = async (req, res) => {
 
 
     } catch (error) {
+        await logAction(req, 'USER_SWITCH_ROLE', 'AUTHENTICATION', `Error switching roles: ${error.message}`, 'FAILED');
         return res.status(500).json({success: false, message: 'Error switching roles.'})
     }
 };
@@ -181,6 +205,8 @@ export const login = async (req, res) => {
 
         generatePreTokenAndSetCookie(res, user._id);
 
+        await logAction(req, 'USER_LOGIN', 'AUTHENTICATION', `User login successful: ${email}`, 'SUCCESS');
+
         if(!user.is2FAEnabled) {
             return res.status(401).json({ 
                 success: false, 
@@ -196,6 +222,7 @@ export const login = async (req, res) => {
         });
 
     } catch (error) {
+        await logAction(req, 'USER_LOGIN', 'AUTHENTICATION', `Login error: ${error.message}`, 'FAILED');
         console.error('Error logging in:', error);
         return res.status(500).json({ success: false, message: 'Internal server error.' });
     }
@@ -232,6 +259,8 @@ export const generate2FASecret = async (req, res) => {
         user.twoFAQRCode = encrypt(qr); 
         await user.save();
 
+        await logAction(req, '2FA_SECRET_GENERATED', 'AUTHENTICATION', `2FA secret generated for user: ${user.email}`, 'SUCCESS');
+
         res.status(200).json({
             success: true,
             message: '2FA secret generated successfully.',
@@ -241,6 +270,7 @@ export const generate2FASecret = async (req, res) => {
         });
 
     } catch (error) {
+        await logAction(req, '2FA_SECRET_GENERATED', 'AUTHENTICATION', `Error generating 2FA secret: ${error.message}`, 'FAILED');
         console.error('Error generating 2FA secret:', error);
         return res.status(500).json({ success: false, message: 'Internal server error.' });
     }
@@ -307,6 +337,8 @@ export const verify2FA = async (req, res) => {
         }); 
         generateTokenAndSetCookie(res, user._id, role);
 
+        await logAction(req, '2FA_VERIFIED', 'AUTHENTICATION', `2FA verified successfully for user: ${user.email}`, 'SUCCESS');
+
         res.status(200).json({
             success: true,
             message: '2FA verified successfully.', 
@@ -322,6 +354,7 @@ export const verify2FA = async (req, res) => {
         });
 
     } catch (error) {
+        await logAction(req, '2FA_VERIFIED', 'AUTHENTICATION', `Error verifying 2FA: ${error.message}`, 'FAILED');
         console.error('Error verifying 2FA:', error);
         return res.status(500).json({ success: false, message: 'Internal server error.' });
     }
@@ -335,8 +368,12 @@ export const logout = async (req, res) => {
             sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Strict', // Use 'None' for cross-site cookies in production, 'Strict' for local development
             path: '/' //cookie is cleared for the entire domain
         });
+
+        await logAction(req, 'USER_LOGOUT', 'AUTHENTICATION', 'User logged out successfully', 'SUCCESS');
+
         res.status(200).json({ success: true, message: 'Logout successful.' });
     } catch (error) {
+        await logAction(req, 'USER_LOGOUT', 'AUTHENTICATION', `Error logging out: ${error.message}`, 'FAILED');
         console.error('Error logging out:', error);
         return res.status(500).json({ success: false, message: 'Internal server error.' });
     }
@@ -364,7 +401,7 @@ export const forgotPassword = async (req, res) => {
         user.resetPasswordExpiresAt = resetPasswordExpiresAt;
         await user.save();
 
-        
+        await logAction(req, 'PASSWORD_RESET_REQUESTED', 'AUTHENTICATION', `Password reset requested for: ${email}`, 'SUCCESS');
 
         res.status(200).json({
             success: true,
@@ -372,6 +409,7 @@ export const forgotPassword = async (req, res) => {
         });
 
     } catch (error) {
+        await logAction(req, 'PASSWORD_RESET_REQUESTED', 'AUTHENTICATION', `Error requesting password reset: ${error.message}`, 'FAILED');
         console.error('Error resetting password:', error);
         return res.status(500).json({ success: false, message: 'Internal server error.' });
     }
@@ -396,12 +434,15 @@ export const resetPassword = async (req, res) => {
 
         await sendPasswordResetSuccessEmail(user.email);
         
+        await logAction(req, 'PASSWORD_RESET', 'AUTHENTICATION', `Password reset completed for user: ${user.email}`, 'SUCCESS');
+
         res.status(200).json({
             success: true,
             message: 'Password reset successful.'
         });
 
     } catch (error) {
+        await logAction(req, 'PASSWORD_RESET', 'AUTHENTICATION', `Error completing password reset: ${error.message}`, 'FAILED');
         console.error('Error resetting password:', error);
         return res.status(500).json({ success: false, message: 'Internal server error.' });
     }

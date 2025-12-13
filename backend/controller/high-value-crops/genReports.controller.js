@@ -8,6 +8,21 @@ import productionReportCommodities from '../../utils/productionReportCommodities
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const logAction = async (req, action, module, description, status) => {
+
+  const userId =  req.decodedAuthToken ? req.decodedAuthToken.userId : 'Unknown';
+
+  await global.globalModels.GranularLog.create({
+    userId,
+    action,
+    module,
+    description,
+    status,
+    ip: req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress,
+    userAgent: req.headers['user-agent'],
+  });
+};
+
 // Get available date ranges for a specific year and month
 export const getAvailableDateRanges = async (req, res) => {
   const { year, month } = req.params;
@@ -400,10 +415,15 @@ export const generateHVCSaMPR = async (req, res) => {
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Length', buffer.length);
     
+    await logAction(req, 'HVC_SAMPR_REPORT_GENERATED', 'HIGH-VALUE CROPS', `Generated Supply and Market Profile Report for ${dateRange}`, 'SUCCESS');
+
     // Send the response buffer
     res.send(buffer);
   } catch (error) {
     console.error('Error generating HVC Supply and Market Profile Report:', error);
+
+    await logAction(req, 'HVC_SAMPR_REPORT_GENERATED', 'HIGH-VALUE CROPS', `Error generating Supply and Market Profile Report: ${error.message}`, 'FAILED');
+
     res.status(500).json({ 
       message: 'Error generating report', 
       error: error.message 
@@ -774,9 +794,15 @@ export const generateHVCPR = async (req, res) => {
     res.attachment(filename);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Length', buffer.length);
+
+    await logAction(req, 'HVC_PR_REPORT_GENERATED', 'HIGH-VALUE CROPS', `Generated Production Report for ${monthName} ${yNum} (${brgys.length} barangays)`, 'SUCCESS');
+
     res.send(buffer);
   } catch (error) {
     console.error('Error generating HVC Production Report:', error);
+
+    await logAction(req, 'HVC_PR_REPORT_GENERATED', 'HIGH-VALUE CROPS', `Error generating Production Report: ${error.message}`, 'FAILED');
+
     res.status(500).json({ message: 'Error generating report', error: error.message });
   }
 };

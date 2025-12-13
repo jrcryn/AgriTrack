@@ -4,19 +4,24 @@ const actions = [
     // Authentication & Authorization
     'USER_REGISTER',
     'USER_LOGIN',
-    'USER_LOGIN_FAILED',
     'USER_LOGOUT',
     'USER_SWITCH_ROLE',
     '2FA_SECRET_GENERATED',
-    '2FA_VERIFICATION_SUCCESS',
-    '2FA_VERIFICATION_FAILED',
+    '2FA_VERIFIED',
     'PASSWORD_RESET_REQUESTED',
-    'PASSWORD_RESET_COMPLETED',
+    'PASSWORD_RESET',
+    
+
+    /*-----------------------------------------------------------------------------------------*/
+
     
     // User Settings
     'USER_PASSWORD_CHANGED',
     '2FA_SECRET_FETCHED',
     
+    /*-----------------------------------------------------------------------------------------*/
+
+
     // Machinery Management - Machinery Types & Units
     'MACHINERY_TYPE_CREATED',
     'MACHINERY_TYPE_UPDATED',
@@ -80,19 +85,19 @@ const actions = [
     'VALIDATION_VISIT_SCHEDULED_FOR_EDIT_REQUEST', //DONE 
     
     // High Value Crops - Validation
-    'VALIDATION_VISIT_COMPLETED', //
-    'FARMER_RESPONSE_FIELDS_UPDATED', //
+    'VALIDATION_VISIT_COMPLETED', //DONE
+    'FARMER_RESPONSE_FIELDS_UPDATED', //DONE
     
-    'VALIDATION_VISIT_APPROVED', //
-    'VALIDATION_VISIT_REJECTED', //
+    'VALIDATION_VISIT_APPROVED', //DONE
+    'VALIDATION_VISIT_REJECTED', //DONE
     
     // High Value Crops - Form Status
-    'HVC_FORM_ENABLED', //
-    'HVC_FORM_DISABLED', //
+    'HVC_FORM_ENABLED', //DONE
+    'HVC_FORM_DISABLED', //DONE
     
     // High Value Crops - Reports
-    'HVC_SAMPR_REPORT_GENERATED',
-    'HVC_PR_REPORT_GENERATED',
+    'HVC_SAMPR_REPORT_GENERATED',//DONE
+    'HVC_PR_REPORT_GENERATED',//DONE
     
     /*-----------------------------------------------------------------------------------------*/ 
 
