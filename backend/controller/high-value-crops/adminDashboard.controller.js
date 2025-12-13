@@ -369,6 +369,8 @@ export const updateFarmerResponseFields = async (req, res) => {
 
     await session.commitTransaction();
 
+    await logAction(req, 'FARMER_RESPONSE_FIELDS_UPDATED', 'HIGH-VALUE CROPS', `Updated farmer response fields for farmer input ID: ${farmerId}`, 'SUCCESS');
+
     // Return updated details
     res.json({
       message: 'Fields updated successfully.'
@@ -376,6 +378,9 @@ export const updateFarmerResponseFields = async (req, res) => {
   } catch (error) {
     await session.abortTransaction();
     console.error('Error updating fields:', error);
+
+    await logAction(req, 'FARMER_RESPONSE_FIELDS_UPDATED', 'HIGH-VALUE CROPS', `Error updating farmer response fields: ${error.message}`, 'FAILED');
+
     res.status(500).json({ message: 'Error updating fields.', error: error.message });
   } finally {
     session.endSession();
@@ -535,14 +540,9 @@ export const createUnifiedFarmerResponse = async (req, res) => {
       await deleteRelatedDocuments(original_farmer_input_id, session);
     }
 
-    await logAction({
-      action: 'FARMER_RESPONSE_SUBMITTED_TO_METRICS',
-      module: 'HIGH-VALUE CROPS',
-      details: `Pushed farmer response with ID: ${original_farmer_input_id} to unified records for year ${year}`,
-      status: 'SUCCESS'
-    }, { session });
-
     await session.commitTransaction();
+
+    await logAction(req, 'FARMER_RESPONSE_SUBMITTED_TO_METRICS', 'HIGH-VALUE CROPS', `Pushed farmer response with ID: ${original_farmer_input_id} to unified records for year ${year}`, 'SUCCESS');
 
     return res.status(201).json({
       message: `Successfully pushed to the main records.`,
@@ -553,12 +553,7 @@ export const createUnifiedFarmerResponse = async (req, res) => {
 
     await session.abortTransaction();
 
-    await logAction({
-      action: 'FARMER_RESPONSE_SUBMITTED_TO_METRICS',
-      module: 'HIGH-VALUE CROPS',
-      details: `Error pushing farmer response to unified records: ${error.message}`,
-      status: 'FAILED'
-    });
+    await logAction(req, 'FARMER_RESPONSE_SUBMITTED_TO_METRICS', 'HIGH-VALUE CROPS', `Error pushing farmer response to unified records: ${error.message}`, 'FAILED');
 
     res.status(500).json({ message: 'Error pushing to the main records.', error: error.message });
   } finally {
@@ -624,22 +619,12 @@ export const flagResponseForReview = async (req, res) => {
       { $set: { isForReview: true } }
     );
 
-    await logAction({
-      action: 'FARMER_RESPONSE_FLAGGED',
-      module: 'HIGH-VALUE CROPS',
-      details: `Flagged farmer response with ID: ${farmerId} for review`,
-      status: 'SUCCESS'
-    });
+    await logAction(req, 'FARMER_RESPONSE_FLAGGED', 'HIGH-VALUE CROPS', `Flagged farmer response with ID: ${farmerId} for review`, 'SUCCESS');
 
     return res.status(200).json({ message: 'Farmer response flagged for review.' });
 
   } catch (error) {
-    await logAction({
-      action: 'FARMER_RESPONSE_FLAGGED',
-      module: 'HIGH-VALUE CROPS',
-      details: `Error flagging farmer response for review: ${error.message}`,
-      status: 'FAILED'
-    });
+    await logAction(req, 'FARMER_RESPONSE_FLAGGED', 'HIGH-VALUE CROPS', `Error flagging farmer response for review: ${error.message}`, 'FAILED');
     res.status(500).json({ message: 'Error flagging response for review', error: error.message });
   }
 };
@@ -659,23 +644,13 @@ export const unflagResponseForReview = async (req, res) => {
       { $set: { isForReview: false } }
     );
 
-    await logAction({
-      action: 'FARMER_RESPONSE_UNFLAGGED',
-      module: 'HIGH-VALUE CROPS',
-      details: `Unflagged farmer response with ID: ${farmerId} for review`,
-      status: 'SUCCESS'
-    });
+    await logAction(req, 'FARMER_RESPONSE_UNFLAGGED', 'HIGH-VALUE CROPS', `Unflagged farmer response with ID: ${farmerId} for review`, 'SUCCESS');
 
     return res.status(200).json({ message: 'Farmer response unflagged for review.' });
 
   } catch (error) {
 
-    await logAction({
-      action: 'FARMER_RESPONSE_UNFLAGGED',
-      module: 'HIGH-VALUE CROPS',
-      details: `Error unflagging farmer response for review: ${error.message}`,
-      status: 'FAILED'
-    });
+    await logAction(req, 'FARMER_RESPONSE_UNFLAGGED', 'HIGH-VALUE CROPS', `Error unflagging farmer response for review: ${error.message}`, 'FAILED');
 
     res.status(500).json({ message: 'Error unflagging response for review', error: error.message });
   }
@@ -688,8 +663,14 @@ export const formStatusEnable = async (req, res) => {
       { $set: { formStatus: true } },      // update
       { upsert: true, new: true }           // options
     );
+
+    await logAction(req, 'HVC_FORM_ENABLED', 'HIGH-VALUE CROPS', 'High-Value Crops form enabled successfully', 'SUCCESS');
+
     return res.status(200).json({ message: 'High-Value Crops form enabled successfully.' });
   } catch (error) {
+
+    await logAction(req, 'HVC_FORM_ENABLED', 'HIGH-VALUE CROPS', `Error enabling High-Value Crops form: ${error.message}`, 'FAILED');
+
     return res.status(500).json({ message: 'Error enabling High-Value Crops form', error: error.message });
   }
 };
@@ -701,8 +682,14 @@ export const formStatusDisable = async (req, res) => {
       { $set: { formStatus: false } },      // update
       { upsert: true, new: true }           // options
     );
+
+    await logAction(req, 'HVC_FORM_DISABLED', 'HIGH-VALUE CROPS', 'High-Value Crops form disabled successfully', 'SUCCESS');
+
     return res.status(200).json({ message: 'High-Value Crops form disabled successfully.' });
   } catch (error) {
+
+    await logAction(req, 'HVC_FORM_DISABLED', 'HIGH-VALUE CROPS', `Error disabling High-Value Crops form: ${error.message}`, 'FAILED');
+
     return res.status(500).json({ message: 'Error disabling High-Value Crops form', error: error.message });
   }
 };
@@ -747,12 +734,7 @@ export const archiveResponse = async (req, res) => {
       { $set: { isArchived: true } }
     );
 
-    await logAction({
-      action: 'FARMER_RESPONSE_ARCHIVED',
-      module: 'HIGH-VALUE CROPS',
-      details: `Archived farmer response with ID: ${inputId}`,
-      status: 'SUCCESS'
-    });
+    await logAction(req, 'FARMER_RESPONSE_ARCHIVED', 'HIGH-VALUE CROPS', `Archived farmer response with ID: ${inputId}`, 'SUCCESS');
 
     return res.status(200).json({ 
       message: 'Farmer response archived successfully.',
@@ -761,12 +743,7 @@ export const archiveResponse = async (req, res) => {
 
   } catch (error) {
 
-    await logAction({
-      action: 'FARMER_RESPONSE_ARCHIVED',
-      module: 'HIGH-VALUE CROPS',
-      details: `Error archiving farmer response with ID: ${inputId}`,
-      status: 'FAILED'
-    });
+    await logAction(req, 'FARMER_RESPONSE_ARCHIVED', 'HIGH-VALUE CROPS', `Error archiving farmer response with ID: ${inputId}`, 'FAILED');
 
     return res.status(500).json({ 
       message: 'Error archiving farmer response', 
@@ -800,12 +777,7 @@ export const unarchiveResponse = async (req, res) => {
       { $set: { isArchived: false } }
     );
 
-    await logAction({
-      action: 'FARMER_RESPONSE_UNARCHIVED',
-      module: 'HIGH-VALUE CROPS',
-      details: `Unarchived farmer response with ID: ${inputId}`,
-      status: 'SUCCESS'
-    });
+    await logAction(req, 'FARMER_RESPONSE_UNARCHIVED', 'HIGH-VALUE CROPS', `Unarchived farmer response with ID: ${inputId}`, 'SUCCESS');
 
     return res.status(200).json({ 
       message: 'Farmer response unarchived successfully.',
@@ -814,12 +786,7 @@ export const unarchiveResponse = async (req, res) => {
 
   } catch (error) {
 
-    await logAction({
-      action: 'FARMER_RESPONSE_UNARCHIVED',
-      module: 'HIGH-VALUE CROPS',
-      details: `Error unarchiving farmer response: ${error.message}`,
-      status: 'FAILED'
-    });
+    await logAction(req, 'FARMER_RESPONSE_UNARCHIVED', 'HIGH-VALUE CROPS', `Error unarchiving farmer response: ${error.message}`, 'FAILED');
 
     return res.status(500).json({ 
       message: 'Error unarchiving farmer response', 
@@ -978,15 +945,10 @@ export const requestEdit = async (req, res) => {
       });
     }
 
-    await logAction({
-      action: 'SMS_SENT_FOR_EDIT_REQUEST',
-      module: 'HIGH-VALUE CROPS',
-      details: `Edit request SMS sent for response: ${farmerId} and created edit request: ${editDoc[0]._id}`,
-      status: 'SUCCESS'
-    }, {session});
-
     // Commit the transaction only if everything succeeded
     await session.commitTransaction();
+
+    await logAction(req, 'SMS_SENT_FOR_EDIT_REQUEST', 'HIGH-VALUE CROPS', `Edit request SMS sent for response: ${farmerId} and created edit request: ${editDoc[0]._id}`, 'SUCCESS');
 
     return res.json({
       message: 'Edit request recorded. Awaiting farmer consent.',
@@ -995,12 +957,7 @@ export const requestEdit = async (req, res) => {
     // Rollback transaction on any error
     await session.abortTransaction();
 
-    await logAction({
-      action: 'SMS_SENT_FOR_EDIT_REQUEST',
-      module: 'HIGH-VALUE CROPS',
-      details: `Error recording edit request: ${error.message}`,
-      status: 'FAILED'
-    });
+    await logAction(req, 'SMS_SENT_FOR_EDIT_REQUEST', 'HIGH-VALUE CROPS', `Error recording edit request: ${error.message}`, 'FAILED');
 
     console.log(error);
     return res.status(500).json({ message: 'Error recording edit request.', error: error.message });
@@ -1507,14 +1464,9 @@ export const createValidationScheduleVisit = async (req, res) => { // for schedu
       { session }
     );
 
-    await logAction({
-      action: 'VALIDATION_VISIT_SCHEDULED_FOR_EDIT_REQUEST',
-      module: 'HIGH-VALUE CROPS',
-      details: `Validation visit scheduled for farmer response: ${farmerId} with edit request: ${editDoc[0]._id}`,
-      status: 'SUCCESS'
-    }, {session});
-
     await session.commitTransaction();
+
+    await logAction(req, 'VALIDATION_VISIT_SCHEDULED_FOR_EDIT_REQUEST', 'HIGH-VALUE CROPS', `Validation visit scheduled for farmer response: ${farmerId} with edit request: ${editDoc[0]._id}`, 'SUCCESS');
 
     return res.status(200).json({
       message: 'Validation visit scheduled successfully with edit request.',
@@ -1528,12 +1480,7 @@ export const createValidationScheduleVisit = async (req, res) => { // for schedu
   } catch (error) {
     await session.abortTransaction();
 
-    await logAction({
-      action: 'VALIDATION_VISIT_SCHEDULED_FOR_EDIT_REQUEST',
-      module: 'HIGH-VALUE CROPS',
-      details: `Error scheduling validation visit for farmer response: ${farmerId} with edit request: ${editDoc[0]._id}. Error: ${error.message}`,
-      status: 'FAILED'
-    });
+    await logAction(req, 'VALIDATION_VISIT_SCHEDULED_FOR_EDIT_REQUEST', 'HIGH-VALUE CROPS', `Error scheduling validation visit: ${error.message}`, 'FAILED');
 
     console.error('Error creating validation schedule visit:', error);
     return res.status(500).json({ 
@@ -1734,14 +1681,9 @@ export const setValidationVisitCompleted = async (req, res) => { //for submittin
       { session }
     );
 
-    await logAction({
-      action: 'VALIDATION_VISIT_COMPLETED',
-      module: 'HIGH-VALUE CROPS',
-      details: `Validation visit completed for farmer response: ${farmerId} by validator: ${validatorEmployeeId}`,
-      status: 'SUCCESS'
-    }, {session});
-    
     await session.commitTransaction();
+
+    await logAction(req, 'VALIDATION_VISIT_COMPLETED', 'HIGH-VALUE CROPS', `Validation visit completed for farmer response: ${farmerId} by validator: ${validatorEmployeeId}`, 'SUCCESS');
 
     return res.status(200).json({
       message: 'Validation visit marked as completed successfully.',
@@ -1750,12 +1692,7 @@ export const setValidationVisitCompleted = async (req, res) => { //for submittin
   } catch (error) {
     await session.abortTransaction();
 
-    await logAction({
-      action: 'VALIDATION_VISIT_COMPLETED',
-      module: 'HIGH-VALUE CROPS',
-      details: `Error completing validation visit: ${error.message}`,
-      status: 'FAILED'
-    }, {session});
+    await logAction(req, 'VALIDATION_VISIT_COMPLETED', 'HIGH-VALUE CROPS', `Error completing validation visit: ${error.message}`, 'FAILED');
 
     console.error('Error completing validation visit:', error);
     return res.status(500).json({ 
@@ -1816,6 +1753,8 @@ export const approveValidationVisitDetails = async (req, res) => { //use for man
 
     await session.commitTransaction();
 
+    await logAction(req, 'VALIDATION_VISIT_APPROVED', 'HIGH-VALUE CROPS', `Approved validation visit details for farmer input ID: ${farmerId}`, 'SUCCESS');
+
     return res.status(200).json({
       message: 'Validation visit details approved successfully.',
       data: {
@@ -1826,6 +1765,9 @@ export const approveValidationVisitDetails = async (req, res) => { //use for man
 
   } catch (error) {
     await session.abortTransaction();
+
+    await logAction(req, 'VALIDATION_VISIT_APPROVED', 'HIGH-VALUE CROPS', `Error approving validation visit details: ${error.message}`, 'FAILED');
+
     console.error('Error approving validation visit details:', error);
     return res.status(500).json({ 
       message: 'Error approving validation visit details.', 
@@ -1922,6 +1864,8 @@ export const rejectValidationVisitDetails = async (req, res) => { //use for mana
 
     await session.commitTransaction();
 
+    await logAction(req, 'VALIDATION_VISIT_REJECTED', 'HIGH-VALUE CROPS', `Rejected validation visit details for farmer input ID: ${farmerId}`, 'SUCCESS');
+
     return res.status(200).json({
       message: 'Validation visit details rejected successfully. Staff must resubmit proof.',
       data: {
@@ -1933,6 +1877,9 @@ export const rejectValidationVisitDetails = async (req, res) => { //use for mana
 
   } catch (error) {
     await session.abortTransaction();
+
+    await logAction(req, 'VALIDATION_VISIT_REJECTED', 'HIGH-VALUE CROPS', `Error rejecting validation visit details: ${error.message}`, 'FAILED');
+
     console.error('Error rejecting validation visit details:', error);
     return res.status(500).json({ 
       message: 'Error rejecting validation visit details.', 
@@ -1997,12 +1944,8 @@ export const createFarmerAccount = async (req, res) => {
       birthdate
     });
 
-    await logAction({
-      action: 'FARMER_ACCOUNT_CREATED',
-      module: 'HIGH-VALUE CROPS',
-      details: `Created farmer account with ID: ${farmerId}`,
-      status: 'SUCCESS'
-    });
+    await logAction(req, 'FARMER_ACCOUNT_CREATED', 'HIGH-VALUE CROPS', `Created farmer account with ID: ${farmerId}`, 'SUCCESS');
+
     return res.status(201).json({
       message: 'Farmer account created successfully',
       data: newFarmerAccount,
@@ -2011,12 +1954,8 @@ export const createFarmerAccount = async (req, res) => {
     if (error.code === 11000) {
       return res.status(409).json({ message: 'Farmer account already exists with the same farmer ID, try again.' });
     }
-    await logAction({
-      action: 'FARMER_ACCOUNT_CREATED',
-      module: 'HIGH-VALUE CROPS',
-      details: `Error creating farmer account: ${error.message}`,
-      status: 'FAILED'
-    });
+
+    await logAction(req, 'FARMER_ACCOUNT_CREATED', 'HIGH-VALUE CROPS', `Error creating farmer account: ${error.message}`, 'FAILED');
 
     return res.status(500).json({ message: 'Error creating farmer account', error });
   }
@@ -2040,22 +1979,12 @@ export const archiveFarmerAccount = async (req, res) => {
       { $set: { isArchived: true } }
     );
 
-    await logAction({
-      action: 'FARMER_ACCOUNT_ARCHIVED',
-      module: 'HIGH-VALUE CROPS',
-      details: `Archived farmer account with ID: ${farmerId}`,
-      status: 'SUCCESS'
-    });
+    await logAction(req, 'FARMER_ACCOUNT_ARCHIVED', 'HIGH-VALUE CROPS', `Archived farmer account with ID: ${farmerId}`, 'SUCCESS');
     
     return res.status(200).json({ message: 'Farmer account archived successfully.' });
   } catch (error) {
 
-    await logAction({
-      action: 'FARMER_ACCOUNT_ARCHIVED',
-      module: 'HIGH-VALUE CROPS',
-      details: `Error archiving farmer account: ${error.message}`,
-      status: 'FAILED'
-    });
+    await logAction(req, 'FARMER_ACCOUNT_ARCHIVED', 'HIGH-VALUE CROPS', `Error archiving farmer account: ${error.message}`, 'FAILED');
 
     return res.status(500).json({ message: 'Error archiving farmer account.', error: error.message });
   }
@@ -2078,22 +2007,12 @@ export const unarchiveFarmerAccount = async (req, res) => {
       { $set: { isArchived: false } }
     );
 
-    await logAction({
-      action: 'FARMER_ACCOUNT_UNARCHIVED',
-      module: 'HIGH-VALUE CROPS',
-      details: `Unarchived farmer account with ID: ${farmerId}`,
-      status: 'SUCCESS'
-    });
+    await logAction(req, 'FARMER_ACCOUNT_UNARCHIVED', 'HIGH-VALUE CROPS', `Unarchived farmer account with ID: ${farmerId}`, 'SUCCESS');
     
     return res.status(200).json({ message: 'Farmer account unarchived successfully.' });
   } catch (error) {
 
-    await logAction({
-      action: 'FARMER_ACCOUNT_UNARCHIVED',
-      module: 'HIGH-VALUE CROPS',
-      details: `Error unarchiving farmer account: ${error.message}`,
-      status: 'FAILED'
-    });
+    await logAction(req, 'FARMER_ACCOUNT_UNARCHIVED', 'HIGH-VALUE CROPS', `Error unarchiving farmer account: ${error.message}`, 'FAILED');
 
     return res.status(500).json({ message: 'Error unarchiving farmer account.', error: error.message });
   }
@@ -2342,12 +2261,7 @@ export const updateFarmerAccount = async (req, res) => {
     // Save the updated farmer account
     const updatedFarmer = await farmerAccount.save();
     
-    await logAction({
-      action: 'FARMER_ACCOUNT_UPDATED',
-      module: 'HIGH-VALUE CROPS',
-      details: `Updated farmer account with ID: ${farmerId}`,
-      status: 'SUCCESS'
-    });
+    await logAction(req, 'FARMER_ACCOUNT_UPDATED', 'HIGH-VALUE CROPS', `Updated farmer account with ID: ${farmerId}`, 'SUCCESS');
 
     return res.status(200).json({
       message: 'Farmer account updated successfully',
@@ -2355,12 +2269,7 @@ export const updateFarmerAccount = async (req, res) => {
     });
   } catch (error) {
 
-    await logAction({
-      action: 'FARMER_ACCOUNT_UPDATED',
-      module: 'HIGH-VALUE CROPS',
-      details: `Error updating farmer account with ID: ${farmerId}`,
-      status: 'FAILED'
-    });
+    await logAction(req, 'FARMER_ACCOUNT_UPDATED', 'HIGH-VALUE CROPS', `Error updating farmer account with ID: ${farmerId}: ${error.message}`, 'FAILED');
 
     return res.status(500).json({ 
       message: 'Error updating farmer account', 
