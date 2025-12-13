@@ -320,6 +320,8 @@ export const verify2FA = async (req, res) => {
 
             const delay = Math.min(user.failedOTPVerifications.count * 1000, 10000); // up to 10s
             await new Promise(res => setTimeout(res, delay));
+
+            await logAction(req, '2FA_VERIFIED', 'AUTHENTICATION', `Error verifying 2FA: Invalid token for user: ${user.email}`, 'FAILED');
             
             return res.status(400).json({ success: false, message: 'Invalid 2FA token.' });
         }
