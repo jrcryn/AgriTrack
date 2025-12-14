@@ -284,6 +284,14 @@ export const registerDocument = async (req, res) => {
 };
 
 export const downloadQrCode = async (req, res) => {
+    let userId = null;
+    // Use userAccountId from request body if provided, otherwise use token
+    if (req.body.userAccountId) {
+        userId = req.body.userAccountId;
+    } else if (req.decodedAuthToken?.payload?.userId) {
+        userId = req.decodedAuthToken.payload.userId;
+    }
+
     try {
         const { id } = req.params;
         
@@ -338,8 +346,11 @@ export const downloadQrCode = async (req, res) => {
 
         // 6. Finalize the PDF and end the stream
         doc.end();
+
+        await logAction(req, userId, 'DOCUMENT_QR_CODE_DOWNLOADED', 'DOCUMENT TRACKING', `QR code downloaded for document: ${qrCodeDoc.refNumber}`, 'SUCCESS');
         
     } catch (error) {
+        await logAction(req, userId, 'DOCUMENT_QR_CODE_DOWNLOADED', 'DOCUMENT TRACKING', `Error downloading QR code as PDF: ${error.message}`, 'FAILED');
         console.error('Error downloading QR code as PDF:', error);
         return res.status(500).json({
             success: false,

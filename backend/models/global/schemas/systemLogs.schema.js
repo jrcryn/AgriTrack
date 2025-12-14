@@ -102,22 +102,22 @@ const actions = [
     /*-----------------------------------------------------------------------------------------*/ 
 
     // Document Tracking - Document Types
-    'DOCUMENT_TYPE_CREATED',
-    'DOCUMENT_TYPE_UPDATED',
+    'DOCUMENT_TYPE_CREATED', //DONE
+    'DOCUMENT_TYPE_UPDATED', //DONE
     
     // Document Tracking - Document Management
-    'DOCUMENT_REGISTERED',
-    'DOCUMENT_FORWARDED',
-    'DOCUMENT_REGISTERED_AND_FORWARDED',
-    'DOCUMENT_RECEIVED',
-    'DOCUMENT_ARCHIVED',
-    'DOCUMENT_UNARCHIVED',
-    'DOCUMENT_RELEASED',
-    'DOCUMENT_UNRELEASED',
-    'DOCUMENT_REROUTED',
-    'DOCUMENT_DISPOSED',
-    'DOCUMENT_DELETED',
-    'DOCUMENT_QR_CODE_DOWNLOADED',
+    'DOCUMENT_REGISTERED', //DONE
+    'DOCUMENT_FORWARDED', //DONE
+    'DOCUMENT_REGISTERED_AND_FORWARDED', //DONE
+    'DOCUMENT_RECEIVED', //DONE
+    'DOCUMENT_ARCHIVED', //DONE
+    'DOCUMENT_UNARCHIVED', //DONE
+    'DOCUMENT_RELEASED', //DONE
+    'DOCUMENT_UNRELEASED', //DONE
+    'DOCUMENT_REROUTED', //DONE
+    'DOCUMENT_DISPOSED', //DONE
+    'DOCUMENT_DELETED', //DONE
+    'DOCUMENT_QR_CODE_DOWNLOADED', //DONE
 ];
 
 export const GranularLogSchema = new mongoose.Schema({
