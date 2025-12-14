@@ -7,34 +7,22 @@ import { encrypt, decrypt } from '../../utils/encryption.js';
 import { sendWelcomeEmail, sendPasswordResetEmail, sendPasswordResetSuccessEmail } from '../../mailtrap/emails.controller.js';
 import { generateTokenAndSetCookie } from '../../utils/generateTokenAndSetCookie.js'
 import { generatePreTokenAndSetCookie } from '../../utils/generatePreTokenAndSetCookie.js';
+import { logAction } from '../../utils/logAction.js';
 
-const logAction = async (req, action, module, description, status) => {
-
-  const userId =  req.decodedAuthToken ? req.decodedAuthToken.userId : 'Unknown';
-
-  await global.globalModels.GranularLog.create({
-    userId,
-    action,
-    module,
-    description,
-    status,
-    ip: req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress,
-    userAgent: req.headers['user-agent'],
-  });
-};
-
-export const register = async (req, res) => {  //system admin level access only (ililipat in the future to a separate route for admin job controllers)
+export const register = async (req, res) => {
     const { first_name, last_name, middle_name, suffix, email, phone, roles, office_position } = req.body;
+    
+    let userId = null;
+    
     try {
-
         const employee = await global.globalModels.EmployeeAccount.find({ $or: [{ email }, { phone }, { first_name }, { last_name }] });
         if (employee.length > 0) {
-            await logAction(req, 'USER_REGISTER', 'AUTHENTICATION', `Registration attempt failed - Employee already exists: ${email}`, 'VALIDATION_FAILED');
+            await logAction(req, userId, 'USER_REGISTER', 'AUTHENTICATION', `Registration attempt failed - Employee already exists: ${email}`, 'VALIDATION_FAILED');
             return res.status(400).json({ success: false, message: 'Employee already exists.' });
         }
 
         if (!first_name || !last_name || !email || !phone || !roles || (roles.includes('DMS') && !office_position)) {
-            await logAction(req, 'USER_REGISTER', 'AUTHENTICATION', `Registration attempt failed - Missing required fields for email: ${email || 'unknown'}`, 'VALIDATION_FAILED');
+            await logAction(req, userId, 'USER_REGISTER', 'AUTHENTICATION', `Registration attempt failed - Missing required fields for email: ${email || 'unknown'}`, 'VALIDATION_FAILED');
             return res.status(400).json({ success: false, message: 'All fields are required.' });
         }
         const position = roles.includes('DMS') ? office_position : null;
@@ -52,15 +40,17 @@ export const register = async (req, res) => {  //system admin level access only 
             last_name,
             middle_name,
             suffix,
-            office_position: position, // Office position is only required when creating Doc-Track Staff accounts
+            office_position: position,
             roles,
             email,
             phone,
-            password: hashedPassword, //for testing purposes, should be changed to hashedPassword in the future
+            password: hashedPassword,
         });
         await newEmployee.save();
         
-        await logAction(req, 'USER_REGISTER', 'SYSTEM ADMIN', `User registered: ${email}`, 'SUCCESS');
+        userId = newEmployee._id;
+        
+        await logAction(req, userId, 'USER_REGISTER', 'SYSTEM ADMIN', `User registered: ${email}`, 'SUCCESS');
 
         res.status(201).json({ 
             message: 'User registered successfully', 
@@ -78,11 +68,11 @@ export const register = async (req, res) => {  //system admin level access only 
 
     } catch (error) {
         if (error.code === 11000) {
-            await logAction(req, 'USER_REGISTER', 'AUTHENTICATION', `Registration failed - User already exists: ${req.body.email}`, 'FAILED');
+            await logAction(req, userId, 'USER_REGISTER', 'AUTHENTICATION', `Registration failed - User already exists: ${req.body.email}`, 'FAILED');
             return res.status(400).json({ success: false, message: 'User already exists.' });
         }
 
-        await logAction(req, 'USER_REGISTER', 'AUTHENTICATION', `Registration error: ${error.message}`, 'FAILED');
+        await logAction(req, userId, 'USER_REGISTER', 'AUTHENTICATION', `Registration error: ${error.message}`, 'FAILED');
 
         console.error('Error signing up:', error);
         return res.status(500).json({ success: false ,message: 'Internal server error.' });
@@ -91,9 +81,14 @@ export const register = async (req, res) => {  //system admin level access only 
 
 
 export const checkAuth = async (req, res) => {
+    let userId = null;
+    
     try {
-
         const user = await global.globalModels.EmployeeAccount.findById(req.decodedAuthToken.payload.userId);
+
+        if (user) {
+            userId = user._id;
+        }
 
         const role = req.decodedAuthToken.payload.role;
 
@@ -121,29 +116,35 @@ export const checkAuth = async (req, res) => {
 };
 
 export const switchRole = async (req, res) => {
-    try{
+    let userId = null;
+    
+    try {
         const { targetRole } = req.body;
         if (!targetRole) {
-            await logAction(req, 'USER_SWITCH_ROLE', 'AUTHENTICATION', `Role switch attempt failed - Target role not provided`, 'VALIDATION_FAILED');
+            await logAction(req, userId, 'USER_SWITCH_ROLE', 'AUTHENTICATION', `Role switch attempt failed - Target role not provided`, 'VALIDATION_FAILED');
             return res.status(400).json({success: false, message: 'Target role is not found.'})
         };
 
         const user = await global.globalModels.EmployeeAccount.findById(req.decodedAuthToken.payload.userId);
 
+        if (user) {
+            userId = user._id;
+        }
+
         if (!user) {
-            await logAction(req, 'USER_SWITCH_ROLE', 'AUTHENTICATION', `Role switch attempt failed - User not found: ${req.decodedAuthToken.payload.userId}`, 'VALIDATION_FAILED');
+            await logAction(req, userId, 'USER_SWITCH_ROLE', 'AUTHENTICATION', `Role switch attempt failed - User not found: ${req.decodedAuthToken.payload.userId}`, 'VALIDATION_FAILED');
             return res.status(400).json({success: false, message: 'User not found.'})
         };
 
         const targetAccount = await global.globalModels.EmployeeAccount.findOne({ _id: user._id, email: user.email, roles: targetRole });
         if (!targetAccount) {
-            await logAction(req, 'USER_SWITCH_ROLE', 'AUTHENTICATION', `Role switch attempt failed - User ${user.email} does not have access to role: ${targetRole}`, 'VALIDATION_FAILED');
+            await logAction(req, userId, 'USER_SWITCH_ROLE', 'AUTHENTICATION', `Role switch attempt failed - User ${user.email} does not have access to role: ${targetRole}`, 'VALIDATION_FAILED');
             return res.status(404).json({success: false, message: 'You don\'t have access to this role or role does not exist.'})
         };
 
         generateTokenAndSetCookie(res, targetAccount._id, targetRole);
 
-        await logAction(req, 'USER_SWITCH_ROLE', 'AUTHENTICATION', `User switched to role: ${targetRole}`, 'SUCCESS');
+        await logAction(req, userId, 'USER_SWITCH_ROLE', 'AUTHENTICATION', `User switched to role: ${targetRole}`, 'SUCCESS');
 
         return res.status(200).json({
             success: true,
@@ -161,7 +162,7 @@ export const switchRole = async (req, res) => {
 
 
     } catch (error) {
-        await logAction(req, 'USER_SWITCH_ROLE', 'AUTHENTICATION', `Error switching roles: ${error.message}`, 'FAILED');
+        await logAction(req, userId, 'USER_SWITCH_ROLE', 'AUTHENTICATION', `Error switching roles: ${error.message}`, 'FAILED');
         return res.status(500).json({success: false, message: 'Error switching roles.'})
     }
 };
@@ -169,20 +170,28 @@ export const switchRole = async (req, res) => {
 export const login = async (req, res) => {
     const { email, password } = req.body;
 
+    let userId = null;
+    let user = null;
+
     try {
+        
         if (!email || !password) {
-            await logAction(req, 'USER_LOGIN', 'AUTHENTICATION', `Login attempt failed - Missing email or password`, 'VALIDATION_FAILED');
+            await logAction(req, userId, 'USER_LOGIN', 'AUTHENTICATION', `Login attempt failed - Missing email or password`, 'VALIDATION_FAILED');
             return res.status(400).json({ success: false, message: 'All fields are required.'})
         }
-
         const user = await global.globalModels.EmployeeAccount.findOne({ email }) 
+
+        if (user) {
+            userId = user._id;
+        }
+
         if (!user) {
-            await logAction(req, 'USER_LOGIN', 'AUTHENTICATION', `Login attempt failed - User not found: ${email}`, 'VALIDATION_FAILED');
+            await logAction(req, userId, 'USER_LOGIN', 'AUTHENTICATION', `Login attempt failed - User not found: ${email}`, 'VALIDATION_FAILED');
             return res.status(404).json({ success: false, message: 'Invalid credentials.' });
         }
 
         if (user.isLocked) {
-            await logAction(req, 'USER_LOGIN', 'AUTHENTICATION', `Login attempt failed - Account is locked: ${email}`, 'VALIDATION_FAILED');
+            await logAction(req, userId, 'USER_LOGIN', 'AUTHENTICATION', `Login attempt failed - Account is locked: ${email}`, 'VALIDATION_FAILED');
             return res.status(403).json({ success: false, message: 'Account locked. Contact IT support to regain access.' });
         }
 
@@ -199,14 +208,14 @@ export const login = async (req, res) => {
             if (user.failedLoginAttempts.count >= 11) {
                 user.isLocked = true;
                 await user.save();
-                await logAction(req, 'USER_LOGIN', 'AUTHENTICATION', `Account locked due to multiple failed login attempts: ${email}`, 'VALIDATION_FAILED');
+                await logAction(req, userId, 'USER_LOGIN', 'AUTHENTICATION', `Account locked due to multiple failed login attempts: ${email}`, 'VALIDATION_FAILED');
                 return res.status(403).json({ success: false, message: 'Account is now locked due to multiple failed login attempts. Contact IT support to regain access.' });
             }
 
             const delay = Math.min(user.failedLoginAttempts.count * 1000, 10000); // up to 10s
             await new Promise(res => setTimeout(res, delay));
 
-            await logAction(req, 'USER_LOGIN', 'AUTHENTICATION', `Login error: Invalid credentials for email: ${email}`, 'FAILED');
+            await logAction(req, userId, 'USER_LOGIN', 'AUTHENTICATION', `Login error: Invalid credentials for email: ${email}`, 'FAILED');
 
             return res.status(401).json({ success: false, message: 'Invalid credentials.'})
         }
@@ -216,10 +225,8 @@ export const login = async (req, res) => {
 
         generatePreTokenAndSetCookie(res, user._id);
 
-        await logAction(req, 'USER_LOGIN', 'AUTHENTICATION', `User login successful: ${email}`, 'SUCCESS');
-
         if(!user.is2FAEnabled) {
-            await logAction(req, 'USER_LOGIN', 'AUTHENTICATION', `Login redirected to 2FA setup - 2FA not enabled for: ${email}`, 'VALIDATION_FAILED');
+            await logAction(req, userId, 'USER_LOGIN', 'AUTHENTICATION', `Login redirected to 2FA setup - 2FA not enabled for: ${email}`, 'VALIDATION_FAILED');
             return res.status(401).json({ 
                 success: false, 
                 message: 'You are required to set up 2FA first.',
@@ -227,14 +234,16 @@ export const login = async (req, res) => {
             });
         };
         
+        await logAction(req, userId, 'USER_LOGIN', 'AUTHENTICATION', `Login successful for user: ${email}`, 'SUCCESS');
         res.status(200).json({
             success: true,
             message: 'Login successful.',
             userId: user._id // redirect to 2fa verification page send userId too
         });
 
+
     } catch (error) {
-        await logAction(req, 'USER_LOGIN', 'AUTHENTICATION', `Login error: ${error.message}`, 'FAILED');
+        await logAction(req, userId, 'USER_LOGIN', 'AUTHENTICATION', `Login error: ${error.message}`, 'FAILED');
         console.error('Error logging in:', error);
         return res.status(500).json({ success: false, message: 'Internal server error.' });
     }
@@ -243,10 +252,17 @@ export const login = async (req, res) => {
 export const generate2FASecret = async (req, res) => {
     const { userId } = req.body;
 
+    let userID = null;
+
     try {
         const user = await global.globalModels.EmployeeAccount.findById( userId );
+        
+        if (user) {
+            userID = user._id;
+        }
+        
         if (!user) {
-            await logAction(req, '2FA_SECRET_GENERATED', 'AUTHENTICATION', `2FA setup attempt failed - User not found: ${userId}`, 'VALIDATION_FAILED');
+            await logAction(req, userID, '2FA_SECRET_GENERATED', 'AUTHENTICATION', `2FA setup attempt failed - User not found: ${userId}`, 'VALIDATION_FAILED');
             return res.status(404).json({ success: false, message: 'User not found.' });
         }
 
@@ -272,7 +288,7 @@ export const generate2FASecret = async (req, res) => {
         user.twoFAQRCode = encrypt(qr); 
         await user.save();
 
-        await logAction(req, '2FA_SECRET_GENERATED', 'AUTHENTICATION', `2FA secret generated for user: ${user.email}`, 'SUCCESS');
+        await logAction(req, userID, '2FA_SECRET_GENERATED', 'AUTHENTICATION', `2FA secret generated for user: ${user.email}`, 'SUCCESS');
 
         res.status(200).json({
             success: true,
@@ -283,7 +299,7 @@ export const generate2FASecret = async (req, res) => {
         });
 
     } catch (error) {
-        await logAction(req, '2FA_SECRET_GENERATED', 'AUTHENTICATION', `Error generating 2FA secret: ${error.message}`, 'FAILED');
+        await logAction(req, userID, '2FA_SECRET_GENERATED', 'AUTHENTICATION', `Error generating 2FA secret: ${error.message}`, 'FAILED');
         console.error('Error generating 2FA secret:', error);
         return res.status(500).json({ success: false, message: 'Internal server error.' });
     }
@@ -292,21 +308,27 @@ export const generate2FASecret = async (req, res) => {
 export const verify2FA = async (req, res) => {
     const { token, userId } = req.body;
 
-    try {
+    let userID = null
 
+    try {
         const user = await global.globalModels.EmployeeAccount.findById(userId);
+
+        if (user) {
+            userID = user._id
+        }
+
         if (user.isLocked) {
-            await logAction(req, '2FA_VERIFIED', 'AUTHENTICATION', `2FA verification attempt failed - Account is locked: ${userId}`, 'VALIDATION_FAILED');
+            await logAction(req, userID, '2FA_VERIFIED', 'AUTHENTICATION', `2FA verification attempt failed - Account is locked: ${userID}`, 'VALIDATION_FAILED');
             return res.status(403).json({ success: false, message: 'Account locked. Contact IT support to regain access.' });
         }
 
         if (!user) {
-            await logAction(req, '2FA_VERIFIED', 'AUTHENTICATION', `2FA verification attempt failed - User not found: ${userId}`, 'VALIDATION_FAILED');
+            await logAction(req, userID, '2FA_VERIFIED', 'AUTHENTICATION', `2FA verification attempt failed - User not found: ${userID}`, 'VALIDATION_FAILED');
             return res.status(404).json({ success: false, message: 'User not found.' });
         }
 
         if (!user.twoFASecret) {
-            await logAction(req, '2FA_VERIFIED', 'AUTHENTICATION', `2FA verification attempt failed - 2FA not enabled for user: ${userId}`, 'VALIDATION_FAILED');
+            await logAction(req, userID, '2FA_VERIFIED', 'AUTHENTICATION', `2FA verification attempt failed - 2FA not enabled for user: ${userID}`, 'VALIDATION_FAILED');
             return res.status(400).json({ success: false, message: '2FA is not enabled for this user.' });
         }
 
@@ -356,7 +378,7 @@ export const verify2FA = async (req, res) => {
         }); 
         generateTokenAndSetCookie(res, user._id, role);
 
-        await logAction(req, '2FA_VERIFIED', 'AUTHENTICATION', `2FA verified successfully for user: ${user.email}`, 'SUCCESS');
+        await logAction(req, userID, '2FA_VERIFIED', 'AUTHENTICATION', `2FA verified successfully for user: ${user.email}`, 'SUCCESS');
 
         res.status(200).json({
             success: true,
@@ -373,26 +395,33 @@ export const verify2FA = async (req, res) => {
         });
 
     } catch (error) {
-        await logAction(req, '2FA_VERIFIED', 'AUTHENTICATION', `Error verifying 2FA: ${error.message}`, 'FAILED');
+        await logAction(req, userID, '2FA_VERIFIED', 'AUTHENTICATION', `Error verifying 2FA: ${error.message}`, 'FAILED');
         console.error('Error verifying 2FA:', error);
         return res.status(500).json({ success: false, message: 'Internal server error.' });
     }
 };
 
 export const logout = async (req, res) => {
+    let userId = null;
+    
     try {
+        // Get userId from decoded token if available
+        if (req.decodedAuthToken && req.decodedAuthToken.payload) {
+            userId = req.decodedAuthToken.payload.userId;
+        }
+        
         res.clearCookie('authToken', {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production' ? true : false, // Set to true in production for secure cookies
-            sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Strict', // Use 'None' for cross-site cookies in production, 'Strict' for local development
-            path: '/' //cookie is cleared for the entire domain
+            secure: process.env.NODE_ENV === 'production' ? true : false,
+            sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Strict',
+            path: '/'
         });
 
-        await logAction(req, 'USER_LOGOUT', 'AUTHENTICATION', 'User logged out successfully', 'SUCCESS');
+        await logAction(req, userId, 'USER_LOGOUT', 'AUTHENTICATION', 'User logged out successfully', 'SUCCESS');
 
         res.status(200).json({ success: true, message: 'Logout successful.' });
     } catch (error) {
-        await logAction(req, 'USER_LOGOUT', 'AUTHENTICATION', `Error logging out: ${error.message}`, 'FAILED');
+        await logAction(req, userId, 'USER_LOGOUT', 'AUTHENTICATION', `Error logging out: ${error.message}`, 'FAILED');
         console.error('Error logging out:', error);
         return res.status(500).json({ success: false, message: 'Internal server error.' });
     }
@@ -401,15 +430,22 @@ export const logout = async (req, res) => {
 export const forgotPassword = async (req, res) => {
     const { email } = req.body;
 
+    let userId = null;
+
     try {   
         if (!email) {
-            await logAction(req, 'PASSWORD_RESET_REQUESTED', 'AUTHENTICATION', `Password reset attempt failed - Email not provided`, 'VALIDATION_FAILED');
+            await logAction(req, userId, 'PASSWORD_RESET_REQUESTED', 'AUTHENTICATION', `Password reset attempt failed - Email not provided`, 'VALIDATION_FAILED');
             return res.status(400).json({ success: false, message: 'Email is required.'})
         }
 
         let user = await global.globalModels.EmployeeAccount.findOne({ email });
+        
+        if (user) {
+            userId = user._id;
+        }
+        
         if (!user) {
-            await logAction(req, 'PASSWORD_RESET_REQUESTED', 'AUTHENTICATION', `Password reset attempt failed - Email not found: ${email}`, 'VALIDATION_FAILED');
+            await logAction(req, userId, 'PASSWORD_RESET_REQUESTED', 'AUTHENTICATION', `Password reset attempt failed - Email not found: ${email}`, 'VALIDATION_FAILED');
             return res.status(404).json({ success: false, message: 'We cannot find your email.' });
         }
 
@@ -422,7 +458,7 @@ export const forgotPassword = async (req, res) => {
         user.resetPasswordExpiresAt = resetPasswordExpiresAt;
         await user.save();
 
-        await logAction(req, 'PASSWORD_RESET_REQUESTED', 'AUTHENTICATION', `Password reset requested for: ${email}`, 'SUCCESS');
+        await logAction(req, userId, 'PASSWORD_RESET_REQUESTED', 'AUTHENTICATION', `Password reset requested for: ${email}`, 'SUCCESS');
 
         res.status(200).json({
             success: true,
@@ -430,7 +466,7 @@ export const forgotPassword = async (req, res) => {
         });
 
     } catch (error) {
-        await logAction(req, 'PASSWORD_RESET_REQUESTED', 'AUTHENTICATION', `Error requesting password reset: ${error.message}`, 'FAILED');
+        await logAction(req, userId, 'PASSWORD_RESET_REQUESTED', 'AUTHENTICATION', `Error requesting password reset: ${error.message}`, 'FAILED');
         console.error('Error resetting password:', error);
         return res.status(500).json({ success: false, message: 'Internal server error.' });
     }
@@ -440,10 +476,17 @@ export const resetPassword = async (req, res) => {
     const { token } = req.params;
     const { newPassword } = req.body;
 
+    let userId = null;
+
     try {
         let user = await global.globalModels.EmployeeAccount.findOne({ resetPasswordToken: token, resetPasswordExpiresAt: { $gt: Date.now() } });
+        
+        if (user) {
+            userId = user._id;
+        }
+        
         if (!user) {
-            await logAction(req, 'PASSWORD_RESET', 'AUTHENTICATION', `Password reset attempt failed - Invalid or expired token`, 'VALIDATION_FAILED');
+            await logAction(req, userId, 'PASSWORD_RESET', 'AUTHENTICATION', `Password reset attempt failed - Invalid or expired token`, 'VALIDATION_FAILED');
             return res.status(404).json({ success: false, message: 'Invalid or expired reset token.' });
         }
 
@@ -456,7 +499,7 @@ export const resetPassword = async (req, res) => {
 
         await sendPasswordResetSuccessEmail(user.email);
         
-        await logAction(req, 'PASSWORD_RESET', 'AUTHENTICATION', `Password reset completed for user: ${user.email}`, 'SUCCESS');
+        await logAction(req, userId, 'PASSWORD_RESET', 'AUTHENTICATION', `Password reset completed for user: ${user.email}`, 'SUCCESS');
 
         res.status(200).json({
             success: true,
@@ -464,11 +507,12 @@ export const resetPassword = async (req, res) => {
         });
 
     } catch (error) {
-        await logAction(req, 'PASSWORD_RESET', 'AUTHENTICATION', `Error completing password reset: ${error.message}`, 'FAILED');
+        await logAction(req, userId, 'PASSWORD_RESET', 'AUTHENTICATION', `Error completing password reset: ${error.message}`, 'FAILED');
         console.error('Error resetting password:', error);
         return res.status(500).json({ success: false, message: 'Internal server error.' });
     }
 };
+
 
 
 

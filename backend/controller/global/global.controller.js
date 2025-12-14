@@ -50,3 +50,4 @@ export const deleteExpiredLogs = async (req, res) => {
     res.status(500).json({ message: 'Error deleting expired logs.', error: error.message });
   }
 };
+
