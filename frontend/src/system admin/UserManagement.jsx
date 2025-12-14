@@ -213,17 +213,22 @@ const UserManagement = () => {
     
     let combined = [...employees, ...admins];
     
-    // Filter by role if specified (only applies to employees)
-    // System admins are always included when "All Roles" is selected
+    // Filter by role if specified
     if (filterRole && filterRole !== 'all') {
-      combined = combined.filter(account => {
-        if (account.accountType === 'SYSTEM_ADMIN') {
-          return false; // System admins don't have roles, exclude them when filtering by specific role
-        }
-        return account.roles && account.roles.includes(filterRole);
-      });
+      if (filterRole === 'SYSTEM_ADMIN') {
+        // Show only system admins
+        combined = combined.filter(account => account.accountType === 'SYSTEM_ADMIN');
+      } else {
+        // Show only employees with the specified role
+        combined = combined.filter(account => {
+          if (account.accountType === 'SYSTEM_ADMIN') {
+            return false; // Exclude system admins when filtering by employee role
+          }
+          return account.roles && account.roles.includes(filterRole);
+        });
+      }
     }
-    // When filterRole is "all" or empty, both employees and system admins are included
+    // When filterRole is "all", both employees and system admins are included
     
     // Sort by creation date, newest first
     return combined.sort((a, b) => {
@@ -280,6 +285,7 @@ const UserManagement = () => {
             <option value="MIM">MIM</option>
             <option value="HVCS">HVCS</option>
             <option value="HVCM">HVCM</option>
+            <option value="SYSTEM_ADMIN">System Admin</option>
           </Select>
 
           {/* Status Filter */}
