@@ -886,15 +886,20 @@ export const getEmployeeAccounts = async (req, res) => {
         }
 
         // Status filtering
+        // By default, exclude archived accounts unless explicitly requested
         if (status) {
             if (status === 'active') {
                 query.isLocked = false;
                 query.isArchived = false;
             } else if (status === 'locked') {
                 query.isLocked = true;
+                query.isArchived = false; // Don't show archived when filtering locked
             } else if (status === 'archived') {
                 query.isArchived = true;
             }
+        } else {
+            // Default: exclude archived accounts
+            query.isArchived = false;
         }
 
         const totalEmployees = await global.globalModels.EmployeeAccount.countDocuments(query);
@@ -946,15 +951,20 @@ export const getSystemAdminAccounts = async (req, res) => {
         }
 
         // Status filtering
+        // By default, exclude archived accounts unless explicitly requested
         if (status) {
             if (status === 'active') {
                 query.isLocked = false;
                 query.isArchived = false;
             } else if (status === 'locked') {
                 query.isLocked = true;
+                query.isArchived = false; // Don't show archived when filtering locked
             } else if (status === 'archived') {
                 query.isArchived = true;
             }
+        } else {
+            // Default: exclude archived accounts
+            query.isArchived = false;
         }
 
         const totalAdmins = await global.systemAdminModels.SystemAdminAccount.countDocuments(query);

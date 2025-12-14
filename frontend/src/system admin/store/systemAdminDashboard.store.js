@@ -108,6 +108,53 @@ export const useSystemAdminStore = create((set, get) => ({
         }
     },
 
+    // System Admin Accounts
+    systemAdminAccounts: [],
+    systemAdminAccountsLoading: false,
+    systemAdminAccountsError: null,
+    systemAdminAccountsPagination: {
+        currentPage: 1,
+        totalPages: 1,
+        totalAdmins: 0,
+        limit: 50
+    },
+
+    fetchSystemAdminAccounts: async (params = {}) => {
+        set({ systemAdminAccountsLoading: true, systemAdminAccountsError: null });
+        try {
+            const {
+                page = 1,
+                limit = 50,
+                search = '',
+                status = ''
+            } = params;
+
+            const queryParams = new URLSearchParams();
+            if (page) queryParams.append('page', page);
+            if (limit) queryParams.append('limit', limit);
+            if (search) queryParams.append('search', search);
+            if (status) queryParams.append('status', status);
+
+            const response = await axios.get(
+                `${API_URL}/api/system-admin/system-admin-accounts?${queryParams.toString()}`
+            );
+
+            set({
+                systemAdminAccounts: response.data.admins || [],
+                systemAdminAccountsPagination: response.data.pagination || {},
+                systemAdminAccountsLoading: false
+            });
+
+            return response.data;
+        } catch (error) {
+            set({
+                systemAdminAccountsError: error.response?.data?.message || 'Failed to fetch system admin accounts',
+                systemAdminAccountsLoading: false
+            });
+            throw error;
+        }
+    },
+
     // All Users (for dropdowns)
     allUsers: [],
     allUsersLoading: false,
@@ -290,10 +337,34 @@ export const useSystemAdminStore = create((set, get) => ({
         }
     },
 
+    unlockUserAccount: async (targetUserId, accountType) => {
+        try {
+            const response = await axios.put(
+                `${API_URL}/api/system-admin/unlock-account`,
+                { targetUserId, accountType }
+            );
+            return response.data;
+        } catch (error) {
+            throw error;
+        }
+    },
+
     archiveUserAccount: async (targetUserId, accountType) => {
         try {
             const response = await axios.put(
                 `${API_URL}/api/system-admin/archive-account`,
+                { targetUserId, accountType }
+            );
+            return response.data;
+        } catch (error) {
+            throw error;
+        }
+    },
+
+    unarchiveUserAccount: async (targetUserId, accountType) => {
+        try {
+            const response = await axios.put(
+                `${API_URL}/api/system-admin/unarchive-account`,
                 { targetUserId, accountType }
             );
             return response.data;

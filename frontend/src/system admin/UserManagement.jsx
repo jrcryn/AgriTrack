@@ -35,10 +35,16 @@ const UserManagement = () => {
     employeeAccountsError,
     employeeAccountsPagination,
     fetchEmployeeAccounts,
-    allUsers,
+    systemAdminAccounts,
+    systemAdminAccountsLoading,
+    systemAdminAccountsError,
+    systemAdminAccountsPagination,
+    fetchSystemAdminAccounts,
     fetchAllUsers,
     lockUserAccount,
-    archiveUserAccount
+    unlockUserAccount,
+    archiveUserAccount,
+    unarchiveUserAccount
   } = useSystemAdminStore();
 
   const toast = useToast();
@@ -58,6 +64,16 @@ const UserManagement = () => {
     });
   }, [currentPage, searchTerm, filterRole, filterStatus, fetchEmployeeAccounts]);
 
+  // Fetch system admin accounts
+  useEffect(() => {
+    fetchSystemAdminAccounts({
+      page: currentPage,
+      limit: 50,
+      search: searchTerm,
+      status: filterStatus
+    });
+  }, [currentPage, searchTerm, filterStatus, fetchSystemAdminAccounts]);
+
   // Also fetch all users (for system admins if needed)
   useEffect(() => {
     fetchAllUsers();
@@ -69,28 +85,29 @@ const UserManagement = () => {
   };
 
   const handleLockToggle = async (userId, accountType, currentLockStatus) => {
-    if (currentLockStatus) {
-      // Unlock - this would need a separate endpoint
-      toast({
-        title: 'Info',
-        description: 'Unlock functionality not yet implemented',
-        status: 'info',
-        duration: 3000,
-        isClosable: true
-      });
-      return;
-    }
-
     try {
-      await lockUserAccount(userId, accountType);
-      toast({
-        title: 'Success',
-        description: 'User account locked successfully',
-        status: 'success',
-        duration: 3000,
-        isClosable: true
-      });
-      // Refresh the list
+      if (currentLockStatus) {
+        // Unlock
+        await unlockUserAccount(userId, accountType);
+        toast({
+          title: 'Success',
+          description: 'User account unlocked successfully',
+          status: 'success',
+          duration: 3000,
+          isClosable: true
+        });
+      } else {
+        // Lock
+        await lockUserAccount(userId, accountType);
+        toast({
+          title: 'Success',
+          description: 'User account locked successfully',
+          status: 'success',
+          duration: 3000,
+          isClosable: true
+        });
+      }
+      // Refresh the lists
       fetchEmployeeAccounts({
         page: currentPage,
         limit: 50,
@@ -98,10 +115,16 @@ const UserManagement = () => {
         role: filterRole,
         status: filterStatus
       });
+      fetchSystemAdminAccounts({
+        page: currentPage,
+        limit: 50,
+        search: searchTerm,
+        status: filterStatus
+      });
     } catch (error) {
       toast({
         title: 'Error',
-        description: error.response?.data?.message || 'Failed to lock user account',
+        description: error.response?.data?.message || `Failed to ${currentLockStatus ? 'unlock' : 'lock'} user account`,
         status: 'error',
         duration: 5000,
         isClosable: true
@@ -109,21 +132,37 @@ const UserManagement = () => {
     }
   };
 
-  const handleArchive = async (userId, accountType) => {
-    if (!window.confirm('Are you sure you want to archive this user?')) {
+  const handleArchive = async (userId, accountType, isArchived) => {
+    const action = isArchived ? 'unarchive' : 'archive';
+    const confirmMessage = isArchived 
+      ? 'Are you sure you want to unarchive this user?'
+      : 'Are you sure you want to archive this user?';
+    
+    if (!window.confirm(confirmMessage)) {
       return;
     }
 
     try {
-      await archiveUserAccount(userId, accountType);
-      toast({
-        title: 'Success',
-        description: 'User account archived successfully',
-        status: 'success',
-        duration: 3000,
-        isClosable: true
-      });
-      // Refresh the list
+      if (isArchived) {
+        await unarchiveUserAccount(userId, accountType);
+        toast({
+          title: 'Success',
+          description: 'User account unarchived successfully',
+          status: 'success',
+          duration: 3000,
+          isClosable: true
+        });
+      } else {
+        await archiveUserAccount(userId, accountType);
+        toast({
+          title: 'Success',
+          description: 'User account archived successfully',
+          status: 'success',
+          duration: 3000,
+          isClosable: true
+        });
+      }
+      // Refresh the lists
       fetchEmployeeAccounts({
         page: currentPage,
         limit: 50,
@@ -131,10 +170,16 @@ const UserManagement = () => {
         role: filterRole,
         status: filterStatus
       });
+      fetchSystemAdminAccounts({
+        page: currentPage,
+        limit: 50,
+        search: searchTerm,
+        status: filterStatus
+      });
     } catch (error) {
       toast({
         title: 'Error',
-        description: error.response?.data?.message || 'Failed to archive user account',
+        description: error.response?.data?.message || `Failed to ${action} user account`,
         status: 'error',
         duration: 5000,
         isClosable: true
@@ -144,13 +189,53 @@ const UserManagement = () => {
 
   const getRoleBadgeColor = (role) => {
     const colors = {
-      'HVC': 'green',
       'DMS': 'blue',
-      'MACHINERIES': 'purple',
-      'DOC_TRACK': 'orange'
+      'DMM': 'blue',
+      'MIS': 'orange',
+      'MIM': 'orange',
+      'HVCS': 'green',
+      'HVCM': 'green'
     };
     return colors[role] || 'gray';
   };
+
+  // Combine employee and system admin accounts
+  const allAccounts = React.useMemo(() => {
+    const employees = (employeeAccounts || []).map(emp => ({
+      ...emp,
+      accountType: 'EMPLOYEE'
+    }));
+    const admins = (systemAdminAccounts || []).map(admin => ({
+      ...admin,
+      accountType: 'SYSTEM_ADMIN',
+      roles: [] // System admins don't have roles
+    }));
+    
+    let combined = [...employees, ...admins];
+    
+    // Filter by role if specified (only applies to employees)
+    // System admins are always included when "All Roles" is selected
+    if (filterRole && filterRole !== 'all') {
+      combined = combined.filter(account => {
+        if (account.accountType === 'SYSTEM_ADMIN') {
+          return false; // System admins don't have roles, exclude them when filtering by specific role
+        }
+        return account.roles && account.roles.includes(filterRole);
+      });
+    }
+    // When filterRole is "all" or empty, both employees and system admins are included
+    
+    // Sort by creation date, newest first
+    return combined.sort((a, b) => {
+      const dateA = new Date(a.createdAt || 0);
+      const dateB = new Date(b.createdAt || 0);
+      return dateB - dateA;
+    });
+  }, [employeeAccounts, systemAdminAccounts, filterRole]);
+
+  const isLoading = employeeAccountsLoading || systemAdminAccountsLoading;
+  const hasError = employeeAccountsError || systemAdminAccountsError;
+  const errorMessage = employeeAccountsError || systemAdminAccountsError;
 
   return (
     <Box p={6} minH="100vh">
@@ -189,10 +274,12 @@ const UserManagement = () => {
             icon={<FiFilter />}
           >
             <option value="all">All Roles</option>
-            <option value="HVC">HVC</option>
             <option value="DMS">DMS</option>
-            <option value="MACHINERIES">Machineries</option>
-            <option value="DOC_TRACK">Doc Track</option>
+            <option value="DMM">DMM</option>
+            <option value="MIS">MIS</option>
+            <option value="MIM">MIM</option>
+            <option value="HVCS">HVCS</option>
+            <option value="HVCM">HVCM</option>
           </Select>
 
           {/* Status Filter */}
@@ -229,20 +316,20 @@ const UserManagement = () => {
               </Tr>
             </Thead>
             <Tbody>
-              {employeeAccountsLoading ? (
+              {isLoading ? (
                 <Tr>
                   <Td colSpan={7} textAlign="center" py={8}>
                     <Spinner size="md" color="blue.500" />
                     <Text fontSize="xs" color="gray.500" mt={2}>Loading users...</Text>
                   </Td>
                 </Tr>
-              ) : employeeAccountsError ? (
+              ) : hasError ? (
                 <Tr>
                   <Td colSpan={7} textAlign="center" py={8}>
-                    <Text fontSize="xs" color="red.500">{employeeAccountsError}</Text>
+                    <Text fontSize="xs" color="red.500">{errorMessage}</Text>
                   </Td>
                 </Tr>
-              ) : employeeAccounts.length === 0 ? (
+              ) : allAccounts.length === 0 ? (
                 <Tr>
                   <Td colSpan={7} textAlign="center" py={8}>
                     <Icon as={FaUsers} boxSize={12} mb={4} color="gray.400" />
@@ -250,7 +337,7 @@ const UserManagement = () => {
                   </Td>
                 </Tr>
               ) : (
-                employeeAccounts.map((user) => (
+                allAccounts.map((user) => (
                   <Tr key={user._id} _hover={{ bg: 'gray.50' }}>
                     <Td>
                       <Box>
@@ -285,10 +372,10 @@ const UserManagement = () => {
                     </Td>
                     <Td>
                       <Badge
-                        colorScheme="blue"
+                        colorScheme={user.accountType === 'SYSTEM_ADMIN' ? 'purple' : 'blue'}
                         fontSize="xs"
                       >
-                        Employee
+                        {user.accountType === 'SYSTEM_ADMIN' ? 'System Admin' : 'Employee'}
                       </Badge>
                     </Td>
                     <Td>
@@ -320,18 +407,17 @@ const UserManagement = () => {
                             icon={user.isLocked ? <FiUnlock /> : <FiLock />}
                             colorScheme={user.isLocked ? 'green' : 'orange'}
                             variant="ghost"
-                            onClick={() => handleLockToggle(user._id, 'EMPLOYEE', user.isLocked)}
+                            onClick={() => handleLockToggle(user._id, user.accountType, user.isLocked)}
                             isDisabled={user.isArchived}
                           />
                         </Tooltip>
-                        <Tooltip label="Archive">
+                        <Tooltip label={user.isArchived ? 'Unarchive' : 'Archive'}>
                           <IconButton
                             size="sm"
                             icon={<FaArchive />}
-                            colorScheme="red"
+                            colorScheme={user.isArchived ? 'green' : 'red'}
                             variant="ghost"
-                            onClick={() => handleArchive(user._id, 'EMPLOYEE')}
-                            isDisabled={user.isArchived}
+                            onClick={() => handleArchive(user._id, user.accountType, user.isArchived)}
                           />
                         </Tooltip>
                       </HStack>
@@ -346,7 +432,7 @@ const UserManagement = () => {
       </Box>
 
       {/* Pagination */}
-      {employeeAccountsPagination.totalPages > 1 && (
+      {(employeeAccountsPagination.totalPages > 1 || systemAdminAccountsPagination.totalPages > 1) && (
         <Flex
           justify="space-between"
           align="center"
@@ -358,21 +444,21 @@ const UserManagement = () => {
           mt={4}
         >
           <Text fontSize="xs" color="gray.600">
-            Page {employeeAccountsPagination.currentPage} of {employeeAccountsPagination.totalPages} 
-            ({employeeAccountsPagination.totalEmployees} total)
+            Page {currentPage} of {Math.max(employeeAccountsPagination.totalPages || 1, systemAdminAccountsPagination.totalPages || 1)} 
+            ({allAccounts.length} shown)
           </Text>
           <HStack spacing={2}>
             <Button
               onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-              isDisabled={currentPage === 1 || employeeAccountsLoading}
+              isDisabled={currentPage === 1 || isLoading}
               size="sm"
               variant="outline"
             >
               Previous
             </Button>
             <Button
-              onClick={() => setCurrentPage(prev => Math.min(prev + 1, employeeAccountsPagination.totalPages))}
-              isDisabled={currentPage === employeeAccountsPagination.totalPages || employeeAccountsLoading}
+              onClick={() => setCurrentPage(prev => prev + 1)}
+              isDisabled={isLoading}
               size="sm"
               variant="outline"
             >
