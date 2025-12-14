@@ -353,14 +353,14 @@ export const verify2FA = async (req, res) => {
             if (user.failedOTPVerifications.count >= 11) {
                 user.isLocked = true;
                 await user.save();
-                await logAction(req, '2FA_VERIFIED', 'AUTHENTICATION', `Account locked due to multiple failed 2FA attempts for user: ${user.email}`, 'VALIDATION_FAILED');
+                await logAction(req, userID, '2FA_VERIFIED', 'AUTHENTICATION', `Account locked due to multiple failed 2FA attempts for user: ${user.email}`, 'VALIDATION_FAILED');
                 return res.status(403).json({ success: false, message: 'Account is now locked due to multiple failed 2FA attempts. Contact IT support to regain access.' });
             }
 
             const delay = Math.min(user.failedOTPVerifications.count * 1000, 10000); // up to 10s
             await new Promise(res => setTimeout(res, delay));
 
-            await logAction(req, '2FA_VERIFIED', 'AUTHENTICATION', `Error verifying 2FA: Invalid token for user: ${user.email}`, 'FAILED');
+            await logAction(req, userID, '2FA_VERIFIED', 'AUTHENTICATION', `Error verifying 2FA: Invalid token for user: ${user.email}`, 'FAILED');
             
             return res.status(400).json({ success: false, message: 'Invalid 2FA token.' });
         }

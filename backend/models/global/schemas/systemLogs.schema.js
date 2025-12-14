@@ -2,14 +2,14 @@ import mongoose from "mongoose";
 
 const actions = [
     // Authentication & Authorization
-    'USER_REGISTER',
-    'USER_LOGIN',
-    'USER_LOGOUT',
-    'USER_SWITCH_ROLE',
-    '2FA_SECRET_GENERATED',
-    '2FA_VERIFIED',
-    'PASSWORD_RESET_REQUESTED',
-    'PASSWORD_RESET',
+    'USER_REGISTER', //DONE
+    'USER_LOGIN', //DONE
+    'USER_LOGOUT', //DONE
+    'USER_SWITCH_ROLE', //DONE
+    '2FA_SECRET_GENERATED', //DONE
+    '2FA_VERIFIED', //DONE
+    'PASSWORD_RESET_REQUESTED', //DONE
+    'PASSWORD_RESET', //DONE
     
 
     /*-----------------------------------------------------------------------------------------*/

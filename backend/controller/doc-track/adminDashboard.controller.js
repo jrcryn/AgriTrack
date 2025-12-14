@@ -1,6 +1,7 @@
 import qrcode from 'qrcode';
 import PDFDocument from 'pdfkit';
 import mongoose from 'mongoose';
+import { logAction } from '../../utils/logAction.js';
 
 const capitalizeWords = (str) => {
     if (!str) return str;
@@ -34,10 +35,16 @@ const capitalizeWords = (str) => {
 };
 
 export const createDocument = async (req, res) => {
+    let userId = null;
+    if (req.decodedAuthToken?.payload?.userId) {
+        userId = req.decodedAuthToken.payload.userId;
+    }
+
     const { documentName, documentCode, disposalMethod, retentionPeriod } = req.body;
 
     try {
         if (!documentName || !documentCode) {
+            await logAction(req, userId, 'DOCUMENT_TYPE_CREATED', 'DOCUMENT TRACKING', `Document type creation failed - Missing required fields`, 'VALIDATION_FAILED');
             return res.status(400).json({
                 success: false,
                 message: 'All available fields are required.'
@@ -46,12 +53,25 @@ export const createDocument = async (req, res) => {
         
         const formattedDocName = await capitalizeWords(documentName);
 
+        // Handle retentionPeriod: convert "permanent" to null, otherwise convert to number
+        let processedRetentionPeriod = null;
+        if (retentionPeriod !== undefined && retentionPeriod !== null && retentionPeriod !== '') {
+            if (retentionPeriod === 'permanent') {
+                processedRetentionPeriod = null;
+            } else {
+                const numPeriod = Number(retentionPeriod);
+                processedRetentionPeriod = Number.isFinite(numPeriod) && numPeriod >= 0 ? numPeriod : null;
+            }
+        }
+
         const newDocument = await global.docTrackModels.Document.create({
             documentName: formattedDocName,
             documentCode,
             disposalMethod,
-            retentionPeriod //in months
+            retentionPeriod: processedRetentionPeriod //in months, null for permanent
         });
+
+        await logAction(req, userId, 'DOCUMENT_TYPE_CREATED', 'DOCUMENT TRACKING', `Document type created: ${formattedDocName} (${documentCode})`, 'SUCCESS');
 
         return res.status(201).json({
             success: true,
@@ -60,6 +80,7 @@ export const createDocument = async (req, res) => {
         });
     } catch (error) {
         console.error('Error creating document:', error);
+        await logAction(req, userId, 'DOCUMENT_TYPE_CREATED', 'DOCUMENT TRACKING', `Error creating document type: ${error.message}`, 'FAILED');
         return res.status(500).json({
             success: false,
             message: 'Error creating document type.',
@@ -69,25 +90,42 @@ export const createDocument = async (req, res) => {
 };
 
 export const updateDocumentType = async (req, res) => {
+    let userId = null;
+    if (req.decodedAuthToken?.payload?.userId) {
+        userId = req.decodedAuthToken.payload.userId;
+    }
+
     const { documentId, documentName, documentCode, disposalMethod, retentionPeriod } = req.body;
 
     try {
         const document = await global.docTrackModels.Document.findById(documentId);
 
         if (!document) {
+            await logAction(req, userId, 'DOCUMENT_TYPE_UPDATED', 'DOCUMENT TRACKING', `Document type update failed - Document type not found: ${documentId}`, 'VALIDATION_FAILED');
             return res.status(404).json({ success: false, message: 'Document type not found.' });
         }
 
         if (documentName !== undefined) document.documentName = capitalizeWords(documentName);
         if (documentCode !== undefined) document.documentCode = documentCode;
         if (disposalMethod !== undefined) document.disposalMethod = disposalMethod;
-        if (retentionPeriod !== undefined) document.retentionPeriod = retentionPeriod;
+        if (retentionPeriod !== undefined) {
+            // Handle "permanent" or empty string as null, otherwise convert to number
+            if (retentionPeriod === 'permanent' || retentionPeriod === '' || retentionPeriod === null) {
+                document.retentionPeriod = null;
+            } else {
+                const numPeriod = Number(retentionPeriod);
+                document.retentionPeriod = Number.isFinite(numPeriod) && numPeriod >= 0 ? numPeriod : null;
+            }
+        }
 
         await document.save();
+
+        await logAction(req, userId, 'DOCUMENT_TYPE_UPDATED', 'DOCUMENT TRACKING', `Document type updated: ${document.documentName} (${document.documentCode})`, 'SUCCESS');
 
         return res.status(200).json({ success: true, message: 'Document type updated successfully.', data: document });
     } catch (error) {
         console.log(error);
+        await logAction(req, userId, 'DOCUMENT_TYPE_UPDATED', 'DOCUMENT TRACKING', `Error updating document type: ${error.message}`, 'FAILED');
         return res.status(500).json({success: false, message: 'Error updating document type', error: error.message});
     }
 }
@@ -118,6 +156,14 @@ const getNextSequence = async (key) => {
 };
 
 export const registerDocument = async (req, res) => {
+    let userId = null;
+    // Use userAccountId from request body if provided, otherwise use token
+    if (req.body.userAccountId) {
+        userId = req.body.userAccountId;
+    } else if (req.decodedAuthToken?.payload?.userId) {
+        userId = req.decodedAuthToken.payload.userId;
+    }
+
     const { userAccountId, documentId, priority, details, isRegisterOnly, documentNameText, originatingOffice, isManuallyTyped } = req.body;
 
     try {
@@ -222,6 +268,8 @@ export const registerDocument = async (req, res) => {
             });
         };
 
+        await logAction(req, userId, 'DOCUMENT_REGISTERED', 'DOCUMENT TRACKING', `Document registered with ref number: ${newRefNumber}${isRegisterOnly ? ' and forwarded to self' : ''}`, 'SUCCESS');
+
         return res.status(201).json({ 
             success: true, 
             message: 'Document registered successfully and QR code generated.',
@@ -230,6 +278,7 @@ export const registerDocument = async (req, res) => {
 
     } catch (error) {
         console.error('Error registering document:', error);
+        await logAction(req, userId, 'DOCUMENT_REGISTERED', 'DOCUMENT TRACKING', `Error registering document: ${error.message}`, 'FAILED');
         return res.status(500).json({ success: false, message: 'Error registering document.', error: error.message });
     }
 };
@@ -301,21 +350,32 @@ export const downloadQrCode = async (req, res) => {
 };
 
 export const forwardDocument = async (req, res) => { 
+  let userId = null;
+  // Use userAccountId from request body if provided, otherwise use token
+  if (req.body.userAccountId) {
+    userId = req.body.userAccountId;
+  } else if (req.decodedAuthToken?.payload?.userId) {
+    userId = req.decodedAuthToken.payload.userId;
+  }
+
   const { registeredDocId, userAccountId, forwardAccountId, forwardRemarks } = req.body;
 
   try {
     const document = await global.docTrackModels.DocumentLifeCycle.findById(registeredDocId);
     if (!document) {
+      await logAction(req, userId, 'DOCUMENT_FORWARDED', 'DOCUMENT TRACKING', `Document forward failed - Registered document not found: ${registeredDocId}`, 'VALIDATION_FAILED');
       return res.status(404).json({ success: false, message: 'Registered document not found.' });
     }
 
     let user = await global.globalModels.EmployeeAccount.findById(userAccountId);
     if (!user) {
+      await logAction(req, userId, 'DOCUMENT_FORWARDED', 'DOCUMENT TRACKING', `Document forward failed - User account not found: ${userAccountId}`, 'VALIDATION_FAILED');
       return res.status(404).json({ success: false, message: 'Cannot find your account, please contact IT if error persists.' });
     }
 
     let forwardAccount = await global.globalModels.EmployeeAccount.findById(forwardAccountId);
     if (!forwardAccount) {
+      await logAction(req, userId, 'DOCUMENT_FORWARDED', 'DOCUMENT TRACKING', `Document forward failed - Forward account not found: ${forwardAccountId}`, 'VALIDATION_FAILED');
       return res.status(404).json({ success: false, message: 'Cannot find the user you are trying to forward to.' });
     }
 
@@ -365,6 +425,8 @@ export const forwardDocument = async (req, res) => {
         }
       });
 
+    await logAction(req, userId, 'DOCUMENT_FORWARDED', 'DOCUMENT TRACKING', `Document forwarded: ${document.refNumber} to ${forwardAccount.first_name} ${forwardAccount.last_name}`, 'SUCCESS');
+
     return res.status(200).json({
       success: true,
       message: 'Document forwarded successfully',
@@ -373,11 +435,20 @@ export const forwardDocument = async (req, res) => {
 
   } catch (error) {
     console.error('Error forwarding document:', error);
+    await logAction(req, userId, 'DOCUMENT_FORWARDED', 'DOCUMENT TRACKING', `Error forwarding document: ${error.message}`, 'FAILED');
     return res.status(500).json({ success: false, message: 'Error forwarding document', error: error.message });
   }
 };
 
 export const registerAndForwardDocument = async (req, res) => {
+    let userId = null;
+    // Use userAccountId from request body if provided, otherwise use token
+    if (req.body.userAccountId) {
+        userId = req.body.userAccountId;
+    } else if (req.decodedAuthToken?.payload?.userId) {
+        userId = req.decodedAuthToken.payload.userId;
+    }
+
     const { userAccountId, documentId, priority, details, forwardAccountId, forwardRemarks, documentNameText, originatingOffice, isManuallyTyped } = req.body;
 
     try {
@@ -489,6 +560,8 @@ export const registerAndForwardDocument = async (req, res) => {
             }
         );
 
+        await logAction(req, userId, 'DOCUMENT_REGISTERED_AND_FORWARDED', 'DOCUMENT TRACKING', `Document registered and forwarded with ref number: ${newRefNumber} to ${forwardAccount.first_name} ${forwardAccount.last_name}`, 'SUCCESS');
+
         return res.status(201).json({ 
             success: true, 
             message: 'Document registered, forwarded and QR code generated successfully.', 
@@ -497,21 +570,32 @@ export const registerAndForwardDocument = async (req, res) => {
 
     } catch (error) {
         console.error('Error registering and forwarding document:', error);
+        await logAction(req, userId, 'DOCUMENT_REGISTERED_AND_FORWARDED', 'DOCUMENT TRACKING', `Error registering and forwarding document: ${error.message}`, 'FAILED');
         return res.status(500).json({ success: false, message: 'Error registering and forwarding document.', error: error.message });
     }
 }
 
 export const receiveDocument = async (req, res) => {
+    let userId = null;
+    // Use userAccountId from request body if provided, otherwise use token
+    if (req.body.userAccountId) {
+        userId = req.body.userAccountId;
+    } else if (req.decodedAuthToken?.payload?.userId) {
+        userId = req.decodedAuthToken.payload.userId;
+    }
+
     const { registeredDocId, userAccountId } = req.body;
 
     try {
         const document = await global.docTrackModels.DocumentLifeCycle.findById(registeredDocId);
         if (!document) {
+            await logAction(req, userId, 'DOCUMENT_RECEIVED', 'DOCUMENT TRACKING', `Document receive failed - Registered document not found: ${registeredDocId}`, 'VALIDATION_FAILED');
             return res.status(404).json({ success: false, message: 'Registered document not found.' });
         }
 
         let user = await global.globalModels.EmployeeAccount.findById(userAccountId);
         if (!user) {
+            await logAction(req, userId, 'DOCUMENT_RECEIVED', 'DOCUMENT TRACKING', `Document receive failed - User account not found: ${userAccountId}`, 'VALIDATION_FAILED');
             return res.status(404).json({ success: false, message: 'Cannot find your account, please contact IT if error persists.' });
         }
 
@@ -537,27 +621,40 @@ export const receiveDocument = async (req, res) => {
                 }
             }
         );
+        await logAction(req, userId, 'DOCUMENT_RECEIVED', 'DOCUMENT TRACKING', `Document received: ${document.refNumber}`, 'SUCCESS');
         return res.status(200).json({ success: true, message: 'Document received successfully', data: receiveDocument });
     } catch (error) {
         console.error('Error receiving document:', error);
+        await logAction(req, userId, 'DOCUMENT_RECEIVED', 'DOCUMENT TRACKING', `Error receiving document: ${error.message}`, 'FAILED');
         return res.status(500).json({ success: false, message: 'Error receiving document', error: error.message });
     }
 };
 
 export const archiveDocument = async (req, res) => { 
+    let userId = null;
+    // Use userAccountId from request body if provided, otherwise use token
+    if (req.body.userAccountId) {
+        userId = req.body.userAccountId;
+    } else if (req.decodedAuthToken?.payload?.userId) {
+        userId = req.decodedAuthToken.payload.userId;
+    }
+
     const { registeredDocId, userAccountId, medium, location, archiveRemarks, isCustomDoc, customDisposalMethod, customRetentionPeriod } = req.body;
 
     try {
         const document = await global.docTrackModels.DocumentLifeCycle.findById(registeredDocId);
         if (!document) {
+            await logAction(req, userId, 'DOCUMENT_ARCHIVED', 'DOCUMENT TRACKING', `Document archive failed - Registered document not found: ${registeredDocId}`, 'VALIDATION_FAILED');
             return res.status(404).json({ success:false, message: 'Registered document not found.' });
         }
         const docType = isCustomDoc !== true ? await global.docTrackModels.Document.findById(document.documentId) : null;
         if (!docType && isCustomDoc !== true) {
+            await logAction(req, userId, 'DOCUMENT_ARCHIVED', 'DOCUMENT TRACKING', `Document archive failed - Document type not found: ${document.documentId}`, 'VALIDATION_FAILED');
             return res.status(404).json({ success:false, message: 'Document type not found.' });
         }
         const user = await global.globalModels.EmployeeAccount.findById(userAccountId);
         if (!user) {
+            await logAction(req, userId, 'DOCUMENT_ARCHIVED', 'DOCUMENT TRACKING', `Document archive failed - User account not found: ${userAccountId}`, 'VALIDATION_FAILED');
             return res.status(404).json({ success: false, message: 'Cannot find your account, please contact IT if error persists.' });
         }
 
@@ -623,23 +720,36 @@ export const archiveDocument = async (req, res) => {
 
         await global.docTrackModels.DocumentLifeCycle.findByIdAndDelete(document._id);
 
+        await logAction(req, userId, 'DOCUMENT_ARCHIVED', 'DOCUMENT TRACKING', `Document archived: ${document.refNumber}`, 'SUCCESS');
+
         return res.status(200).json({ success: true, message: 'Document archived successfully', data: archiveDocument });
     } catch (error) {
         console.error('Error archiving document:', error);
+        await logAction(req, userId, 'DOCUMENT_ARCHIVED', 'DOCUMENT TRACKING', `Error archiving document: ${error.message}`, 'FAILED');
         return res.status(500).json({success: false, message: 'Error archiving document', error: error.message});
      }
 };
 
 export const releaseDocument = async (req, res) => {
+    let userId = null;
+    // Use userAccountId from request body if provided, otherwise use token
+    if (req.body.userAccountId) {
+        userId = req.body.userAccountId;
+    } else if (req.decodedAuthToken?.payload?.userId) {
+        userId = req.decodedAuthToken.payload.userId;
+    }
+
     const { registeredDocId, userAccountId, recipientOffice, recipientPerson, modeOfRelease, releaseRemarks } = req.body;
 
     try {
         const document = await global.docTrackModels.DocumentLifeCycle.findById(registeredDocId);
         if (!document) {
+            await logAction(req, userId, 'DOCUMENT_RELEASED', 'DOCUMENT TRACKING', `Document release failed - Registered document not found: ${registeredDocId}`, 'VALIDATION_FAILED');
             return res.status(404).json({ success:false, message: 'Registered document not found.' });
         }
         const user = await global.globalModels.EmployeeAccount.findById(userAccountId);
         if (!user) {
+            await logAction(req, userId, 'DOCUMENT_RELEASED', 'DOCUMENT TRACKING', `Document release failed - User account not found: ${userAccountId}`, 'VALIDATION_FAILED');
             return res.status(404).json({ success: false, message: 'Cannot find your account, please contact IT if error persists.' });
         }
 
@@ -684,11 +794,14 @@ export const releaseDocument = async (req, res) => {
 
         await global.docTrackModels.DocumentLifeCycle.findByIdAndDelete(document._id);
 
+        await logAction(req, userId, 'DOCUMENT_RELEASED', 'DOCUMENT TRACKING', `Document released: ${document.refNumber} to ${recipientOffice}`, 'SUCCESS');
+
         return res.status(200).json({ success: true, message: 'Document released successfully', data: releaseDocument });
     } catch (error) {
         console.log(error);
+        await logAction(req, userId, 'DOCUMENT_RELEASED', 'DOCUMENT TRACKING', `Error releasing document: ${error.message}`, 'FAILED');
         return res.status(500).json({success: false, message: 'Error releasing document', error: error.message});
-     }
+    }
 };
 
 export const getAdminAndStaffAccounts = async (req, res) => {
@@ -1093,11 +1206,20 @@ export const getArchivedDocuments = async (req, res) => {
 };
 
 export const unarchiveDocument = async (req, res) => {
+    let userId = null;
+    // Use userAccountId from request body if provided, otherwise use token
+    if (req.body.userAccountId) {
+        userId = req.body.userAccountId;
+    } else if (req.decodedAuthToken?.payload?.userId) {
+        userId = req.decodedAuthToken.payload.userId;
+    }
+
     const { archivedDocId, userAccountId, forwardAccountId, unarchiveRemarks, forwardToSelf } = req.body;
 
     try {
         const archivedDocument = await global.docTrackModels.ArchivedDocuments.findById(archivedDocId);
         if (!archivedDocument) {
+            await logAction(req, userId, 'DOCUMENT_UNARCHIVED', 'DOCUMENT TRACKING', `Document unarchive failed - Archived document not found: ${archivedDocId}`, 'VALIDATION_FAILED');
             return res.status(404).json({ success: false, message: 'Archived document not found.' });
         }
 
@@ -1214,19 +1336,30 @@ export const unarchiveDocument = async (req, res) => {
         };
         await global.docTrackModels.ArchivedDocuments.findByIdAndDelete(archivedDocId);
 
+        await logAction(req, userId, 'DOCUMENT_UNARCHIVED', 'DOCUMENT TRACKING', `Document unarchived: ${archivedDocument.refNumber}`, 'SUCCESS');
 
         return res.status(200).json({ success: true, message: 'Document unarchived and forwarded successfully' });
     } catch (error) {
+        await logAction(req, userId, 'DOCUMENT_UNARCHIVED', 'DOCUMENT TRACKING', `Error unarchiving document: ${error.message}`, 'FAILED');
         return res.status(500).json({ success: false, message: 'Error unarchiving document', error: error.message });
     }
 };
 
 export const unreleaseDocument = async (req, res) => {
+    let userId = null;
+    // Use userAccountId from request body if provided, otherwise use token
+    if (req.body.userAccountId) {
+        userId = req.body.userAccountId;
+    } else if (req.decodedAuthToken?.payload?.userId) {
+        userId = req.decodedAuthToken.payload.userId;
+    }
+
     const { releasedDocId, userAccountId, forwardAccountId, unreleaseRemarks, forwardToSelf } = req.body;
 
     try {
         const releasedDocument = await global.docTrackModels.ReleasedDocuments.findById(releasedDocId);
         if (!releasedDocument) {
+            await logAction(req, userId, 'DOCUMENT_UNRELEASED', 'DOCUMENT TRACKING', `Document unrelease failed - Released document not found: ${releasedDocId}`, 'VALIDATION_FAILED');
             return res.status(404).json({ success: false, message: 'Released document not found.' });
         }
 
@@ -1345,9 +1478,11 @@ export const unreleaseDocument = async (req, res) => {
         };
         await global.docTrackModels.ReleasedDocuments.findByIdAndDelete(releasedDocId);
 
+        await logAction(req, userId, 'DOCUMENT_UNRELEASED', 'DOCUMENT TRACKING', `Document unreleased: ${releasedDocument.refNumber}`, 'SUCCESS');
 
         return res.status(200).json({ success: true, message: 'Document unreleased and forwarded successfully' });
     } catch (error) {
+        await logAction(req, userId, 'DOCUMENT_UNRELEASED', 'DOCUMENT TRACKING', `Error unreleasing document: ${error.message}`, 'FAILED');
         return res.status(500).json({ success: false, message: 'Error unrelease document', error: error.message });
     }
 };
@@ -1466,16 +1601,26 @@ export const getUsersDocumentWorkload = async (req, res) => {
 };
 
 export const rerouteDocument = async (req, res) => {
+    let userId = null;
+    // Use userAccountId from request body if provided, otherwise use token
+    if (req.body.userAccountId) {
+        userId = req.body.userAccountId;
+    } else if (req.decodedAuthToken?.payload?.userId) {
+        userId = req.decodedAuthToken.payload.userId;
+    }
+
     const { registeredDocId, userAccountId, rerouteAccountId, rerouteRemarks, rerouteToSelf } = req.body;
 
     try {
         const document = await global.docTrackModels.DocumentLifeCycle.findById(registeredDocId);
         if (!document) {
+            await logAction(req, userId, 'DOCUMENT_REROUTED', 'DOCUMENT TRACKING', `Document reroute failed - Registered document not found: ${registeredDocId}`, 'VALIDATION_FAILED');
             return res.status(404).json({ success: false, message: 'Registered document not found.' });
         }
 
         const user = await global.globalModels.EmployeeAccount.findById(userAccountId);
         if (!user) {
+            await logAction(req, userId, 'DOCUMENT_REROUTED', 'DOCUMENT TRACKING', `Document reroute failed - User account not found: ${userAccountId}`, 'VALIDATION_FAILED');
             return res.status(404).json({ success: false, message: 'Cannot find your account, please contact IT if error persists.' });
         }
         
@@ -1575,9 +1720,12 @@ export const rerouteDocument = async (req, res) => {
             );
         }
 
+        await logAction(req, userId, 'DOCUMENT_REROUTED', 'DOCUMENT TRACKING', `Document rerouted: ${document.refNumber}`, 'SUCCESS');
+
         return res.status(200).json({ success: true, message: 'Document rerouted successfully' });
     } catch (error) {
         console.error('Error rerouting document:', error);
+        await logAction(req, userId, 'DOCUMENT_REROUTED', 'DOCUMENT TRACKING', `Error rerouting document: ${error.message}`, 'FAILED');
         return res.status(500).json({ success: false, message: 'Error rerouting document', error: error.message });
     }
 };
@@ -1798,16 +1946,26 @@ export const getExpiredDocuments = async (req, res) => {
 };
 
 export const disposeDocuments = async (req, res) => {
+    let userId = null;
+    // Use userAccountId from request body if provided, otherwise use token
+    if (req.body.userAccountId) {
+        userId = req.body.userAccountId;
+    } else if (req.decodedAuthToken?.payload?.userId) {
+        userId = req.decodedAuthToken.payload.userId;
+    }
+
     const { archivedDocId, userAccountId, disposalRemarks } = req.body;
 
     try {
         const archivedDocument = await global.docTrackModels.ArchivedDocuments.findById(archivedDocId);
         if (!archivedDocument) {
+            await logAction(req, userId, 'DOCUMENT_DISPOSED', 'DOCUMENT TRACKING', `Document disposal failed - Archived document not found: ${archivedDocId}`, 'VALIDATION_FAILED');
             return res.status(404).json({ success: false, message: 'Archived document not found.' });
         }
 
         const user = await global.globalModels.EmployeeAccount.findById(userAccountId);
         if (!user) {
+            await logAction(req, userId, 'DOCUMENT_DISPOSED', 'DOCUMENT TRACKING', `Document disposal failed - User account not found: ${userAccountId}`, 'VALIDATION_FAILED');
             return res.status(404).json({ success: false, message: 'Cannot find your account, please contact IT if error persists.' });
         }
 
@@ -1845,27 +2003,39 @@ export const disposeDocuments = async (req, res) => {
 
         await global.docTrackModels.ArchivedDocuments.findByIdAndDelete(archivedDocId);
 
+        await logAction(req, userId, 'DOCUMENT_DISPOSED', 'DOCUMENT TRACKING', `Document disposed: ${archivedDocument.refNumber}`, 'SUCCESS');
+
         return res.status(200).json({ success: true, message: 'Document disposed successfully.' });
     } catch (error) {
         console.error('Error disposing document:', error);
+        await logAction(req, userId, 'DOCUMENT_DISPOSED', 'DOCUMENT TRACKING', `Error disposing document: ${error.message}`, 'FAILED');
         return res.status(500).json({ success: false, message: 'Error disposing document', error: error.message });
     }
 };
 
 export const deleteRegisteredDocument = async (req, res) => {
+    let userId = null;
+    if (req.decodedAuthToken?.payload?.userId) {
+        userId = req.decodedAuthToken.payload.userId;
+    }
+
     const { id } = req.params;
 
     try {
         const document = await global.docTrackModels.DocumentLifeCycle.findById(id);
         if (!document) {
+            await logAction(req, userId, 'DOCUMENT_DELETED', 'DOCUMENT TRACKING', `Document deletion failed - Registered document not found: ${id}`, 'VALIDATION_FAILED');
             return res.status(404).json({ success: false, message: 'Registered document not found.' });
         }
 
         await global.docTrackModels.DocumentLifeCycle.findByIdAndDelete(id);
 
+        await logAction(req, userId, 'DOCUMENT_DELETED', 'DOCUMENT TRACKING', `Document deleted: ${document.refNumber}`, 'SUCCESS');
+
         return res.status(200).json({ success: true, message: 'Document deleted successfully.' });
     } catch (error) {
         console.error('Error deleting document:', error);
+        await logAction(req, userId, 'DOCUMENT_DELETED', 'DOCUMENT TRACKING', `Error deleting document: ${error.message}`, 'FAILED');
         return res.status(500).json({ success: false, message: 'Error deleting document', error: error.message });
     }
 };

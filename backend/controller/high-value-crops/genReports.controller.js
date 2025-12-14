@@ -3,25 +3,11 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
 import productionReportCommodities from '../../utils/productionReportCommodities.js';
+import { logAction } from '../../utils/logAction.js';
 
 // Get directory name in ESM
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-const logAction = async (req, action, module, description, status) => {
-
-  const userId =  req.decodedAuthToken ? req.decodedAuthToken.userId : 'Unknown';
-
-  await global.globalModels.GranularLog.create({
-    userId,
-    action,
-    module,
-    description,
-    status,
-    ip: req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress,
-    userAgent: req.headers['user-agent'],
-  });
-};
 
 // Get available date ranges for a specific year and month
 export const getAvailableDateRanges = async (req, res) => {
@@ -232,6 +218,11 @@ export const getAvailableBarangays = async (req, res) => {
 
 // Generate Excel report based on date range
 export const generateHVCSaMPR = async (req, res) => {
+  let userId = null;
+  if (req.decodedAuthToken?.payload?.userId) {
+    userId = req.decodedAuthToken.payload.userId;
+  }
+
   const { startDate, endDate, employeeId } = req.body;
   
   if (!startDate || !endDate ) {
@@ -415,14 +406,14 @@ export const generateHVCSaMPR = async (req, res) => {
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Length', buffer.length);
     
-    await logAction(req, 'HVC_SAMPR_REPORT_GENERATED', 'HIGH-VALUE CROPS', `Generated Supply and Market Profile Report for ${dateRange}`, 'SUCCESS');
+    await logAction(req, userId, 'HVC_SAMPR_REPORT_GENERATED', 'HIGH-VALUE CROPS', `Generated Supply and Market Profile Report for ${dateRange}`, 'SUCCESS');
 
     // Send the response buffer
     res.send(buffer);
   } catch (error) {
     console.error('Error generating HVC Supply and Market Profile Report:', error);
 
-    await logAction(req, 'HVC_SAMPR_REPORT_GENERATED', 'HIGH-VALUE CROPS', `Error generating Supply and Market Profile Report: ${error.message}`, 'FAILED');
+    await logAction(req, userId, 'HVC_SAMPR_REPORT_GENERATED', 'HIGH-VALUE CROPS', `Error generating Supply and Market Profile Report: ${error.message}`, 'FAILED');
 
     res.status(500).json({ 
       message: 'Error generating report', 
@@ -528,6 +519,11 @@ const applySectionBorders = (ws, sectionTopRow, headerRowsCount, commodityCount,
 
 //then gagawa ng controller that will handle the acutal report genereation, accepting the selected year, month, and barangay..
 export const generateHVCPR = async (req, res) => {
+  let userId = null;
+  if (req.decodedAuthToken?.payload?.userId) {
+    userId = req.decodedAuthToken.payload.userId;
+  }
+
   const { year, month, barangays, employeeId } = req.body;
 
   if (!year || !month || !Array.isArray(barangays) || barangays.length === 0) {
@@ -795,13 +791,13 @@ export const generateHVCPR = async (req, res) => {
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Length', buffer.length);
 
-    await logAction(req, 'HVC_PR_REPORT_GENERATED', 'HIGH-VALUE CROPS', `Generated Production Report for ${monthName} ${yNum} (${brgys.length} barangays)`, 'SUCCESS');
+    await logAction(req, userId, 'HVC_PR_REPORT_GENERATED', 'HIGH-VALUE CROPS', `Generated Production Report for ${monthName} ${yNum} (${brgys.length} barangays)`, 'SUCCESS');
 
     res.send(buffer);
   } catch (error) {
     console.error('Error generating HVC Production Report:', error);
 
-    await logAction(req, 'HVC_PR_REPORT_GENERATED', 'HIGH-VALUE CROPS', `Error generating Production Report: ${error.message}`, 'FAILED');
+    await logAction(req, userId, 'HVC_PR_REPORT_GENERATED', 'HIGH-VALUE CROPS', `Error generating Production Report: ${error.message}`, 'FAILED');
 
     res.status(500).json({ message: 'Error generating report', error: error.message });
   }
