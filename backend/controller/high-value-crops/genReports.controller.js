@@ -223,10 +223,14 @@ export const generateHVCSaMPR = async (req, res) => {
     userId = req.decodedAuthToken.payload.userId;
   }
 
-  const { startDate, endDate, employeeId } = req.body;
+  const { startDate, endDate, barangays, employeeId } = req.body;
   
   if (!startDate || !endDate ) {
     return res.status(400).json({ message: 'Start date and end date are required' });
+  }
+  
+  if (!Array.isArray(barangays) || barangays.length === 0) {
+    return res.status(400).json({ message: 'At least one barangay is required' });
   }
   
   try {
@@ -278,7 +282,11 @@ export const generateHVCSaMPR = async (req, res) => {
     const UnifiedFarmerRecordModel = global.getUnifiedFarmerRecordModel(year);
     const FarmerAccountModel = global.globalModels.FarmerAccount;
 
+    // Normalize barangays for case-insensitive matching
+    const normalizedBarangays = barangays.map(b => String(b).trim());
+
     const records = await UnifiedFarmerRecordModel.find({
+      farm_location: { $in: normalizedBarangays }, // Filter by selected barangays
       $or: [
         {
           crop_stage: 'HARVESTING',
@@ -406,7 +414,7 @@ export const generateHVCSaMPR = async (req, res) => {
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Length', buffer.length);
     
-    await logAction(req, userId, 'HVC_SAMPR_REPORT_GENERATED', 'HIGH-VALUE CROPS', `Generated Supply and Market Profile Report for ${dateRange}`, 'SUCCESS');
+    await logAction(req, userId, 'HVC_SAMPR_REPORT_GENERATED', 'HIGH-VALUE CROPS', `Generated Supply and Market Profile Report for ${dateRange} (${barangays.length} barangays)`, 'SUCCESS');
 
     // Send the response buffer
     res.send(buffer);

@@ -397,7 +397,7 @@ export const useAdminDashboard = (searchParams = {}) => {
     }
   };
 
-  const generateHVCSaMPR = async (startDate, endDate, employeeId) => {
+  const generateHVCSaMPR = async (startDate, endDate, barangays, employeeId) => {
     setIsGeneratingReport(true);
     try {
       const response = await axios.post(
@@ -405,6 +405,7 @@ export const useAdminDashboard = (searchParams = {}) => {
         { 
           startDate, 
           endDate,
+          barangays,
           employeeId
         },
         { responseType: 'blob' } // Important for file download

@@ -21,7 +21,7 @@ import { verifyAccountType } from '../middleware/verifyRole.js';
 const router = express.Router();
 
 // All routes require authentication and SYSTEM_ADMIN account type
-const systemAdminAuth = [verifyAuthToken, verifyAccountType(['SYSTEM_ADMIN'])];
+const systemAdminAuth = [verifyAuthToken, verifyAccountType(['admin'])];
 
 // Employee account management
 router.post('/register-employee', systemAdminAuth, register);
