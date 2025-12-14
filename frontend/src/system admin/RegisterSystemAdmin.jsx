@@ -1,5 +1,25 @@
 import { useState } from 'react';
-import { Shield, Mail, Phone, User, CheckCircle, AlertCircle } from 'lucide-react';
+import {
+  Box,
+  Heading,
+  Text,
+  Button,
+  FormControl,
+  FormLabel,
+  Input,
+  Flex,
+  Grid,
+  VStack,
+  HStack,
+  Alert,
+  AlertIcon,
+  AlertDescription,
+  Icon,
+  List,
+  ListItem,
+  ListIcon
+} from '@chakra-ui/react';
+import { FiShield, FiMail, FiPhone, FiUser, FiCheckCircle, FiAlertCircle, FiCheck } from 'react-icons/fi';
 
 const RegisterSystemAdmin = () => {
   const [formData, setFormData] = useState({
@@ -55,220 +75,213 @@ const RegisterSystemAdmin = () => {
   };
 
   return (
-    <div className="p-8 bg-gray-50 min-h-screen">
+    <Box p={8} bg="gray.50" minH="100vh">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-800">Register System Admin</h1>
-        <p className="text-gray-600 mt-2">Create a new system administrator account</p>
-      </div>
+      <Box mb={8}>
+        <Heading size="xl" color="gray.800">Register System Admin</Heading>
+        <Text color="gray.600" mt={2}>Create a new system administrator account</Text>
+      </Box>
 
       {/* Warning Banner */}
-      <div className="max-w-4xl mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-        <div className="flex items-start gap-3">
-          <AlertCircle className="text-amber-600 flex-shrink-0 mt-0.5" size={20} />
-          <div>
-            <h3 className="font-semibold text-amber-900 mb-1">Important Notice</h3>
-            <p className="text-sm text-amber-800">
-              System administrators have full access to all system functions and user data. 
-              Only register trusted personnel as system administrators.
-            </p>
-          </div>
-        </div>
-      </div>
+      <Alert status="warning" borderRadius="lg" maxW="4xl" mb={6}>
+        <AlertIcon as={FiAlertCircle} />
+        <Box flex="1">
+          <Heading size="sm" mb={1}>Important Notice</Heading>
+          <Text fontSize="sm">
+            System administrators have full access to all system functions and user data. 
+            Only register trusted personnel as system administrators.
+          </Text>
+        </Box>
+      </Alert>
 
       {/* Form Card */}
-      <div className="max-w-4xl bg-white rounded-xl shadow-md p-8">
+      <Box maxW="4xl" bg="white" borderRadius="xl" boxShadow="md" p={8}>
         {/* Message Alert */}
         {message.text && (
-          <div className={`mb-6 p-4 rounded-lg flex items-center gap-3 ${
-            message.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
-          }`}>
-            {message.type === 'success' ? (
-              <CheckCircle size={20} />
-            ) : (
-              <AlertCircle size={20} />
-            )}
-            <p>{message.text}</p>
-          </div>
+          <Alert
+            status={message.type === 'success' ? 'success' : 'error'}
+            borderRadius="lg"
+            mb={6}
+          >
+            <AlertIcon as={message.type === 'success' ? FiCheckCircle : FiAlertCircle} />
+            <AlertDescription>{message.text}</AlertDescription>
+          </Alert>
         )}
 
         <form onSubmit={handleSubmit}>
-          {/* Personal Information */}
-          <div className="mb-8">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-              <User size={24} />
-              Personal Information
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  First Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="firstName"
-                  value={formData.firstName}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  placeholder="Juan"
-                  required
-                />
-              </div>
+          <VStack align="stretch" spacing={8}>
+            {/* Personal Information */}
+            <Box>
+              <Heading size="md" color="gray.800" mb={4}>
+                <HStack>
+                  <Icon as={FiUser} />
+                  <Text>Personal Information</Text>
+                </HStack>
+              </Heading>
+              <Grid templateColumns={{ base: '1fr', md: 'repeat(2, 1fr)' }} gap={6}>
+                <FormControl isRequired>
+                  <FormLabel>First Name</FormLabel>
+                  <Input
+                    type="text"
+                    name="firstName"
+                    value={formData.firstName}
+                    onChange={handleInputChange}
+                    placeholder="Juan"
+                    focusBorderColor="purple.500"
+                  />
+                </FormControl>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Last Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="lastName"
-                  value={formData.lastName}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  placeholder="Dela Cruz"
-                  required
-                />
-              </div>
+                <FormControl isRequired>
+                  <FormLabel>Last Name</FormLabel>
+                  <Input
+                    type="text"
+                    name="lastName"
+                    value={formData.lastName}
+                    onChange={handleInputChange}
+                    placeholder="Dela Cruz"
+                    focusBorderColor="purple.500"
+                  />
+                </FormControl>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Middle Name
-                </label>
-                <input
-                  type="text"
-                  name="middleName"
-                  value={formData.middleName}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  placeholder="Santos"
-                />
-              </div>
+                <FormControl>
+                  <FormLabel>Middle Name</FormLabel>
+                  <Input
+                    type="text"
+                    name="middleName"
+                    value={formData.middleName}
+                    onChange={handleInputChange}
+                    placeholder="Santos"
+                    focusBorderColor="purple.500"
+                  />
+                </FormControl>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Suffix
-                </label>
-                <input
-                  type="text"
-                  name="suffix"
-                  value={formData.suffix}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  placeholder="Jr., Sr., III"
-                />
-              </div>
-            </div>
-          </div>
+                <FormControl>
+                  <FormLabel>Suffix</FormLabel>
+                  <Input
+                    type="text"
+                    name="suffix"
+                    value={formData.suffix}
+                    onChange={handleInputChange}
+                    placeholder="Jr., Sr., III"
+                    focusBorderColor="purple.500"
+                  />
+                </FormControl>
+              </Grid>
+            </Box>
 
-          {/* Contact Information */}
-          <div className="mb-8">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-              <Mail size={24} />
-              Contact Information
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email Address <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  placeholder="admin@agritrack.com"
-                  required
-                />
-              </div>
+            {/* Contact Information */}
+            <Box>
+              <Heading size="md" color="gray.800" mb={4}>
+                <HStack>
+                  <Icon as={FiMail} />
+                  <Text>Contact Information</Text>
+                </HStack>
+              </Heading>
+              <Grid templateColumns={{ base: '1fr', md: 'repeat(2, 1fr)' }} gap={6}>
+                <FormControl isRequired>
+                  <FormLabel>Email Address</FormLabel>
+                  <Input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    placeholder="admin@agritrack.com"
+                    focusBorderColor="purple.500"
+                  />
+                </FormControl>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Phone Number <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="tel"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  placeholder="+63 912 345 6789"
-                  required
-                />
-              </div>
-            </div>
-          </div>
+                <FormControl isRequired>
+                  <FormLabel>Phone Number</FormLabel>
+                  <Input
+                    type="tel"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleInputChange}
+                    placeholder="+63 912 345 6789"
+                    focusBorderColor="purple.500"
+                  />
+                </FormControl>
+              </Grid>
+            </Box>
 
-          {/* Permissions Info */}
-          <div className="mb-8 p-6 bg-purple-50 rounded-lg border border-purple-200">
-            <h3 className="font-semibold text-purple-900 mb-3 flex items-center gap-2">
-              <Shield size={20} />
-              System Admin Permissions
-            </h3>
-            <ul className="space-y-2 text-sm text-purple-800">
-              <li className="flex items-start gap-2">
-                <span className="text-purple-600 mt-0.5">•</span>
-                <span>Full access to all system modules and features</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-purple-600 mt-0.5">•</span>
-                <span>Ability to create, edit, and manage all user accounts</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-purple-600 mt-0.5">•</span>
-                <span>Access to view and manage action logs</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-purple-600 mt-0.5">•</span>
-                <span>Permission to register other system administrators</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-purple-600 mt-0.5">•</span>
-                <span>Ability to lock, unlock, and archive accounts</span>
-              </li>
-            </ul>
-          </div>
+            {/* Permissions Info */}
+            <Box p={6} bg="purple.50" borderRadius="lg" border="1px" borderColor="purple.200">
+              <Heading size="sm" color="purple.900" mb={3}>
+                <HStack>
+                  <Icon as={FiShield} />
+                  <Text>System Admin Permissions</Text>
+                </HStack>
+              </Heading>
+              <List spacing={2} fontSize="sm" color="purple.800">
+                <ListItem display="flex" alignItems="start">
+                  <ListIcon as={FiCheck} color="purple.600" mt={1} />
+                  <Text>Full access to all system modules and features</Text>
+                </ListItem>
+                <ListItem display="flex" alignItems="start">
+                  <ListIcon as={FiCheck} color="purple.600" mt={1} />
+                  <Text>Ability to create, edit, and manage all user accounts</Text>
+                </ListItem>
+                <ListItem display="flex" alignItems="start">
+                  <ListIcon as={FiCheck} color="purple.600" mt={1} />
+                  <Text>Access to view and manage action logs</Text>
+                </ListItem>
+                <ListItem display="flex" alignItems="start">
+                  <ListIcon as={FiCheck} color="purple.600" mt={1} />
+                  <Text>Permission to register other system administrators</Text>
+                </ListItem>
+                <ListItem display="flex" alignItems="start">
+                  <ListIcon as={FiCheck} color="purple.600" mt={1} />
+                  <Text>Ability to lock, unlock, and archive accounts</Text>
+                </ListItem>
+              </List>
+            </Box>
 
-          {/* Submit Button */}
-          <div className="flex items-center gap-4">
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium"
-            >
-              <Shield size={20} />
-              {loading ? 'Registering...' : 'Register System Admin'}
-            </button>
-            
-            <button
-              type="button"
-              onClick={() => {
-                setFormData({
-                  firstName: '',
-                  lastName: '',
-                  middleName: '',
-                  suffix: '',
-                  email: '',
-                  phone: ''
-                });
-                setMessage({ type: '', text: '' });
-              }}
-              className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
-            >
-              Clear Form
-            </button>
-          </div>
+            {/* Submit Button */}
+            <HStack spacing={4}>
+              <Button
+                type="submit"
+                isLoading={loading}
+                loadingText="Registering..."
+                colorScheme="purple"
+                leftIcon={<Icon as={FiShield} />}
+                fontWeight="medium"
+              >
+                Register System Admin
+              </Button>
+              
+              <Button
+                type="button"
+                variant="outline"
+                colorScheme="gray"
+                fontWeight="medium"
+                onClick={() => {
+                  setFormData({
+                    firstName: '',
+                    lastName: '',
+                    middleName: '',
+                    suffix: '',
+                    email: '',
+                    phone: ''
+                  });
+                  setMessage({ type: '', text: '' });
+                }}
+              >
+                Clear Form
+              </Button>
+            </HStack>
 
-          {/* Info Box */}
-          <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-            <p className="text-sm text-blue-800">
-              <strong>Note:</strong> A randomly generated password will be sent to the admin's email address upon successful registration. 
-              The new administrator will be prompted to change their password and set up 2FA on first login.
-            </p>
-          </div>
+            {/* Info Box */}
+            <Alert status="info" borderRadius="lg">
+              <AlertIcon />
+              <AlertDescription>
+                <Text as="strong">Note:</Text> A randomly generated password will be sent to the admin's email address upon successful registration. 
+                The new administrator will be prompted to change their password and set up 2FA on first login.
+              </AlertDescription>
+            </Alert>
+          </VStack>
         </form>
-      </div>
-    </div>
+      </Box>
+    </Box>
   );
 };
 

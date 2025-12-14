@@ -1,13 +1,35 @@
-import { useState, useEffect } from 'react';
-import { Search, Edit2, Lock, Unlock, Archive, MoreVertical, Mail, Phone, Users as UsersIcon, Filter } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import {
+  Box,
+  Heading,
+  Text,
+  Button,
+  Flex,
+  HStack,
+  Input,
+  InputGroup,
+  InputLeftElement,
+  Select,
+  Icon,
+  Table,
+  Thead,
+  Tbody,
+  Tr,
+  Th,
+  Td,
+  TableContainer,
+  Badge,
+  IconButton,
+  Tooltip
+} from '@chakra-ui/react';
+import { FiSearch, FiFilter, FiEdit2, FiLock, FiUnlock } from 'react-icons/fi';
+import { FaArchive, FaPhone, FaUsers } from 'react-icons/fa';
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
-  const [selectedUser, setSelectedUser] = useState(null);
-  const [showEditModal, setShowEditModal] = useState(false);
 
   // Mock data
   useEffect(() => {
@@ -89,8 +111,7 @@ const UserManagement = () => {
   });
 
   const handleEditUser = (user) => {
-    setSelectedUser(user);
-    setShowEditModal(true);
+    console.log('Edit user:', user);
   };
 
   const handleLockToggle = (userId) => {
@@ -109,194 +130,196 @@ const UserManagement = () => {
 
   const getRoleBadgeColor = (role) => {
     const colors = {
-      'HVC': 'bg-green-100 text-green-800',
-      'DMS': 'bg-blue-100 text-blue-800',
-      'MACHINERIES': 'bg-purple-100 text-purple-800',
-      'DOC_TRACK': 'bg-amber-100 text-amber-800'
+      'HVC': 'green',
+      'DMS': 'blue',
+      'MACHINERIES': 'purple',
+      'DOC_TRACK': 'orange'
     };
-    return colors[role] || 'bg-gray-100 text-gray-800';
+    return colors[role] || 'gray';
   };
 
   return (
-    <div className="p-8 bg-gray-50 min-h-screen">
+    <Box p={8} bg="gray.50" minH="100vh">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-800">User Management</h1>
-        <p className="text-gray-600 mt-2">Manage employee and system admin accounts</p>
-      </div>
+      <Box mb={8}>
+        <Heading size="xl" color="gray.800">User Management</Heading>
+        <Text color="gray.600" mt={2}>Manage employee and system admin accounts</Text>
+      </Box>
 
       {/* Filters */}
-      <div className="bg-white rounded-xl shadow-md p-6 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <Box bg="white" borderRadius="xl" boxShadow="md" p={6} mb={6}>
+        <Flex gap={4} direction={{ base: 'column', md: 'row' }}>
           {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-3 text-gray-400" size={20} />
-            <input
-              type="text"
+          <InputGroup flex={1}>
+            <InputLeftElement pointerEvents="none">
+              <Icon as={FiSearch} color="gray.400" />
+            </InputLeftElement>
+            <Input
               placeholder="Search users..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-          </div>
+          </InputGroup>
 
           {/* Role Filter */}
-          <div className="relative">
-            <Filter className="absolute left-3 top-3 text-gray-400" size={20} />
-            <select
-              value={filterRole}
-              onChange={(e) => setFilterRole(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-white"
-            >
-              <option value="all">All Roles</option>
-              <option value="HVC">HVC</option>
-              <option value="DMS">DMS</option>
-              <option value="MACHINERIES">Machineries</option>
-              <option value="DOC_TRACK">Doc Track</option>
-            </select>
-          </div>
+          <Select 
+            flex={1}
+            value={filterRole}
+            onChange={(e) => setFilterRole(e.target.value)}
+            icon={<FiFilter />}
+          >
+            <option value="all">All Roles</option>
+            <option value="HVC">HVC</option>
+            <option value="DMS">DMS</option>
+            <option value="MACHINERIES">Machineries</option>
+            <option value="DOC_TRACK">Doc Track</option>
+          </Select>
 
           {/* Status Filter */}
-          <div className="relative">
-            <Filter className="absolute left-3 top-3 text-gray-400" size={20} />
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-white"
-            >
-              <option value="all">All Status</option>
-              <option value="active">Active</option>
-              <option value="locked">Locked</option>
-              <option value="archived">Archived</option>
-            </select>
-          </div>
-        </div>
-      </div>
+          <Select 
+            flex={1}
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            icon={<FiFilter />}
+          >
+            <option value="all">All Status</option>
+            <option value="active">Active</option>
+            <option value="locked">Locked</option>
+            <option value="archived">Archived</option>
+          </Select>
+        </Flex>
+      </Box>
 
       {/* Users Table */}
-      <div className="bg-white rounded-xl shadow-md overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Name</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Contact</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Roles</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Position</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Type</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Status</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
+      <Box bg="white" borderRadius="xl" boxShadow="md" overflow="hidden">
+        <TableContainer>
+          <Table variant="simple">
+            <Thead bg="gray.50">
+              <Tr>
+                <Th>Name</Th>
+                <Th>Contact</Th>
+                <Th>Roles</Th>
+                <Th>Position</Th>
+                <Th>Type</Th>
+                <Th>Status</Th>
+                <Th>Actions</Th>
+              </Tr>
+            </Thead>
+            <Tbody>
               {filteredUsers.map((user) => (
-                <tr key={user.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4">
-                    <div>
-                      <p className="font-medium text-gray-900">
+                <Tr key={user.id} _hover={{ bg: 'gray.50' }} transition="all 0.2s">
+                  <Td>
+                    <Box>
+                      <Text fontWeight="medium" color="gray.900">
                         {user.firstName} {user.middleName && user.middleName[0] + '.'} {user.lastName}
-                      </p>
-                      <p className="text-sm text-gray-500">{user.email}</p>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <Phone size={14} />
-                      {user.phone}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex flex-wrap gap-1">
+                      </Text>
+                      <Text fontSize="sm" color="gray.500">{user.email}</Text>
+                    </Box>
+                  </Td>
+                  <Td>
+                    <HStack spacing={2}>
+                      <Icon as={FaPhone} boxSize={3} color="gray.600" />
+                      <Text fontSize="sm" color="gray.600">{user.phone}</Text>
+                    </HStack>
+                  </Td>
+                  <Td>
+                    <Flex flexWrap="wrap" gap={1}>
                       {user.roles.length > 0 ? (
                         user.roles.map((role) => (
-                          <span
+                          <Badge
                             key={role}
-                            className={`px-2 py-1 rounded-full text-xs font-medium ${getRoleBadgeColor(role)}`}
+                            colorScheme={getRoleBadgeColor(role)}
+                            borderRadius="full"
+                            px={2}
+                            py={1}
                           >
                             {role}
-                          </span>
+                          </Badge>
                         ))
                       ) : (
-                        <span className="text-sm text-gray-400">No roles</span>
+                        <Text fontSize="sm" color="gray.400">No roles</Text>
                       )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
+                    </Flex>
+                  </Td>
+                  <Td>
                     {user.officePosition ? (
-                      <span className="text-sm text-gray-600">{user.officePosition}</span>
+                      <Text fontSize="sm" color="gray.600">{user.officePosition}</Text>
                     ) : (
-                      <span className="text-sm text-gray-400">N/A</span>
+                      <Text fontSize="sm" color="gray.400">N/A</Text>
                     )}
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                      user.accountType === 'SYSTEM_ADMIN' 
-                        ? 'bg-purple-100 text-purple-800' 
-                        : 'bg-blue-100 text-blue-800'
-                    }`}>
+                  </Td>
+                  <Td>
+                    <Badge
+                      colorScheme={user.accountType === 'SYSTEM_ADMIN' ? 'purple' : 'blue'}
+                      borderRadius="full"
+                      px={3}
+                      py={1}
+                    >
                       {user.accountType === 'SYSTEM_ADMIN' ? 'Admin' : 'Employee'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
+                    </Badge>
+                  </Td>
+                  <Td>
                     {user.isArchived ? (
-                      <span className="px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                      <Badge colorScheme="red" borderRadius="full" px={3} py={1}>
                         Archived
-                      </span>
+                      </Badge>
                     ) : user.isLocked ? (
-                      <span className="px-3 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                      <Badge colorScheme="orange" borderRadius="full" px={3} py={1}>
                         Locked
-                      </span>
+                      </Badge>
                     ) : (
-                      <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      <Badge colorScheme="green" borderRadius="full" px={3} py={1}>
                         Active
-                      </span>
+                      </Badge>
                     )}
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => handleEditUser(user)}
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                        title="Edit"
-                      >
-                        <Edit2 size={18} />
-                      </button>
-                      <button
-                        onClick={() => handleLockToggle(user.id)}
-                        className={`p-2 rounded-lg transition-colors ${
-                          user.isLocked 
-                            ? 'text-green-600 hover:bg-green-50' 
-                            : 'text-amber-600 hover:bg-amber-50'
-                        }`}
-                        title={user.isLocked ? 'Unlock' : 'Lock'}
-                        disabled={user.isArchived}
-                      >
-                        {user.isLocked ? <Unlock size={18} /> : <Lock size={18} />}
-                      </button>
-                      <button
-                        onClick={() => handleArchive(user.id)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Archive"
-                        disabled={user.isArchived}
-                      >
-                        <Archive size={18} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
+                  </Td>
+                  <Td>
+                    <HStack spacing={2}>
+                      <Tooltip label="Edit">
+                        <IconButton
+                          size="sm"
+                          icon={<FiEdit2 />}
+                          colorScheme="blue"
+                          variant="ghost"
+                          onClick={() => handleEditUser(user)}
+                        />
+                      </Tooltip>
+                      <Tooltip label={user.isLocked ? 'Unlock' : 'Lock'}>
+                        <IconButton
+                          size="sm"
+                          icon={user.isLocked ? <FiUnlock /> : <FiLock />}
+                          colorScheme={user.isLocked ? 'green' : 'orange'}
+                          variant="ghost"
+                          onClick={() => handleLockToggle(user.id)}
+                          isDisabled={user.isArchived}
+                        />
+                      </Tooltip>
+                      <Tooltip label="Archive">
+                        <IconButton
+                          size="sm"
+                          icon={<FaArchive />}
+                          colorScheme="red"
+                          variant="ghost"
+                          onClick={() => handleArchive(user.id)}
+                          isDisabled={user.isArchived}
+                        />
+                      </Tooltip>
+                    </HStack>
+                  </Td>
+                </Tr>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </Tbody>
+          </Table>
+        </TableContainer>
 
         {filteredUsers.length === 0 && (
-          <div className="text-center py-12 text-gray-500">
-            <UsersIcon size={48} className="mx-auto mb-4 text-gray-400" />
-            <p>No users found</p>
-          </div>
+          <Flex direction="column" align="center" justify="center" py={12} color="gray.500">
+            <Icon as={FaUsers} boxSize={12} mb={4} color="gray.400" />
+            <Text>No users found</Text>
+          </Flex>
         )}
-      </div>
-    </div>
+      </Box>
+    </Box>
   );
 };
 

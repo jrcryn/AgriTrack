@@ -1,5 +1,16 @@
-import { useState, useEffect } from 'react';
-import { Users, Shield, Activity, Lock, Archive, UserCheck } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import {
+  Box,
+  Heading,
+  Text,
+  SimpleGrid,
+  Flex,
+  Icon,
+  VStack,
+  HStack
+} from '@chakra-ui/react';
+import { FiUsers, FiShield, FiActivity, FiLock } from 'react-icons/fi';
+import { FaArchive, FaUserCheck } from 'react-icons/fa';
 
 const Dashboard = () => {
   const [stats, setStats] = useState({
@@ -23,18 +34,29 @@ const Dashboard = () => {
     });
   }, []);
 
-  const StatCard = ({ icon: Icon, title, value, color, bgColor }) => (
-    <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-gray-500 text-sm font-medium">{title}</p>
-          <p className="text-3xl font-bold mt-2" style={{ color }}>{value}</p>
-        </div>
-        <div className={`p-4 rounded-full ${bgColor}`}>
-          <Icon size={28} style={{ color }} />
-        </div>
-      </div>
-    </div>
+  const StatCard = ({ icon, title, value, color, bgColor }) => (
+    <Box
+      bg="white"
+      borderRadius="xl"
+      boxShadow="md"
+      p={6}
+      _hover={{ boxShadow: 'lg' }}
+      transition="all 0.2s"
+    >
+      <Flex justify="space-between" align="center">
+        <Box>
+          <Text color="gray.500" fontSize="sm" fontWeight="medium">{title}</Text>
+          <Text fontSize="3xl" fontWeight="bold" mt={2} color={color}>{value}</Text>
+        </Box>
+        <Flex
+          p={4}
+          borderRadius="full"
+          bg={bgColor}
+        >
+          <Icon as={icon} boxSize={7} color={color} />
+        </Flex>
+      </Flex>
+    </Box>
   );
 
   const recentActivities = [
@@ -46,83 +68,97 @@ const Dashboard = () => {
   ];
 
   return (
-    <div className="p-8 bg-gray-50 min-h-screen">
+    <Box p={8} bg="gray.50" minH="100vh">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-800">System Admin Dashboard</h1>
-        <p className="text-gray-600 mt-2">Welcome back! Here's what's happening with your system.</p>
-      </div>
+      <Box mb={8}>
+        <Heading size="xl" color="gray.800">System Admin Dashboard</Heading>
+        <Text color="gray.600" mt={2}>Welcome back! Here's what's happening with your system.</Text>
+      </Box>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+      <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6} mb={8}>
         <StatCard 
-          icon={Users} 
+          icon={FiUsers} 
           title="Total Employees" 
           value={stats.totalEmployees} 
-          color="#3B82F6"
-          bgColor="bg-blue-100"
+          color="blue.500"
+          bgColor="blue.100"
         />
         <StatCard 
-          icon={Shield} 
+          icon={FiShield} 
           title="System Admins" 
           value={stats.totalAdmins} 
-          color="#8B5CF6"
-          bgColor="bg-purple-100"
+          color="purple.500"
+          bgColor="purple.100"
         />
         <StatCard 
-          icon={Activity} 
+          icon={FiActivity} 
           title="Recent Actions" 
           value={stats.recentActions} 
-          color="#10B981"
-          bgColor="bg-green-100"
+          color="green.500"
+          bgColor="green.100"
         />
         <StatCard 
-          icon={UserCheck} 
+          icon={FaUserCheck} 
           title="Active Accounts" 
           value={stats.activeAccounts} 
-          color="#06B6D4"
-          bgColor="bg-cyan-100"
+          color="cyan.500"
+          bgColor="cyan.100"
         />
         <StatCard 
-          icon={Lock} 
+          icon={FiLock} 
           title="Locked Accounts" 
           value={stats.lockedAccounts} 
-          color="#F59E0B"
-          bgColor="bg-amber-100"
+          color="orange.500"
+          bgColor="orange.100"
         />
         <StatCard 
-          icon={Archive} 
+          icon={FaArchive} 
           title="Archived Accounts" 
           value={stats.archivedAccounts} 
-          color="#EF4444"
-          bgColor="bg-red-100"
+          color="red.500"
+          bgColor="red.100"
         />
-      </div>
+      </SimpleGrid>
 
       {/* Recent Activity */}
-      <div className="bg-white rounded-xl shadow-md p-6">
-        <h2 className="text-xl font-bold text-gray-800 mb-4">Recent Activity</h2>
-        <div className="space-y-3">
+      <Box bg="white" borderRadius="xl" boxShadow="md" p={6}>
+        <Heading size="md" color="gray.800" mb={4}>Recent Activity</Heading>
+        <VStack spacing={3} align="stretch">
           {recentActivities.map((activity, index) => (
-            <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-              <div className="flex items-center gap-4">
-                <div className={`w-2 h-2 rounded-full ${
-                  activity.type === 'success' ? 'bg-green-500' :
-                  activity.type === 'warning' ? 'bg-amber-500' :
-                  activity.type === 'error' ? 'bg-red-500' :
-                  'bg-blue-500'
-                }`}></div>
-                <div>
-                  <p className="font-medium text-gray-800">{activity.action}</p>
-                  <p className="text-sm text-gray-500">{activity.user}</p>
-                </div>
-              </div>
-              <p className="text-sm text-gray-400">{activity.time}</p>
-            </div>
+            <Flex
+              key={index}
+              align="center"
+              justify="space-between"
+              p={4}
+              bg="gray.50"
+              borderRadius="lg"
+              _hover={{ bg: 'gray.100' }}
+              transition="all 0.2s"
+            >
+              <HStack spacing={4}>
+                <Box
+                  w={2}
+                  h={2}
+                  borderRadius="full"
+                  bg={
+                    activity.type === 'success' ? 'green.500' :
+                    activity.type === 'warning' ? 'orange.500' :
+                    activity.type === 'error' ? 'red.500' :
+                    'blue.500'
+                  }
+                />
+                <Box>
+                  <Text fontWeight="medium" color="gray.800">{activity.action}</Text>
+                  <Text fontSize="sm" color="gray.500">{activity.user}</Text>
+                </Box>
+              </HStack>
+              <Text fontSize="sm" color="gray.400">{activity.time}</Text>
+            </Flex>
           ))}
-        </div>
-      </div>
-    </div>
+        </VStack>
+      </Box>
+    </Box>
   );
 };
 

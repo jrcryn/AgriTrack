@@ -63,12 +63,11 @@ const SidebarContent = ({ onClose, ...rest }) => {
     >
       {/* Logo Header */}
       <Box px="8" pb="5" pt="10" textAlign="center">
-        <Icon as={FiShield} boxSize="80px" color="white" mx="auto" mb="3" />
         <Text mt="2" fontSize="smaller" fontWeight="medium" color="white">
           AGRITRACK
         </Text>
         <Text fontSize="larger" fontWeight="bold" color="white">
-          SYSTEM ADMIN
+          ADMINISTRATOR
         </Text>
       </Box>
 
@@ -99,7 +98,7 @@ const SidebarContent = ({ onClose, ...rest }) => {
       {/* Footer */}
       <Box px="4" pb="4" pt="2">
         <Text fontSize="xs" color="blue.200" textAlign="center">
-          AgriTrack System Admin v1.0
+          AgriTrack v1.0
         </Text>
       </Box>
     </Box>
