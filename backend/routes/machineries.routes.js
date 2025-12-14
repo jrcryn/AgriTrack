@@ -4,7 +4,7 @@ import multer from 'multer';
 import { 
     createTicketRequestForm,
     createMachineriesType,
-    updateMachineryType,
+    //updateMachineryType,
     addMachineryUnit,
     createWeeklySchedule,
     removeTicketRequestFromSchedule,
@@ -25,7 +25,7 @@ import {
     getOccupiedDatesForScheduling,
     getMachineUnits,
     getMachineOverview,
-    updateMachineryUnitStatus,
+    //updateMachineryUnitStatus,
     getMachineTypesForAddingUnits,
     getTicketStatusCounts,
     getUpcomingAndOngoingSchedules,
@@ -52,7 +52,7 @@ import {
     formStatusDisable,
     checkFormStatus,
     
-    deleteScheduleAndTickets
+    //deleteScheduleAndTickets
 } from '../controller/machineries/adminDashboard.controller.js';
 
 import { exportMachineriesUsageReport } from '../controller/machineries/genReports.controller.js';
@@ -71,7 +71,7 @@ router.get('/generate-machinery-report', verifyAuthToken, verifyRole(['MIM']), e
 
 
 router.post('/create-machinery-type', verifyAuthToken, verifyRole(['MIM']), createMachineriesType); //working
-router.put('/update-machinery-type', verifyAuthToken, verifyRole(['MIM']), updateMachineryType);
+//router.put('/update-machinery-type', verifyAuthToken, verifyRole(['MIM']), updateMachineryType);
 router.post('/create-machinery-unit', verifyAuthToken, verifyRole(['MIM']), addMachineryUnit); //working
 
 router.get('/get-pending-ticket-requests', verifyAuthToken, verifyRole(['MIM', 'MIS']), getPendingTicketRequests); //working frontend
@@ -115,7 +115,7 @@ router.post('/extension-ticket-complete',
 router.post('/get-occupied-dates-for-scheduling', verifyAuthToken, verifyRole(['MIM']), getOccupiedDatesForScheduling);
 router.get('/get-machine-units', verifyAuthToken, verifyRole(['MIM', 'MIS']), getMachineUnits);
 router.get('/get-machine-overview', verifyAuthToken, verifyRole(['MIM','MIS' ]), getMachineOverview);
-router.post('/update-machinery-unit-status', verifyAuthToken, verifyRole(['MIM', 'MIS']), updateMachineryUnitStatus);
+//router.post('/update-machinery-unit-status', verifyAuthToken, verifyRole(['MIM', 'MIS']), updateMachineryUnitStatus);
 router.get('/get-machine-types-for-adding-units', verifyAuthToken, verifyRole(['MIM', 'MIS']), getMachineTypesForAddingUnits);
 router.get('/get-machine-type-unit-counts', verifyAuthToken, verifyRole(['MIM', 'MIS']), getMachineTypeUnitCounts);
 
@@ -145,5 +145,5 @@ router.post('/form-status-enable', verifyAuthToken, verifyRole(['MIM']), formSta
 router.post('/form-status-disable', verifyAuthToken, verifyRole(['MIM']), formStatusDisable);
 router.get('/check-form-status', checkFormStatus);
 
-router.post('/delete-schedule-and-tickets/:scheduleId', deleteScheduleAndTickets); //FOR DEBUGGING AND TESTING PURPOSES ONLY
+//router.post('/delete-schedule-and-tickets/:scheduleId', deleteScheduleAndTickets); //FOR DEBUGGING AND TESTING PURPOSES ONLY
 export default router;
