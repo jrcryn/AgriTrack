@@ -1,20 +1,6 @@
-import { getHighValueCropsDB } from '../../config/dbAccessHelper.js'; // import hvc db access
+import { getHighValueCropsDB } from '../../config/dbAccessHelper.js';
 import mongoose from 'mongoose';
-
-const logAction = async (req, action, module, description, status) => {
-
-  const userId =  req.decodedAuthToken ? req.decodedAuthToken.userId : 'Unknown';
-
-  await global.globalModels.GranularLog.create({
-    userId,
-    action,
-    module,
-    description,
-    status,
-    ip: req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress,
-    userAgent: req.headers['user-agent'],
-  });
-};
+import { logAction } from '../../utils/logAction.js';
 
 //________________________________ FARMERS NEW RESPONSES PAGE ____________________________________
 
@@ -222,7 +208,14 @@ export const updateFarmerResponseFields = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
+  let userId = null;
+
   try {
+    // Extract userId from decoded token
+    if (req.decodedAuthToken && req.decodedAuthToken.payload) {
+      userId = req.decodedAuthToken.payload.userId;
+    }
+
     const { farmerId } = req.params;
     if (!farmerId) {
       await session.abortTransaction();
@@ -369,7 +362,7 @@ export const updateFarmerResponseFields = async (req, res) => {
 
     await session.commitTransaction();
 
-    await logAction(req, 'FARMER_RESPONSE_FIELDS_UPDATED', 'HIGH-VALUE CROPS', `Updated farmer response fields for farmer input ID: ${farmerId}`, 'SUCCESS');
+    await logAction(req, userId, 'FARMER_RESPONSE_FIELDS_UPDATED', 'HIGH-VALUE CROPS', `Updated farmer response fields for farmer input ID: ${farmerId}`, 'SUCCESS');
 
     // Return updated details
     res.json({
@@ -379,98 +372,9 @@ export const updateFarmerResponseFields = async (req, res) => {
     await session.abortTransaction();
     console.error('Error updating fields:', error);
 
-    await logAction(req, 'FARMER_RESPONSE_FIELDS_UPDATED', 'HIGH-VALUE CROPS', `Error updating farmer response fields: ${error.message}`, 'FAILED');
+    await logAction(req, userId, 'FARMER_RESPONSE_FIELDS_UPDATED', 'HIGH-VALUE CROPS', `Error updating farmer response fields: ${error.message}`, 'FAILED');
 
     res.status(500).json({ message: 'Error updating fields.', error: error.message });
-  } finally {
-    session.endSession();
-  }
-};
-
-
-// Function to delete a complete farmer response and all related records
-export const deleteFarmerResponse = async (req, res) => { //not in use
-  const { farmerId } = req.body;
-  
-  if (!farmerId) {
-    return res.status(400).json({ message: 'Farmer response ID is required.' });
-  }
-  const session = await mongoose.startSession();
-  session.startTransaction();
-  
-  try {
-    const farmerInput = await global.highValueCropsModels.A_farmer_inputs.findById(farmerId).session(session);
-    if (!farmerInput) {
-      await session.abortTransaction();
-      session.endSession();
-      return res.status(404).json({ message: 'Farmer response not found.' });
-    }
-    
-    const cropType = await global.highValueCropsModels.B_crop_types.findOne({ farmer_input_id: farmerId }).session(session);
-    if (!cropType) {
-      await global.highValueCropsModels.A_farmer_inputs.deleteOne({ _id: farmerId }).session(session);
-      await session.commitTransaction();
-      session.endSession();
-      return res.status(200).json({ 
-        message: 'Farmer response deleted successfully (only farmer input was found).' 
-      });
-    }
-    
-    // Determine which crop record collection to use based on crop type
-    const isIndustrialCrop = cropType.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS';
-    
-    // Delete process for industrial crops
-    if (isIndustrialCrop) {
-      const cropRecord = await global.highValueCropsModels.C_crop_records_indus.findOne({ farmer_input_id: farmerId }).session(session);
-      if (cropRecord) {
-        // Delete appropriate detail record based on crop stage
-        if (cropRecord.crop_stage === 'NEWLY PLANTED') {
-          await global.highValueCropsModels.D1_crop_indus_new.deleteOne({ record_id: cropRecord._id }).session(session);
-        } else if (cropRecord.crop_stage === 'HARVESTING') {
-          await global.highValueCropsModels.D1_crop_indus_harvest.deleteOne({ record_id: cropRecord._id }).session(session);
-        }
-        
-        // Delete the crop record
-        await global.highValueCropsModels.C_crop_records_indus.deleteOne({ _id: cropRecord._id }).session(session);
-      }
-    } 
-    // Delete process for other crops (trees, fruits, etc.)
-    else {
-      const cropRecord = await global.highValueCropsModels.C_crop_records_others.findOne({ farmer_input_id: farmerId }).session(session);
-      if (cropRecord) {
-        // Delete appropriate detail record based on crop stage
-        if (cropRecord.crop_stage === 'NEWLY PLANTED') {
-          await global.highValueCropsModels.D2_bc_other_fct_new.deleteOne({ record_id: cropRecord._id }).session(session);
-        } else if (cropRecord.crop_stage === 'HARVESTING') {
-          await global.highValueCropsModels.D2_bc_other_fct_harvest.deleteOne({ record_id: cropRecord._id }).session(session);
-        }
-        
-        // Delete the crop record
-        await global.highValueCropsModels.C_crop_records_others.deleteOne({ _id: cropRecord._id }).session(session);
-      }
-    }
-    
-    // Delete the crop type record
-    await global.highValueCropsModels.B_crop_types.deleteOne({ _id: cropType._id }).session(session);
-    
-    // Finally, delete the farmer input document
-    await global.highValueCropsModels.A_farmer_inputs.deleteOne({ _id: farmerId }).session(session);
-    
-    // Commit the transaction
-    await session.commitTransaction();
-    
-    return res.status(200).json({
-      message: 'Farmer response deleted successfully with all related records.',
-      deletedId: farmerId
-    });
-    
-  } catch (error) {
-    // Rollback in case of error
-    await session.abortTransaction();
-    return res.status(500).json({ 
-      message: 'Error deleting farmer response', 
-      error: error.message 
-    });
   } finally {
     session.endSession();
   }
@@ -503,7 +407,14 @@ export const createUnifiedFarmerResponse = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
+  let userId = null;
+
   try {
+    // Extract userId from decoded token
+    if (req.decodedAuthToken && req.decodedAuthToken.payload) {
+      userId = req.decodedAuthToken.payload.userId;
+    }
+
     // Determine the year based on available dates
     let year;
     if (crop_stage === 'NEWLY PLANTED') {
@@ -542,7 +453,7 @@ export const createUnifiedFarmerResponse = async (req, res) => {
 
     await session.commitTransaction();
 
-    await logAction(req, 'FARMER_RESPONSE_SUBMITTED_TO_METRICS', 'HIGH-VALUE CROPS', `Pushed farmer response with ID: ${original_farmer_input_id} to unified records for year ${year}`, 'SUCCESS');
+    await logAction(req, userId, 'FARMER_RESPONSE_SUBMITTED_TO_METRICS', 'HIGH-VALUE CROPS', `Pushed farmer response with ID: ${original_farmer_input_id} to unified records for year ${year}`, 'SUCCESS');
 
     return res.status(201).json({
       message: `Successfully pushed to the main records.`,
@@ -550,10 +461,9 @@ export const createUnifiedFarmerResponse = async (req, res) => {
     });
 
   } catch (error) {
-
     await session.abortTransaction();
 
-    await logAction(req, 'FARMER_RESPONSE_SUBMITTED_TO_METRICS', 'HIGH-VALUE CROPS', `Error pushing farmer response to unified records: ${error.message}`, 'FAILED');
+    await logAction(req, userId, 'FARMER_RESPONSE_SUBMITTED_TO_METRICS', 'HIGH-VALUE CROPS', `Error pushing farmer response to unified records: ${error.message}`, 'FAILED');
 
     res.status(500).json({ message: 'Error pushing to the main records.', error: error.message });
   } finally {
@@ -576,26 +486,29 @@ const deleteRelatedDocuments = async (farmerId, session) => {
       if (cropRecord) {
         if (cropRecord.crop_stage === 'NEWLY PLANTED') {
           await global.highValueCropsModels.D1_crop_indus_new.deleteOne({ record_id: cropRecord._id }).session(session);
-        } else {
+        } else if (cropRecord.crop_stage === 'HARVESTING') {
           await global.highValueCropsModels.D1_crop_indus_harvest.deleteOne({ record_id: cropRecord._id }).session(session);
         }
         await global.highValueCropsModels.C_crop_records_indus.deleteOne({ _id: cropRecord._id }).session(session);
       }
-    } else {
-      // Similar process for non-industrial crops
+    } 
+    // Delete process for other crops (trees, fruits, etc.)
+    else {
       const cropRecord = await global.highValueCropsModels.C_crop_records_others.findOne({ farmer_input_id: farmerId }).session(session);
-      
       if (cropRecord) {
+        // Delete appropriate detail record based on crop stage
         if (cropRecord.crop_stage === 'NEWLY PLANTED') {
           await global.highValueCropsModels.D2_bc_other_fct_new.deleteOne({ record_id: cropRecord._id }).session(session);
-        } else {
+        } else if (cropRecord.crop_stage === 'HARVESTING') {
           await global.highValueCropsModels.D2_bc_other_fct_harvest.deleteOne({ record_id: cropRecord._id }).session(session);
         }
+        
+        // Delete the crop record
         await global.highValueCropsModels.C_crop_records_others.deleteOne({ _id: cropRecord._id }).session(session);
       }
     }
     
-    // Delete crop type
+    // Delete the crop type record
     await global.highValueCropsModels.B_crop_types.deleteOne({ _id: cropType._id }).session(session);
   }
   
@@ -607,7 +520,14 @@ const deleteRelatedDocuments = async (farmerId, session) => {
 export const flagResponseForReview = async (req, res) => {
   const { farmerId } = req.params;
 
+  let userId = null;
+
   try {
+    // Extract userId from decoded token
+    if (req.decodedAuthToken && req.decodedAuthToken.payload) {
+      userId = req.decodedAuthToken.payload.userId;
+    }
+
     const response = await global.highValueCropsModels.A_farmer_inputs.findById(farmerId);
 
     if (!response) {
@@ -619,12 +539,12 @@ export const flagResponseForReview = async (req, res) => {
       { $set: { isForReview: true } }
     );
 
-    await logAction(req, 'FARMER_RESPONSE_FLAGGED', 'HIGH-VALUE CROPS', `Flagged farmer response with ID: ${farmerId} for review`, 'SUCCESS');
+    await logAction(req, userId, 'FARMER_RESPONSE_FLAGGED', 'HIGH-VALUE CROPS', `Flagged farmer response with ID: ${farmerId} for review`, 'SUCCESS');
 
     return res.status(200).json({ message: 'Farmer response flagged for review.' });
 
   } catch (error) {
-    await logAction(req, 'FARMER_RESPONSE_FLAGGED', 'HIGH-VALUE CROPS', `Error flagging farmer response for review: ${error.message}`, 'FAILED');
+    await logAction(req, userId, 'FARMER_RESPONSE_FLAGGED', 'HIGH-VALUE CROPS', `Error flagging farmer response for review: ${error.message}`, 'FAILED');
     res.status(500).json({ message: 'Error flagging response for review', error: error.message });
   }
 };
@@ -632,7 +552,14 @@ export const flagResponseForReview = async (req, res) => {
 export const unflagResponseForReview = async (req, res) => {
   const { farmerId } = req.params;
 
+  let userId = null;
+
   try {
+    // Extract userId from decoded token
+    if (req.decodedAuthToken && req.decodedAuthToken.payload) {
+      userId = req.decodedAuthToken.payload.userId;
+    }
+
     const response = await global.highValueCropsModels.A_farmer_inputs.findById(farmerId);
 
     if (!response) {
@@ -644,51 +571,65 @@ export const unflagResponseForReview = async (req, res) => {
       { $set: { isForReview: false } }
     );
 
-    await logAction(req, 'FARMER_RESPONSE_UNFLAGGED', 'HIGH-VALUE CROPS', `Unflagged farmer response with ID: ${farmerId} for review`, 'SUCCESS');
+    await logAction(req, userId, 'FARMER_RESPONSE_UNFLAGGED', 'HIGH-VALUE CROPS', `Unflagged farmer response with ID: ${farmerId} for review`, 'SUCCESS');
 
     return res.status(200).json({ message: 'Farmer response unflagged for review.' });
 
   } catch (error) {
 
-    await logAction(req, 'FARMER_RESPONSE_UNFLAGGED', 'HIGH-VALUE CROPS', `Error unflagging farmer response for review: ${error.message}`, 'FAILED');
+    await logAction(req, userId, 'FARMER_RESPONSE_UNFLAGGED', 'HIGH-VALUE CROPS', `Error unflagging farmer response for review: ${error.message}`, 'FAILED');
 
     res.status(500).json({ message: 'Error unflagging response for review', error: error.message });
   }
 };
 
 export const formStatusEnable = async (req, res) => {
+  let userId = null;
+
   try {
+    // Extract userId from decoded token
+    if (req.decodedAuthToken && req.decodedAuthToken.payload) {
+      userId = req.decodedAuthToken.payload.userId;
+    }
+
     await global.highValueCropsModels.FormStatus.findOneAndUpdate(
       {},                                   // filter
       { $set: { formStatus: true } },      // update
       { upsert: true, new: true }           // options
     );
 
-    await logAction(req, 'HVC_FORM_ENABLED', 'HIGH-VALUE CROPS', 'High-Value Crops form enabled successfully', 'SUCCESS');
+    await logAction(req, userId, 'HVC_FORM_ENABLED', 'HIGH-VALUE CROPS', 'High-Value Crops form enabled successfully', 'SUCCESS');
 
     return res.status(200).json({ message: 'High-Value Crops form enabled successfully.' });
   } catch (error) {
 
-    await logAction(req, 'HVC_FORM_ENABLED', 'HIGH-VALUE CROPS', `Error enabling High-Value Crops form: ${error.message}`, 'FAILED');
+    await logAction(req, userId, 'HVC_FORM_ENABLED', 'HIGH-VALUE CROPS', `Error enabling High-Value Crops form: ${error.message}`, 'FAILED');
 
     return res.status(500).json({ message: 'Error enabling High-Value Crops form', error: error.message });
   }
 };
 
 export const formStatusDisable = async (req, res) => {
+  let userId = null;
+
   try {
+    // Extract userId from decoded token
+    if (req.decodedAuthToken && req.decodedAuthToken.payload) {
+      userId = req.decodedAuthToken.payload.userId;
+    }
+
     await global.highValueCropsModels.FormStatus.findOneAndUpdate(
       {},                                   // filter
       { $set: { formStatus: false } },      // update
       { upsert: true, new: true }           // options
     );
 
-    await logAction(req, 'HVC_FORM_DISABLED', 'HIGH-VALUE CROPS', 'High-Value Crops form disabled successfully', 'SUCCESS');
+    await logAction(req, userId, 'HVC_FORM_DISABLED', 'HIGH-VALUE CROPS', 'High-Value Crops form disabled successfully', 'SUCCESS');
 
     return res.status(200).json({ message: 'High-Value Crops form disabled successfully.' });
   } catch (error) {
 
-    await logAction(req, 'HVC_FORM_DISABLED', 'HIGH-VALUE CROPS', `Error disabling High-Value Crops form: ${error.message}`, 'FAILED');
+    await logAction(req, userId, 'HVC_FORM_DISABLED', 'HIGH-VALUE CROPS', `Error disabling High-Value Crops form: ${error.message}`, 'FAILED');
 
     return res.status(500).json({ message: 'Error disabling High-Value Crops form', error: error.message });
   }
@@ -712,11 +653,18 @@ export const checkFormStatus = async (req, res) => {
 export const archiveResponse = async (req, res) => {
   const { inputId } = req.body;
   
+  let userId = null;
+
   if (!inputId) {
     return res.status(400).json({ message: 'Farmer response ID is required.' });
   }
 
   try {
+    // Extract userId from decoded token
+    if (req.decodedAuthToken && req.decodedAuthToken.payload) {
+      userId = req.decodedAuthToken.payload.userId;
+    }
+
     const farmerInput = await global.highValueCropsModels.A_farmer_inputs.findById(inputId);
     
     if (!farmerInput) {
@@ -734,7 +682,7 @@ export const archiveResponse = async (req, res) => {
       { $set: { isArchived: true } }
     );
 
-    await logAction(req, 'FARMER_RESPONSE_ARCHIVED', 'HIGH-VALUE CROPS', `Archived farmer response with ID: ${inputId}`, 'SUCCESS');
+    await logAction(req, userId, 'FARMER_RESPONSE_ARCHIVED', 'HIGH-VALUE CROPS', `Archived farmer response with ID: ${inputId}`, 'SUCCESS');
 
     return res.status(200).json({ 
       message: 'Farmer response archived successfully.',
@@ -743,7 +691,7 @@ export const archiveResponse = async (req, res) => {
 
   } catch (error) {
 
-    await logAction(req, 'FARMER_RESPONSE_ARCHIVED', 'HIGH-VALUE CROPS', `Error archiving farmer response with ID: ${inputId}`, 'FAILED');
+    await logAction(req, userId, 'FARMER_RESPONSE_ARCHIVED', 'HIGH-VALUE CROPS', `Error archiving farmer response with ID: ${inputId}`, 'FAILED');
 
     return res.status(500).json({ 
       message: 'Error archiving farmer response', 
@@ -755,11 +703,18 @@ export const archiveResponse = async (req, res) => {
 export const unarchiveResponse = async (req, res) => {
   const { inputId } = req.body;
   
+  let userId = null;
+
   if (!inputId) {
     return res.status(400).json({ message: 'Farmer response ID is required.' });
   }
 
   try {
+    // Extract userId from decoded token
+    if (req.decodedAuthToken && req.decodedAuthToken.payload) {
+      userId = req.decodedAuthToken.payload.userId;
+    }
+
     const farmerInput = await global.highValueCropsModels.A_farmer_inputs.findById(inputId);
     
     if (!farmerInput) {
@@ -777,7 +732,7 @@ export const unarchiveResponse = async (req, res) => {
       { $set: { isArchived: false } }
     );
 
-    await logAction(req, 'FARMER_RESPONSE_UNARCHIVED', 'HIGH-VALUE CROPS', `Unarchived farmer response with ID: ${inputId}`, 'SUCCESS');
+    await logAction(req, userId, 'FARMER_RESPONSE_UNARCHIVED', 'HIGH-VALUE CROPS', `Unarchived farmer response with ID: ${inputId}`, 'SUCCESS');
 
     return res.status(200).json({ 
       message: 'Farmer response unarchived successfully.',
@@ -786,7 +741,7 @@ export const unarchiveResponse = async (req, res) => {
 
   } catch (error) {
 
-    await logAction(req, 'FARMER_RESPONSE_UNARCHIVED', 'HIGH-VALUE CROPS', `Error unarchiving farmer response: ${error.message}`, 'FAILED');
+    await logAction(req, userId, 'FARMER_RESPONSE_UNARCHIVED', 'HIGH-VALUE CROPS', `Error unarchiving farmer response: ${error.message}`, 'FAILED');
 
     return res.status(500).json({ 
       message: 'Error unarchiving farmer response', 
@@ -795,13 +750,18 @@ export const unarchiveResponse = async (req, res) => {
   }
 };
 
-import { sendNewlyPlantedCropCorrectionSMS, sendHarvestingCropCorrectionSMS } from '../../semaphore/sms.controller.js'
-
 export const requestEdit = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
+  let userId = null;
+
   try {
+    // Extract userId from decoded token
+    if (req.decodedAuthToken && req.decodedAuthToken.payload) {
+      userId = req.decodedAuthToken.payload.userId;
+    }
+
     const { farmerId, crop_stage, updates, reason } = req.body;
     if (!farmerId || !crop_stage || !updates) {
       return res.status(400).json({ message: 'farmerId, crop_stage, and updates are required.' });
@@ -948,7 +908,7 @@ export const requestEdit = async (req, res) => {
     // Commit the transaction only if everything succeeded
     await session.commitTransaction();
 
-    await logAction(req, 'SMS_SENT_FOR_EDIT_REQUEST', 'HIGH-VALUE CROPS', `Edit request SMS sent for response: ${farmerId} and created edit request: ${editDoc[0]._id}`, 'SUCCESS');
+    await logAction(req, userId, 'SMS_SENT_FOR_EDIT_REQUEST', 'HIGH-VALUE CROPS', `Edit request SMS sent for response: ${farmerId} and created edit request: ${editDoc[0]._id}`, 'SUCCESS');
 
     return res.json({
       message: 'Edit request recorded. Awaiting farmer consent.',
@@ -957,7 +917,7 @@ export const requestEdit = async (req, res) => {
     // Rollback transaction on any error
     await session.abortTransaction();
 
-    await logAction(req, 'SMS_SENT_FOR_EDIT_REQUEST', 'HIGH-VALUE CROPS', `Error recording edit request: ${error.message}`, 'FAILED');
+    await logAction(req, userId, 'SMS_SENT_FOR_EDIT_REQUEST', 'HIGH-VALUE CROPS', `Error recording edit request: ${error.message}`, 'FAILED');
 
     console.log(error);
     return res.status(500).json({ message: 'Error recording edit request.', error: error.message });
@@ -965,168 +925,6 @@ export const requestEdit = async (req, res) => {
     session.endSession();
   }
 };
-
-// const updateRequestedEdit = async (req, res) => { 
-//   const session = await mongoose.startSession();
-//   session.startTransaction();
-
-//   try {
-//     const { farmerId, crop_stage, updates, reason } = req.body;
-    
-//     if (!farmerId || !crop_stage || !updates) {
-//       await session.abortTransaction();
-//       return res.status(400).json({ message: 'farmerId, crop_stage, and updates are required.' });
-//     }
-
-//     // Find the farmer input
-//     const farmerInput = await global.highValueCropsModels.A_farmer_inputs
-//       .findById(farmerId)
-//       .populate({ path: 'editConsent.editRequestId', model: global.highValueCropsModels.EditRequest })
-//       .session(session);
-
-//     if (!farmerInput) {
-//       await session.abortTransaction();
-//       return res.status(404).json({ message: 'Farmer response not found.' });
-//     }
-
-//     // Check if response is flagged for review
-//     if (farmerInput.isForReview !== true) {
-//       await session.abortTransaction();
-//       return res.status(400).json({ message: 'Only flagged responses can have edit requests updated.' });
-//     }
-
-//     // Check if edit consent status is Pending
-//     if (farmerInput.editConsent?.status !== 'Pending') {
-//       await session.abortTransaction();
-//       return res.status(400).json({ 
-//         message: 'Edit request can only be updated when status is Pending.' 
-//       });
-//     }
-
-//     // Check if edit request exists
-//     if (!farmerInput.editConsent?.editRequestId) {
-//       await session.abortTransaction();
-//       return res.status(404).json({ message: 'No existing edit request found to update.' });
-//     }
-
-//     // Find crop type and crop record
-//     const cropType = await global.highValueCropsModels.B_crop_types
-//       .findOne({ farmer_input_id: farmerId })
-//       .session(session)
-//       .lean();
-
-//     if (!cropType) {
-//       await session.abortTransaction();
-//       return res.status(404).json({ message: 'Crop type not found.' });
-//     }
-
-//     let cropRecord, cropDetails, updateFields = {}, cropStage;
-
-//     // Validate and extract update fields based on crop type
-//     if (cropType.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS') {
-//       cropRecord = await global.highValueCropsModels.C_crop_records_indus
-//         .findOne({ farmer_input_id: farmerId })
-//         .session(session);
-
-//       if (!cropRecord) {
-//         await session.abortTransaction();
-//         return res.status(404).json({ message: 'Crop record not found.' });
-//       }
-
-//       if (crop_stage === 'NEWLY PLANTED') {
-//         cropStage = 'newlyPlanted';
-//         cropDetails = await global.highValueCropsModels.D1_crop_indus_new
-//           .findOne({ record_id: cropRecord._id })
-//           .session(session);
-        
-//         if ('total_area_planted' in updates) {
-//           updateFields.total_area_planted = updates.total_area_planted;
-//         }
-//       } else if (crop_stage === 'HARVESTING') {
-//         cropStage = 'harvesting';
-//         cropDetails = await global.highValueCropsModels.D1_crop_indus_harvest
-//           .findOne({ record_id: cropRecord._id })
-//           .session(session);
-        
-//         if ('total_weight' in updates) updateFields.total_weight = updates.total_weight;
-//         if ('total_area_harvested' in updates) updateFields.total_area_harvested = updates.total_area_harvested;
-//       }
-//     } else {
-//       cropRecord = await global.highValueCropsModels.C_crop_records_others
-//         .findOne({ farmer_input_id: farmerId })
-//         .session(session);
-
-//       if (!cropRecord) {
-//         await session.abortTransaction();
-//         return res.status(404).json({ message: 'Crop record not found.' });
-//       }
-
-//       if (crop_stage === 'NEWLY PLANTED') {
-//         cropStage = 'newlyPlanted';
-//         cropDetails = await global.highValueCropsModels.D2_bc_other_fct_new
-//           .findOne({ record_id: cropRecord._id })
-//           .session(session);
-        
-//         if ('total_trees' in updates) updateFields.total_trees = updates.total_trees;
-//       } else if (crop_stage === 'HARVESTING') {
-//         cropStage = 'harvesting';
-//         cropDetails = await global.highValueCropsModels.D2_bc_other_fct_harvest
-//           .findOne({ record_id: cropRecord._id })
-//           .session(session);
-        
-//         if ('total_weight' in updates) updateFields.total_weight = updates.total_weight;
-//         if ('trees_harvested' in updates) updateFields.trees_harvested = updates.trees_harvested;
-//       }
-//     }
-
-//     if (!cropDetails) {
-//       await session.abortTransaction();
-//       return res.status(404).json({ message: 'Crop details not found.' });
-//     }
-
-//     if (Object.keys(updateFields).length === 0) {
-//       await session.abortTransaction();
-//       return res.status(400).json({ message: 'No valid update fields provided.' });
-//     }
-
-//     // Update the existing edit request document
-//     const editRequestId = farmerInput.editConsent.editRequestId._id;
-//     await global.highValueCropsModels.EditRequest.findByIdAndUpdate(
-//       editRequestId,
-//       { $set: updateFields },
-//       { session }
-//     );
-
-//     // Update reason if provided
-//     if (reason) {
-//       await global.highValueCropsModels.A_farmer_inputs.findByIdAndUpdate(
-//         farmerId,
-//         { $set: { 'editConsent.reason': reason } },
-//         { session }
-//       );
-//     }
-
-//     await session.commitTransaction();
-
-//     return res.json({
-//       message: 'Edit request updated successfully. Farmer will be notified.',
-//       data: {
-//         editRequestId,
-//         updatedFields: updateFields
-//       }
-//     });
-
-//   } catch (error) {
-//     await session.abortTransaction();
-//     console.error('Error updating edit request:', error);
-//     return res.status(500).json({ 
-//       message: 'Error updating edit request.', 
-//       error: error.message 
-//     });
-//   } finally {
-//     session.endSession();
-//   }
-// };
 
 export const getRequestEditDetailsForFarmerView = async (req, res) => { //ito yung controller pang kuha ng necessary informations para doon sa link na bubuksan ni farmer
   try {
@@ -1311,7 +1109,14 @@ export const createValidationScheduleVisit = async (req, res) => { // for schedu
   const session = await mongoose.startSession();
   session.startTransaction();
 
+  let userId = null;
+
   try {
+    // Extract userId from decoded token
+    if (req.decodedAuthToken && req.decodedAuthToken.payload) {
+      userId = req.decodedAuthToken.payload.userId;
+    }
+
     const { farmerId, initialRemarks, updates, crop_stage } = req.body;
 
     // Validate required fields
@@ -1388,9 +1193,7 @@ export const createValidationScheduleVisit = async (req, res) => { // for schedu
           .findOne({ record_id: cropRecord._id })
           .session(session);
         
-        if ('total_area_planted' in updates) {
-          updateFields.total_area_planted = updates.total_area_planted;
-        }
+        if ('total_area_planted' in updates) updateFields.total_area_planted = updates.total_area_planted;
       } else if (crop_stage === 'HARVESTING') {
         cropDetails = await global.highValueCropsModels.D1_crop_indus_harvest
           .findOne({ record_id: cropRecord._id })
@@ -1444,840 +1247,58 @@ export const createValidationScheduleVisit = async (req, res) => { // for schedu
     // Create edit request document within transaction
     const editDoc = await global.highValueCropsModels.EditRequest.create([editPayload], { session });
 
-    // Update the farmer input with validation visit details and edit request
-    const updateData = {
-      requiredValidationVisit: true,
-      validationVisitDetails: {
-        status: 'Pending',
-        initialRemarks: initialRemarks?.trim() || '',
+    // Update farmer input within transaction
+    await global.highValueCropsModels.A_farmer_inputs.findOneAndUpdate(
+      { _id: farmerId },
+      {
+        editConsent: {
+          status: "Pending",
+          editRequestId: editDoc[0]._id,
+          reason: reason
+        },
       },
-      editConsent: {
-        status: 'Pending',
-        editRequestId: editDoc[0]._id
-      },
-      isCurrentlyEditRequest: true
-    };
-
-    await global.highValueCropsModels.A_farmer_inputs.findByIdAndUpdate(
-      farmerId,
-      { $set: updateData },
       { session }
     );
 
-    await session.commitTransaction();
+    const reviewLink = `${process.env.CLIENT_URL}/hvc/consent-request/${editDoc[0]._id}`;
 
-    await logAction(req, 'VALIDATION_VISIT_SCHEDULED_FOR_EDIT_REQUEST', 'HIGH-VALUE CROPS', `Validation visit scheduled for farmer response: ${farmerId} with edit request: ${editDoc[0]._id}`, 'SUCCESS');
-
-    return res.status(200).json({
-      message: 'Validation visit scheduled successfully with edit request.',
-      data: {
-        farmerId,
-        editRequestId: editDoc[0]._id,
-        status: 'Pending'
-      }
-    });
-
-  } catch (error) {
-    await session.abortTransaction();
-
-    await logAction(req, 'VALIDATION_VISIT_SCHEDULED_FOR_EDIT_REQUEST', 'HIGH-VALUE CROPS', `Error scheduling validation visit: ${error.message}`, 'FAILED');
-
-    console.error('Error creating validation schedule visit:', error);
-    return res.status(500).json({ 
-      message: 'Error creating validation schedule visit.', 
-      error: error.message 
-    });
-  } finally {
-    session.endSession();
-  }
-};
-
-import { uploadFileToDrive, deleteFileFromDrive } from '../googleDrive.controller.js'; 
-
-export const setValidationVisitCompleted = async (req, res) => { //for submitting a selfie proof and signature after validation visit
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
-  try {
-    const { farmerId, remarks, validatorEmployeeId } = req.body;
-
-    // Parse updates if provided (multipart sends strings)
-    let parsedUpdates = {};
-    if (req.body?.updates) {
-      try {
-        parsedUpdates = typeof req.body.updates === 'string'
-          ? JSON.parse(req.body.updates)
-          : req.body.updates;
-      } catch (e) {
-        await session.abortTransaction();
-        return res.status(400).json({ message: 'Invalid updates payload (must be valid JSON).' });
-      }
-    }
-
-    // Validate required fields
-    if (!farmerId || !validatorEmployeeId) {
-      await session.abortTransaction();
-      return res.status(400).json({ 
-        message: 'Farmer ID and validator employee are required.' 
-      });
-    }
-
-    // Check if files are uploaded
-    if (!req.files || !req.files.proofImage || !req.files.signature) {
-      await session.abortTransaction();
-      return res.status(400).json({
-        message: 'Please provide both proof image and signature.'
-      });
-    }
-
-    // Find the farmer input
-    const farmerInput = await global.highValueCropsModels.A_farmer_inputs
-      .findById(farmerId)
-      .populate({ path: 'editConsent.editRequestId', model: global.highValueCropsModels.EditRequest })
-      .session(session);
-
-    if (!farmerInput) {
-      await session.abortTransaction();
-      return res.status(404).json({ message: 'Farmer response not found.' });
-    }
-
-    // Validate that validation visit is required and pending
-    if (!farmerInput.requiredValidationVisit) {
-      await session.abortTransaction();
-      return res.status(400).json({ 
-        message: 'Validation visit is not required for this farmer response.' 
-      });
-    }
-
-    if (farmerInput.validationVisitDetails?.status !== 'Pending' && farmerInput.validationVisitDetails?.status === 'Completed') {
-      await session.abortTransaction();
-      return res.status(400).json({ 
-        message: 'Validation visit proof may have already been submitted.' 
-      });
-    }
-
-    // Validate validator employee
-    const validator = await global.globalModels.EmployeeAccount
-      .findById(validatorEmployeeId)
-      .session(session);
-
-    if (!validator) {
-      await session.abortTransaction();
-      return res.status(404).json({ message: 'Employee account not found.' });
-    }
-
-    // If updates are provided, update the edit request (whitelisted by crop type + stage)
-    if (parsedUpdates && Object.keys(parsedUpdates).length > 0) {
-      // Check if edit request exists
-      if (!farmerInput.editConsent?.editRequestId) {
-        await session.abortTransaction();
-        return res.status(404).json({ message: 'No existing edit request found to update.' });
-      }
-
-      // Find crop type and crop record to determine valid update fields
-      const cropType = await global.highValueCropsModels.B_crop_types
-        .findOne({ farmer_input_id: farmerId })
-        .session(session)
-        .lean();
-
-      if (!cropType) {
-        await session.abortTransaction();
-        return res.status(404).json({ message: 'Crop type not found.' });
-      }
-
-      let cropRecord;
-      let updateFields = {};
-
-      if (cropType.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS') {
-        cropRecord = await global.highValueCropsModels.C_crop_records_indus
-          .findOne({ farmer_input_id: farmerId })
-          .session(session);
-
-        if (!cropRecord) {
-          await session.abortTransaction();
-          return res.status(404).json({ message: 'Crop record not found.' });
-        }
-
-        if (cropRecord.crop_stage === 'NEWLY PLANTED') {
-          if ('total_area_planted' in parsedUpdates) {
-            updateFields.total_area_planted = parsedUpdates.total_area_planted;
-          }
-        } else if (cropRecord.crop_stage === 'HARVESTING') {
-          if ('total_weight' in parsedUpdates) updateFields.total_weight = parsedUpdates.total_weight;
-          if ('total_area_harvested' in parsedUpdates) updateFields.total_area_harvested = parsedUpdates.total_area_harvested;
-        }
-      } else {
-        cropRecord = await global.highValueCropsModels.C_crop_records_others
-          .findOne({ farmer_input_id: farmerId })
-          .session(session);
-
-        if (!cropRecord) {
-          await session.abortTransaction();
-          return res.status(404).json({ message: 'Crop record not found.' });
-        }
-
-        if (cropRecord.crop_stage === 'NEWLY PLANTED') {
-          if ('total_trees' in parsedUpdates) updateFields.total_trees = parsedUpdates.total_trees;
-        } else if (cropRecord.crop_stage === 'HARVESTING') {
-          if ('total_weight' in parsedUpdates) updateFields.total_weight = parsedUpdates.total_weight;
-          if ('trees_harvested' in parsedUpdates) updateFields.trees_harvested = parsedUpdates.trees_harvested;
-        }
-      }
-
-      if (Object.keys(updateFields).length > 0) {
-        const editRequestId = farmerInput.editConsent.editRequestId._id;
-        await global.highValueCropsModels.EditRequest.findByIdAndUpdate(
-          editRequestId,
-          { $set: updateFields },
-          { session }
-        );
-      }
-    }
-
-    const proofImageFile = req.files.proofImage[0];
-    const signatureFile = req.files.signature[0];
-
-    // Generate unique names for the files
-    const proofImageName = `validation_proof_${farmerInput.farmerId}_${Date.now()}`;
-    const signatureName = `validation_signature_${farmerInput.farmerId}_${Date.now()}`;
-
-    // Upload proof image to Google Drive
-    const proofImageResult = await uploadFileToDrive(
-      proofImageFile.buffer,
-      proofImageName,
-      proofImageFile.mimetype,
-      process.env.GOOGLE_DRIVE_FOLDER_ID_SELFIE_PROOFS_HVC
-    );
-
-    // Upload signature to Google Drive
-    const signatureResult = await uploadFileToDrive(
-      signatureFile.buffer,
-      signatureName,
-      signatureFile.mimetype,
-      process.env.GOOGLE_DRIVE_FOLDER_ID_FARMER_SIGNATURES_HVC
-    );
-
-    // Update the farmer input with validation visit completion details
-    const updateData = {
-      'validationVisitDetails.status': 'Completed',
-      'validationVisitDetails.completedAt': new Date(),
-      'validationVisitDetails.validatorEmployee': validator._id,
-      'validationVisitDetails.first_name': validator.first_name,
-      'validationVisitDetails.last_name': validator.last_name,
-      'validationVisitDetails.middle_name': validator.middle_name,
-      'validationVisitDetails.suffix': validator.suffix,
-      'validationVisitDetails.email': validator.email,
-      'validationVisitDetails.phone': validator.phone,
-      'validationVisitDetails.remarks': (remarks || '').trim(),
-      'validationVisitDetails.proofImageId': proofImageResult.id,
-      'validationVisitDetails.proofImageUrl': `https://drive.google.com/uc?id=${proofImageResult.id}`,
-      'validationVisitDetails.signatureId': signatureResult.id,
-      'validationVisitDetails.signatureUrl': `https://drive.google.com/uc?id=${signatureResult.id}`
-    };
-
-    await global.highValueCropsModels.A_farmer_inputs.findByIdAndUpdate(
-      farmerId,
-      { $set: updateData },
-      { session }
-    );
-
-    await session.commitTransaction();
-
-    await logAction(req, 'VALIDATION_VISIT_COMPLETED', 'HIGH-VALUE CROPS', `Validation visit completed for farmer response: ${farmerId} by validator: ${validatorEmployeeId}`, 'SUCCESS');
-
-    return res.status(200).json({
-      message: 'Validation visit marked as completed successfully.',
-    });
-
-  } catch (error) {
-    await session.abortTransaction();
-
-    await logAction(req, 'VALIDATION_VISIT_COMPLETED', 'HIGH-VALUE CROPS', `Error completing validation visit: ${error.message}`, 'FAILED');
-
-    console.error('Error completing validation visit:', error);
-    return res.status(500).json({ 
-      message: 'Error completing validation visit.', 
-      error: error.message 
-    });
-  } finally {
-    session.endSession();
-  }
-};
-
-export const approveValidationVisitDetails = async (req, res) => { //use for manager approval of validation visit details
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
-  try {
-    const { farmerId } = req.body;
-
-    // Validate required fields
-    if (!farmerId) {
-      await session.abortTransaction();
-      return res.status(400).json({ 
-        message: 'Selected response is required.' 
-      });
-    }
-
-    // Find the farmer input
-    const farmerInput = await global.highValueCropsModels.A_farmer_inputs
-      .findById(farmerId)
-      .session(session);
-
-    if (!farmerInput) {
-      await session.abortTransaction();
-      return res.status(404).json({ message: 'Farmer response not found.' });
-    }
-
-    // Validate that validation visit exists and is completed
-    if (!farmerInput.requiredValidationVisit) {
-      await session.abortTransaction();
-      return res.status(400).json({ 
-        message: 'Validation visit is not required for this farmer response.' 
-      });
-    }
-
-    if (farmerInput.validationVisitDetails?.status !== 'Completed') {
-      await session.abortTransaction();
-      return res.status(400).json({ 
-        message: 'Validation visit must be completed before approval.' 
-      });
-    }
-
-    // Update the farmer input to approve validation visit details
-    await global.highValueCropsModels.A_farmer_inputs.findByIdAndUpdate(
-      farmerId,
-      { $set: { 'validationVisitDetails.isValidationVisitDetailsApproved': true, 'requiredValidationVisit': false } },
-      { session }
-    );
-
-    await session.commitTransaction();
-
-    await logAction(req, 'VALIDATION_VISIT_APPROVED', 'HIGH-VALUE CROPS', `Approved validation visit details for farmer input ID: ${farmerId}`, 'SUCCESS');
-
-    return res.status(200).json({
-      message: 'Validation visit details approved successfully.',
-      data: {
-        farmerId,
-        isApproved: true
-      }
-    });
-
-  } catch (error) {
-    await session.abortTransaction();
-
-    await logAction(req, 'VALIDATION_VISIT_APPROVED', 'HIGH-VALUE CROPS', `Error approving validation visit details: ${error.message}`, 'FAILED');
-
-    console.error('Error approving validation visit details:', error);
-    return res.status(500).json({ 
-      message: 'Error approving validation visit details.', 
-      error: error.message 
-    });
-  } finally {
-    session.endSession();
-  }
-};
-
-export const rejectValidationVisitDetails = async (req, res) => { //use for manager rejection of validation visit details
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
-  try {
-    const { farmerId } = req.body;
-
-    // Validate required fields
-    if (!farmerId) {
-      await session.abortTransaction();
-      return res.status(400).json({ 
-        message: 'Selected response is required.' 
-      });
-    }
-
-    // Find the farmer input
-    const farmerInput = await global.highValueCropsModels.A_farmer_inputs
-      .findById(farmerId)
-      .session(session);
-
-    if (!farmerInput) {
-      await session.abortTransaction();
-      return res.status(404).json({ message: 'Farmer response not found.' });
-    }
-
-    // Validate that validation visit exists and is completed
-    if (!farmerInput.requiredValidationVisit) {
-      await session.abortTransaction();
-      return res.status(400).json({ 
-        message: 'Validation visit is not required for this farmer response.' 
-      });
-    }
-
-    if (farmerInput.validationVisitDetails?.status !== 'Completed') {
-      await session.abortTransaction();
-      return res.status(400).json({ 
-        message: 'Validation visit must be completed before rejection.' 
-      });
-    }
-
-    // Store file IDs for deletion
-    const proofImageId = farmerInput.validationVisitDetails?.proofImageId;
-    const signatureId = farmerInput.validationVisitDetails?.signatureId;
-
-    // Delete uploaded files from Google Drive if they exist
+    //Send SMS (if this fails, transaction will rollback)
     try {
-      if (proofImageId) {
-        await deleteFileFromDrive(proofImageId);
+      if (cropStage === 'newlyPlanted') {
+        await sendNewlyPlantedCropCorrectionSMS(phone, farmerName, reviewLink);
+      } else {
+        await sendHarvestingCropCorrectionSMS(phone, farmerName, reviewLink);
       }
-      if (signatureId) {
-        await deleteFileFromDrive(signatureId);
-      }
-    } catch (driveError) {
-      // Log the error but don't fail the transaction
-      console.error('Error deleting files from Google Drive:', driveError);
-      // You may want to continue with the rejection even if file deletion fails
+    } catch (smsError) {
+      // Rollback transaction if SMS fails
+      await session.abortTransaction();
+      console.error('SMS sending failed:', smsError);
+      return res.status(500).json({ 
+        message: 'Failed to send SMS notification to farmer. Edit request was not created.', 
+        error: smsError.message 
+      });
     }
 
-    // Rollback validation visit details to pending state
-    const rollbackData = {
-      'validationVisitDetails.status': 'Rejected',
-      'validationVisitDetails.isValidationVisitDetailsApproved': false,
-      'validationVisitDetails.completedAt': null,
-      'validationVisitDetails.validatorEmployee': null,
-      'validationVisitDetails.first_name': null,
-      'validationVisitDetails.last_name': null,
-      'validationVisitDetails.middle_name': null,
-      'validationVisitDetails.suffix': null,
-      'validationVisitDetails.email': null,
-      'validationVisitDetails.phone': null,
-      'validationVisitDetails.remarks': null,
-      'validationVisitDetails.proofImageId': null,
-      'validationVisitDetails.proofImageUrl': null,
-      'validationVisitDetails.signatureId': null,
-      'validationVisitDetails.signatureUrl': null
-    };
-
-    // Update the farmer input to rollback validation visit details
-    await global.highValueCropsModels.A_farmer_inputs.findByIdAndUpdate(
-      farmerId,
-      { $set: rollbackData },
-      { session }
-    );
-
+    // Commit the transaction only if everything succeeded
     await session.commitTransaction();
 
-    await logAction(req, 'VALIDATION_VISIT_REJECTED', 'HIGH-VALUE CROPS', `Rejected validation visit details for farmer input ID: ${farmerId}`, 'SUCCESS');
+    await logAction(req, userId, 'SMS_SENT_FOR_EDIT_REQUEST', 'HIGH-VALUE CROPS', `Edit request SMS sent for response: ${farmerId} and created edit request: ${editDoc[0]._id}`, 'SUCCESS');
 
-    return res.status(200).json({
-      message: 'Validation visit details rejected successfully. Staff must resubmit proof.',
-      data: {
-        farmerId,
-        isApproved: false,
-        status: 'Pending'
-      }
+    return res.json({
+      message: 'Edit request recorded. Awaiting farmer consent.',
     });
-
   } catch (error) {
+    // Rollback transaction on any error
     await session.abortTransaction();
 
-    await logAction(req, 'VALIDATION_VISIT_REJECTED', 'HIGH-VALUE CROPS', `Error rejecting validation visit details: ${error.message}`, 'FAILED');
+    await logAction(req, userId, 'SMS_SENT_FOR_EDIT_REQUEST', 'HIGH-VALUE CROPS', `Error recording edit request: ${error.message}`, 'FAILED');
 
-    console.error('Error rejecting validation visit details:', error);
-    return res.status(500).json({ 
-      message: 'Error rejecting validation visit details.', 
-      error: error.message 
-    });
+    console.log(error);
+    return res.status(500).json({ message: 'Error recording edit request.', error: error.message });
   } finally {
     session.endSession();
   }
 };
-
-
-
-//________________________________ FARMERS ACCOUNT MANAGEMENT PAGE ____________________________________
-
-
-const getNextSequence = async (key) => {
-  const counter = await global.globalModels.Counter.findOneAndUpdate(
-    { _id: key },
-    { $inc: { seq: 1 } },
-    { new: true, upsert: true }
-  );
-  return counter.seq;
-}
-
-// Create a new farmer account
-// Create a new farmer account
-export const createFarmerAccount = async (req, res) => {
-
-  const { surname, first_name, middle_name, suffix, farmer_barangay, mobile_number, facebook, birthdate } = req.body;
-  if (!surname || !first_name || !farmer_barangay) {
-    return res.status(400).json({ message: 'Please provide all the required fields.' });
-  }
-
-  try { // updated okay lang may magkatokayo kasi hindi namna maiiwasan, mahalaga they're uniquely identified by farmerId
-  
-    const capitalizeWords = (str) => {
-      if (!str) return str;
-      return str.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
-    };
-
-    const formattedFirstName = capitalizeWords(first_name);
-    const formattedMiddleName = middle_name ? capitalizeWords(middle_name) : '';
-    const formattedSurname = capitalizeWords(surname);
-
-    // Continue with creating new farmer account
-    const newNumber = await getNextSequence('farmer_account');
-    const middleInitial = formattedMiddleName ? formattedMiddleName.split(' ').map(word => word.charAt(0)).join('') : '';
-    const firstInitials = formattedFirstName.split(' ').slice(0, 2).map(word => word.charAt(0)).join('');
-    const initials = `${firstInitials.toUpperCase()}${middleInitial.toUpperCase()}${formattedSurname.charAt(0).toUpperCase()}`;
-    const formattedNumber = String(newNumber).padStart(4, '0');
-    const farmerId = `F-${initials}-${formattedNumber}`;
-
-    const newFarmerAccount = await global.globalModels.FarmerAccount.create({
-      farmerId,
-      surname: formattedSurname,
-      first_name: formattedFirstName,
-      middle_name: formattedMiddleName,
-      suffix,
-      farmer_barangay,
-      mobile_number,
-      facebook,
-      birthdate
-    });
-
-    await logAction(req, 'FARMER_ACCOUNT_CREATED', 'HIGH-VALUE CROPS', `Created farmer account with ID: ${farmerId}`, 'SUCCESS');
-
-    return res.status(201).json({
-      message: 'Farmer account created successfully',
-      data: newFarmerAccount,
-    });
-  } catch (error) {
-    if (error.code === 11000) {
-      return res.status(409).json({ message: 'Farmer account already exists with the same farmer ID, try again.' });
-    }
-
-    await logAction(req, 'FARMER_ACCOUNT_CREATED', 'HIGH-VALUE CROPS', `Error creating farmer account: ${error.message}`, 'FAILED');
-
-    return res.status(500).json({ message: 'Error creating farmer account', error });
-  }
-};
-
-
-export const archiveFarmerAccount = async (req, res) => {
-  const { farmerId } = req.body;
-  if (!farmerId) {
-    return res.status(400).json({ message: 'Farmer ID is required.' });
-  }
-  try {
-    const farmerAccount = await global.globalModels.FarmerAccount.findOne({ farmerId: farmerId });
-    if (!farmerAccount) {
-      return res.status(404).json({ message: 'Farmer account not found' });
-    }
-    
-    // Archive instead of delete
-    await global.globalModels.FarmerAccount.updateOne(
-      { farmerId: farmerId },
-      { $set: { isArchived: true } }
-    );
-
-    await logAction(req, 'FARMER_ACCOUNT_ARCHIVED', 'HIGH-VALUE CROPS', `Archived farmer account with ID: ${farmerId}`, 'SUCCESS');
-    
-    return res.status(200).json({ message: 'Farmer account archived successfully.' });
-  } catch (error) {
-
-    await logAction(req, 'FARMER_ACCOUNT_ARCHIVED', 'HIGH-VALUE CROPS', `Error archiving farmer account: ${error.message}`, 'FAILED');
-
-    return res.status(500).json({ message: 'Error archiving farmer account.', error: error.message });
-  }
-};
-
-export const unarchiveFarmerAccount = async (req, res) => {
-  const { farmerId } = req.body;
-  if (!farmerId) {
-    return res.status(400).json({ message: 'Farmer ID is required.' });
-  }
-  try {
-    const farmerAccount = await global.globalModels.FarmerAccount.findOne({ farmerId: farmerId });
-    if (!farmerAccount) {
-      return res.status(404).json({ message: 'Farmer account not found' });
-    }
-    
-    // Archive instead of delete
-    await global.globalModels.FarmerAccount.updateOne(
-      { farmerId: farmerId },
-      { $set: { isArchived: false } }
-    );
-
-    await logAction(req, 'FARMER_ACCOUNT_UNARCHIVED', 'HIGH-VALUE CROPS', `Unarchived farmer account with ID: ${farmerId}`, 'SUCCESS');
-    
-    return res.status(200).json({ message: 'Farmer account unarchived successfully.' });
-  } catch (error) {
-
-    await logAction(req, 'FARMER_ACCOUNT_UNARCHIVED', 'HIGH-VALUE CROPS', `Error unarchiving farmer account: ${error.message}`, 'FAILED');
-
-    return res.status(500).json({ message: 'Error unarchiving farmer account.', error: error.message });
-  }
-};
-
-
-// Get all farmer accounts
-export const getFarmerAccounts = async (req, res) => {
-  try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const skip = (page - 1) * limit;
-
-    const { farmerName } = req.query;
-    let filter = {
-      $or: [
-        { isArchived: false },
-        { isArchived: { $exists: false } }
-      ]
-    };
-
-    if (farmerName && farmerName.trim() !== '') {
-      // Split the search query into individual words
-      const searchWords = farmerName.trim().split(/\s+/);
-      
-      const fieldsToSearch = [
-        'first_name', 
-        'middle_name', 
-        'surname', 
-        'suffix', 
-        'farmer_barangay', 
-        'mobile_number', 
-        'farmerId'
-      ];
-
-      // Build an $and query where each word must be found in at least one of the fields
-      const searchCondition = {
-        $and: searchWords.map(word => {
-          const orConditions = fieldsToSearch.map(field => ({
-            [field]: { $regex: new RegExp(word, 'i') }
-          }));
-          return { $or: orConditions };
-        })
-      };
-      
-      // Combine with archive filter
-      filter = {
-        $and: [
-          filter,
-          searchCondition
-        ]
-      };
-    }
-
-    const totalCount = await global.globalModels.FarmerAccount.countDocuments(filter);
-    const farmerAccounts = await global.globalModels.FarmerAccount.aggregate([
-          { $match: filter },
-          { 
-            $addFields: {
-              // Extract the numeric part after the last dash
-              numericPart: { 
-                $toInt: { 
-                  $arrayElemAt: [
-                    { $split: ["$farmerId", "-"] }, 
-                    -1
-                  ] 
-                } 
-              }
-            }
-          },
-          { $sort: { numericPart: 1 } }, // Sort by the extracted numeric value
-          { $skip: skip },
-          { $limit: limit },
-          { $project: { numericPart: 0 } } // Remove the temporary field
-        ]);   
-         
-    res.json({ 
-      farmerAccounts, 
-      totalCount,
-      totalPages: Math.ceil(totalCount / limit),
-      currentPage: page 
-    });
-  } catch (error) {
-    res.status(500).json({ message: 'Error fetching farmer accounts', error: error.message });
-  }
-};
-
-// Get all archived farmer accounts
-export const getArchivedFarmerAccounts = async (req, res) => {
-  try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const skip = (page - 1) * limit;
-
-    const { farmerName } = req.query;
-    let filter = {
-      isArchived: true
-    };
-
-    if (farmerName && farmerName.trim() !== '') {
-      // Split the search query into individual words
-      const searchWords = farmerName.trim().split(/\s+/);
-      
-      const fieldsToSearch = [
-        'first_name', 
-        'middle_name', 
-        'surname', 
-        'suffix', 
-        'farmer_barangay', 
-        'mobile_number', 
-        'farmerId'
-      ];
-
-      // Build an $and query where each word must be found in at least one of the fields
-      const searchCondition = {
-        $and: searchWords.map(word => {
-          const orConditions = fieldsToSearch.map(field => ({
-            [field]: { $regex: new RegExp(word, 'i') }
-          }));
-          return { $or: orConditions };
-        })
-      };
-      
-      // Combine with archive filter
-      filter = {
-        $and: [
-          filter,
-          searchCondition
-        ]
-      };
-    }
-
-    const totalCount = await global.globalModels.FarmerAccount.countDocuments(filter);
-    const farmerAccounts = await global.globalModels.FarmerAccount.aggregate([
-          { $match: filter },
-          { 
-            $addFields: {
-              // Extract the numeric part after the last dash
-              numericPart: { 
-                $toInt: { 
-                  $arrayElemAt: [
-                    { $split: ["$farmerId", "-"] }, 
-                    -1
-                  ] 
-                } 
-              }
-            }
-          },
-          { $sort: { numericPart: 1 } }, // Sort by the extracted numeric value
-          { $skip: skip },
-          { $limit: limit },
-          { $project: { numericPart: 0 } } // Remove the temporary field
-        ]);   
-         
-    res.json({ 
-      farmerAccounts, 
-      totalCount,
-      totalPages: Math.ceil(totalCount / limit),
-      currentPage: page 
-    });
-  } catch (error) {
-    res.status(500).json({ message: 'Error fetching archived farmer accounts', error: error.message });
-  }
-};
-
-
-
-
-// Get a single farmer account by ID
-// export const getFarmerAccountById = async (req, res) => {
-//   const {farmerId} = req.body;
-//   if (!farmerId) {
-//     return res.status(400).json({ message: 'Farmer ID is required' });
-//   }
-
-//   try {
-//     const farmerAccount = await global.globalModels.FarmerAccount.findOne({ farmerId: farmerId }).lean();
-//     if (!farmerAccount) {
-//       return res.status(404).json({ message: 'Farmer account not found' });
-//     }
-//     farmerAccount.farmer_address = '';
-
-//     res.json(farmerAccount);
-//   } catch (error) {
-//     res.status(500).json({ message: 'Error fetching farmer account', error: error.message });
-//   }
-// };
-
-// get farmer accounts by name or farmer Id
-
-
-
-export const getFarmerAccountByNameUser = async (req, res) => {
-  const {  surname, first_name, middle_name, suffix, farmer_barangay, farmer_id } = req.body;
-  if (!surname || !first_name ) {
-    return res.status(400).json({ message: 'Farmer not found.' });
-  }
-  try {
-    const farmerAccount = await global.globalModels.FarmerAccount.find({
-      surname: {$regex: `^${surname}$`, $options: 'i'},
-      first_name: {$regex: `^${first_name}$`, $options: 'i'},
-      middle_name: middle_name ? {$regex: `^${middle_name}$`, $options: 'i'} : '',
-      suffix: suffix || '',
-      farmer_barangay,
-      farmerId: farmer_id
-    });
-
-    if (!farmerAccount) {
-      return res.status(404).json({ message: 'Farmer not found.' });
-    }
-
-    res.status(200).json(farmerAccount);
-  } catch (error) {
-    console.error('Error fetching farmer account:', error);
-    res.status(500).json({ message: 'Error fetching farmer account.', error: error.message });
-  }
-
-};
-
-// Update a farmer account by ID
-export const updateFarmerAccount = async (req, res) => {
-  const { farmerId, surname, first_name, middle_name, suffix, farmer_barangay, mobile_number, facebook, birthdate } = req.body;
-  
-  if (!farmerId) {
-    return res.status(400).json({ message: 'Farmer ID is required' });
-  }
-
-  try {
-    // Find the farmer by ID
-    const farmerAccount = await global.globalModels.FarmerAccount.findOne({ farmerId });
-    
-    if (!farmerAccount) {
-      return res.status(404).json({ message: 'Farmer account not found' });
-    }
-
-    // Update only the fields that are provided
-    if (surname) farmerAccount.surname = surname;
-    if (first_name) farmerAccount.first_name = first_name;
-    if (middle_name !== undefined) farmerAccount.middle_name = middle_name;
-    if (suffix !== undefined) farmerAccount.suffix = suffix;
-    if (farmer_barangay) farmerAccount.farmer_barangay = farmer_barangay;
-    if (mobile_number !== undefined) farmerAccount.mobile_number = mobile_number;
-    if (facebook !== undefined) farmerAccount.facebook = facebook;
-    if (birthdate !== undefined) farmerAccount.birthdate = birthdate;
-
-    // Save the updated farmer account
-    const updatedFarmer = await farmerAccount.save();
-    
-    await logAction(req, 'FARMER_ACCOUNT_UPDATED', 'HIGH-VALUE CROPS', `Updated farmer account with ID: ${farmerId}`, 'SUCCESS');
-
-    return res.status(200).json({
-      message: 'Farmer account updated successfully',
-      data: updatedFarmer
-    });
-  } catch (error) {
-
-    await logAction(req, 'FARMER_ACCOUNT_UPDATED', 'HIGH-VALUE CROPS', `Error updating farmer account with ID: ${farmerId}: ${error.message}`, 'FAILED');
-
-    return res.status(500).json({ 
-      message: 'Error updating farmer account', 
-      error: error.message 
-    });
-  }
-};
-
 
 
 //________________________________ DASHBOARD (METRICS / HVC SUPPLY AND MARKET PROFILE REPORT / HVC PRODUCTION REPORT) PAGE ____________________________________
@@ -2400,7 +1421,6 @@ export const getAvailableMonthsForYear = async (req, res) => {
 
 
 // Get metrics data for a specific year and month
-// ...existing code...
 export const getMetricsForYearMonth = async (req, res) => {
   const { year, month } = req.params;
   const { farm_location, commodity } = req.query; // Get filters from query parameters

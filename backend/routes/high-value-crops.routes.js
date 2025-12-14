@@ -18,7 +18,7 @@ import {
     getAvailableMonthsForYear,
     getMetricsForYearMonth,
 
-    deleteFarmerResponse,
+    //deleteFarmerResponse,
     formStatusEnable,
     formStatusDisable,
     checkFormStatus,
