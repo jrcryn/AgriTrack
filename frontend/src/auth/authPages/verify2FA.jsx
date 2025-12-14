@@ -73,7 +73,10 @@ const Verify2FA = () => {
         duration: 3000,
         isClosable: true,
       });
-      if (response.user?.role === 'HVCM' || response.user?.role === 'HVCS') {
+      // Check if user is system admin
+      if (response.user?.accountType === 'admin' || response.user?.role === 'ADMIN') {
+        navigate('/system-admin/dashboard');
+      } else if (response.user?.role === 'HVCM' || response.user?.role === 'HVCS') {
         navigate('/hvc/metrics');
       } else if (response.user?.role === 'DMM' || response.user?.role === 'DMS') {
         navigate('/doc-track/metrics');

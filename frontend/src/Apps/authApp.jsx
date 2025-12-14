@@ -23,6 +23,11 @@ const RedirectAuthenticatedUser = ({ children }) => {
       </div>;
     }
 
+    // Check if user is system admin
+    if (user.accountType === 'admin' || user.role === 'ADMIN') {
+      return <Navigate to='/system-admin/dashboard' replace />;
+    }
+
     const role = String(user?.role || '').trim().toUpperCase();
     if (role === 'HVCM' || role === 'HVCS') {
       return <Navigate to='/hvc/metrics' replace />;

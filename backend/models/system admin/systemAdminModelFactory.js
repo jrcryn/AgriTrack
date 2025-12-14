@@ -5,6 +5,6 @@ export const initializeSystemAdminModels = () => {
     const db = getSystemAdminDB();
 
     return {
-        SystemAdminAccount: db.model('SystemAdminAccount', SystemAdminAccountSchema)
+        SystemAdminAccount: db.model('System_Admin_Account', SystemAdminAccountSchema)
     };
 };

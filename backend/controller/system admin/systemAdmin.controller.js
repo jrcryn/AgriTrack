@@ -44,6 +44,7 @@ export const register = async (req, res) => {
         res.status(201).json({ 
             message: 'User registered successfully', 
             success: true,
+            temporaryPassword: defaultPassword,
             user: {
                 id: newEmployee._id,
                 first_name,
@@ -77,7 +78,7 @@ export const registerSystemAdmin = async (req, res) => {
     try {
         const existingAdmin = await global.systemAdminModels.SystemAdminAccount.findOne({ $or: [{ email }, { phone }] });
         if (existingAdmin) {
-            await logAction(req, userId, 'SYSTEM_ADMIN_REGISTER', 'SYSTEM ADMIN', `Registration attempt failed - System admin already exists: ${email}`, 'VALIDATION_FAILED');
+            //await logAction(req, userId, 'SYSTEM_ADMIN_REGISTER', 'SYSTEM ADMIN', `Registration attempt failed - System admin already exists: ${email}`, 'VALIDATION_FAILED');
             return res.status(400).json({ success: false, message: 'System admin already exists.' });
         }
 
@@ -106,6 +107,7 @@ export const registerSystemAdmin = async (req, res) => {
         res.status(201).json({ 
             message: 'System admin registered successfully', 
             success: true,
+            temporaryPassword: defaultPassword,
             admin: {
                 id: newSystemAdmin._id,
                 first_name,
@@ -493,6 +495,51 @@ export const archiveUserAccount = async (req, res) => {
     }
 };
 
+// Unarchive user account
+export const unarchiveUserAccount = async (req, res) => {
+    const { targetUserId, accountType } = req.body;
+    const userId = req.decodedAuthToken.payload.userId;
+
+    try {
+        if (!targetUserId || !accountType) {
+            await logAction(req, userId, 'USER_UNARCHIVED', 'SYSTEM ADMIN', `Unarchive failed - Missing required fields`, 'VALIDATION_FAILED');
+            return res.status(400).json({ success: false, message: 'Target user ID and account type are required.' });
+        }
+
+        const Model = accountType === 'SYSTEM_ADMIN' 
+            ? global.systemAdminModels.SystemAdminAccount 
+            : global.globalModels.EmployeeAccount;
+
+        const user = await Model.findById(targetUserId);
+        if (!user) {
+            await logAction(req, userId, 'USER_UNARCHIVED', 'SYSTEM ADMIN', `Unarchive failed - User not found: ${targetUserId}`, 'VALIDATION_FAILED');
+            return res.status(404).json({ success: false, message: 'User not found.' });
+        }
+
+        if (!user.isArchived) {
+            await logAction(req, userId, 'USER_UNARCHIVED', 'SYSTEM ADMIN', `Unarchive failed - User is not archived: ${targetUserId}`, 'VALIDATION_FAILED');
+            return res.status(400).json({ success: false, message: 'User is not archived.' });
+        }
+
+        user.isArchived = false;
+        user.archivedAt = undefined;
+        user.archivedBy = undefined;
+        await user.save();
+
+        await logAction(req, userId, 'USER_UNARCHIVED', 'SYSTEM ADMIN', `User unarchived: ${targetUserId}`, 'SUCCESS');
+
+        res.status(200).json({ 
+            success: true, 
+            message: 'User unarchived successfully.'
+        });
+
+    } catch (error) {
+        await logAction(req, userId, 'USER_UNARCHIVED', 'SYSTEM ADMIN', `Unarchive error: ${error.message}`, 'FAILED');
+        console.error('Error unarchiving user:', error);
+        return res.status(500).json({ success: false, message: 'Internal server error.' });
+    }
+};
+
 // Lock user account
 export const lockUserAccount = async (req, res) => {
     const { targetUserId, accountType } = req.body;
@@ -532,6 +579,189 @@ export const lockUserAccount = async (req, res) => {
     } catch (error) {
         await logAction(req, userId, 'USER_LOCKED', 'SYSTEM ADMIN', `Lock error: ${error.message}`, 'FAILED');
         console.error('Error locking user:', error);
+        return res.status(500).json({ success: false, message: 'Internal server error.' });
+    }
+};
+
+// Unlock user account
+export const unlockUserAccount = async (req, res) => {
+    const { targetUserId, accountType } = req.body;
+    const userId = req.decodedAuthToken.payload.userId;
+
+    try {
+        if (!targetUserId || !accountType) {
+            await logAction(req, userId, 'USER_UNLOCKED', 'SYSTEM ADMIN', `Unlock failed - Missing required fields`, 'VALIDATION_FAILED');
+            return res.status(400).json({ success: false, message: 'Target user ID and account type are required.' });
+        }
+
+        const Model = accountType === 'SYSTEM_ADMIN' 
+            ? global.systemAdminModels.SystemAdminAccount 
+            : global.globalModels.EmployeeAccount;
+
+        const user = await Model.findById(targetUserId);
+        if (!user) {
+            await logAction(req, userId, 'USER_UNLOCKED', 'SYSTEM ADMIN', `Unlock failed - User not found: ${targetUserId}`, 'VALIDATION_FAILED');
+            return res.status(404).json({ success: false, message: 'User not found.' });
+        }
+
+        if (!user.isLocked) {
+            await logAction(req, userId, 'USER_UNLOCKED', 'SYSTEM ADMIN', `Unlock failed - User is not locked: ${targetUserId}`, 'VALIDATION_FAILED');
+            return res.status(400).json({ success: false, message: 'User is not locked.' });
+        }
+
+        user.isLocked = false;
+        // Reset failed login attempts when unlocking
+        user.failedLoginAttempts = { count: 0, lastAttempt: null };
+        user.failedOTPVerifications = { count: 0, lastAttempt: null };
+        await user.save();
+
+        await logAction(req, userId, 'USER_UNLOCKED', 'SYSTEM ADMIN', `User unlocked: ${targetUserId}`, 'SUCCESS');
+
+        res.status(200).json({ 
+            success: true, 
+            message: 'User unlocked successfully.'
+        });
+
+    } catch (error) {
+        await logAction(req, userId, 'USER_UNLOCKED', 'SYSTEM ADMIN', `Unlock error: ${error.message}`, 'FAILED');
+        console.error('Error unlocking user:', error);
+        return res.status(500).json({ success: false, message: 'Internal server error.' });
+    }
+};
+
+// Update user account (name, phone, email, roles, office_position)
+export const updateUserAccount = async (req, res) => {
+    const { 
+        targetUserId, 
+        accountType,
+        first_name,
+        last_name,
+        middle_name,
+        suffix,
+        email,
+        phone,
+        roles,
+        office_position
+    } = req.body;
+    const userId = req.decodedAuthToken.payload.userId;
+
+    try {
+        if (!targetUserId || !accountType) {
+            await logAction(req, userId, 'USER_UPDATED', 'SYSTEM ADMIN', `Update failed - Missing required fields`, 'FAILED');
+            return res.status(400).json({ success: false, message: 'Target user ID and account type are required.' });
+        }
+
+        const Model = accountType === 'SYSTEM_ADMIN' 
+            ? global.systemAdminModels.SystemAdminAccount 
+            : global.globalModels.EmployeeAccount;
+
+        const user = await Model.findById(targetUserId);
+        if (!user) {
+            await logAction(req, userId, 'USER_UPDATED', 'SYSTEM ADMIN', `Update failed - User not found: ${targetUserId}`, 'FAILED');
+            return res.status(404).json({ success: false, message: 'User not found.' });
+        }
+
+        const changes = [];
+        const oldValues = {};
+
+        // Update name fields
+        if (first_name !== undefined) {
+            oldValues.first_name = user.first_name;
+            user.first_name = first_name;
+            changes.push(`first_name: ${oldValues.first_name} -> ${first_name}`);
+        }
+        if (last_name !== undefined) {
+            oldValues.last_name = user.last_name;
+            user.last_name = last_name;
+            changes.push(`last_name: ${oldValues.last_name} -> ${last_name}`);
+        }
+        if (middle_name !== undefined) {
+            oldValues.middle_name = user.middle_name;
+            user.middle_name = middle_name;
+            changes.push(`middle_name: ${oldValues.middle_name || 'none'} -> ${middle_name || 'none'}`);
+        }
+        if (suffix !== undefined) {
+            oldValues.suffix = user.suffix;
+            user.suffix = suffix;
+            changes.push(`suffix: ${oldValues.suffix || 'none'} -> ${suffix || 'none'}`);
+        }
+
+        // Update email
+        if (email !== undefined && email !== user.email) {
+            // Check if new email already exists
+            const existingUser = await Model.findOne({ email, _id: { $ne: targetUserId } });
+            if (existingUser) {
+                await logAction(req, userId, 'USER_UPDATED', 'SYSTEM ADMIN', `Update failed - Email already in use: ${email}`, 'FAILED');
+                return res.status(400).json({ success: false, message: 'Email already in use.' });
+            }
+            oldValues.email = user.email;
+            user.email = email;
+            changes.push(`email: ${oldValues.email} -> ${email}`);
+        }
+
+        // Update phone
+        if (phone !== undefined && phone !== user.phone) {
+            // Check if new phone already exists
+            const existingUser = await Model.findOne({ phone, _id: { $ne: targetUserId } });
+            if (existingUser) {
+                await logAction(req, userId, 'USER_UPDATED', 'SYSTEM ADMIN', `Update failed - Phone already in use: ${phone}`, 'FAILED');
+                return res.status(400).json({ success: false, message: 'Phone number already in use.' });
+            }
+            oldValues.phone = user.phone;
+            user.phone = phone;
+            changes.push(`phone: ${oldValues.phone} -> ${phone}`);
+        }
+
+        // Update roles (only for employee accounts)
+        if (roles !== undefined && accountType !== 'SYSTEM_ADMIN') {
+            if (!Array.isArray(roles) && !roles.includes('DMS' || "DMM" || "MIS" || "MIM" || "HVCS" || "HVCM" )) {
+                await logAction(req, userId, 'USER_UPDATED', 'SYSTEM ADMIN', `Update failed - Roles must be an array`, 'FAILED');
+                return res.status(400).json({ success: false, message: 'Roles must be an array.' });
+            }
+            oldValues.roles = user.roles;
+            user.roles = roles;
+            changes.push(`roles: ${oldValues.roles.join(', ') || 'none'} -> ${roles.join(', ') || 'none'}`);
+        }
+
+        // Update office position (only for employee accounts with DMS role)
+        if (office_position !== undefined && accountType !== 'SYSTEM_ADMIN') {
+            if (office_position && !['CFS', 'LPMS', 'ANMS', 'RTSS'].includes(office_position)) {
+                await logAction(req, userId, 'USER_UPDATED', 'SYSTEM ADMIN', `Update failed - Invalid office position: ${office_position}`, 'FAILED');
+                return res.status(400).json({ success: false, message: 'Invalid office position.' });
+            }
+            oldValues.office_position = user.office_position;
+            user.office_position = office_position || null;
+            changes.push(`office_position: ${oldValues.office_position || 'none'} -> ${office_position || 'none'}`);
+        }
+
+        if (changes.length === 0) {
+            await logAction(req, userId, 'USER_UPDATED', 'SYSTEM ADMIN', `Update failed - No changes provided`, 'FAILED');
+            return res.status(400).json({ success: false, message: 'No changes provided.' });
+        }
+
+        await user.save();
+
+        await logAction(req, userId, 'USER_UPDATED', 'SYSTEM ADMIN', `User updated: ${targetUserId} - ${changes.join('; ')}`, 'SUCCESS');
+
+        res.status(200).json({ 
+            success: true, 
+            message: 'User updated successfully.',
+            user: {
+                id: user._id,
+                first_name: user.first_name,
+                last_name: user.last_name,
+                middle_name: user.middle_name,
+                suffix: user.suffix,
+                email: user.email,
+                phone: user.phone,
+                roles: accountType !== 'SYSTEM_ADMIN' ? user.roles : undefined,
+                office_position: accountType !== 'SYSTEM_ADMIN' ? user.office_position : undefined
+            }
+        });
+
+    } catch (error) {
+        await logAction(req, userId, 'USER_UPDATED', 'SYSTEM ADMIN', `Update error: ${error.message}`, 'FAILED');
+        console.error('Error updating user:', error);
         return res.status(500).json({ success: false, message: 'Internal server error.' });
     }
 };

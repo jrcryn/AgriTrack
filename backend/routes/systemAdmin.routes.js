@@ -11,7 +11,10 @@ import {
     changeUserPassword,
     resetUser2FA,
     archiveUserAccount,
+    unarchiveUserAccount,
     lockUserAccount,
+    unlockUserAccount,
+    updateUserAccount,
     getActionLogs,
     getEmployeeAccounts,
     getSystemAdminAccounts
@@ -26,23 +29,26 @@ const router = express.Router();
 const systemAdminAuth = [verifyAuthToken, verifyAccountType(['admin'])];
 
 // Employee account management
-router.post('/register-employee', register);
-router.put('/change-email', changeUserEmail);
-router.put('/change-name', changeUserName);
-router.put('/change-phone', changeUserPhone);
-router.put('/change-roles', changeUserRoles);
-router.put('/change-office-position', changeUserOfficePosition);
-router.put('/change-password', changeUserPassword);
-router.put('/reset-2fa', resetUser2FA);
-router.put('/archive-account', archiveUserAccount);
-router.put('/lock-account', lockUserAccount);
+router.post('/register-employee', systemAdminAuth, register);
+router.put('/change-email', systemAdminAuth, changeUserEmail);
+router.put('/change-name', systemAdminAuth, changeUserName);
+router.put('/change-phone', systemAdminAuth, changeUserPhone);
+router.put('/change-roles', systemAdminAuth, changeUserRoles);
+router.put('/change-office-position', systemAdminAuth, changeUserOfficePosition);
+router.put('/change-password', systemAdminAuth, changeUserPassword);
+router.put('/reset-2fa', systemAdminAuth, resetUser2FA);
+router.put('/archive-account', systemAdminAuth, archiveUserAccount);
+router.put('/unarchive-account', systemAdminAuth, unarchiveUserAccount);
+router.put('/lock-account', systemAdminAuth, lockUserAccount);
+router.put('/unlock-account', systemAdminAuth, unlockUserAccount);
+router.put('/update-account', systemAdminAuth, updateUserAccount);
 
 // System admin account management
-router.post('/register-system-admin', registerSystemAdmin);
+router.post('/register-system-admin', systemAdminAuth, registerSystemAdmin);
 
 // Logs and data retrieval
-router.get('/action-logs', getActionLogs);
-router.get('/employee-accounts', getEmployeeAccounts);
-router.get('/system-admin-accounts', getSystemAdminAccounts);
+router.get('/action-logs', systemAdminAuth, getActionLogs);
+router.get('/employee-accounts', systemAdminAuth, getEmployeeAccounts);
+router.get('/system-admin-accounts', systemAdminAuth, getSystemAdminAccounts);
 
 export default router;

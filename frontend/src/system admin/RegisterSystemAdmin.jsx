@@ -18,9 +18,12 @@ import {
   List,
   ListItem,
   ListIcon,
-  useToast
+  useToast,
+  Code,
+  IconButton,
+  Tooltip
 } from '@chakra-ui/react';
-import { FiShield, FiMail, FiPhone, FiUser, FiCheckCircle, FiAlertCircle, FiCheck } from 'react-icons/fi';
+import { FiShield, FiMail, FiPhone, FiUser, FiCheckCircle, FiAlertCircle, FiCheck, FiCopy } from 'react-icons/fi';
 import { useSystemAdminStore } from './store/systemAdminDashboard.store';
 
 const RegisterSystemAdmin = () => {
@@ -37,6 +40,7 @@ const RegisterSystemAdmin = () => {
   });
 
   const [message, setMessage] = useState({ type: '', text: '' });
+  const [temporaryPassword, setTemporaryPassword] = useState('');
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -49,6 +53,7 @@ const RegisterSystemAdmin = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage({ type: '', text: '' });
+    setTemporaryPassword(''); // Clear previous password
 
     // Validation
     if (!formData.firstName || !formData.lastName || !formData.email || !formData.phone) {
@@ -60,16 +65,19 @@ const RegisterSystemAdmin = () => {
       const result = await registerSystemAdmin(formData);
       
       if (result.success) {
+        const tempPassword = result.temporaryPassword || '';
+        setTemporaryPassword(tempPassword);
+        
         setMessage({ 
           type: 'success', 
-          text: `System Admin ${formData.firstName} ${formData.lastName} registered successfully! Default password sent to ${formData.email}` 
+          text: `System Admin ${formData.firstName} ${formData.lastName} registered successfully!` 
         });
         
         toast({
           title: 'Success',
           description: 'System admin registered successfully',
           status: 'success',
-          duration: 3000,
+          duration: 5000,
           isClosable: true
         });
         
@@ -124,9 +132,52 @@ const RegisterSystemAdmin = () => {
             status={message.type === 'success' ? 'success' : 'error'}
             borderRadius="lg"
             mb={6}
+            flexDirection="column"
+            alignItems="flex-start"
           >
-            <AlertIcon as={message.type === 'success' ? FiCheckCircle : FiAlertCircle} />
-            <AlertDescription>{message.text}</AlertDescription>
+            <Flex width="100%" align="center">
+              <AlertIcon as={message.type === 'success' ? FiCheckCircle : FiAlertCircle} />
+              <AlertDescription flex="1">{message.text}</AlertDescription>
+            </Flex>
+            {message.type === 'success' && temporaryPassword && (
+              <Box mt={3} width="100%">
+                <Text fontSize="sm" fontWeight="medium" mb={2}>
+                  Temporary Password (also sent via email):
+                </Text>
+                <Flex align="center" gap={2}>
+                  <Code
+                    colorScheme="purple"
+                    fontSize="md"
+                    p={2}
+                    borderRadius="md"
+                    fontFamily="mono"
+                    fontWeight="bold"
+                  >
+                    {temporaryPassword}
+                  </Code>
+                  <Tooltip label="Copy password">
+                    <IconButton
+                      icon={<FiCopy />}
+                      size="sm"
+                      onClick={() => {
+                        navigator.clipboard.writeText(temporaryPassword);
+                        toast({
+                          title: 'Copied!',
+                          description: 'Password copied to clipboard',
+                          status: 'success',
+                          duration: 2000,
+                          isClosable: true
+                        });
+                      }}
+                      aria-label="Copy password"
+                    />
+                  </Tooltip>
+                </Flex>
+                <Text fontSize="xs" color="gray.600" mt={2}>
+                  Please save this password securely. The admin will need it to log in for the first time.
+                </Text>
+              </Box>
+            )}
           </Alert>
         )}
 
@@ -265,6 +316,7 @@ const RegisterSystemAdmin = () => {
                     phone: ''
                   });
                   setMessage({ type: '', text: '' });
+                  setTemporaryPassword('');
                 }}
               >
                 Clear
@@ -275,7 +327,7 @@ const RegisterSystemAdmin = () => {
             <Alert status="info" borderRadius="md" size="sm">
               <AlertIcon />
               <AlertDescription fontSize="xs">
-                A randomly generated password will be sent to the admin's email. 2FA setup required on first login.
+                A randomly generated password will be displayed on screen and sent to the admin's email. 2FA setup required on first login.
               </AlertDescription>
             </Alert>
           </VStack>

@@ -14,7 +14,15 @@ export const checkAuth = async (req, res) => {
     let userId = null;
     
     try {
-        const user = await global.globalModels.EmployeeAccount.findById(req.decodedAuthToken.payload.userId);
+        const accountType = req.decodedAuthToken.payload.accountType || 'employee';
+        
+        // Determine which schema to query based on accountType
+        let user;
+        if (accountType === 'admin') {
+            user = await global.systemAdminModels.SystemAdminAccount.findById(req.decodedAuthToken.payload.userId);
+        } else {
+            user = await global.globalModels.EmployeeAccount.findById(req.decodedAuthToken.payload.userId);
+        }
 
         if (user) {
             userId = user._id;
@@ -25,6 +33,7 @@ export const checkAuth = async (req, res) => {
         if (!user || !role) {
             return res.status(404).json({ success: false, message: 'User not found.' });
         }        
+        
         res.status(200).json({
             success: true,
             user: {
@@ -34,9 +43,10 @@ export const checkAuth = async (req, res) => {
                 middle_name: user.middle_name,
                 suffix: user.suffix,
                 role: role,
-                office_position: user.office_position
+                office_position: accountType === 'employee' ? user.office_position : undefined,
+                accountType: accountType
             },
-            availableRoles: user.roles,
+            availableRoles: accountType === 'employee' ? user.roles : [],
         });
 
     } catch (error) {
@@ -106,7 +116,7 @@ export const login = async (req, res) => {
     try {
         
         if (!email || !password) {
-            await logAction(req, userId, 'USER_LOGIN', 'AUTHENTICATION', `Login attempt failed - Missing email or password`, 'VALIDATION_FAILED');
+            await logAction(req, userId, 'USER_LOGIN', 'AUTHENTICATION', `Login attempt failed - Missing email or password`, 'FAILED');
             return res.status(400).json({ success: false, message: 'All fields are required.'})
         }
         
@@ -126,12 +136,12 @@ export const login = async (req, res) => {
         }
 
         if (!user) {
-            await logAction(req, userId, 'USER_LOGIN', 'AUTHENTICATION', `Login attempt failed - User not found: ${email}`, 'VALIDATION_FAILED');
+            await logAction(req, userId, 'USER_LOGIN', 'AUTHENTICATION', `Login attempt failed - User not found: ${email}`, 'FAILED');
             return res.status(404).json({ success: false, message: 'Invalid credentials.' });
         }
 
         if (user.isLocked) {
-            await logAction(req, userId, 'USER_LOGIN', 'AUTHENTICATION', `Login attempt failed - Account is locked: ${email}`, 'VALIDATION_FAILED');
+            await logAction(req, userId, 'USER_LOGIN', 'AUTHENTICATION', `Login attempt failed - Account is locked: ${email}`, 'FAILED');
             return res.status(403).json({ success: false, message: 'Account locked. Contact IT support to regain access.' });
         }
 
@@ -148,7 +158,7 @@ export const login = async (req, res) => {
             if (user.failedLoginAttempts.count >= 11) {
                 user.isLocked = true;
                 await user.save();
-                await logAction(req, userId, 'USER_LOGIN', 'AUTHENTICATION', `Account locked due to multiple failed login attempts: ${email}`, 'VALIDATION_FAILED');
+                await logAction(req, userId, 'USER_LOGIN', 'AUTHENTICATION', `Account locked due to multiple failed login attempts: ${email}`, 'FAILED');
                 return res.status(403).json({ success: false, message: 'Account is now locked due to multiple failed login attempts. Contact IT support to regain access.' });
             }
 
@@ -166,7 +176,7 @@ export const login = async (req, res) => {
         generatePreTokenAndSetCookie(res, user._id, accountType);
 
         if(!user.is2FAEnabled) {
-            await logAction(req, userId, 'USER_LOGIN', 'AUTHENTICATION', `Login redirected to 2FA setup - 2FA not enabled for: ${email}`, 'VALIDATION_FAILED');
+            await logAction(req, userId, 'USER_LOGIN', 'AUTHENTICATION', `Login redirected to 2FA setup - 2FA not enabled for: ${email}`, 'SUCCESS');
             return res.status(401).json({ 
                 success: false, 
                 message: 'You are required to set up 2FA first.',
@@ -192,10 +202,19 @@ export const login = async (req, res) => {
 export const generate2FASecret = async (req, res) => {
     const { userId } = req.body;
 
+    // Get accountType from the decoded preAuthToken middleware
+    const accountType = req.decodedPreAuthToken?.accountType || 'employee';
+
     let userID = null;
 
     try {
-        const user = await global.globalModels.EmployeeAccount.findById( userId );
+        // Determine which schema to query based on accountType
+        let user;
+        if (accountType === 'admin') {
+            user = await global.systemAdminModels.SystemAdminAccount.findById(userId);
+        } else {
+            user = await global.globalModels.EmployeeAccount.findById(userId);
+        }
         
         if (user) {
             userID = user._id;

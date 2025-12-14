@@ -17,9 +17,12 @@ import {
   VStack,
   HStack,
   Icon,
-  useToast
+  useToast,
+  Code,
+  IconButton,
+  Tooltip
 } from '@chakra-ui/react';
-import { FiUserPlus, FiMail, FiPhone, FiUser, FiBriefcase, FiCheckCircle, FiAlertCircle } from 'react-icons/fi';
+import { FiUserPlus, FiMail, FiPhone, FiUser, FiBriefcase, FiCheckCircle, FiAlertCircle, FiCopy } from 'react-icons/fi';
 import { useSystemAdminStore } from './store/systemAdminDashboard.store';
 
 const RegisterEmployee = () => {
@@ -38,9 +41,29 @@ const RegisterEmployee = () => {
   });
 
   const [message, setMessage] = useState({ type: '', text: '' });
+  const [temporaryPassword, setTemporaryPassword] = useState('');
 
-  const availableRoles = ['HVC', 'DMS', 'MACHINERIES', 'DOC_TRACK'];
+  const availableRoles = ['DMS', 'DMM', 'MIS', 'MIM', 'HVCS', 'HVCM'];
   const officePositions = ['CFS', 'LPMS', 'ANMS', 'RTSS'];
+  
+  const roleMeanings = {
+    'DMS': 'DOCUMENT MANAGEMENT STAFF',
+    'DMM': 'DOCUMENT MANAGEMENT MANAGER',
+    'MIS': 'MACHINE INVENTORY STAFF',
+    'MIM': 'MACHINE INVENTORY MANAGER',
+    'HVCS': 'HIGH-VALUE CROPS STAFF',
+    'HVCM': 'HIGH-VALUE CROPS MANAGER'
+  };
+
+  // Define mutually exclusive role pairs (staff <-> manager)
+  const rolePairs = {
+    'DMS': 'DMM',
+    'DMM': 'DMS',
+    'MIS': 'MIM',
+    'MIM': 'MIS',
+    'HVCS': 'HVCM',
+    'HVCM': 'HVCS'
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -51,17 +74,37 @@ const RegisterEmployee = () => {
   };
 
   const handleRoleToggle = (role) => {
-    setFormData(prev => ({
-      ...prev,
-      roles: prev.roles.includes(role)
-        ? prev.roles.filter(r => r !== role)
-        : [...prev.roles, role]
-    }));
+    setFormData(prev => {
+      const isCurrentlySelected = prev.roles.includes(role);
+      const oppositeRole = rolePairs[role];
+      
+      if (isCurrentlySelected) {
+        // If deselecting, just remove the role
+        return {
+          ...prev,
+          roles: prev.roles.filter(r => r !== role)
+        };
+      } else {
+        // If selecting, remove the opposite role if it exists, then add the new role
+        const filteredRoles = prev.roles.filter(r => r !== oppositeRole);
+        return {
+          ...prev,
+          roles: [...filteredRoles, role]
+        };
+      }
+    });
+  };
+
+  // Check if a role should be disabled (when its opposite is selected)
+  const isRoleDisabled = (role) => {
+    const oppositeRole = rolePairs[role];
+    return formData.roles.includes(oppositeRole);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage({ type: '', text: '' });
+    setTemporaryPassword(''); // Clear previous password
 
     // Validation
     if (!formData.firstName || !formData.lastName || !formData.email || !formData.phone) {
@@ -83,16 +126,19 @@ const RegisterEmployee = () => {
       const result = await registerEmployee(formData);
       
       if (result.success) {
+        const tempPassword = result.temporaryPassword || '';
+        setTemporaryPassword(tempPassword);
+        
         setMessage({ 
           type: 'success', 
-          text: `Employee ${formData.firstName} ${formData.lastName} registered successfully! Default password sent to ${formData.email}` 
+          text: `Employee ${formData.firstName} ${formData.lastName} registered successfully!` 
         });
         
         toast({
           title: 'Success',
           description: 'Employee registered successfully',
           status: 'success',
-          duration: 3000,
+          duration: 5000,
           isClosable: true
         });
         
@@ -138,9 +184,52 @@ const RegisterEmployee = () => {
             status={message.type === 'success' ? 'success' : 'error'}
             borderRadius="lg"
             mb={6}
+            flexDirection="column"
+            alignItems="flex-start"
           >
-            <AlertIcon as={message.type === 'success' ? FiCheckCircle : FiAlertCircle} />
-            <AlertDescription>{message.text}</AlertDescription>
+            <Flex width="100%" align="center">
+              <AlertIcon as={message.type === 'success' ? FiCheckCircle : FiAlertCircle} />
+              <AlertDescription flex="1">{message.text}</AlertDescription>
+            </Flex>
+            {message.type === 'success' && temporaryPassword && (
+              <Box mt={3} width="100%">
+                <Text fontSize="sm" fontWeight="medium" mb={2}>
+                  Temporary Password (also sent via email):
+                </Text>
+                <Flex align="center" gap={2}>
+                  <Code
+                    colorScheme="green"
+                    fontSize="md"
+                    p={2}
+                    borderRadius="md"
+                    fontFamily="mono"
+                    fontWeight="bold"
+                  >
+                    {temporaryPassword}
+                  </Code>
+                  <Tooltip label="Copy password">
+                    <IconButton
+                      icon={<FiCopy />}
+                      size="sm"
+                      onClick={() => {
+                        navigator.clipboard.writeText(temporaryPassword);
+                        toast({
+                          title: 'Copied!',
+                          description: 'Password copied to clipboard',
+                          status: 'success',
+                          duration: 2000,
+                          isClosable: true
+                        });
+                      }}
+                      aria-label="Copy password"
+                    />
+                  </Tooltip>
+                </Flex>
+                <Text fontSize="xs" color="gray.600" mt={2}>
+                  Please save this password securely. The user will need it to log in for the first time.
+                </Text>
+              </Box>
+            )}
           </Alert>
         )}
 
@@ -228,22 +317,53 @@ const RegisterEmployee = () => {
             <Box>
               <Heading size="sm" mb={3}>Roles & Position</Heading>
               
+              {/* Role Meanings Note */}
+              <Alert status="info" borderRadius="md" mb={4} size="sm">
+                <AlertIcon />
+                <Box>
+                  <AlertDescription fontSize="xs">
+                    <Text as="span" fontWeight="medium">DMS</Text> = Document Management Staff |{' '}
+                    <Text as="span" fontWeight="medium">DMM</Text> = Document Management Manager |{' '}
+                    <Text as="span" fontWeight="medium">MIS</Text> = Machine Inventory Staff |{' '}
+                    <Text as="span" fontWeight="medium">MIM</Text> = Machine Inventory Manager |{' '}
+                    <Text as="span" fontWeight="medium">HVCS</Text> = High-Value Crops Staff |{' '}
+                    <Text as="span" fontWeight="medium">HVCM</Text> = High-Value Crops Manager
+                  </AlertDescription>
+                </Box>
+              </Alert>
+
+              {/* Manager Role Priority Note */}
+              <Alert status="warning" borderRadius="md" mb={4} size="sm">
+                <AlertIcon />
+                <AlertDescription fontSize="xs">
+                  The first role selected will be the default module shown upon login. Please select the primary role first.
+                </AlertDescription>
+              </Alert>
+              
               {/* Roles */}
               <FormControl isRequired mb={4}>
                 <FormLabel fontSize="sm">Roles</FormLabel>
-                <Grid templateColumns={{ base: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }} gap={2}>
-                  {availableRoles.map((role) => (
-                    <Button
-                      key={role}
-                      type="button"
-                      size="sm"
-                      onClick={() => handleRoleToggle(role)}
-                      variant={formData.roles.includes(role) ? 'solid' : 'outline'}
-                      colorScheme={formData.roles.includes(role) ? 'blue' : 'gray'}
-                    >
-                      {role}
-                    </Button>
-                  ))}
+                <Grid templateColumns={{ base: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' }} gap={2}>
+                  {availableRoles.map((role) => {
+                    const isDisabled = isRoleDisabled(role);
+                    const isSelected = formData.roles.includes(role);
+                    return (
+                      <Button
+                        key={role}
+                        type="button"
+                        size="sm"
+                        onClick={() => handleRoleToggle(role)}
+                        variant={isSelected ? 'solid' : 'outline'}
+                        colorScheme={isSelected ? 'blue' : 'gray'}
+                        title={isDisabled ? `${roleMeanings[role]} - Cannot select both staff and manager roles for the same module` : roleMeanings[role]}
+                        isDisabled={isDisabled}
+                        opacity={isDisabled ? 0.5 : 1}
+                        cursor={isDisabled ? 'not-allowed' : 'pointer'}
+                      >
+                        {role}
+                      </Button>
+                    );
+                  })}
                 </Grid>
               </FormControl>
 
@@ -295,6 +415,7 @@ const RegisterEmployee = () => {
                     officePosition: ''
                   });
                   setMessage({ type: '', text: '' });
+                  setTemporaryPassword('');
                 }}
               >
                 Clear
@@ -305,7 +426,7 @@ const RegisterEmployee = () => {
             <Alert status="info" borderRadius="md" size="sm">
               <AlertIcon />
               <AlertDescription fontSize="xs">
-                A randomly generated password will be sent to the employee's email upon registration.
+                A randomly generated password will be displayed on screen and sent to the employee's email upon registration.
               </AlertDescription>
             </Alert>
           </VStack>
