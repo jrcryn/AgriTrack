@@ -30,6 +30,9 @@ const actions = [
     'USER_2FA_RESET',
     'USER_ARCHIVED',
     'USER_LOCKED',
+    'USER_PASSWORD_CHANGED',
+    'USER_REGISTER',
+    'SYSTEM_ADMIN_REGISTER',
     
     /*-----------------------------------------------------------------------------------------*/
 

@@ -77,12 +77,12 @@ export const registerSystemAdmin = async (req, res) => {
     try {
         const existingAdmin = await global.systemAdminModels.SystemAdminAccount.findOne({ $or: [{ email }, { phone }] });
         if (existingAdmin) {
-            await logAction(req, userId, 'USER_REGISTER', 'SYSTEM ADMIN', `Registration attempt failed - System admin already exists: ${email}`, 'VALIDATION_FAILED');
+            await logAction(req, userId, 'SYSTEM_ADMIN_REGISTER', 'SYSTEM ADMIN', `Registration attempt failed - System admin already exists: ${email}`, 'VALIDATION_FAILED');
             return res.status(400).json({ success: false, message: 'System admin already exists.' });
         }
 
         if (!first_name || !last_name || !email || !phone) {
-            await logAction(req, userId, 'USER_REGISTER', 'SYSTEM ADMIN', `Registration attempt failed - Missing required fields for email: ${email || 'unknown'}`, 'VALIDATION_FAILED');
+            await logAction(req, userId, 'SYSTEM_ADMIN_REGISTER', 'SYSTEM ADMIN', `Registration attempt failed - Missing required fields for email: ${email || 'unknown'}`, 'VALIDATION_FAILED');
             return res.status(400).json({ success: false, message: 'All fields are required.' });
         }
 
@@ -101,7 +101,7 @@ export const registerSystemAdmin = async (req, res) => {
         });
         await newSystemAdmin.save();
         
-        await logAction(req, userId, 'USER_REGISTER', 'SYSTEM ADMIN', `System admin registered: ${email}`, 'SUCCESS');
+        await logAction(req, userId, 'SYSTEM_ADMIN_REGISTER', 'SYSTEM ADMIN', `System admin registered: ${email}`, 'SUCCESS');
 
         res.status(201).json({ 
             message: 'System admin registered successfully', 
@@ -119,11 +119,11 @@ export const registerSystemAdmin = async (req, res) => {
 
     } catch (error) {
         if (error.code === 11000) {
-            await logAction(req, userId, 'USER_REGISTER', 'SYSTEM ADMIN', `Registration failed - System admin already exists: ${req.body.email}`, 'FAILED');
+            await logAction(req, userId, 'SYSTEM_ADMIN_REGISTER', 'SYSTEM ADMIN', `Registration failed - System admin already exists: ${req.body.email}`, 'FAILED');
             return res.status(400).json({ success: false, message: 'System admin already exists.' });
         }
 
-        await logAction(req, userId, 'USER_REGISTER', 'SYSTEM ADMIN', `Registration error: ${error.message}`, 'FAILED');
+        await logAction(req, userId, 'SYSTEM_ADMIN_REGISTER', 'SYSTEM ADMIN', `Registration error: ${error.message}`, 'FAILED');
 
         console.error('Error signing up system admin:', error);
         return res.status(500).json({ success: false ,message: 'Internal server error.' });
