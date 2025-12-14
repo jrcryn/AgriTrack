@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box,
-  Heading,
   FormControl,
   FormLabel,
   Input,
@@ -17,10 +16,10 @@ import {
 import DateMonthOptions from '../../components/dateMonthOptions.js';
 import { useFarmerFormStore } from '../store/farmerForm.store.js';
 
-const bc_other_fctNew = ({ onNext, onBack }) => {
+const bc_other_fctNew = ({ onNext, onBack, disabled = false }) => {
   const toast = useToast();
   const dateOptions = DateMonthOptions();
-  const { formData, updateCropOtherNew, submitFarmerForm, isLoading } = useFarmerFormStore();
+  const { formData, updateCropOtherNew } = useFarmerFormStore();
 
   // Create combined date options, initially apat kasi yung binibigay ni DateMonthOptions
   const combinedOptions = [
@@ -58,7 +57,7 @@ const bc_other_fctNew = ({ onNext, onBack }) => {
     }));
   };
 
-  const handleSubmit = async () => {
+  const handleContinue = () => {
     // Validate for negative numbers
     if (parseFloat(localFormData.total_trees) < 0) {
       toast({
@@ -79,217 +78,167 @@ const bc_other_fctNew = ({ onNext, onBack }) => {
       harvest_month_year: formattedHarvestDate,
     };
     updateCropOtherNew(data);
-    
-    try {
-      const success = await submitFarmerForm();
-      if (success) {
-        onNext('/success', null, { state: { fromSubmission: true } });
-      }
-    } catch (error) {
-      console.error("Submission error:", error);
-    }
+    onNext();
   };
 
   useEffect(() => {
     const { plantation_start_date, plantation_end_date, harvest_month, harvest_year, total_trees } = localFormData;
     const isValidYear = /^\d{4}$/.test(harvest_year);
-    setIsFormValid( plantation_start_date && plantation_end_date && harvest_month && isValidYear && total_trees);
+    const hasPlantationDate = plantation_start_date && plantation_end_date;
+    setIsFormValid(hasPlantationDate && harvest_month && isValidYear && total_trees);
   }, [localFormData]);
 
-  const cardBg = 'white';
   const accentColor = 'blue.600';
-  const headerBorder = 'gray.200';
 
   return (
-    <Box minH="100vh" py={10} px={4}>
-      <VStack spacing={8} maxW="800px" mx="auto" w="full">
-        {/* Main Card */}
-        <Box bg={cardBg} borderRadius="xl" shadow="xl" w="full" overflow="hidden">
-
-          {/* Header */}
-          <Box 
-            p={6}
-            borderBottomWidth="2px"
-            borderColor={headerBorder}
-            align="center"
+    <Box border="1px" borderColor="gray.200" p={6} borderRadius="lg" bg="white">
+      <VStack spacing={6} align="stretch">
+        {/* DATE OF PLANTATION */}
+        <FormControl id="dateOfPlantation" isRequired isDisabled={disabled}>
+          <FormLabel
+            fontSize="sm"
+            fontWeight="bold"
+            color="gray.600"
+            textTransform="uppercase"
+            letterSpacing="wide"
+            mb={4}
           >
-            <Heading 
-              size="lg"
-              color={accentColor}
-              fontWeight="semibold"
-              letterSpacing="tight"
-              mb={3}
+            DATE OF PLANTATION (PILIIN ANG PETSA KUNG KAILAN ITO ITINANIM)
+          </FormLabel>
+          <RadioGroup
+            name="plantation_date"
+            onChange={handleDateRadioChange}
+            value={`${localFormData.plantation_start_date}_to_${localFormData.plantation_end_date}`}
+            isDisabled={disabled}
+          >
+            <Stack direction="column" spacing={4}>
+              {combinedOptions.map((option) => (
+                <Radio key={option.value} value={option.value} colorScheme="blue">
+                  <Text fontSize="md" color="gray.700">
+                    {option.label}
+                  </Text>
+                </Radio>
+              ))}
+            </Stack>
+          </RadioGroup>
+        </FormControl>
+
+        {/* MONTH AND YEAR OF HARVEST */}
+        <FormControl id="monthOfHarvest" isRequired isDisabled={disabled}>
+          <FormLabel
+            fontSize="sm"
+            fontWeight="bold"
+            color="gray.600"
+            textTransform="uppercase"
+            letterSpacing="wide"
+            mb={4}
+          >
+            MONTH AND YEAR OF HARVEST (BUWAN AT TAON KUNG KAILAN AANIHIN ANG ITINANIM)
+          </FormLabel>
+          <Stack direction={{ base: "column", md: "row" }} spacing={4}>
+            <Select
+              name="harvest_month"
+              placeholder="Select month"
+              value={localFormData.harvest_month}
+              onChange={handleChange}
+              isDisabled={disabled}
             >
-              High Value Crop Planting and Harvesting Report
-            </Heading>
-            <Text fontSize="sm" color="gray.500" fontWeight="medium" mb={-2}>
-              Fields marked with <Text as="span" color="red.500">*</Text> are required
+              <option value="January">January</option>
+              <option value="February">February</option>
+              <option value="March">March</option>
+              <option value="April">April</option>
+              <option value="May">May</option>
+              <option value="June">June</option>
+              <option value="July">July</option>
+              <option value="August">August</option>
+              <option value="September">September</option>
+              <option value="October">October</option>
+              <option value="November">November</option>
+              <option value="December">December</option>
+            </Select>
+            <Input
+              name="harvest_year"
+              type="text"
+              placeholder="YYYY"
+              maxLength={4}
+              pattern="^[0-9]{4}$"
+              inputMode="numeric"
+              title="Please enter a valid 4-digit year"
+              value={localFormData.harvest_year}
+              onChange={handleChange}
+              required
+              isDisabled={disabled}
+            />
+          </Stack>
+        </FormControl>
+
+        {/* TOTAL NUMBER OF TREES */}
+        <FormControl id="totalNumberOfTrees" isRequired isDisabled={disabled}>
+          <FormLabel
+            fontSize="sm"
+            fontWeight="bold"
+            color="gray.600"
+            textTransform="uppercase"
+            letterSpacing="wide"
+            mb={4}
+          >
+            TOTAL NUMBER OF TREES (KABUUANG BILANG NG PUNO NA NAKATANIM)
+          </FormLabel>
+          <Box 
+            bg='blue.50'
+            borderRadius="md"
+            p={4}
+            mb={5}
+            borderLeftWidth="4px"
+            borderColor={accentColor}
+          >
+            <Text fontSize="sm">
+              <Text fontWeight="bold" mb={3}>PAALALA:</Text> 
+              Isulat kung ilang piraso ng puno ang nakatanim.
             </Text>
           </Box>
+          <Input
+            type="number"
+            name="total_trees"
+            value={localFormData.total_trees}
+            onChange={handleChange}
+            onWheel={(e) => e.target.blur()}
+            inputMode='numeric'
+            min="0"
+            step="1"
+            placeholder="Your answer"
+            isDisabled={disabled}
+          />
+        </FormControl>
 
-          {/* Form Content */}
-          <Box p={8}>
-            <VStack spacing={6} align="stretch">
-
-              {/* Section Header */}
-              <Box
-                bg="blue.50"
-                borderRadius="md"
-                p={4}
-                borderLeftWidth="4px"
-                borderColor="blue.600"
-              >
-                <Text fontSize="md" fontWeight="bold" color="blue.600">
-                  OTHER FRUIT CROPS/TREES (NEWLY PLANTED)
-                </Text>
-              </Box>
-
-              {/* DATE OF PLANTATION */}
-              <FormControl id="dateOfPlantation" isRequired>
-                <FormLabel
-                  fontSize="sm"
-                  fontWeight="bold"
-                  color="gray.600"
-                  textTransform="uppercase"
-                  letterSpacing="wide"
-                  mb={4}
-                >
-                  DATE OF PLANTATION (PILIIN ANG PETSA KUNG KAILAN ITO ITINANIM)
-                </FormLabel>
-                <RadioGroup
-                  name="plantation_date"
-                  onChange={handleDateRadioChange}
-                  value={`${localFormData.plantation_start_date}_to_${localFormData.plantation_end_date}`}
-                >
-                  <Stack direction="column" spacing={4}>
-                    {combinedOptions.map((option) => (
-                      <Radio key={option.value} value={option.value} colorScheme="blue">
-                        <Text fontSize="md" color="gray.700">
-                          {option.label}
-                        </Text>
-                      </Radio>
-                    ))}
-                  </Stack>
-                </RadioGroup>
-              </FormControl>
-
-              {/* MONTH AND YEAR OF HARVEST */}
-              <FormControl id="monthOfHarvest" isRequired>
-                <FormLabel
-                  fontSize="sm"
-                  fontWeight="bold"
-                  color="gray.600"
-                  textTransform="uppercase"
-                  letterSpacing="wide"
-                  mb={4}
-                >
-                  MONTH AND YEAR OF HARVEST (BUWAN AT TAON KUNG KAILAN AANIHIN ANG ITINANIM)
-                </FormLabel>
-                <Stack direction={{ base: "column", md: "row" }} spacing={4}>
-                  <Select
-                    name="harvest_month"
-                    placeholder="Select month"
-                    value={localFormData.harvest_month}
-                    onChange={handleChange}
-                  >
-                    <option value="January">January</option>
-                    <option value="February">February</option>
-                    <option value="March">March</option>
-                    <option value="April">April</option>
-                    <option value="May">May</option>
-                    <option value="June">June</option>
-                    <option value="July">July</option>
-                    <option value="August">August</option>
-                    <option value="September">September</option>
-                    <option value="October">October</option>
-                    <option value="November">November</option>
-                    <option value="December">December</option>
-                  </Select>
-                  <Input
-                    name="harvest_year"
-                    type="text"
-                    placeholder="YYYY"
-                    maxLength={4}
-                    pattern="^[0-9]{4}$"
-                    inputMode="numeric"
-                    title="Please enter a valid 4-digit year"
-                    value={localFormData.harvest_year}
-                    onChange={handleChange}
-                    required
-                  />
-                </Stack>
-              </FormControl>
-
-              {/* TOTAL NUMBER OF TREES */}
-              <FormControl id="totalNumberOfTrees" isRequired>
-                <FormLabel
-                  fontSize="sm"
-                  fontWeight="bold"
-                  color="gray.600"
-                  textTransform="uppercase"
-                  letterSpacing="wide"
-                  mb={4}
-                >
-                  TOTAL NUMBER OF TREES (KABUUANG BILANG NG PUNO NA NAKATANIM)
-                </FormLabel>
-                <Box 
-                  bg='blue.50'
-                  borderRadius="md"
-                  p={4}
-                  mb={5}
-                  borderLeftWidth="4px"
-                  borderColor={accentColor}
-                >
-                  <Text fontSize="sm">
-                    <Text fontWeight="bold" mb={3}>PAALALA:</Text> 
-                    Isulat kung ilang piraso ng puno ang nakatanim.
-                  </Text>
-                </Box>
-                <Input
-                  type="number"
-                  name="total_trees"
-                  value={localFormData.total_trees}
-                  onChange={handleChange}
-                  onWheel={(e) => e.target.blur()}
-                  inputMode='numeric'
-                  min="0"
-                  step="1"
-                  placeholder="Your answer"
-                />
-              </FormControl>
-            </VStack>
-
-            {/* Navigation Buttons */}
-            <Stack
-              direction={{ base: 'column', md: 'row' }}
-              spacing={4}
-              justify="flex-end"
-              mt={12}
-            >
-              <Button
-                variant="ghost"
-                colorScheme="blue"
-                onClick={onBack}
-                px={8}
-                borderRadius="md"
-              >
-                Back
-              </Button>
-              <Button
-                bg={accentColor}
-                color="white"
-                _hover={{ bg: 'blue.700' }}
-                onClick={handleSubmit}
-                isLoading={isLoading}
-                px={8}
-                borderRadius="md"
-                isDisabled={!isFormValid}
-              >
-                Submit
-              </Button>
-            </Stack>
-          </Box>
-        </Box>
+        <Stack 
+          direction={{ base: 'column', md: 'row' }} 
+          spacing={4} 
+          justify="flex-end"
+          mt={4}
+        >
+          <Button 
+            variant="ghost" 
+            colorScheme="blue"
+            onClick={onBack}
+            w={{ base: 'full', md: 'auto' }}
+            borderRadius="md"
+            isDisabled={disabled}
+          >
+            Back
+          </Button>
+          <Button 
+            bg={accentColor}
+            color="white"
+            _hover={{ bg: 'blue.700' }}
+            onClick={handleContinue} 
+            isDisabled={!isFormValid || disabled} 
+            w={{ base: 'full', md: 'auto' }}
+            borderRadius="md"
+          >
+            Continue
+          </Button>
+        </Stack>
       </VStack>
     </Box>
   );

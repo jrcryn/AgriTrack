@@ -39,6 +39,15 @@ const ProtectedRoute = ({children}) => {
       return <Navigate to='/auth/login' replace />;
     }
 
+    // Normalize role and make sure DMS staff does not land on /doc-track/metrics
+    const role = String(user?.role || '').trim().toUpperCase();
+    const path = location.pathname;
+    if (role === 'MIS') {
+      if (path === '/machineries' || path === '/machineries/' || path.startsWith('/machineries/metrics')) {
+        return <Navigate to='/machineries/machine-inventory' replace />;
+      }
+    }
+
     return children;
 }
 

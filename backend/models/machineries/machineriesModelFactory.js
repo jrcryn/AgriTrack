@@ -6,10 +6,12 @@ import { ticketRequestSchema } from "./schemas/ticketRequest.schema.js"
 import { extensionTicketSchema } from "./schemas/ticketRequest.schema.js";
 import { WeeklyScheduleSchema } from "./schemas/weeklySchedule.schema.js";
 import { tripTicketSchema } from "./schemas/tripTicket.schema.js";
-import { FormStatus } from "./schemas/formStatus.js";
 import { trCounterSchema } from "./schemas/trCounter.schema.js";
 import { sCounterSchema } from "./schemas/sCounter.schema.js";
 import { ArchivedTicketRequestSchema } from "./schemas/archivedTickets.schema.js";
+import { IncidentReportSchema } from "./schemas/incidentReport.schema.js";
+import { MachinePhysicalCountingSchema } from "./schemas/machinePhysicalCounting.schema.js";
+import { FormStatus } from "./schemas/formStatus.schema.js";
 
 export const initializeMachineriesModels = () => {
     const db = getMachineriesDB();
@@ -26,6 +28,10 @@ export const initializeMachineriesModels = () => {
         FormStatus: db.model('FormStatus', FormStatus),
         TRCounter: db.model('trCounter', trCounterSchema),
         SCounter: db.model('sCounter', sCounterSchema),
-        ArchivedTicketRequest: db.model('Archived_Ticket_Request', ArchivedTicketRequestSchema)
+        ArchivedTicketRequest: db.model('Archived_Ticket_Request', ArchivedTicketRequestSchema),
+        IncidentReport: db.model('Incident_Report', IncidentReportSchema),
+        MachinePhysicalCounting: db.model('Machine_Physical_Counting', MachinePhysicalCountingSchema),
+
+        FormStatus: db.model('FormStatus', FormStatus),
     }
 };

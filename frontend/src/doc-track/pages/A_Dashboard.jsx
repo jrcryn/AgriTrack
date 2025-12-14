@@ -356,7 +356,7 @@ const A_Dashboard = () => {
         alignItems="center"
         mb={6}
         gap={4}
-        p={4}
+        p={3}
         bg="blue.50"
         borderRadius="md"
         boxShadow="sm"
@@ -366,6 +366,7 @@ const A_Dashboard = () => {
           alignSelf={{ base: 'stretch', md: 'flex-end' }}
           leftIcon={<HiMiniDocumentPlus/>}
           onClick={onOpen}
+          size={'sm'}
         >
           Create Document Type
         </Button>
@@ -374,6 +375,7 @@ const A_Dashboard = () => {
           alignSelf={{ base: 'stretch', md: 'flex-end' }}
           leftIcon={<MdEditDocument/>}
           onClick={onOpenEditDocTypes}
+          size={'sm'}
         >
           Update Document Type
         </Button>

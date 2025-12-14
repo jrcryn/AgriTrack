@@ -30,6 +30,7 @@ import initHVC from './config/hvcAppInitializer.js';
 import initMachineries from './config/machineriesAppInitializer.js';
 import initDocTrack from './config/doc-trackAppInitializer.js';
 import initGlobal from './config/globalAppInitilizer.js';
+import initSystemAdmin from './config/systemAdminAppInitializer.js';
 
 import highValueCropsRoutes from './routes/high-value-crops.routes.js';
 import machineriesRoutes from './routes/machineries.routes.js';
@@ -37,10 +38,11 @@ import docTrackRoutes from './routes/doc-track.routes.js';
 import authRoutes from './routes/auth.routes.js';
 import globalRoutes from './routes/global.routes.js';
 import userSettingsRoutes from './routes/userSettings.route.js';
+import systemAdminRoutes from './routes/systemAdmin.routes.js';
 
 import googleDriveRoutes from './routes/googleDrive.routes.js';
 
-import { updateScheduleStatus, disableEditingForTodayTickets } from './utils/scheduleUpdater.js'; 
+import { updateScheduleStatus, disableEditingForTodayTickets, updateMachineUnitStatusToInUse, updateMachineUnitStatusToAvailable } from './utils/scheduleUpdater.js'; 
 import { startScheduleStatusCron } from './utils/cronScheduleUpdater.js';
 
 async function startServer() {
@@ -50,14 +52,17 @@ async function startServer() {
         initMachineries(),
         initDocTrack(),
         initGlobal(),
+        initSystemAdmin(),
     ]);
 
     try {
         await updateScheduleStatus();
         await disableEditingForTodayTickets();
-        console.log('Schedule status update completed at startup.');
+        await updateMachineUnitStatusToInUse();
+        await updateMachineUnitStatusToAvailable();
+        console.log('Schedule status and machine unit status update completed at startup.');
     } catch (err) {
-        console.error('Schedule updater failed at startup:', err);
+        console.error('Schedule and machine unit status updater failed at startup:', err);
     }
 
     // Start daily cron updater
@@ -70,6 +75,7 @@ async function startServer() {
     app.use("/api/auth",authRoutes);
     app.use("/api/global", globalRoutes);
     app.use("/api/user-settings", userSettingsRoutes);
+    app.use("/api/system-admin", systemAdminRoutes);
 
     app.use("/api/google", googleDriveRoutes);
 

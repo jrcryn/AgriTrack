@@ -73,9 +73,9 @@ const allLinkItems = [
 
   //machineries
   { name: 'Dashboard', icon: FiGrid, path: '/machineries/metrics', roles: ['MIM'] },
-  { name: 'Machinery Management', icon: FiBox, path: '/machineries/machine-inventory', roles: ['MIM'] },
+  { name: 'Machinery Management', icon: FiBox, path: '/machineries/machine-inventory', roles: ['MIM', 'MIS'] },
   { name: 'Ticket Requests', icon: Ticket, path: '/machineries/ticket-requests', roles: ['MIS', 'MIM'] },
-  { name: 'Calendar', icon: FiCalendar, path: '/machineries/weekly-schedules', roles: ['MIS', 'MIM'] },
+  //{ name: 'Calendar', icon: FiCalendar, path: '/machineries/weekly-schedules', roles: ['MIS', 'MIM'] },
   { name: 'Returns', icon: CornerDownLeft, path: '/machineries/trip-ticket-returns', roles: ['MIS', 'MIM'] },
   { name: 'Usage Report', icon: FiDownload, path: '/machineries/gen-reports', roles: ['MIM'] },
   { name: 'Operators', icon: FiUsers, path: '/machineries/operators', roles: ['MIM'] },
@@ -108,9 +108,10 @@ const SidebarContent = ({ onClose, ...rest }) => {
     outgoingDocuments,
   } = useDocTrackDashboard();
 
-  const { pendingExtensionCount } = useMachineriesDashboard();
+  const { pendingExtensionCount, pendingIncidentReportsCount } = useMachineriesDashboard();
 
   const extensionCount = pendingExtensionCount?.data?.count ?? 0;
+  const incidentReportsCount = pendingIncidentReportsCount?.data?.count ?? 0;
 
   const incomingCount = forwardedDocuments?.data?.totalCount ?? 0;
   const pendingCount = pendingDocuments?.data?.totalCount ?? 0;
@@ -163,6 +164,7 @@ const SidebarContent = ({ onClose, ...rest }) => {
             link.name === 'Pending' ? pendingCount :
             link.name === 'Forwarded' ? outgoingCount :
             link.name === 'Returns' ? extensionCount :
+            link.name === 'Machinery Management' ? incidentReportsCount :
             undefined
           }
           linkName={link.name}
@@ -209,6 +211,8 @@ const NavItem = ({ icon, children, path, linkName, onClick, ...rest }) => {
         return { bg: "red.500", color: "white" };
       case 'Returns':
         return { bg: "orange.500", color: "white" };
+      case 'Machinery Management':
+        return { bg: "red.500", color: "white" };
       default:
         return { bg: "gray.500", color: "white" };
     }
@@ -246,16 +250,45 @@ const NavItem = ({ icon, children, path, linkName, onClick, ...rest }) => {
             as={icon} />
         )}
         <Text flex="1">{children}</Text>
-        {count !== undefined && count > 0 && (
-          <Badge
-            bg={badgeStyles.bg}
-            color={badgeStyles.color}
-            borderRadius="full"
-            px="2"
-            fontSize="0.8em"
-          >
-            {count}
-          </Badge>
+        {count !== undefined && (
+          linkName === 'Returns' && typeof count === 'object' ? (
+            <HStack spacing={1}>
+              {count.extension > 0 && (
+                <Badge
+                  bg={badgeStyles.bg}
+                  color={badgeStyles.color}
+                  borderRadius="full"
+                  px="2"
+                  fontSize="0.8em"
+                >
+                  {count.extension}
+                </Badge>
+              )}
+              {count.incident > 0 && (
+                <Badge
+                  bg="red.500"
+                  color="white"
+                  borderRadius="full"
+                  px="2"
+                  fontSize="0.8em"
+                >
+                  {count.incident}
+                </Badge>
+              )}
+            </HStack>
+          ) : (
+            typeof count === 'number' && count > 0 && (
+              <Badge
+                bg={badgeStyles.bg}
+                color={badgeStyles.color}
+                borderRadius="full"
+                px="2"
+                fontSize="0.8em"
+              >
+                {count}
+              </Badge>
+            )
+          )
         )}
       </Flex>
     </Box>

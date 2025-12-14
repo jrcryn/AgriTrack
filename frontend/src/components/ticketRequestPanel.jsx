@@ -79,6 +79,7 @@ const TicketRequestPanel = ({
     isMovingToSchedule,
 
     getMachineryUnitsForDropDownByType,
+    getOperatorsListByMachineType,
 
     declineTicketRequests,
     isDecliningTicketRequests,
@@ -90,12 +91,16 @@ const TicketRequestPanel = ({
     
     occupiedDatesForScheduling,
     isLoadingOccupiedDatesForScheduling,
-    occupiedDatesForSchedulingError
+    occupiedDatesForSchedulingError,
+    operatorAssignedNumbers,
+    isLoadingOperatorAssignedNumbers,
+    operatorAssignedNumbersError
   } = useAdminDashboard();
 
   const [selectedTicketForRemoval, setSelectedTicketForRemoval] = useState(null);
   const [declineReason, setDeclineReason] = useState('');
   const [unitsByType, setUnitsByType] = useState({}); // Map of units per machineryTypeId
+  const [operatorsByType, setOperatorsByType] = useState({}); // Map of operators per machineryTypeId
 
 
   const { isOpen: isOpenRemoveModal, onOpen: onOpenRemoveModal, onClose: onCloseRemoveModal } = useDisclosure();
@@ -187,7 +192,31 @@ const TicketRequestPanel = ({
         // console.error('Failed to load units for type', typeId, e);
       }
     });
-  }, [selectedTickets, isOpen]); 
+  }, [selectedTickets, isOpen]);
+
+  // Fetch operators for each unique requestedMachineType when selection changes (for pending page)
+  useEffect(() => {
+    if (!isOpen || selectedTickets.length === 0 || !isPendingPage) return;
+
+    const uniqueTypeIds = Array.from(
+      new Set(
+        selectedTickets
+          .map(t => t?.requestedMachineType?.requestedMachineTypeId)
+          .filter(Boolean)
+      )
+    );
+
+    uniqueTypeIds.forEach(async (typeId) => {
+      if (operatorsByType[typeId]) return;
+      try {
+        const res = await getOperatorsListByMachineType(typeId);
+        setOperatorsByType(prev => ({ ...prev, [typeId]: res?.data || [] }));
+      } catch (e) {
+        // optional: handle error per type
+        // console.error('Failed to load operators for type', typeId, e);
+      }
+    });
+  }, [selectedTickets, isOpen, isPendingPage]); 
 
   // Update a specific ticket in the schedule, pag gagawa ng schedule yung
   const updateTicketInSchedule = (ticketId, field, value) => {
@@ -658,6 +687,42 @@ const TicketRequestPanel = ({
                             </Box>
                             )}
 
+                          {/* Display Operator Assignment Numbers */}
+                            {isLoadingOperatorAssignedNumbers ? (
+                            <Box bg="gray.50" p={3} borderRadius="md">
+                                <Text fontSize="sm" color="gray.600">Loading operator assignments...</Text>
+                            </Box>
+                            ) : operatorAssignedNumbersError ? (
+                            <Box bg="red.50" p={3} borderRadius="md">
+                                <Text fontSize="sm" color="red.600">Error loading operator assignments</Text>
+                            </Box>
+                            ) : operatorAssignedNumbers?.data?.operators?.length > 0 ? (
+                            <Box bg="blue.50" p={3} borderRadius="md" borderLeft="4px solid" borderLeftColor="blue.400">
+                                <Text fontSize="sm" fontWeight="bold" color="blue.700" mb={2}>
+                                Operator Workload ({operatorAssignedNumbers.data.totalOperators} operators, {operatorAssignedNumbers.data.totalActiveAssignments} total active assignments):
+                                </Text>
+                                <VStack align="stretch" spacing={1}>
+                                {operatorAssignedNumbers.data.operators.slice(0, 5).map((operator, index) => (
+                                    <Text key={operator.operatorId || index} fontSize="sm" color="blue.600">
+                                    • {operator.operatorDetails?.first_name || ''} {operator.operatorDetails?.last_name || ''}: {operator.activeAssignments} active assignment{operator.activeAssignments !== 1 ? 's' : ''}
+                                    {operator.isOperatorDisabled && (
+                                        <Badge colorScheme="red" ml={2} fontSize="xs">Disabled</Badge>
+                                    )}
+                                    </Text>
+                                ))}
+                                {operatorAssignedNumbers.data.operators.length > 5 && (
+                                    <Text fontSize="xs" color="blue.500" fontStyle="italic">
+                                    ... and {operatorAssignedNumbers.data.operators.length - 5} more operator{operatorAssignedNumbers.data.operators.length - 5 !== 1 ? 's' : ''}
+                                    </Text>
+                                )}
+                                </VStack>
+                            </Box>
+                            ) : (
+                            <Box bg="green.50" p={3} borderRadius="md">
+                                <Text fontSize="sm" color="green.700">No operator assignments found</Text>
+                            </Box>
+                            )}
+
                           <Divider my={3} />
                           
                           <Heading size="sm">Selected Tickets</Heading>
@@ -680,6 +745,8 @@ const TicketRequestPanel = ({
                                   const ticket = selectedTickets.find(t => t._id === ticketData.ticketId);
                                   const typeId = ticket?.requestedMachineType?.requestedMachineTypeId;
                                   const unitsForType = (typeId && unitsByType[typeId]) ? unitsByType[typeId] : [];
+                                  const operatorsForType = (typeId && operatorsByType[typeId]) ? operatorsByType[typeId] : [];
+                                  const isLoadingOperatorsForType = typeId && !operatorsByType[typeId];
                                   return (
                                     <Tr key={ticketData.ticketId}>
                                       <Td fontWeight={'semibold'} fontSize={'xs'}>{ticket?.refNumber}</Td>
@@ -704,17 +771,17 @@ const TicketRequestPanel = ({
                                       </Td>
                                       <Td>
                                         <Select
-                                          placeholder="Select operator"
+                                          placeholder={isLoadingOperatorsForType ? "Loading operators..." : "Select operator"}
                                           value={ticketData.assignedOperatorId}
                                           onChange={(e) => updateTicketInSchedule(
                                             ticketData.ticketId,
                                             'assignedOperatorId',
                                             e.target.value
                                           )}
-                                          isDisabled={isLoadingOperatorsList}
+                                          isDisabled={isLoadingOperatorsForType || !ticketData.assignedDate || !typeId}
                                           size={'xs'}
                                         >
-                                          {operatorsList?.data?.map(op => (
+                                          {operatorsForType.map(op => (
                                             <option key={op._id} value={op._id}>
                                               {`${op.first_name} ${op.last_name}`}
                                             </option>
@@ -730,7 +797,7 @@ const TicketRequestPanel = ({
                                             'assignedMachineUnitId',
                                             e.target.value
                                           )}
-                                          isDisabled={!typeId || !unitsByType[typeId]}
+                                          isDisabled={!typeId || !unitsByType[typeId] || !ticketData.assignedOperatorId}
                                           size={'xs'}
                                         >
                                           {unitsForType.map(unit => (
@@ -1213,37 +1280,7 @@ const TicketRequestPanel = ({
                 </TabPanels>
               </Tabs>
             </>
-          )  /* : isDeclinedPage && selectedTickets.length === 1 ? (
-            <>
-              <Tabs colorScheme="red" variant="enclosed">
-                <TabList>
-                  <Tab>Ticket Details</Tab>
-                  <Tab>Undecline Ticket</Tab>
-                </TabList>
-                <TabPanels>
-                  <TabPanel px={0} pt={4} pb={0}>
-                    {ticketDetailsSection}
-                  </TabPanel>
-                  <TabPanel px={0} pt={4} pb={0}>
-                    <Box bg="yellow.50" p={3} borderRadius="md" mb={3} borderLeft="4px solid" borderLeftColor="yellow.400">
-                      <Text fontSize="sm" color="yellow.700">
-                        This will set the ticket’s status back to Pending.
-                      </Text>
-                    </Box>
-                    <Flex justify="flex-end" mt={4}>
-                      <Button
-                        colorScheme="green"
-                        onClick={handleUndeclineTicket}
-                        isLoading={isUndecliningTicketRequest}
-                      >
-                        Set Back to Pending
-                      </Button>
-                    </Flex>
-                  </TabPanel>
-                </TabPanels>
-              </Tabs>
-            </>
-          )*/ : (
+          ) : (
               <VStack spacing={4} align="center" py={4}>
                 <Text color="gray.600" fontSize="sm">No ticket/s or weekly schedule selected to manage.</Text>
               </VStack>

@@ -4,7 +4,7 @@ import {
   Box, VStack, Text, Heading, SimpleGrid, Badge, Flex, Button,
   FormControl, FormLabel, Input, useToast, Icon, Image, HStack,
   Alert, AlertIcon, AlertTitle, AlertDescription, Center, Switch, NumberInput, NumberInputField, Textarea,
-  useDisclosure,
+  useDisclosure, Select,
 } from '@chakra-ui/react';
 import { FaCheckCircle, FaCamera, FaSignature } from "react-icons/fa";
 import { CloseIcon, WarningIcon } from '@chakra-ui/icons';
@@ -41,7 +41,10 @@ const ReturnTicketPanel = ({
     extensionRequest: false, 
     areaServiced: '', 
     remainingArea: '',
-    remarks: ''
+    remarks: '',
+    incidentReport: false,
+    incidentType: '',
+    incidentDescription: ''
   });
   const {
     setTicketToComplete,
@@ -200,6 +203,13 @@ const ReturnTicketPanel = ({
         formData.append('remarks', additionalInfoData.remarks.trim());
       }
 
+      // Add incident report data if enabled
+      if (additionalInfoData.incidentReport) {
+        formData.append('incidentReport', 'true');
+        formData.append('incidentType', additionalInfoData.incidentType);
+        formData.append('incidentDescription', additionalInfoData.incidentDescription.trim());
+      }
+
       for (const [key, value] of formData.entries()) {
         if (value instanceof File) {
           console.log(key, { name: value.name, size: value.size, type: value.type });
@@ -220,6 +230,9 @@ const ReturnTicketPanel = ({
 
       // Invalidate queries to refresh data
       await queryClient.invalidateQueries({ queryKey: ['inProgressWeeklySchedules'] });
+      if (additionalInfoData.incidentReport && response.data?.incidentReportCreated) {
+        await queryClient.invalidateQueries({ queryKey: ['pendingIncidentReportsCount'] });
+      }
 
       onRequestReopenSchedule?.(scheduleId);
 
@@ -275,6 +288,13 @@ const ReturnTicketPanel = ({
       formData.append('operatorId', selectedTicket.assignedOperator.assignedOperatorId);
       formData.append('remarks', additionalInfoData.remarks.trim() || '');
 
+      // Add incident report data if enabled
+      if (additionalInfoData.incidentReport) {
+        formData.append('incidentReport', 'true');
+        formData.append('incidentType', additionalInfoData.incidentType);
+        formData.append('incidentDescription', additionalInfoData.incidentDescription.trim());
+      }
+
       formData.append('proofImage', proofImage);
       formData.append('signature', signatureFile);
 
@@ -297,6 +317,9 @@ const ReturnTicketPanel = ({
       });
 
       await queryClient.invalidateQueries({ queryKey: ['inProgressWeeklySchedules'] });
+      if (additionalInfoData.incidentReport && response.data?.incidentReportCreated) {
+        await queryClient.invalidateQueries({ queryKey: ['pendingIncidentReportsCount'] });
+      }
 
       onRequestReopenSchedule?.(scheduleId);
 
@@ -323,7 +346,10 @@ const ReturnTicketPanel = ({
       extensionRequest: false, 
       areaServiced: '', 
       remainingArea: '',
-      remarks: ''
+      remarks: '',
+      incidentReport: false,
+      incidentType: '',
+      incidentDescription: ''
     });
     if (signatureRef.current) {
       signatureRef.current.clear();
@@ -704,6 +730,71 @@ const ReturnTicketPanel = ({
                 </>
               )}
 
+              {/* Incident Report Section */}
+              <Box>
+                <Flex alignItems="center" mb={additionalInfoData.incidentReport ? 4 : 0}>
+                  <Text fontWeight="bold" mr={2}>Report Machine Incident</Text>
+                  <Switch
+                    isChecked={additionalInfoData.incidentReport}
+                    onChange={(e) =>
+                      setAdditionalInfoData(d => ({ 
+                        ...d, 
+                        incidentReport: e.target.checked, 
+                        incidentType: '', 
+                        incidentDescription: '' 
+                      }))
+                    }
+                    colorScheme="red"
+                  />
+                </Flex>
+
+                {additionalInfoData.incidentReport && (
+                  <Box mt={4} p={4} bg="red.50" borderRadius="md" borderWidth={1} borderColor="red.200">
+                    <VStack spacing={4} align="stretch">
+                      <FormControl isRequired>
+                        <FormLabel fontSize="sm">Incident Type</FormLabel>
+                        <Select
+                          placeholder="Select incident type"
+                          value={additionalInfoData.incidentType}
+                          onChange={(e) =>
+                            setAdditionalInfoData(d => ({ ...d, incidentType: e.target.value }))
+                          }
+                          bg="white"
+                        >
+                          <option value="Mechanical Failure">Mechanical Failure</option>
+                          <option value="Electrical Failure">Electrical Failure</option>
+                          <option value="Hydraulic/Pneumatic Failure">Hydraulic/Pneumatic Failure</option>
+                          <option value="Flat Tire or Track Issue">Flat Tire or Track Issue</option>
+                          <option value="Machine Overheating">Machine Overheating</option>
+                          <option value="Fuel System Issue">Fuel System Issue</option>
+                        </Select>
+                      </FormControl>
+
+                      <FormControl isRequired>
+                        <FormLabel fontSize="sm">Incident Description</FormLabel>
+                        <Textarea
+                          value={additionalInfoData.incidentDescription}
+                          onChange={(e) =>
+                            setAdditionalInfoData(d => ({ ...d, incidentDescription: e.target.value }))
+                          }
+                          placeholder="Describe the incident in detail..."
+                          rows={4}
+                          bg="white"
+                          resize="vertical"
+                        />
+                      </FormControl>
+
+                      <Alert status="warning" borderRadius="md" size="sm">
+                        <AlertIcon />
+                        <Text fontSize="xs">
+                          Reporting an incident will automatically set the machine status to "Under Repair" and condition to "Non-Functional". The incident will be submitted for admin review.
+                        </Text>
+                      </Alert>
+                    </VStack>
+                  </Box>
+                )}
+              </Box>
+
 
               {/* Remarks Section */}
               <Box>
@@ -764,7 +855,9 @@ const ReturnTicketPanel = ({
               !signature ||
               (!isExtensionTicket &&
                 additionalInfoData.extensionRequest &&
-                (!additionalInfoData.areaServiced || !additionalInfoData.remainingArea))
+                (!additionalInfoData.areaServiced || !additionalInfoData.remainingArea)) ||
+              (additionalInfoData.incidentReport &&
+                (!additionalInfoData.incidentType || !additionalInfoData.incidentDescription.trim()))
             }
             size="md"
           >
@@ -842,6 +935,8 @@ const ReturnTicketPanel = ({
         </ModalFooter>
       </ModalContent>
     </Modal>
+
+    
     </>
   );
 };

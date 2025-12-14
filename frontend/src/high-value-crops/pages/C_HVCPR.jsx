@@ -7,11 +7,13 @@ import {
 } from "@chakra-ui/react";
 import { FaFileExcel, FaDownload, FaCalendarAlt, FaChartBar, FaMapMarkerAlt, FaChevronDown } from 'react-icons/fa';
 import { useAdminDashboard } from '../store/adminDashboard.store';
+import { useAuthStore } from '../../auth/store/authStore';
 
 const C_HVCPR = () => {
   const [selectedRange, setSelectedRange] = useState('');
   const [selectedBarangays, setSelectedBarangays] = useState([]); // array of selected brgys
 
+  const { user } = useAuthStore();
   const { 
     availableYears, 
     availableMonths, 
@@ -92,8 +94,8 @@ const C_HVCPR = () => {
     }
     
     try {
-      // Now use the function from the store
-      const reportData = await generateHVCPR(selectedYear, selectedMonth, selectedBarangays);
+      // Now use the function from the store, passing employee ID
+      const reportData = await generateHVCPR(selectedYear, selectedMonth, selectedBarangays, user?.id);
       const monthLabel = new Date(selectedYear, selectedMonth - 1, 1).toLocaleString('en-US', { month: 'long' });
       console.log(selectedYear, selectedMonth, selectedBarangays);
 

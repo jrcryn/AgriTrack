@@ -70,25 +70,43 @@ export const useFarmerFormStore = create((set, get) => ({
     formData: { ...state.formData, cropOtherNew: data }
   })),
   
-  // Final submission function
-  submitFarmerForm: async () => {
-    const state = get();
-    const { formData } = state;
-    set({ isLoading: true, error: null });
+  // Submit multiple forms in a single request
+  submitMultipleFarmerForms: async (formsArray) => {
+    set({ isLoading: true, error: null, success: false });
     
     try {
+      const response = await axios.post(`${API_URL}/api/hvc/farmer-forms-bulk-submission`, {
+        forms: formsArray
+      });
       
-      await axios.post(`${API_URL}/api/hvc/farmer-form-submission`, formData);
-      
-      set({ isLoading: false, success: true });
-      return true;
+      if (response.status === 200 || response.status === 201) {
+        set({ isLoading: false, success: true, error: null });
+        
+        // Reset success flag after a short delay
+        setTimeout(() => {
+          set({ success: false });
+        }, 100);
+        
+        return {
+          success: true,
+          count: response.data.count,
+          results: response.data.results
+        };
+      } else {
+        throw new Error('Unexpected response from server');
+      }
     } catch (error) {
-      console.error('Form submission error:', error);
+      console.error('Bulk form submission error:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Error submitting forms';
       set({ 
         isLoading: false, 
-        error: error.response?.data?.message || 'Error submitting form data'
+        error: errorMessage,
+        success: false
       });
-      return false;
+      return {
+        success: false,
+        error: errorMessage
+      };
     }
   },
   

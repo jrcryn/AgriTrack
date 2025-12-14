@@ -397,14 +397,16 @@ export const useAdminDashboard = (searchParams = {}) => {
     }
   };
 
-  const generateHVCSaMPR = async (startDate, endDate) => {
+  const generateHVCSaMPR = async (startDate, endDate, barangays, employeeId) => {
     setIsGeneratingReport(true);
     try {
       const response = await axios.post(
         `${API_URL}/api/hvc/generate-hvc-sampr`, 
         { 
           startDate, 
-          endDate
+          endDate,
+          barangays,
+          employeeId
         },
         { responseType: 'blob' } // Important for file download
       );
@@ -416,11 +418,11 @@ export const useAdminDashboard = (searchParams = {}) => {
     }
   };
 
-  const generateHVCPR = async (year, month, barangays) => {
+  const generateHVCPR = async (year, month, barangays, employeeId) => {
     setIsGeneratingReport(true);
     try {
       const response = await axios.post(
-        `${API_URL}/api/hvc/generate-hvc-pr`, { year, month, barangays }, { responseType: 'blob' } // Important for file download
+        `${API_URL}/api/hvc/generate-hvc-pr`, { year, month, barangays, employeeId }, { responseType: 'blob' } // Important for file download
       );
       return response.data;
     } catch (error) {

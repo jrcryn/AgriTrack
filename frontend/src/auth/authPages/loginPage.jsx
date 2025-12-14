@@ -30,6 +30,7 @@ import Logo from '../../images/Calamba_Seal.png';
 import BackgroundImage from '../../images/bg.jpg';
 import { useAuthStore } from '../store/authStore.js'
 import { useNavigate, Link } from 'react-router-dom';
+import FAQButton from '../../components/FAQButton.jsx';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -237,6 +238,9 @@ const LoginPage = () => {
           </ModalFooter>
         </ModalContent>
       </Modal>
+
+      {/* FAQ Button */}
+      <FAQButton />
     </Box> 
   );
 };

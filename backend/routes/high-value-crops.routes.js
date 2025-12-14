@@ -3,7 +3,6 @@ import multer from 'multer';
 
 import { 
     getUnvalidatedFarmerInputs, 
-    //getValidatedFarmerInputs, // not in use
     createFarmerAccount, //manipulate data
     archiveFarmerAccount,
     unarchiveFarmerAccount,
@@ -11,7 +10,6 @@ import {
     getArchivedFarmerAccounts,
 
     getFarmerAccountByNameUser, 
-    //getFarmerAccountById, // not in use
     updateFarmerAccount, //manipulate data
     createUnifiedFarmerResponse, //manipulate data
     flagResponseForReview,
@@ -20,7 +18,7 @@ import {
     getAvailableMonthsForYear,
     getMetricsForYearMonth,
 
-    deleteFarmerResponse,
+    //deleteFarmerResponse,
     formStatusEnable,
     formStatusDisable,
     checkFormStatus,
@@ -47,7 +45,7 @@ import {
 } from '../controller/high-value-crops/genReports.controller.js';
 
 import {
-    submitCompleteFarmerForm,
+    submitMultipleFarmerForms
 } from '../controller/high-value-crops/farmerForm.controller.js';
 
 import { verifyAuthToken } from '../middleware/verifyToken.js';
@@ -136,7 +134,8 @@ router.post('/generate-hvc-pr', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), g
 //________________________________ FARMER FORM PAGES ____________________________________
 
 
-router.post('/farmer-form-submission', ensureHvcFormOpen, submitCompleteFarmerForm); // need ng way para ma-verify muna kung nahanap ba talaga (JWT probably again?) yung farmer bago magsubmit ng form, otherwise, reject ung submission. create middleware.
+//router.post('/farmer-form-submission', ensureHvcFormOpen, submitCompleteFarmerForm); // need ng way para ma-verify muna kung nahanap ba talaga (JWT probably again?) yung farmer bago magsubmit ng form, otherwise, reject ung submission. create middleware.
+router.post('/farmer-forms-bulk-submission', ensureHvcFormOpen, submitMultipleFarmerForms);
 router.get('/check-form-status', checkFormStatus);
 
 

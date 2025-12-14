@@ -1,4 +1,5 @@
 import ExcelJS from 'exceljs';
+import { logAction } from '../../utils/logAction.js';
 
 // Normalize date to YYYY-MM-DD (local)
 const toDateKey = (d) => {
@@ -262,9 +263,14 @@ export const exportMachineriesUsageReport = async (req, res) => {
     res.setHeader('Content-Type','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition',`attachment; filename="machinery-monthly-report-${filenameHint}.xlsx"`);
     await workbook.xlsx.write(res);
+    
+    // Log successful report generation
+    await logAction(req, req.userId, 'MACHINERY_USAGE_REPORT_GENERATED', 'machineries', `Machinery usage report generated for period ${periodLabel}`, 'SUCCESS');
+    
     res.end();
   } catch (error) {
     console.error('Monthly report generation error:', error);
+    await logAction(req, req.userId || 'UNKNOWN', 'MACHINERY_USAGE_REPORT_GENERATED', 'machineries', `Failed to generate machinery usage report: ${error.message}`, 'FAILED');
     res.status(500).json({ success:false, message:'Error generating monthly report.', error: error.message });
   }
 };

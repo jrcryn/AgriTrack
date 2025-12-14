@@ -2,14 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { 
   Box, Heading, Text, VStack, Button, FormControl, FormLabel, 
   Select, HStack, useToast, Flex, Icon, SimpleGrid, Divider, 
-  Spinner, Alert, AlertIcon, Badge, AlertTitle, AlertDescription
+  Spinner, Alert, AlertIcon, Badge, AlertTitle, AlertDescription, Tag, TagCloseButton, TagLabel,
+  Menu, MenuButton, MenuList, Checkbox, CheckboxGroup
 } from "@chakra-ui/react";
-import { FaFileExcel, FaDownload, FaCalendarAlt, FaChartBar, FaWifi } from 'react-icons/fa';
+import { FaFileExcel, FaDownload, FaCalendarAlt, FaChartBar, FaMapMarkerAlt, FaChevronDown } from 'react-icons/fa';
 import { useAdminDashboard } from '../store/adminDashboard.store';
+import { useAuthStore } from '../../auth/store/authStore';
 
 const B_HVCSaMPR = () => {
   const [selectedRange, setSelectedRange] = useState('');
+  const [selectedBarangays, setSelectedBarangays] = useState([]); // array of selected brgys
   
+  const { user } = useAuthStore();
   const { 
     availableYears, 
     availableMonths, 
@@ -18,14 +22,17 @@ const B_HVCSaMPR = () => {
     setSelectedYear,
     setSelectedMonth,
     dateRanges,
+    barangays,
     isLoading,
     isLoadingUFRY,
     isLoadingUFRM,
+    isLoadingBarangays,
     isGeneratingReport, 
     generateHVCSaMPR, 
     ufrYearsError, 
     ufrMonthsError,
-    dateRangesError, 
+    dateRangesError,
+    barangaysError, 
   } = useAdminDashboard();
   
   const toast = useToast();
@@ -37,6 +44,11 @@ const B_HVCSaMPR = () => {
     // Also reset the selected range
     setSelectedRange('');
   }, [selectedYear, setSelectedMonth]);
+
+  // Reset selectedBarangay when year or month changes
+  useEffect(() => {
+    setSelectedBarangays([]);
+  }, [selectedYear, selectedMonth]);
 
   // Auto-select the first available month when availableMonths changes and there's no month selected
   useEffect(() => {
@@ -66,11 +78,37 @@ const B_HVCSaMPR = () => {
     setSelectedMonth(newMonth);
   };
 
+  const handleBarangaysChange = (eOrValues) => {
+    // Allow both old <Select multiple> event and CheckboxGroup array
+    if (Array.isArray(eOrValues)) {
+      const values = eOrValues.map(String);
+      setSelectedBarangays(values);
+      return;
+    }
+    const values = Array.from(eOrValues.target.selectedOptions, (o) => String(o.value));
+    setSelectedBarangays(values);
+  };
+
+  const handleResetFilters = () => {
+    setSelectedBarangays([]);
+  };
+
   const handleGenerateReport = async () => {
     if (!selectedRange) {
       toast({
         title: "Missing information",
         description: "Please select a date range",
+        status: "warning",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+    
+    if (selectedBarangays.length === 0) {
+      toast({
+        title: "Missing information",
+        description: "Please select at least one barangay",
         status: "warning",
         duration: 3000,
         isClosable: true,
@@ -92,8 +130,8 @@ const B_HVCSaMPR = () => {
     const [startDate, endDate] = selectedRange.split('_');
     
     try {
-      // Now use the function from the store
-      const reportData = await generateHVCSaMPR(startDate, endDate);
+      // Now use the function from the store, passing employee ID and barangays
+      const reportData = await generateHVCSaMPR(startDate, endDate, selectedBarangays, user?.id);
       
       // Handle the download in the component (UI concern)
       const url = window.URL.createObjectURL(new Blob([reportData]));
@@ -282,6 +320,112 @@ const B_HVCSaMPR = () => {
                 </Select>
               </FormControl>
             </HStack>
+
+            {/* Stack Barangay selector and Active Filters vertically */}
+            <Flex direction="column">
+              <FormControl mb={2}>
+                <FormLabel fontWeight="medium" display="flex" alignItems="center">
+                  <Icon as={FaMapMarkerAlt} mr={2} color="gray.600" />
+                  Barangay
+                </FormLabel>
+
+                {selectedYear && selectedMonth ? (
+                  isLoadingBarangays ? (
+                    <Flex justify="center" py={4}>
+                      <Spinner color="green.500" size="md" thickness="3px" />
+                      <Text ml={3}>Loading available barangays...</Text>
+                    </Flex>
+                  ) : (barangays && barangays.length > 0) ? (
+                    // Replaced <Select multiple> with a checkable dropdown
+                    <Menu closeOnSelect={false} isLazy>
+                      <MenuButton
+                        as={Button}
+                        variant="outline"
+                        rightIcon={<FaChevronDown />}
+                        width="100%"
+                        justifyContent="space-between"
+                        fontWeight={'normal'}
+                        textAlign="left"
+                      >
+                        {selectedBarangays.length > 0
+                          ? `${selectedBarangays.length} selected`
+                          : 'Select Barangay/s'}
+                      </MenuButton>
+                      <MenuList maxH="16rem" overflowY="auto" minW="sm" p={2}>
+                        <HStack justify="space-between" mb={2}>
+                          <Button
+                            size="xs"
+                            variant="outline"
+                            colorScheme='blue'
+                            onClick={() => handleBarangaysChange(barangays.map(String))}
+                          >
+                            Select all
+                          </Button>
+                        </HStack>
+                        <CheckboxGroup value={selectedBarangays} onChange={handleBarangaysChange}>
+                          <VStack align="stretch" spacing={1}>
+                            {barangays.map((b) => (
+                              <Checkbox key={b} value={String(b)}>
+                                {b}
+                              </Checkbox>
+                            ))}
+                          </VStack>
+                        </CheckboxGroup>
+                      </MenuList>
+                    </Menu>
+                  ) : (
+                    <Alert status="info" borderRadius="md">
+                      <AlertIcon />
+                      No barangays available for the selected period
+                    </Alert>
+                  )
+                ) : (
+                  <Alert status="info" borderRadius="md">
+                    <AlertIcon />
+                    Please select both a year and month first
+                  </Alert>
+                )}
+
+                {barangaysError && (
+                  <Alert status="error" borderRadius="md" mt={2}>
+                    <AlertIcon />
+                    Error loading barangays...
+                  </Alert>
+                )}
+              </FormControl>
+
+              {(selectedBarangays.length > 0) && (
+                <Flex direction={{ base: "column", md: "row" }} align="center" mt={2}>
+                  {/* Active Filters Group */}
+                  <Flex align="center" gap={2} wrap="wrap">
+                    <Text fontWeight="medium" fontSize={'sm'}>Active selection/s:</Text>
+                    <Flex wrap="wrap" gap={2}>
+                      {selectedBarangays.map((b) => (
+                        <Tag key={b} size="md" borderRadius="full" variant="subtle" colorScheme="blue">
+                          <TagLabel fontSize={'sm'}>{b}</TagLabel>
+                          <TagCloseButton
+                            onClick={() =>
+                              setSelectedBarangays((prev) => prev.filter((x) => x !== b))
+                            }
+                          />
+                        </Tag>
+                      ))}
+                    </Flex>
+                  </Flex>
+
+                  {/* Reset Button */}
+                  <Button
+                    colorScheme="blue"
+                    size="sm"
+                    onClick={handleResetFilters}
+                    ml={{ base: 0, md: "auto" }}
+                    mt={{ base: 2, md: 0 }}
+                  >
+                    Reset
+                  </Button>
+                </Flex>
+              )}
+            </Flex>
             
             <FormControl>
               <FormLabel fontWeight="medium" display="flex" alignItems="center">
@@ -337,7 +481,7 @@ const B_HVCSaMPR = () => {
               loadingText="Generating..."
               size="lg"
               width="100%"
-              isDisabled={!selectedMonth || dateRanges.length === 0 || isLoading}
+              isDisabled={!selectedMonth || dateRanges.length === 0 || isLoading || selectedBarangays.length === 0 || isLoadingBarangays}
             >
               Generate Report
             </Button>

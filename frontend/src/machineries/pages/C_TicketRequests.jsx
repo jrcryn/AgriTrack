@@ -25,11 +25,12 @@ import {
   Checkbox,
   useToast, // Add import for toast
   Badge, // Add import for badge
-  Tooltip
+  Tooltip,
+  Spacer
 } from '@chakra-ui/react';
 import { FiSearch, FiInbox } from 'react-icons/fi';
 import { LuLogs } from "react-icons/lu";
-import { FaEye } from 'react-icons/fa';
+import { FaEye, FaLink, FaExternalLinkAlt } from 'react-icons/fa';
 
 import { useAdminDashboard } from '../store/adminDashboard.store.js';
 import TicketRequestPanel from '../../components/ticketRequestPanel.jsx';
@@ -44,28 +45,19 @@ const TicketRequests = () => {
   const [pendingPage, setPendingPage] = useState(1);
   const [ongoingPage, setOngoingPage] = useState(1);
   const [schedulesPage, setSchedulesPage] = useState(1);
-  const [declinedPage, setDeclinedPage] = useState(1);
 
   const [reopenScheduleId, setReopenScheduleId] = useState(null);
 
   
   const [pageType, setPageType] = useState(user?.role === 'MIM' ? 'pending' : 'scheduled'); // 'pending', 'ongoing', 'scheduled', 'declined'
   const [isViewingDetails, setIsViewingDetails] = useState(false)
+  const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL;
 
   const {
     pendingTicketRequests,
-    ongoingTicketRequests,
-    scheduledTicketRequests,
-    declinedTicketRequests,
     
     isLoadingPendingTicketRequests,
-    isLoadingOngoingTicketRequests,
-    isLoadingScheduledTicketRequests,
-    isLoadingDeclinedTicketRequests,
 
-    ongoingTicketRequestsError,
-    scheduledTicketRequestsError,
-    declinedTicketRequestsError,
     pendingTicketRequestsError,
 
     plannedWeeklySchedules,
@@ -76,15 +68,13 @@ const TicketRequests = () => {
     isLoadingInProgressWeeklySchedules,
     inProgressWeeklySchedulesError,
   } = useAdminDashboard(
-    { pendingPage, ongoingPage, schedulesPage, declinedPage },
+    { pendingPage, schedulesPage },
     { searchQuery }
   );
 
   useEffect(() => {
     setPendingPage(1);
     setSchedulesPage(1);
-    setDeclinedPage(1);
-    setOngoingPage(1);
   }, [ searchQuery ]);
 
   const { isOpen, onOpen, onClose } = useDisclosure();
@@ -287,8 +277,49 @@ const TicketRequests = () => {
         </Flex>
       </Flex>
 
-      {/* Documents Section */}
+        {/* Search Section */}
+        <Flex 
+          direction={{ base: "column", md: "row" }} 
+          mb={4} 
+          p={4}
+          bg="blue.50"
+          borderRadius="md"
+          alignItems={{ base: "flex-start", md: "center" }}
+          gap={2}
+        >
 
+          <Button 
+            colorScheme='blue' 
+            size="sm" 
+            width={{ base: "full", md: "auto" }} 
+            onClick={() => {
+              navigator.clipboard.writeText(`${FRONTEND_URL}/machineries/form/istcns`);
+              toast({
+                title: "Link Copied",
+                description: "The form link has been copied to your clipboard.",
+                status: "success",
+                duration: 3000,
+                isClosable: true,
+              });
+            }}
+            >
+            <Icon as={FaLink} mr={2}/>
+            Copy Form Link
+          </Button>
+
+          <Button 
+            colorScheme='blue' 
+            size="sm" 
+            width={{ base: "full", md: "auto" }} 
+            onClick={() => { window.open(`${FRONTEND_URL}/machineries/form/istcns`, '_blank') }} 
+            >
+            <Icon as={FaExternalLinkAlt} mr={2}/>
+            Open Form in New Tab
+          </Button>
+
+        </Flex>
+
+      {/* Documents Section */}
       {pageType === 'pending' && (
         <>
         {/* Archived Document Section */}
@@ -801,117 +832,6 @@ const TicketRequests = () => {
         </Box>
         </>
       )}
-
-
-      {/* {pageType === 'declined' && (
-        <>
-        <Box mb={8}>
-          <Flex justify="space-between" align="center" mb={4} bg={'red.50'} p={3} borderRadius="md" borderLeftWidth="4px" borderLeftColor={'red.500'}>
-            <Heading as="h2" size="md" display="flex" alignItems="center">
-              <Icon as={LuLogs} mr={2} color={'red.500'} /> DECLINED TICKETS
-            </Heading>
-          </Flex>
-
-          {isLoadingDeclinedTicketRequests ? (
-            <Center p={10}>
-              <Spinner size="lg" color={'red.500'} />
-            </Center>
-          ) : declinedTickets.length > 0 ? (
-            <Box overflowX="auto">
-              <TableContainer>
-                <Table variant="simple" size="md">
-                  <Thead bg="gray.50">
-                    <Tr>
-                      <Th>Reference #</Th>
-                      <Th>Requestor Farmer</Th>
-                      <Th>Farm Location</Th>
-                      <Th>Requested Machine</Th>
-                      <Th>Estimated Area</Th>
-                      <Th>Date Requested</Th>
-                      <Th
-                        position={{ base: 'static', md: 'sticky' }}
-                        right={0}
-                        bg="gray.50"
-                        zIndex={{ base: 0, md: 1 }}
-                        textAlign="center"
-                        width="120px"
-                      >
-                        <Box display={{ base: 'none', md: 'block' }}>Scroll →</Box>
-                        <Box display={{ base: 'block', md: 'none' }}>Actions</Box>
-                      </Th>
-                    </Tr>
-                  </Thead>
-                  <Tbody>
-                    {declinedTickets.map((ticket) => {
-                      const date = ticket?.dateRequested ? new Date(ticket.dateRequested).toLocaleString() : '—';
-                      const by = `${ticket?.requestorFarmer?.first_name || ''} ${ticket?.requestorFarmer?.surname || ''}`.trim() || '—';
-                      return (   
-                        <Tr key={ticket._id} fontSize="sm">
-                          <Td fontWeight={'semibold'}>{ticket.refNumber || '—'}</Td>
-                          <Td>{by || '-'}</Td>
-                          <Td>{ticket?.barangay || '-'}</Td>
-                          <Td>{ticket?.requestedMachineType?.equipmentType || '-'}</Td>
-                          <Td>{ticket?.estimatedArea || '-'}</Td>
-                          <Td>{date}</Td>
-                          <Td
-                            isNumeric
-                            position={{ base: 'static', md: 'sticky' }}
-                            right={0}
-                            zIndex={1}
-                            bg="white"
-                          >
-                            <Button
-                              size="xs"
-                              colorScheme='red'
-                              leftIcon={<FaEye />}
-                              onClick={() => {
-                                setSelectedTickets([ticket]);
-                                setIsViewingDetails(false);
-                                onOpen();
-                              }}
-                            >
-                              Details
-                            </Button>
-                          </Td>
-                        </Tr>
-                      );
-                    })}
-                  </Tbody>
-                </Table>
-              </TableContainer>
-            </Box>
-          ) : (
-            <Center
-              p={10}
-              borderWidth="1px"
-              borderRadius="md"
-              borderStyle="dashed"
-              borderColor="gray.300"
-              flexDirection="column"
-              gap={3}
-            >
-              <Icon as={FiInbox} boxSize={10} color="gray.400" />
-              <Text color="gray.500" fontWeight="medium">
-                No declined tickets found
-              </Text>
-              <Text fontSize="sm" color="gray.400">
-                Try adjusting your search.
-              </Text>
-            </Center>
-          )}
-
-          <Flex justifyContent="space-between" alignItems="center" mt={4}>
-            <PaginationControls
-              currentPage={declinedCurrentPage}
-              setCurrentPage={setDeclinedPage}
-              totalPages={declinedTotalPages}
-              totalItems={declinedTotalItems}
-              colorScheme='red'
-            />
-          </Flex>
-        </Box>
-        </>
-      )} */}
 
       <TicketRequestPanel
         isOpen={isOpen}

@@ -1,12 +1,12 @@
 import jwt from 'jsonwebtoken';
 
-export const generatePreTokenAndSetCookie = (res, userId) => {
+export const generatePreTokenAndSetCookie = (res, userId, accountType = 'employee') => {
 
     if (!userId) {
         throw new Error('User ID is required to generate pre-token and set cookie');
     };
 
-    const preToken = jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '5m' });
+    const preToken = jwt.sign({ userId, accountType }, process.env.JWT_SECRET, { expiresIn: '5m' });
 
     res.cookie('preAuthToken', preToken, {
         httpOnly: true,

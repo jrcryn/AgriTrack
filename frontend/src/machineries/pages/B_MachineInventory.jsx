@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Box,
   Heading,
@@ -48,13 +48,10 @@ import {
   Tab,
   TabPanel,
   FormLabel,
-  NumberInput,
-  NumberInputField,
-  NumberInputStepper,
-  NumberIncrementStepper,
-  NumberDecrementStepper,
   RadioGroup,
   Radio,
+  Checkbox,
+  Textarea,
 } from "@chakra-ui/react";
 import {
   FaTractor,
@@ -68,13 +65,62 @@ import {
 } from "react-icons/fa";
 import { useAdminDashboard } from "../store/adminDashboard.store";
 import { useAuthStore } from "../../auth/store/authStore";
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
+import { FaListCheck } from "react-icons/fa6";
+import { FaStickyNote } from "react-icons/fa";
+
+const API_URL = import.meta.env.VITE_API_URL;
+
 
 const B_MachineInventory = () => {
   const [selectedYear] = useState(new Date().getFullYear());
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [machineUnitsPage, setMachineUnitsPage] = useState(1);
+  const [previousCountsPage, setPreviousCountsPage] = useState(1);
+
+  // Modal disclosures - declared early to be used in useEffect
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const { isOpen: isOpenUpdateStatus, onOpen: onOpenUpdateStatus, onClose: onCloseUpdateStatus } = useDisclosure();
+  const { isOpen: isOpenRegister, onOpen: onOpenRegister, onClose: onCloseRegister } = useDisclosure();
+  const { isOpen: isOpenCountCheck, onOpen: onOpenCountCheck, onClose: onCloseCountCheck } = useDisclosure();
+  const { isOpen: isOpenPreviousCounts, onOpen: onOpenPreviousCounts, onClose: onClosePreviousCounts } = useDisclosure();
+  const { isOpen: isOpenResolveDiscrepancy, onOpen: onOpenResolveDiscrepancy, onClose: onCloseResolveDiscrepancy } = useDisclosure();
+
+  // Other state declarations
+  const [selectedUnit, setSelectedUnit] = useState(null);
+  const [statusUpdateData, setStatusUpdateData] = useState({
+    status: '',
+    condition: '',
+    reason: '',
+  });
+  const [activeTab, setActiveTab] = useState(0);
+  const [selectedMachineUnits, setSelectedMachineUnits] = useState(new Set());
+  const [countRemarks, setCountRemarks] = useState("");
+  const [selectedPhysicalCountingRecord, setSelectedPhysicalCountingRecord] = useState(null);
+  const [resolveRemarks, setResolveRemarks] = useState("");
+  const [machineTypeData, setMachineTypeData] = useState({
+    equipmentType: '',
+    ownerName: '',
+    ownerType: '',
+    ratedCapacity: '',
+  });
+  const [machineUnitData, setMachineUnitData] = useState({
+    machineryTypeId: '',
+    unitNumber: '',
+    engineBrand: '',
+    engineHorsepower: '',
+    modeOfAcquisition: '',
+    otherModeOfAcquisition: '', 
+    costOfAcquisition: '',
+    yearAcquired: '',
+  });
+
+  // Hooks
+  const toast = useToast();
+  const queryClient = useQueryClient();
+  const { user } = useAuthStore();
+  const role = user?.role?.toString();
 
   const {
     machineUnits,
@@ -92,11 +138,28 @@ const B_MachineInventory = () => {
     isLoadingMachineTypes,
     machineTypesError,
 
+    machineTypeUnitCounts,
+    isLoadingMachineTypeUnitCounts,
+    machineTypeUnitCountsError,
+
     createMachineryType,
     isCreatingMachineryType,
     createMachineryUnit,
-    isCreatingMachineryUnit
-  } = useAdminDashboard({ machineUnitsPage }, { searchQuery });
+    isCreatingMachineryUnit,
+    performMachineCountCheck,
+    isPerformingMachineCountCheck,
+
+    machineUnitsForPhysicalCounting,
+    isLoadingMachineUnitsForPhysicalCounting,
+    machineUnitsForPhysicalCountingError,
+
+    physicalCountingRecords,
+    isLoadingPhysicalCountingRecords,
+    physicalCountingRecordsError,
+
+    resolveDiscrepancyInPhysicalCount,
+    isResolvingDiscrepancyInPhysicalCount
+  } = useAdminDashboard({ machineUnitsPage, previousCountsPage }, { searchQuery });
 
   const getOverviewStats = () => {
     if (!machineOverview?.data) {
@@ -118,10 +181,25 @@ const B_MachineInventory = () => {
 
   const stats = getOverviewStats();
 
+  // Check if there are any unresolved discrepancies
+  const hasUnresolvedDiscrepancy = useMemo(() => {
+    if (!physicalCountingRecords?.data?.physicalCountingRecords) return false;
+    return physicalCountingRecords.data.physicalCountingRecords.some(
+      (record) => record.discrepancyFound === 'Discrepancy Found'
+    );
+  }, [physicalCountingRecords]);
+
   // Reset to page 1 when search query changes
   useEffect(() => {
     setMachineUnitsPage(1);
   }, [searchQuery]);
+
+  // Reset previous counts page when modal closes
+  useEffect(() => {
+    if (!isOpenPreviousCounts) {
+      setPreviousCountsPage(1);
+    }
+  }, [isOpenPreviousCounts]);
 
   // Get status color helper
   const getStatusColor = (status) => {
@@ -181,19 +259,144 @@ const B_MachineInventory = () => {
   const filteredMachineUnits = filterMachineUnits();
   
   console.log(filteredMachineUnits);
-  const { user } = useAuthStore();
-  const toast = useToast();
-  const queryClient = useQueryClient();
 
-  const { isOpen, onOpen, onClose } = useDisclosure();
-  const [selectedUnit, setSelectedUnit] = useState(null);
+  // Get all machine units for count check from the dedicated query
+  const getAllMachineUnitsForCount = () => {
+    if (!machineUnitsForPhysicalCounting?.data?.machineTypesWithUnits) return [];
+    
+    const allUnits = [];
+    machineUnitsForPhysicalCounting.data.machineTypesWithUnits.forEach((type) => {
+      type.machineUnits?.forEach((unit) => {
+        allUnits.push({
+          ...unit,
+          equipmentType: type.equipmentType,
+          ownerName: type.ownerName,
+        });
+      });
+    });
+    return allUnits;
+  };
 
-  const { isOpen: isOpenUpdateStatus, onOpen: onOpenUpdateStatus, onClose: onCloseUpdateStatus } = useDisclosure();
-  const [statusUpdateData, setStatusUpdateData] = useState({
-    status: '',
-    condition: '',
-    reason: '',
-  });
+  const allMachineUnitsForCount = getAllMachineUnitsForCount();
+
+  // Handle machine unit checkbox change
+  const handleMachineUnitToggle = (unitId) => {
+    const newSelected = new Set(selectedMachineUnits);
+    if (newSelected.has(unitId)) {
+      newSelected.delete(unitId);
+    } else {
+      newSelected.add(unitId);
+    }
+    setSelectedMachineUnits(newSelected);
+  };
+
+  // Handle select all / deselect all
+  const handleSelectAll = () => {
+    if (selectedMachineUnits.size === allMachineUnitsForCount.length) {
+      setSelectedMachineUnits(new Set());
+    } else {
+      const allIds = new Set(allMachineUnitsForCount.map(unit => unit._id.toString()));
+      setSelectedMachineUnits(allIds);
+    }
+  };
+
+  // Handle machine count check submission
+  const handleSubmitMachineCount = async () => {
+    if (!user?.id) {
+      toast({
+        title: "Error",
+        description: "User information not found",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    try {
+      const machineUnitIds = Array.from(selectedMachineUnits);
+      
+      const result = await performMachineCountCheck({
+        machineUnitIds,
+        employeeId: user.id,
+        remarks: countRemarks.trim() || '',
+      });
+
+      toast({
+        title: "Success",
+        description: result.message || "Machine count check completed successfully",
+        status: "success",
+        duration: 5000,
+        isClosable: true,
+      });
+
+      // Reset form and close modal
+      setSelectedMachineUnits(new Set());
+      setCountRemarks("");
+      onCloseCountCheck();
+
+      // Invalidate queries to refresh data
+      await queryClient.invalidateQueries({ queryKey: ['machineUnits'] });
+      await queryClient.invalidateQueries({ queryKey: ['machineOverview'] });
+
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error?.response?.data?.message || error?.message || "Failed to perform machine count check",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  };
+
+  // Handle resolve discrepancy in physical count
+  const handleResolveDiscrepancy = async () => {
+    if (!selectedPhysicalCountingRecord?._id) {
+      toast({
+        title: "Error",
+        description: "Physical counting record not found",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    try {
+      const result = await resolveDiscrepancyInPhysicalCount({
+        physicalCountingId: selectedPhysicalCountingRecord._id,
+        resolveRemarks: resolveRemarks.trim() || '',
+      });
+
+      toast({
+        title: "Success",
+        description: result.message || "Discrepancy resolved successfully",
+        status: "success",
+        duration: 5000,
+        isClosable: true,
+      });
+
+      // Reset form and close modal
+      setSelectedPhysicalCountingRecord(null);
+      setResolveRemarks("");
+      onCloseResolveDiscrepancy();
+
+      // Invalidate queries to refresh data
+      await queryClient.invalidateQueries({ queryKey: ['physicalCountingRecords'] });
+      await queryClient.invalidateQueries({ queryKey: ['machineUnits'] });
+      await queryClient.invalidateQueries({ queryKey: ['machineOverview'] });
+
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error?.response?.data?.message || error?.message || "Failed to resolve discrepancy",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  };
 
   const handleUpdateStatus = async () => {
     if (!selectedUnit?._id || !user?.id || !statusUpdateData.status || !statusUpdateData.condition || !statusUpdateData.reason.trim()) {
@@ -245,29 +448,6 @@ const B_MachineInventory = () => {
       });
     }
   };
-
-  const { isOpen: isOpenRegister, onOpen: onOpenRegister, onClose: onCloseRegister } = useDisclosure();
-  const [activeTab, setActiveTab] = useState(0);
-
-  // State for creating machine type
-  const [machineTypeData, setMachineTypeData] = useState({
-    equipmentType: '',
-    ownerName: '',
-    ownerType: '',
-    ratedCapacity: '',
-  });
-
-  // State for adding machine unit
-  const [machineUnitData, setMachineUnitData] = useState({
-    machineryTypeId: '',
-    unitNumber: '',
-    engineBrand: '',
-    engineHorsepower: '',
-    modeOfAcquisition: '',
-    otherModeOfAcquisition: '', 
-    costOfAcquisition: '',
-    yearAcquired: '',
-  });
 
   const resetMachineTypeForm = () => {
     setMachineTypeData({
@@ -359,6 +539,9 @@ const B_MachineInventory = () => {
   const machineUnitsCurrentPage = machineUnits?.data?.currentPage || 1;
   const machineUnitsTotalItems = machineUnits?.data?.totalCount || 0;
 
+  // Get units per machine type from API
+  const unitsPerMachineType = machineTypeUnitCounts?.data || [];
+
   // Pagination Controls Component
   const PaginationControls = ({ currentPage, setCurrentPage, totalPages, totalItems, colorScheme }) => (
     <Flex
@@ -372,14 +555,13 @@ const B_MachineInventory = () => {
       <Text color="gray.600" fontSize="md">
         Page {currentPage} of {totalPages || 1} ({totalItems} total)
       </Text>
-      <Flex>
+      <HStack spacing={2}>
         <Button
           size="sm"
           onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
           isDisabled={currentPage === 1}
           colorScheme={colorScheme}
           variant="outline"
-          mr={2}
         >
           Previous
         </Button>
@@ -392,19 +574,85 @@ const B_MachineInventory = () => {
         >
           Next
         </Button>
-      </Flex>
+      </HStack>
     </Flex>
   );
 
+  const ButtonWithNotification = ({ children, showNotification, dotColor }) => {
+    return (
+      <Box position="relative" display="inline-block">
+        {children}
+        {showNotification && (
+          <Box
+            position="absolute"
+            top="-5px"
+            right="-5px"
+            width="12px"
+            height="12px"
+            bg={dotColor}
+            borderRadius="full"
+            boxShadow="0 0 0 2px white"
+            zIndex={1}
+          />
+        )}
+      </Box>
+    );
+  };
+
   return (
     <>
-    <Box overflow="hidden" bg="white" p={5} minH="100vh">
-      <Heading as="h1" size="xl" mb={2} color="black">
+    <Box overflow="hidden" bg="white" p={{ base: 3, md: 5 }} minH="100vh">
+      <Heading 
+        as="h1" 
+        size={{ base: "lg", md: "xl" }} 
+        mb={2} 
+        color="black"
+      >
         Machinery Inventory
       </Heading>
-      <Text color="gray.600" mb={5}>
+      <Text 
+        color="gray.600" 
+        mb={{ base: 4, md: 5 }}
+        fontSize={{ base: "sm", md: "md" }}
+      >
         Overview of agricultural machinery assets and their operational status.
       </Text>
+
+      {/* BUtton Section */}
+      <Flex
+        direction={{ base: 'column', md: 'row' }}
+        alignItems="center"
+        mb={6}
+        gap={4}
+        p={3}
+        bg="blue.50"
+        borderRadius="md"
+        boxShadow="sm"
+      >
+        <Button 
+          colorScheme="blue" 
+          alignSelf={{ base: 'stretch', md: 'flex-end' }}
+          size={'sm'}
+          leftIcon={<FaListCheck />}
+          onClick={onOpenCountCheck}
+        >
+          Count Machines
+        </Button>
+        <ButtonWithNotification 
+          showNotification={hasUnresolvedDiscrepancy}
+          dotColor="red.500"
+        >
+          <Button 
+            colorScheme="orange" 
+            alignSelf={{ base: 'stretch', md: 'flex-end' }}
+            size={'sm'}
+            leftIcon={<FaStickyNote />}
+            onClick={onOpenPreviousCounts}
+          >
+            Previous Machine Counts
+          </Button>
+        </ButtonWithNotification>
+      </Flex>
 
       {/* Inventory Data Cards */}
       <Box mb={8}>
@@ -413,23 +661,29 @@ const B_MachineInventory = () => {
           align="center"
           mb={4}
           bg="blue.50"
-          p={3}
+          p={{ base: 2, md: 3 }}
           borderRadius="md"
           borderLeftWidth="4px"
           borderLeftColor="blue.500"
         >
-          <Heading as="h2" size="md" display="flex" alignItems="center">
+          <Heading 
+            as="h2" 
+            size={{ base: "sm", md: "md" }} 
+            display="flex" 
+            alignItems="center"
+            flexWrap="wrap"
+          >
             <Icon as={FaTractor} mr={2} color="blue.600" /> MACHINE OVERVIEW
           </Heading>
         </Flex>
 
         {/* Error Alert for Machine Overview */}
         {machineOverviewError && (
-          <Alert status="error" mb={4}>
+          <Alert status="error" mb={4} borderRadius="md">
             <AlertIcon />
             <Box>
-              <AlertTitle>Error loading machine overview</AlertTitle>
-              <AlertDescription>
+              <AlertTitle fontSize={{ base: "sm", md: "md" }}>Error loading machine overview</AlertTitle>
+              <AlertDescription fontSize={{ base: "xs", md: "sm" }}>
                 {machineOverviewError?.response?.data?.message ||
                   machineOverviewError?.message ||
                   "An error occurred while fetching machine overview."}
@@ -438,127 +692,249 @@ const B_MachineInventory = () => {
           </Alert>
         )}
 
-        <Stack direction={{ base: "column", md: "row" }} spacing={4} w="full">
+        <SimpleGrid 
+          columns={{ base: 1, sm: 2, lg: 4 }} 
+          spacing={{ base: 3, md: 4 }} 
+          w="full"
+        >
           {/* Total Machines */}
           <Box
-            p={5}
-            flex={1}
+            p={{ base: 4, md: 5 }}
             borderRadius="md"
             boxShadow="sm"
             bg="white"
             borderWidth="1px"
             borderColor="gray.200"
+            transition="all 0.2s"
           >
             <Stat>
-              <StatLabel fontSize="md" display="flex" alignItems="center">
-                <Icon as={FaTractor} mr={2} color="blue.500" /> Total Machines
+              <StatLabel 
+                fontSize={{ base: "sm", md: "md" }} 
+                display="flex" 
+                alignItems="center"
+                mb={{ base: 2, md: 3 }}
+              >
+                <Icon as={FaTractor} mr={2} color="blue.500" /> 
+                <Text as="span" noOfLines={1}>Total Machines</Text>
               </StatLabel>
               {isLoadingMachineOverview ? (
-                <Center h="65px">
-                  <Spinner size="lg" thickness="3px" color="blue.500" />
+                <Center h={{ base: "50px", md: "65px" }}>
+                  <Spinner size={{ base: "md", md: "lg" }} thickness="3px" color="blue.500" />
                 </Center>
               ) : (
-                <StatNumber fontSize="4xl">{stats.totalMachines}</StatNumber>
+                <StatNumber 
+                  fontSize={{ base: "2xl", sm: "3xl", md: "4xl" }}
+                  lineHeight="shorter"
+                >
+                  {stats.totalMachines}
+                </StatNumber>
               )}
-              <StatHelpText>{selectedYear}</StatHelpText>
+              <StatHelpText fontSize={{ base: "xs", md: "sm" }} mt={{ base: 1, md: 2 }}>
+                {selectedYear}
+              </StatHelpText>
             </Stat>
           </Box>
 
           {/* Functional Machines */}
           <Box
-            p={5}
-            flex={1}
+            p={{ base: 4, md: 5 }}
             borderRadius="md"
             boxShadow="sm"
             bg="white"
             borderWidth="1px"
             borderColor="gray.200"
+            transition="all 0.2s"
           >
             <Stat>
-              <StatLabel fontSize="md" display="flex" alignItems="center">
-                <Icon as={FaCheckCircle} mr={2} color="green.500" /> Functional
+              <StatLabel 
+                fontSize={{ base: "sm", md: "md" }} 
+                display="flex" 
+                alignItems="center"
+                mb={{ base: 2, md: 3 }}
+              >
+                <Icon as={FaCheckCircle} mr={2} color="green.500" /> 
+                <Text as="span" noOfLines={1}>Functional</Text>
               </StatLabel>
               {isLoadingMachineOverview ? (
-                <Center h="65px">
-                  <Spinner size="lg" thickness="3px" color="green.500" />
+                <Center h={{ base: "50px", md: "65px" }}>
+                  <Spinner size={{ base: "md", md: "lg" }} thickness="3px" color="green.500" />
                 </Center>
               ) : (
-                <StatNumber fontSize="4xl">{stats.functional}</StatNumber>
+                <StatNumber 
+                  fontSize={{ base: "2xl", sm: "3xl", md: "4xl" }}
+                  lineHeight="shorter"
+                >
+                  {stats.functional}
+                </StatNumber>
               )}
-              <StatHelpText>In good condition</StatHelpText>
+              <StatHelpText fontSize={{ base: "xs", md: "sm" }} mt={{ base: 1, md: 2 }}>
+                In good condition
+              </StatHelpText>
             </Stat>
           </Box>
 
           {/* Under Repair */}
           <Box
-            p={5}
-            flex={1}
+            p={{ base: 4, md: 5 }}
             borderRadius="md"
             boxShadow="sm"
             bg="white"
             borderWidth="1px"
             borderColor="gray.200"
+            transition="all 0.2s"
           >
             <Stat>
-              <StatLabel fontSize="md" display="flex" alignItems="center">
-                <Icon as={FaExclamationTriangle} mr={2} color="orange.500" /> Under Repair
+              <StatLabel 
+                fontSize={{ base: "sm", md: "md" }} 
+                display="flex" 
+                alignItems="center"
+                mb={{ base: 2, md: 3 }}
+              >
+                <Icon as={FaExclamationTriangle} mr={2} color="orange.500" /> 
+                <Text as="span" noOfLines={1}>Under Repair</Text>
               </StatLabel>
               {isLoadingMachineOverview ? (
-                <Center h="65px">
-                  <Spinner size="lg" thickness="3px" color="orange.500" />
+                <Center h={{ base: "50px", md: "65px" }}>
+                  <Spinner size={{ base: "md", md: "lg" }} thickness="3px" color="orange.500" />
                 </Center>
               ) : (
-                <StatNumber fontSize="4xl">{stats.underRepair}</StatNumber>
+                <StatNumber 
+                  fontSize={{ base: "2xl", sm: "3xl", md: "4xl" }}
+                  lineHeight="shorter"
+                >
+                  {stats.underRepair}
+                </StatNumber>
               )}
-              <StatHelpText>Maintenance ongoing</StatHelpText>
+              <StatHelpText fontSize={{ base: "xs", md: "sm" }} mt={{ base: 1, md: 2 }}>
+                Maintenance ongoing
+              </StatHelpText>
             </Stat>
           </Box>
 
           {/* Retired Machines */}
           <Box
-            p={5}
-            flex={1}
+            p={{ base: 4, md: 5 }}
             borderRadius="md"
             boxShadow="sm"
             bg="white"
             borderWidth="1px"
             borderColor="gray.200"
+            transition="all 0.2s"
           >
             <Stat>
-              <StatLabel fontSize="md" display="flex" alignItems="center">
-                <Icon as={FaTools} mr={2} color="gray.500" /> Retired
+              <StatLabel 
+                fontSize={{ base: "sm", md: "md" }} 
+                display="flex" 
+                alignItems="center"
+                mb={{ base: 2, md: 3 }}
+              >
+                <Icon as={FaTools} mr={2} color="gray.500" /> 
+                <Text as="span" noOfLines={1}>Retired</Text>
               </StatLabel>
               {isLoadingMachineOverview ? (
-                <Center h="65px">
-                  <Spinner size="lg" thickness="3px" color="gray.500" />
+                <Center h={{ base: "50px", md: "65px" }}>
+                  <Spinner size={{ base: "md", md: "lg" }} thickness="3px" color="gray.500" />
                 </Center>
               ) : (
-                <StatNumber fontSize="4xl">{stats.retired}</StatNumber>
+                <StatNumber 
+                  fontSize={{ base: "2xl", sm: "3xl", md: "4xl" }}
+                  lineHeight="shorter"
+                >
+                  {stats.retired}
+                </StatNumber>
               )}
-              <StatHelpText>Out of service</StatHelpText>
+              <StatHelpText fontSize={{ base: "xs", md: "sm" }} mt={{ base: 1, md: 2 }}>
+                Out of service
+              </StatHelpText>
             </Stat>
           </Box>
-        </Stack>
+        </SimpleGrid>
+
+        {/* Machine Units Per Type Cards */}
+        {machineTypeUnitCountsError && (
+          <Alert status="error" mt={4} borderRadius="md">
+            <AlertIcon />
+            <Box>
+              <AlertTitle fontSize={{ base: "sm", md: "md" }}>Error loading machine type unit counts</AlertTitle>
+              <AlertDescription fontSize={{ base: "xs", md: "sm" }}>
+                {machineTypeUnitCountsError?.response?.data?.message ||
+                  machineTypeUnitCountsError?.message ||
+                  "An error occurred while fetching machine type unit counts."}
+              </AlertDescription>
+            </Box>
+          </Alert>
+        )}
+        
+        {isLoadingMachineTypeUnitCounts ? (
+          <Center mt={4} py={8}>
+            <Spinner size="md" thickness="3px" color="purple.500" />
+          </Center>
+        ) : unitsPerMachineType.length > 0 ? (
+          <SimpleGrid 
+            columns={{ base: 2, sm: 3, md: 4, lg: 5, xl: 6 }} 
+            spacing={{ base: 2, md: 3 }} 
+            w="full"
+            mt={4}
+          >
+            {unitsPerMachineType.map((type, index) => (
+              <Tooltip
+                key={type._id || index}
+                label={type.equipmentType || 'N/A'}
+                placement="top"
+                hasArrow
+              >
+                <Box
+                  p={{ base: 2, md: 3 }}
+                  borderRadius="md"
+                  boxShadow="sm"
+                  bg="white"
+                  borderWidth="1px"
+                  borderColor="gray.200"
+                >
+                  <Stat>
+                    <StatLabel 
+                      fontSize={{ base: "xs", md: "sm" }} 
+                      display="flex" 
+                      alignItems="center"
+                      mb={{ base: 1, md: 2 }}
+                    >
+                      <Icon as={FaTractor} mr={1} color="purple.500" boxSize={{ base: 3, md: 4 }} /> 
+                      <Text as="span" noOfLines={1} fontSize={{ base: "xs", md: "sm" }}>
+                        {type.equipmentType || 'N/A'}
+                      </Text>
+                    </StatLabel>
+                    <StatNumber 
+                      fontSize={{ base: "lg", sm: "xl", md: "2xl" }}
+                      lineHeight="shorter"
+                    >
+                      {type.unitCount || 0}
+                    </StatNumber>
+                  </Stat>
+                </Box>
+              </Tooltip>
+            ))}
+          </SimpleGrid>
+        ) : null}
       </Box>
       
       {/* Search / Filters Bar (adapted from provided snippet) */}
       <Box 
         mb={6}
-        p={4}
+        p={{ base: 3, md: 4 }}
         bg="orange.50"
         borderRadius="md"
         boxShadow="sm"
       >
         <Flex 
           direction={{ base: "column", lg: "row" }} 
-          gap={4}
+          gap={{ base: 3, md: 4 }}
           align={{ base: "stretch", lg: "flex-end" }}
         >
           {/* General Search */}
-          <Box flex={{ base: "1", lg: "2" }}>
-            <HStack spacing={2} mb={2} justifyContent="flex-start">
-              <Icon as={FaSearch} color="orange.500" />
-              <Text fontWeight="medium" fontSize={'sm'}>
+          <Box flex={{ base: "1", lg: "2" }} minW={0}>
+            <HStack spacing={2} mb={2} justifyContent="flex-start" flexWrap="wrap">
+              <Icon as={FaSearch} color="orange.500" boxSize={{ base: 3, md: 4 }} />
+              <Text fontWeight="medium" fontSize={{ base: "xs", md: "sm" }}>
                 Search by:{" "}
                 <Tooltip label="Wrong spelling and extra spaces may give no results." placement="bottom" hasArrow>
                   <span>(<Icon as={FaInfo} color="orange.500" boxSize={3} />)</span>
@@ -572,6 +948,8 @@ const B_MachineInventory = () => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 _focus={{ borderColor: "orange.400" }}
+                fontSize={{ base: "sm", md: "md" }}
+                size={{ base: "sm", md: "md" }}
               />
               <InputRightElement pointerEvents="none">
                 <FaSearch color="gray.300" />
@@ -585,8 +963,9 @@ const B_MachineInventory = () => {
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
               bg="white"
-              size="md"
-              height="40px"
+              size={{ base: "sm", md: "md" }}
+              height={{ base: "36px", md: "40px" }}
+              fontSize={{ base: "sm", md: "md" }}
             >
               <option value="all">All Statuses</option>
               <option value="Available">Available</option>
@@ -598,17 +977,21 @@ const B_MachineInventory = () => {
           </FormControl>
 
           {/* Register Machine Button */}
-          <Button
-            colorScheme="orange"
-            size="md"
-            height="40px"
-            width={{ base: "100%", lg: "auto" }}
-            flexShrink={0}
-            onClick={onOpenRegister}
-            leftIcon={<FaPlus />}
-          >
-            Register Machine
-          </Button>
+          {role === 'MIM' && (
+            <Button
+              colorScheme="orange"
+              size={{ base: "sm", md: "md" }}
+              height={{ base: "36px", md: "40px" }}
+              width={{ base: "100%", lg: "auto" }}
+              flexShrink={0}
+              onClick={onOpenRegister}
+              leftIcon={<FaPlus />}
+              fontSize={{ base: "sm", md: "md" }}
+            >
+              Register Machine
+            </Button>
+          )}
+
         </Flex>
       </Box>
 
@@ -619,12 +1002,18 @@ const B_MachineInventory = () => {
           align="center"
           mb={4}
           bg="orange.50"
-          p={3}
+          p={{ base: 2, md: 3 }}
           borderRadius="md"
           borderLeftWidth="4px"
           borderLeftColor="orange.500"
         >
-          <Heading as="h2" size="md" display="flex" alignItems="center">
+          <Heading 
+            as="h2" 
+            size={{ base: "sm", md: "md" }} 
+            display="flex" 
+            alignItems="center"
+            flexWrap="wrap"
+          >
             <Icon as={FaTractor} mr={2} color="orange.600" /> MACHINE UNITS
           </Heading>
         </Flex>
@@ -655,16 +1044,26 @@ const B_MachineInventory = () => {
           ) : (
             <Box overflowX="auto">
               <TableContainer>
-                <Table variant="simple">
+                <Table variant="simple" size="md">
                   <Thead bg="gray.50">
                     <Tr>
                       <Th textAlign={'center'}>Unit Number</Th>
-                      <Th>Equipment Type</Th>
-                      <Th>Owner</Th>
-                      <Th>Engine Brand</Th>
-                      <Th>Horsepower</Th>
+                      <Th display={{ base: "none", sm: "table-cell" }}>
+                        Equipment Type
+                      </Th>
+                      <Th display={{ base: "none", md: "table-cell" }}>
+                        Owner
+                      </Th>
+                      <Th display={{ base: "none", lg: "table-cell" }}>
+                        Engine Brand
+                      </Th>
+                      <Th display={{ base: "none", lg: "table-cell" }}>
+                        Horsepower
+                      </Th>
                       <Th>Status</Th>
-                      <Th>Condition</Th>
+                      <Th display={{ base: "none", sm: "table-cell" }}>
+                        Condition
+                      </Th>
                       <Th
                         position={{ base: 'static', md: 'sticky' }}
                         right={0}
@@ -681,12 +1080,22 @@ const B_MachineInventory = () => {
                   <Tbody>
                     {filteredMachineUnits.map((type) =>
                       type.machineUnits?.map((unit) => (
-                        <Tr key={unit._id} _hover={{ bg: "gray.50" }}>
-                          <Td fontWeight="semibold" fontSize={'sm'} textAlign={'center'}>{unit.unitNumber}</Td>
-                          <Td fontSize={'sm'}>{type.equipmentType}</Td>
-                          <Td fontSize={'sm'}>{type.ownerName}</Td>
-                          <Td fontSize={'sm'}>{unit.engineBrand || "N/A"}</Td>
-                          <Td fontSize={'sm'}>{unit.engineHorsepower}</Td>
+                        <Tr key={unit._id} fontSize="sm">
+                          <Td fontWeight="semibold" textAlign={'center'}>
+                            {unit.unitNumber}
+                          </Td>
+                          <Td display={{ base: "none", sm: "table-cell" }}>
+                            {type.equipmentType}
+                          </Td>
+                          <Td display={{ base: "none", md: "table-cell" }}>
+                            {type.ownerName}
+                          </Td>
+                          <Td display={{ base: "none", lg: "table-cell" }}>
+                            {unit.engineBrand || "N/A"}
+                          </Td>
+                          <Td display={{ base: "none", lg: "table-cell" }}>
+                            {unit.engineHorsepower}
+                          </Td>
                           <Td>
                             <Tag
                               colorScheme={getStatusColor(unit.status)}
@@ -695,7 +1104,7 @@ const B_MachineInventory = () => {
                               {unit.status}
                             </Tag>
                           </Td>
-                          <Td>
+                          <Td display={{ base: "none", sm: "table-cell" }}>
                             <Tag
                               colorScheme={getConditionColor(unit.condition)}
                               size="sm"
@@ -1318,19 +1727,36 @@ const B_MachineInventory = () => {
                     <FormLabel fontSize="sm" fontWeight="medium">
                       Machine Type
                     </FormLabel>
+                    {machineTypesError ? (
+                      <Alert status="error" borderRadius="md" mb={2}>
+                        <AlertIcon />
+                        <AlertDescription fontSize="xs">
+                          {machineTypesError?.response?.data?.message ||
+                            machineTypesError?.message ||
+                            "Failed to load machine types"}
+                        </AlertDescription>
+                      </Alert>
+                    ) : null}
                     <Select
-                      placeholder="Select machine type"
+                      placeholder={isLoadingMachineTypes ? "Loading machine types..." : "Select machine type"}
                       value={machineUnitData.machineryTypeId}
                       onChange={(e) => setMachineUnitData({ ...machineUnitData, machineryTypeId: e.target.value })}
                       bg="white"
+                      isDisabled={isLoadingMachineTypes || !!machineTypesError}
                     >
                       {isLoadingMachineTypes ? (
                         <option disabled>Loading...</option>
-                      ) : machineTypes?.data?.map((type) => (
-                        <option key={type._id} value={type._id}>
-                          {type.equipmentType} - {type.ownerName}
-                        </option>
-                      ))}
+                      ) : machineTypesError ? (
+                        <option disabled>Error loading machine types</option>
+                      ) : machineTypes?.data?.length > 0 ? (
+                        machineTypes.data.map((type) => (
+                          <option key={type._id} value={type._id}>
+                            {type.equipmentType} - {type.ownerName}
+                          </option>
+                        ))
+                      ) : (
+                        <option disabled>No machine types available</option>
+                      )}
                     </Select>
                   </FormControl>
 
@@ -1518,6 +1944,591 @@ const B_MachineInventory = () => {
         </ModalFooter>
       </ModalContent>
     </Modal>
+
+    {/* Machine Count Check Modal */}
+    <Modal
+      isOpen={isOpenCountCheck}
+      onClose={() => {
+        setSelectedMachineUnits(new Set());
+        setCountRemarks("");
+        onCloseCountCheck();
+      }}
+      size="4xl"
+      closeOnOverlayClick={false}
+      scrollBehavior="inside"
+      isCentered
+      motionPreset="none"
+      blockScrollOnMount={false}
+    >
+      <ModalOverlay />
+      <ModalContent borderRadius="lg" overflow="hidden">
+        <ModalHeader
+          bg="blue.50"
+          borderBottomWidth="1px"
+          borderColor="gray.200"
+          py={4}
+          display="flex"
+          alignItems="center"
+        >
+          <Icon as={FaListCheck} mr={2} color="blue.500" />
+          Machine Count Check
+        </ModalHeader>
+        
+        <ModalBody py={6}>
+          <Stack spacing={4}>
+            <Alert status="info" borderRadius="md" variant="left-accent">
+              <AlertIcon />
+              <Box>
+                <AlertTitle fontSize="sm">Instructions</AlertTitle>
+                <AlertDescription fontSize="xs">
+                  Check the boxes next to machine units that you found during the physical inventory count. 
+                  Units that are not checked will be marked as not found.
+                </AlertDescription>
+              </Box>
+            </Alert>
+
+            {/* Select All / Deselect All */}
+            <Flex justify="space-between" align="center" p={3} bg="gray.50" borderRadius="md">
+              <Text fontSize="sm" fontWeight="medium">
+                {selectedMachineUnits.size} of {allMachineUnitsForCount.length} units selected
+              </Text>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleSelectAll}
+                colorScheme="blue"
+              >
+                {selectedMachineUnits.size === allMachineUnitsForCount.length ? "Deselect All" : "Select All"}
+              </Button>
+            </Flex>
+
+            {/* Machine Units Table */}
+            <Box
+              maxH="400px"
+              overflowY="auto"
+              borderWidth="1px"
+              borderColor="gray.200"
+              borderRadius="md"
+            >
+              {isLoadingMachineUnitsForPhysicalCounting ? (
+                <Center py={8}>
+                  <Spinner size="md" thickness="3px" color="blue.500" />
+                </Center>
+              ) : machineUnitsForPhysicalCountingError ? (
+                <Center py={8}>
+                  <Alert status="error" borderRadius="md">
+                    <AlertIcon />
+                    <AlertDescription fontSize="sm">
+                      {machineUnitsForPhysicalCountingError?.response?.data?.message ||
+                        machineUnitsForPhysicalCountingError?.message ||
+                        "Failed to load machine units"}
+                    </AlertDescription>
+                  </Alert>
+                </Center>
+              ) : allMachineUnitsForCount.length === 0 ? (
+                <Center py={8}>
+                  <Text color="gray.500">No machine units available for counting</Text>
+                </Center>
+              ) : (
+                <TableContainer>
+                  <Table variant="simple" size="sm">
+                    <Thead bg="gray.50" position="sticky" top={0} zIndex={1}>
+                      <Tr>
+                        <Th width="50px" textAlign="center">
+                        </Th>
+                        <Th>Unit #</Th>
+                        <Th>Equipment Type</Th>
+                        <Th display={{ base: "none", md: "table-cell" }}>Owner</Th>
+                        <Th display={{ base: "none", lg: "table-cell" }}>Engine</Th>
+                        <Th>Status</Th>
+                        <Th display={{ base: "none", sm: "table-cell" }}>Condition</Th>
+                      </Tr>
+                    </Thead>
+                    <Tbody>
+                      {allMachineUnitsForCount.map((unit) => (
+                        <Tr
+                          key={unit._id}
+                          bg={selectedMachineUnits.has(unit._id.toString()) ? "blue.50" : "white"}
+                          _hover={{ bg: selectedMachineUnits.has(unit._id.toString()) ? "blue.100" : "gray.50" }}
+                          cursor="pointer"
+                          onClick={() => handleMachineUnitToggle(unit._id.toString())}
+                        >
+                          <Td textAlign="center" onClick={(e) => e.stopPropagation()}>
+                            <Checkbox
+                              isChecked={selectedMachineUnits.has(unit._id.toString())}
+                              onChange={() => handleMachineUnitToggle(unit._id.toString())}
+                              colorScheme="blue"
+                              size="md"
+                            />
+                          </Td>
+                          <Td fontWeight="semibold">
+                            {unit.unitNumber}
+                          </Td>
+                          <Td>
+                            <Text fontSize="sm">{unit.equipmentType}</Text>
+                            <Text fontSize="xs" color="gray.500" display={{ base: "block", md: "none" }}>
+                              {unit.ownerName}
+                            </Text>
+                          </Td>
+                          <Td display={{ base: "none", md: "table-cell" }}>
+                            {unit.ownerName}
+                          </Td>
+                          <Td display={{ base: "none", lg: "table-cell" }}>
+                            {unit.engineBrand ? (
+                              <Text fontSize="sm">
+                                {unit.engineBrand} {unit.engineHorsepower && `(${unit.engineHorsepower})`}
+                              </Text>
+                            ) : (
+                              <Text fontSize="sm" color="gray.400">N/A</Text>
+                            )}
+                          </Td>
+                          <Td>
+                            <Tag
+                              colorScheme={getStatusColor(unit.status)}
+                              size="sm"
+                            >
+                              {unit.status}
+                            </Tag>
+                          </Td>
+                          <Td display={{ base: "none", sm: "table-cell" }}>
+                            <Tag
+                              colorScheme={getConditionColor(unit.condition)}
+                              size="sm"
+                            >
+                              {unit.condition}
+                            </Tag>
+                          </Td>
+                        </Tr>
+                      ))}
+                    </Tbody>
+                  </Table>
+                </TableContainer>
+              )}
+            </Box>
+
+            <Divider />
+
+            {/* Remarks Textarea */}
+            <FormControl>
+              <FormLabel fontSize="sm" fontWeight="medium">
+                Remarks (Optional)
+              </FormLabel>
+              <Textarea
+                placeholder="Enter any additional remarks about the machine count..."
+                value={countRemarks}
+                onChange={(e) => setCountRemarks(e.target.value)}
+                bg="white"
+                minH="100px"
+                resize="vertical"
+              />
+              <Text fontSize="xs" color="gray.500" mt={1}>
+                Add any notes or observations about the physical count
+              </Text>
+            </FormControl>
+          </Stack>
+        </ModalBody>
+        
+        <ModalFooter
+          bg="gray.50"
+          borderTopWidth="1px"
+          borderColor="gray.200"
+          py={4}
+          gap={2}
+        >
+          <Button
+            variant="outline"
+            onClick={() => {
+              setSelectedMachineUnits(new Set());
+              setCountRemarks("");
+              onCloseCountCheck();
+            }}
+            size="md"
+            _hover={{ bg: "gray.100" }}
+          >
+            Cancel
+          </Button>
+          <Button
+            colorScheme="blue"
+            onClick={handleSubmitMachineCount}
+            size="md"
+            isLoading={isPerformingMachineCountCheck}
+            isDisabled={isPerformingMachineCountCheck}
+            leftIcon={<FaListCheck />}
+          >
+            Submit Machine Count
+          </Button>
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
+
+    {/* Previous Machine Counts Modal */}
+    <Modal
+      isOpen={isOpenPreviousCounts}
+      onClose={onClosePreviousCounts}
+      size="4xl"
+      closeOnOverlayClick={false}
+      scrollBehavior="inside"
+      isCentered
+      motionPreset="none"
+      blockScrollOnMount={false}
+    >
+      <ModalOverlay />
+      <ModalContent borderRadius="lg" overflow="hidden">
+        <ModalHeader
+          bg="orange.50"
+          borderBottomWidth="1px"
+          borderColor="gray.200"
+          py={4}
+          display="flex"
+          alignItems="center"
+        >
+          <Icon as={FaStickyNote} mr={2} color="orange.500" />
+          Previous Machine Counts
+        </ModalHeader>
+        
+        <ModalBody py={6} maxH="70vh" overflowY="auto">
+          <Stack spacing={4}>
+            {isLoadingPhysicalCountingRecords ? (
+              <Center py={8}>
+                <Spinner size="xl" thickness="4px" color="orange.500" />
+              </Center>
+            ) : physicalCountingRecordsError ? (
+              <Alert status="error" borderRadius="md">
+                <AlertIcon />
+                <Box>
+                  <AlertTitle>Error loading physical counting records</AlertTitle>
+                  <AlertDescription>
+                    {physicalCountingRecordsError?.response?.data?.message ||
+                      physicalCountingRecordsError?.message ||
+                      "An error occurred while fetching physical counting records."}
+                  </AlertDescription>
+                </Box>
+              </Alert>
+            ) : !physicalCountingRecords?.data?.physicalCountingRecords?.length ? (
+              <Center py={8}>
+                <Text color="gray.500" fontSize="lg">
+                  No physical counting records found
+                </Text>
+              </Center>
+            ) : (
+              <>
+                <Stack spacing={3}>
+                  {physicalCountingRecords.data.physicalCountingRecords.map((record) => (
+                    <Box
+                      key={record._id}
+                      p={3}
+                      borderRadius="md"
+                      borderWidth="1px"
+                      borderColor="gray.200"
+                      bg="white"
+                      boxShadow="sm"
+                    >
+                      <Flex direction="column" gap={2}>
+                        {/* Header Row: Date/Time, Employee, and Status */}
+                        <Flex justify="space-between" align="flex-start" wrap="wrap" gap={3}>
+                          <Flex gap={4} flex={1} minW={0} wrap="wrap">
+                            {/* Date/Time */}
+                            <Box flex="1" minW="120px">
+                              <Text fontSize="xs" color="gray.500" fontWeight="medium">Date & Time</Text>
+                              <Text fontSize="sm" fontWeight="semibold" color="gray.700">
+                                {record.countingDate 
+                                  ? new Date(record.countingDate).toLocaleDateString('en-US', {
+                                      year: 'numeric',
+                                      month: 'short',
+                                      day: 'numeric'
+                                    })
+                                  : 'N/A'}
+                              </Text>
+                              <Text fontSize="xs" color="gray.500">
+                                {record.countingDate 
+                                  ? new Date(record.countingDate).toLocaleTimeString('en-US', {
+                                      hour: '2-digit',
+                                      minute: '2-digit'
+                                    })
+                                  : ''}
+                              </Text>
+                            </Box>
+                            
+                            {/* Employee Info */}
+                            <Box flex="1" minW="150px">
+                              <Text fontSize="xs" color="gray.500" fontWeight="medium">Assigned Employee</Text>
+                              <Text fontSize="sm" color="gray.700">
+                                {record.assignedEmployee?.first_name && record.assignedEmployee?.last_name
+                                  ? `${record.assignedEmployee.first_name} ${record.assignedEmployee.last_name}`
+                                  : 'N/A'}
+                              </Text>
+                            </Box>
+                          </Flex>
+                          
+                          {/* Status Tag */}
+                          <Tag
+                            colorScheme={
+                              record.discrepancyFound === 'Resolved' ? 'green' :
+                              record.discrepancyFound === 'Discrepancy Found' ? 'red' :
+                              'gray'
+                            }
+                            size="sm"
+                            alignSelf="flex-start"
+                          >
+                            {record.discrepancyFound || 'N/A'}
+                          </Tag>
+                        </Flex>
+
+                        {/* Units Count Row */}
+                        <Flex gap={4} align="center">
+                          <Box>
+                            <Text fontSize="xs" color="gray.500" fontWeight="medium">Found Units</Text>
+                            <Text fontSize="sm" fontWeight="semibold" color="green.600">
+                              {record.machineUnits?.length || 0}
+                            </Text>
+                          </Box>
+                          <Box>
+                            <Text fontSize="xs" color="gray.500" fontWeight="medium">Not Found Units</Text>
+                            <Text fontSize="sm" fontWeight="semibold" color="red.600">
+                              {record.notFoundMachineUnits?.length || 0}
+                            </Text>
+                          </Box>
+                        </Flex>
+
+                        {/* Remarks */}
+                        {(record.remarks || record.resolveRemarks) && (
+                          <Box>
+                            <Text fontSize="xs" color="gray.500" fontWeight="medium">
+                              {record.discrepancyFound === 'Resolved' ? 'Resolution Remarks' : 'Remarks'}
+                            </Text>
+                            <Tooltip 
+                              label={record.discrepancyFound === 'Resolved' ? record.resolveRemarks : record.remarks} 
+                              placement="top" 
+                              hasArrow
+                            >
+                              <Text fontSize="sm" color="gray.700" noOfLines={2} cursor="help">
+                                {record.discrepancyFound === 'Resolved' ? record.resolveRemarks : record.remarks}
+                              </Text>
+                            </Tooltip>
+                          </Box>
+                        )}
+
+                        {/* Action Button */}
+                        {record.discrepancyFound === 'Discrepancy Found' && (
+                          <Flex justify="flex-end" mt={1}>
+                            <Button
+                              size="xs"
+                              colorScheme="orange"
+                              variant="outline"
+                              onClick={() => {
+                                setSelectedPhysicalCountingRecord(record);
+                                setResolveRemarks("");
+                                onOpenResolveDiscrepancy();
+                              }}
+                              isDisabled={isResolvingDiscrepancyInPhysicalCount}
+                            >
+                              Resolve
+                            </Button>
+                          </Flex>
+                        )}
+                      </Flex>
+                    </Box>
+                  ))}
+                </Stack>
+
+                {/* Pagination Controls */}
+                {physicalCountingRecords?.data?.totalPages > 1 && (
+                  <Flex
+                    justifyContent="space-between"
+                    alignItems="center"
+                    mt={4}
+                    pt={4}
+                    borderTopWidth="1px"
+                    borderColor="gray.200"
+                  >
+                    <Text color="gray.600" fontSize="sm">
+                      Page {physicalCountingRecords.data.currentPage} of {physicalCountingRecords.data.totalPages} 
+                      ({physicalCountingRecords.data.totalCount} total records)
+                    </Text>
+                    <HStack spacing={2}>
+                      <Button
+                        size="sm"
+                        onClick={() => setPreviousCountsPage(Math.max(1, previousCountsPage - 1))}
+                        isDisabled={previousCountsPage === 1 || isLoadingPhysicalCountingRecords}
+                        colorScheme="orange"
+                        variant="outline"
+                      >
+                        Previous
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => setPreviousCountsPage(Math.min(physicalCountingRecords.data.totalPages, previousCountsPage + 1))}
+                        isDisabled={previousCountsPage >= physicalCountingRecords.data.totalPages || isLoadingPhysicalCountingRecords}
+                        colorScheme="orange"
+                        variant="outline"
+                      >
+                        Next
+                      </Button>
+                    </HStack>
+                  </Flex>
+                )}
+              </>
+            )}
+          </Stack>
+        </ModalBody>
+        
+        <ModalFooter
+          bg="gray.50"
+          borderTopWidth="1px"
+          borderColor="gray.200"
+          py={4}
+        >
+          <Button
+            variant="outline"
+            onClick={() => {
+              setPreviousCountsPage(1);
+              onClosePreviousCounts();
+            }}
+            size="md"
+            _hover={{ bg: "gray.100" }}
+          >
+            Close
+          </Button>
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
+
+    {/* Resolve Discrepancy Modal */}
+    <Modal
+      isOpen={isOpenResolveDiscrepancy}
+      onClose={() => {
+        setSelectedPhysicalCountingRecord(null);
+        setResolveRemarks("");
+        onCloseResolveDiscrepancy();
+      }}
+      size="md"
+      closeOnOverlayClick={false}
+      scrollBehavior="inside"
+      isCentered
+      motionPreset="none"
+      blockScrollOnMount={false}
+    >
+      <ModalOverlay />
+      <ModalContent borderRadius="lg" overflow="hidden">
+        <ModalHeader
+          bg="orange.50"
+          borderBottomWidth="1px"
+          borderColor="gray.200"
+          py={4}
+          display="flex"
+          alignItems="center"
+        >
+          <Icon as={FaCheckCircle} mr={2} color="orange.500" />
+          Resolve Discrepancy
+        </ModalHeader>
+        
+        <ModalBody py={6}>
+          <Stack spacing={4}>
+            <Alert status="info" borderRadius="md" variant="left-accent">
+              <AlertIcon />
+              <Box>
+                <AlertTitle fontSize="sm">Resolve Physical Count Discrepancy</AlertTitle>
+                <AlertDescription fontSize="xs">
+                  This will mark the discrepancy as resolved. You can optionally add remarks about how the discrepancy was resolved.
+                </AlertDescription>
+              </Box>
+            </Alert>
+
+            {/* Record Information */}
+            {selectedPhysicalCountingRecord && (
+              <Box
+                p={3}
+                bg="gray.50"
+                borderRadius="md"
+                borderWidth="1px"
+                borderColor="gray.200"
+              >
+                <Text fontSize="xs" color="gray.500" fontWeight="medium" mb={2}>Counting Date</Text>
+                <Text fontWeight="semibold" fontSize="sm">
+                  {selectedPhysicalCountingRecord.countingDate 
+                    ? new Date(selectedPhysicalCountingRecord.countingDate).toLocaleString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })
+                    : 'N/A'}
+                </Text>
+                <Text fontSize="xs" color="gray.500" fontWeight="medium" mt={2} mb={1}>Summary</Text>
+                <Flex gap={4} mt={1}>
+                  <Box>
+                    <Text fontSize="xs" color="gray.500">Found Units</Text>
+                    <Text fontWeight="semibold" color="green.600">
+                      {selectedPhysicalCountingRecord.machineUnits?.length || 0}
+                    </Text>
+                  </Box>
+                  <Box>
+                    <Text fontSize="xs" color="gray.500">Not Found Units</Text>
+                    <Text fontWeight="semibold" color="red.600">
+                      {selectedPhysicalCountingRecord.notFoundMachineUnits?.length || 0}
+                    </Text>
+                  </Box>
+                </Flex>
+              </Box>
+            )}
+
+            <Divider />
+
+            {/* Resolve Remarks Textarea */}
+            <FormControl>
+              <FormLabel fontSize="sm" fontWeight="medium">
+                Resolution Remarks (Optional)
+              </FormLabel>
+              <Textarea
+                placeholder="Enter remarks about how the discrepancy was resolved..."
+                value={resolveRemarks}
+                onChange={(e) => setResolveRemarks(e.target.value)}
+                bg="white"
+                minH="100px"
+                resize="vertical"
+              />
+              <Text fontSize="xs" color="gray.500" mt={1}>
+                Add any notes about how the discrepancy was resolved
+              </Text>
+            </FormControl>
+          </Stack>
+        </ModalBody>
+        
+        <ModalFooter
+          bg="gray.50"
+          borderTopWidth="1px"
+          borderColor="gray.200"
+          py={4}
+          gap={2}
+        >
+          <Button
+            variant="outline"
+            onClick={() => {
+              setSelectedPhysicalCountingRecord(null);
+              setResolveRemarks("");
+              onCloseResolveDiscrepancy();
+            }}
+            size="md"
+            _hover={{ bg: "gray.100" }}
+            isDisabled={isResolvingDiscrepancyInPhysicalCount}
+          >
+            Cancel
+          </Button>
+          <Button
+            colorScheme="orange"
+            onClick={handleResolveDiscrepancy}
+            size="md"
+            isLoading={isResolvingDiscrepancyInPhysicalCount}
+            isDisabled={isResolvingDiscrepancyInPhysicalCount}
+            leftIcon={<FaCheckCircle />}
+          >
+            Resolve Discrepancy
+          </Button>
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
+    
     </>
   );
 }

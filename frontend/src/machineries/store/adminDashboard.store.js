@@ -2,32 +2,10 @@ import axios from 'axios';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useAuthStore } from '../../auth/store/authStore.js';
-import { useMutation } from '@tanstack/react-query';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
 // Queries
-const useMachineryTypesQuery = (role) =>
-    useQuery({
-        queryKey: ['machineryTypes'],
-        queryFn: async () => {
-            const res = await axios.get(`${API_URL}/api/machineries/get-machinery-types`);
-            return res.data?.data ?? res.data;
-        },
-        enabled: role === 'MIM' || role === 'MIS',
-    });
-
-const useMachineryUnitsQuery = (role) =>
-    useQuery({
-        queryKey: ['machineryUnits'],
-        queryFn: async () => {
-            // updated to match new backend route (POST /get-machinery-unit)
-            const res = await axios.post(`${API_URL}/api/machineries/get-machinery-unit`, {});
-            return res.data;
-        },
-        enabled: role === 'MIM' || role === 'MIS',
-    });
-
 const usePendingTicketRequestsQuery = (page = 1, searchQuery = {}, role) =>
     useQuery({
         queryKey: ['pendingTicketRequests', page, searchQuery],
@@ -40,41 +18,6 @@ const usePendingTicketRequestsQuery = (page = 1, searchQuery = {}, role) =>
         enabled: role === 'MIM' || role === 'MIS',
     });
 
-const useOngoingTicketRequestsQuery = (page = 1, searchQuery = {}, role) =>
-    useQuery({
-        queryKey: ['ongoingTicketRequests', page, searchQuery],
-        queryFn: async () => {
-            const res = await axios.get(`${API_URL}/api/machineries/get-ongoing-ticket-requests`, {
-                params: { page, limit: 10, ...searchQuery },
-            });
-            return res.data;
-        },
-        enabled: role === 'MIM' || role === 'MIS',
-    });
-
-const useScheduledTicketRequestsQuery = (page = 1, searchQuery = {}, role) =>
-    useQuery({
-        queryKey: ['scheduledTicketRequests', page, searchQuery],
-        queryFn: async () => {
-            const res = await axios.get(`${API_URL}/api/machineries/get-scheduled-ticket-requests`, {
-                params: { page, limit: 10, ...searchQuery },
-            });
-            return res.data;
-        },
-        enabled: role === 'MIM' || role === 'MIS',
-    });
-
-const useDeclinedTicketRequestsQuery = (page = 1, searchQuery = {}, role) =>
-    useQuery({
-        queryKey: ['declinedTicketRequests', page, searchQuery],
-        queryFn: async () => {
-            const res = await axios.get(`${API_URL}/api/machineries/get-declined-ticket-requests`, {
-                params: { page, limit: 10, ...searchQuery },
-            });
-            return res.data;
-        },
-        enabled: role === 'MIM' || role === 'MIS',
-    });
 
 const useAvailableMachineryTypesQuery = () =>
     useQuery({
@@ -86,11 +29,12 @@ const useAvailableMachineryTypesQuery = () =>
         enabled: true,
     });
 
-const useOperatorsListQuery = () =>
+const useOperatorsListQuery = (requestedMachineTypeId = null) =>
     useQuery({
-        queryKey: ['operatorsList'],
+        queryKey: ['operatorsList', requestedMachineTypeId],
         queryFn: async () => {
-            const res = await axios.get(`${API_URL}/api/machineries/get-operators-list`);
+            const params = requestedMachineTypeId ? { requestedMachineTypeId } : {};
+            const res = await axios.get(`${API_URL}/api/machineries/get-operators-list`, { params });
             return res.data;
         },
         enabled: true, // Enable for all roles since we need this data in the TicketRequestPanel
@@ -120,7 +64,7 @@ const useInProgressWeeklySchedulesQuery = (page = 1, searchQuery = {}, role) =>
         enabled: role === 'MIM' || role === 'MIS',
     });
 
-export const usePendingExtensionRequestsCountQuery = (role) =>
+const usePendingExtensionRequestsCountQuery = (role) =>
     useQuery({
         queryKey: ['pendingExtensionCount'],
         queryFn: async () => {
@@ -130,7 +74,51 @@ export const usePendingExtensionRequestsCountQuery = (role) =>
         enabled: role === 'MIM' || role === 'MIS',
 });
 
-export const useMachineUnitsQuery = (page = 1, searchQuery = {}, role) =>
+const usePendingIncidentReportsCountQuery = (role) =>
+    useQuery({
+        queryKey: ['pendingIncidentReportsCount'],
+        queryFn: async () => {
+            const response = await axios.get(`${API_URL}/api/machineries/pending-incident-reports-count`);
+            return response.data;
+        },
+        enabled: role === 'MIM' || role === 'MIS',
+});
+
+const useMachineIncidentReportsQuery = (page = 1, searchQuery = {}, role) =>
+    useQuery({
+        queryKey: ['machineIncidentReports', page, searchQuery],
+        queryFn: async () => {
+            const res = await axios.get(`${API_URL}/api/machineries/get-machine-incident-reports`, {
+                params: { page, limit: 10, ...searchQuery },
+            });
+            return res.data;
+        },
+        enabled: role === 'MIM' || role === 'MIS',
+    });
+
+const useMachineUnitsForPhysicalCountingQuery = (role) =>
+    useQuery({
+        queryKey: ['machineUnitsForPhysicalCounting'],
+        queryFn: async () => {
+            const res = await axios.get(`${API_URL}/api/machineries/get-machine-units-for-physical-counting`);
+            return res.data;
+        },
+        enabled: role === 'MIM' || role === 'MIS',
+    });
+
+const usePhysicalCountingRecordsQuery = (page = 1, searchQuery = {}, role) =>
+    useQuery({
+        queryKey: ['physicalCountingRecords', page, searchQuery],
+        queryFn: async () => {
+            const res = await axios.get(`${API_URL}/api/machineries/get-physical-counting-records`, {
+                params: { page, limit: 10, ...searchQuery },
+            });
+            return res.data;
+        },
+        enabled: role === 'MIM' || role === 'MIS',
+    });
+
+const useMachineUnitsQuery = (page = 1, searchQuery = {}, role) =>
     useQuery({
         queryKey: ['machineUnits', page, searchQuery],
         queryFn: async () => {
@@ -139,10 +127,10 @@ export const useMachineUnitsQuery = (page = 1, searchQuery = {}, role) =>
             });
             return response.data;
         },
-        enabled: role === 'MIM',
+        enabled: role === 'MIM' || role === 'MIS',
 });
 
-export const useOperatorAccountsQuery = (page = 1, searchQuery = {}, role) =>
+const useOperatorAccountsQuery = (page = 1, searchQuery = {}, role) =>
     useQuery({
         queryKey: ['operatorAccounts', page, searchQuery],
         queryFn: async () => {
@@ -164,6 +152,16 @@ const useOccupiedDatesForSchedulingQuery = (role) =>
         enabled: role === 'MIM',
     });
 
+const useOperatorAssignedNumbersQuery = (role) =>
+    useQuery({
+        queryKey: ['operatorAssignedNumbers'],
+        queryFn: async () => {
+            const res = await axios.get(`${API_URL}/api/machineries/get-operators-assigned-numbers`);
+            return res.data;
+        },
+        enabled: role === 'MIM',
+    });
+
 const useMachineOverviewQuery = (role) =>
     useQuery({
         queryKey: ['machineOverview'],
@@ -171,17 +169,27 @@ const useMachineOverviewQuery = (role) =>
             const res = await axios.get(`${API_URL}/api/machineries/get-machine-overview`);
             return res.data;
         },
-        enabled: role === 'MIM',
+        enabled: role === 'MIM' || role === 'MIS',
     });
 
 const useMachineTypesQuery = (role) =>
     useQuery({
         queryKey: ['machineTypes'],
         queryFn: async () => {
-            const res = await axios.get(`${API_URL}/api/machineries/get-machine-types`);
+            const res = await axios.get(`${API_URL}/api/machineries/get-machine-types-for-adding-units`);
             return res.data;
         },
-        enabled: role === 'MIM',
+        enabled: role === 'MIM' || role === 'MIS',
+    });
+
+const useMachineTypeUnitCountsQuery = (role) =>
+    useQuery({
+        queryKey: ['machineTypeUnitCounts'],
+        queryFn: async () => {
+            const res = await axios.get(`${API_URL}/api/machineries/get-machine-type-unit-counts`);
+            return res.data;
+        },
+        enabled: role === 'MIM' || role === 'MIS',
     });
 
 const useTicketStatusCountsQuery = (role) =>
@@ -211,38 +219,22 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
 
     const {
         pendingPage = 1,
-        ongoingPage = 1,
-        scheduledPage = 1,
-        declinedPage = 1,
         schedulesPage = 1,
         machineUnitsPage = 1,
         operatorAccountsPage = 1,
+        machineIncidentReportsPage = 1,
+        previousCountsPage = 1,
     } = pages;
 
-    // Queries
-    const { data: machineryTypes = [], isLoading: isLoadingMachineryTypes, error: machineryTypesError } =
-        useMachineryTypesQuery(role);
-
-    const { data: machineryUnits = [], isLoading: isLoadingMachineryUnits, error: machineryUnitsError } =
-        useMachineryUnitsQuery(role);
 
     const { data: pendingTicketRequests = [], isLoading: isLoadingPendingTicketRequests, error: pendingTicketRequestsError } =
         usePendingTicketRequestsQuery(pendingPage, searchQuery, role);
-
-    const { data: ongoingTicketRequests = [], isLoading: isLoadingOngoingTicketRequests, error: ongoingTicketRequestsError } =
-        useOngoingTicketRequestsQuery(ongoingPage, searchQuery, role);
-
-    const { data: scheduledTicketRequests = [], isLoading: isLoadingScheduledTicketRequests, error: scheduledTicketRequestsError } =
-        useScheduledTicketRequestsQuery(scheduledPage, searchQuery, role);
-
-    const { data: declinedTicketRequests = [], isLoading: isLoadingDeclinedTicketRequests, error: declinedTicketRequestsError } =
-        useDeclinedTicketRequestsQuery(declinedPage, searchQuery, role);
 
     const { data: availableMachineryTypes = [], isLoading: isLoadingAvailableMachineryTypes, error: availableMachineryTypesError } =
         useAvailableMachineryTypesQuery();
 
     const { data: operatorsList = [], isLoading: isLoadingOperatorsList, error: operatorsListError } =
-        useOperatorsListQuery(role);
+        useOperatorsListQuery(null); // Pass null to get all operators (for backward compatibility)
 
     const { data: plannedWeeklySchedules = [], isLoading: isLoadingPlannedWeeklySchedules, error: plannedWeeklySchedulesError } =
         usePlannedWeeklySchedulesQuery(schedulesPage, searchQuery, role);
@@ -253,8 +245,23 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
     const { data: pendingExtensionCount = 0, isLoading: isLoadingPendingExtensionCount, error: pendingExtensionCountError } =
         usePendingExtensionRequestsCountQuery(role);
     
+    const { data: pendingIncidentReportsCount = 0, isLoading: isLoadingPendingIncidentReportsCount, error: pendingIncidentReportsCountError } =
+        usePendingIncidentReportsCountQuery(role);
+    
+    const { data: machineIncidentReports = [], isLoading: isLoadingMachineIncidentReports, error: machineIncidentReportsError } =
+        useMachineIncidentReportsQuery(machineIncidentReportsPage, searchQuery, role);
+    
+    const { data: machineUnitsForPhysicalCounting = [], isLoading: isLoadingMachineUnitsForPhysicalCounting, error: machineUnitsForPhysicalCountingError } =
+        useMachineUnitsForPhysicalCountingQuery(role);
+    
+    const { data: physicalCountingRecords = [], isLoading: isLoadingPhysicalCountingRecords, error: physicalCountingRecordsError } =
+        usePhysicalCountingRecordsQuery(previousCountsPage, {}, role);
+    
     const { data: occupiedDatesForScheduling = [], isLoading: isLoadingOccupiedDatesForScheduling, error: occupiedDatesForSchedulingError } =
         useOccupiedDatesForSchedulingQuery(role);
+
+    const { data: operatorAssignedNumbers = [], isLoading: isLoadingOperatorAssignedNumbers, error: operatorAssignedNumbersError } =
+        useOperatorAssignedNumbersQuery(role);
 
     const { data: machineUnits = [], isLoading: isLoadingMachineUnits, error: machineUnitsError } =
         useMachineUnitsQuery(machineUnitsPage, searchQuery, role);
@@ -264,6 +271,9 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
 
     const { data: machineTypes = [], isLoading: isLoadingMachineTypes, error: machineTypesError } =
         useMachineTypesQuery(role);
+
+    const { data: machineTypeUnitCounts = [], isLoading: isLoadingMachineTypeUnitCounts, error: machineTypeUnitCountsError } =
+        useMachineTypeUnitCountsQuery(role);
 
     const { data: ticketStatusCounts = {}, isLoading: isLoadingTicketStatusCounts, error: ticketStatusCountsError } =
         useTicketStatusCountsQuery(role);
@@ -295,6 +305,15 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
     const [isSettingExtensionTicketToComplete, setIsSettingExtensionTicketToComplete] = useState(false);
     const [isUpdatingMachineryUnitStatus, setIsUpdatingMachineryUnitStatus] = useState(false);
     const [isEnablingDisablingOperatorAccount, setIsEnablingDisablingOperatorAccount] = useState(false);
+    const [isAddingOperatorLicense, setIsAddingOperatorLicense] = useState(false);
+    const [isUpdatingOperatorLicense, setIsUpdatingOperatorLicense] = useState(false);
+    const [isRemovingOperatorLicense, setIsRemovingOperatorLicense] = useState(false);
+    const [isSettingEmployeeLeaveStatus, setIsSettingEmployeeLeaveStatus] = useState(false);
+    const [isDecliningIncidentReport, setIsDecliningIncidentReport] = useState(false);
+    const [isResolvingIncidentReport, setIsResolvingIncidentReport] = useState(false);
+    const [isConfirmingIncidentReport, setIsConfirmingIncidentReport] = useState(false);
+    const [isPerformingMachineCountCheck, setIsPerformingMachineCountCheck] = useState(false);
+    const [isResolvingDiscrepancyInPhysicalCount, setIsResolvingDiscrepancyInPhysicalCount] = useState(false);
 
     // Actions
     const createMachineryType = async (data) => {
@@ -446,6 +465,18 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         }
     };
 
+    // Fetch operators filtered by requestedMachineTypeId
+    const getOperatorsListByMachineType = async (requestedMachineTypeId) => {
+        try {
+            const res = await axios.get(`${API_URL}/api/machineries/get-operators-list`, {
+                params: { requestedMachineTypeId }
+            });
+            return res.data;
+        } catch (error) {
+            throw error;
+        }
+    };
+
     const setTicketToComplete = async (formData) => {
         setIsSettingTicketToComplete(true);
         try {
@@ -538,24 +569,133 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         }
     };
 
+    const addOperatorLicense = async (data) => {
+        setIsAddingOperatorLicense(true);
+        try {
+            const res = await axios.post(`${API_URL}/api/machineries/add-operator-license`, data);
+            return res.data;
+        } catch (error) {
+            throw error;
+        } finally {
+            setIsAddingOperatorLicense(false);
+        }
+    };
+
+    const updateOperatorLicense = async (data) => {
+        setIsUpdatingOperatorLicense(true);
+        try {
+            const res = await axios.put(`${API_URL}/api/machineries/update-operator-license`, data);
+            return res.data;
+        } catch (error) {
+            throw error;
+        } finally {
+            setIsUpdatingOperatorLicense(false);
+        }
+    };
+
+    const removeOperatorLicense = async (data) => {
+        setIsRemovingOperatorLicense(true);
+        try {
+            const res = await axios.post(`${API_URL}/api/machineries/remove-operator-license`, data);
+            return res.data;
+        } catch (error) {
+            throw error;
+        } finally {
+            setIsRemovingOperatorLicense(false);
+        }
+    };
+
+    const setEmployeeLeaveStatus = async (data) => {
+        setIsSettingEmployeeLeaveStatus(true);
+        try {
+            const res = await axios.post(`${API_URL}/api/machineries/set-employee-leave-status`, data);
+            return res.data;
+        } catch (error) {
+            throw error;
+        } finally {
+            setIsSettingEmployeeLeaveStatus(false);
+        }
+    };
+
+    const declineIncidentReport = async (data) => {
+        setIsDecliningIncidentReport(true);
+        try {
+            const res = await axios.post(`${API_URL}/api/machineries/decline-incident-report`, data);
+            return res.data;
+        } catch (error) {
+            throw error;
+        } finally {
+            setIsDecliningIncidentReport(false);
+        }
+    };
+
+    const resolveIncidentReport = async (data) => {
+        setIsResolvingIncidentReport(true);
+        try {
+            const res = await axios.post(`${API_URL}/api/machineries/resolve-incident-report`, data);
+            return res.data;
+        } catch (error) {
+            throw error;
+        } finally {
+            setIsResolvingIncidentReport(false);
+        }
+    };
+
+    const confirmIncidentReport = async (data) => {
+        setIsConfirmingIncidentReport(true);
+        try {
+            const res = await axios.post(`${API_URL}/api/machineries/confirm-incident-report`, data);
+            return res.data;
+        } catch (error) {
+            throw error;
+        } finally {
+            setIsConfirmingIncidentReport(false);
+        }
+    };
+
+    const performMachineCountCheck = async (data) => {
+        setIsPerformingMachineCountCheck(true);
+        try {
+            const res = await axios.post(`${API_URL}/api/machineries/perform-machine-count-check`, data);
+            return res.data;
+        } catch (error) {
+            throw error;
+        } finally {
+            setIsPerformingMachineCountCheck(false);
+        }
+    };
+
+    const resolveDiscrepancyInPhysicalCount = async (data) => {
+        setIsResolvingDiscrepancyInPhysicalCount(true);
+        try {
+            const res = await axios.post(`${API_URL}/api/machineries/resolve-discrepancy-in-physical-count`, data);
+            return res.data;
+        } catch (error) {
+            throw error;
+        } finally {
+            setIsResolvingDiscrepancyInPhysicalCount(false);
+        }
+    };
+
     
     return {
         // query data
-        machineryTypes,
-        machineryUnits,
         pendingTicketRequests,
-        ongoingTicketRequests,
-        scheduledTicketRequests,
-        declinedTicketRequests,
         availableMachineryTypes,
         operatorsList,
         plannedWeeklySchedules, 
         inProgressWeeklySchedules,
         pendingExtensionCount,
+        pendingIncidentReportsCount,
+        machineIncidentReports,
+        machineUnitsForPhysicalCounting,
+        physicalCountingRecords,
         occupiedDatesForScheduling,
+        operatorAssignedNumbers,
         machineUnits, 
         machineOverview,
         machineTypes,
+        machineTypeUnitCounts,
         ticketStatusCounts,
         upcomingAndOngoingSchedules,
         operatorAccounts,
@@ -574,6 +714,7 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         //declineTicketRequests, 
         //undeclineTicketRequest, 
         getMachineryUnitsForDropDownByType,
+        getOperatorsListByMachineType,
         updateWeeklySchedule, 
         setTicketToComplete,
         approveExtensionRequest,
@@ -582,23 +723,33 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         updateMachineryUnitStatus,
         disableOperatorAccount,
         enableOperatorAccount,
+        addOperatorLicense,
+        updateOperatorLicense,
+        removeOperatorLicense,
+        setEmployeeLeaveStatus,
+        declineIncidentReport,
+        resolveIncidentReport,
+        confirmIncidentReport,
+        performMachineCountCheck,
+        resolveDiscrepancyInPhysicalCount,
 
         // loading states (queries)
-        isLoadingMachineryTypes,
-        isLoadingMachineryUnits,
         isLoadingPendingTicketRequests,
-        isLoadingOngoingTicketRequests,
-        isLoadingScheduledTicketRequests,
-        isLoadingDeclinedTicketRequests,
         isLoadingAvailableMachineryTypes,
         isLoadingOperatorsList,
         isLoadingPlannedWeeklySchedules, 
         isLoadingInProgressWeeklySchedules,
         isLoadingPendingExtensionCount,
+        isLoadingPendingIncidentReportsCount,
+        isLoadingMachineIncidentReports,
+        isLoadingMachineUnitsForPhysicalCounting,
+        isLoadingPhysicalCountingRecords,
         isLoadingOccupiedDatesForScheduling,
+        isLoadingOperatorAssignedNumbers,
         isLoadingMachineUnits,
         isLoadingMachineOverview,
         isLoadingMachineTypes,
+        isLoadingMachineTypeUnitCounts,
         isLoadingTicketStatusCounts,
         isLoadingUpcomingAndOngoingSchedules,
         isLoadingOperatorAccounts,
@@ -623,23 +774,33 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         isSettingExtensionTicketToComplete,
         isUpdatingMachineryUnitStatus,
         isEnablingDisablingOperatorAccount,
+        isAddingOperatorLicense,
+        isUpdatingOperatorLicense,
+        isRemovingOperatorLicense,
+        isSettingEmployeeLeaveStatus,
+        isDecliningIncidentReport,
+        isResolvingIncidentReport,
+        isConfirmingIncidentReport,
+        isPerformingMachineCountCheck,
+        isResolvingDiscrepancyInPhysicalCount,
 
         // error states
-        machineryTypesError,
-        machineryUnitsError,
         pendingTicketRequestsError,
-        ongoingTicketRequestsError,
-        scheduledTicketRequestsError,
-        declinedTicketRequestsError,
         availableMachineryTypesError,
         operatorsListError,
         plannedWeeklySchedulesError, 
         inProgressWeeklySchedulesError,
         pendingExtensionCountError,
+        pendingIncidentReportsCountError,
+        machineIncidentReportsError,
+        machineUnitsForPhysicalCountingError,
+        physicalCountingRecordsError,
         occupiedDatesForSchedulingError,
+        operatorAssignedNumbersError,
         machineUnitsError,
         machineOverviewError,
         machineTypesError,
+        machineTypeUnitCountsError,
         ticketStatusCountsError,
         upcomingAndOngoingSchedulesError,
         isLoadingOperatorAccounts,

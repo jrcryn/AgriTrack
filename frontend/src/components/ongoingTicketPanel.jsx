@@ -203,7 +203,7 @@ const OngoingTicketPanel = ({
                                       (ticket.status === 'Completed' || ticket.status === 'Partially Completed') ? (
                                         <Button
                                           size={'xs'}
-                                          colorScheme='orange'
+                                          colorScheme={tr.ticketDetails?.incidentReport ? 'red' : 'green'}
                                           ml={1}
                                           onClick={() => {
                                             setSelectedCompletedTicket(ticket);
@@ -233,7 +233,7 @@ const OngoingTicketPanel = ({
                                       ticket.status === 'Completed' ? (
                                         <Button
                                           size={'xs'}
-                                          colorScheme='green'
+                                          colorScheme={ticket.incidentReport ? 'red' : 'green'}
                                           ml={1}
                                           onClick={() => {
                                             setSelectedCompletedTicket(ticket);
