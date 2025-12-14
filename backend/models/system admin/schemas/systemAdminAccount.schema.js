@@ -30,4 +30,9 @@ export const SystemAdminAccountSchema = new mongoose.Schema({
     isLocked: { type: Boolean, default: false },
     createdAt: { type: Date, default: Date.now },
     
+    // Archive fields
+    isArchived: { type: Boolean, default: false },
+    archivedAt: { type: Date },
+    archivedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'SystemAdminAccount' },
+    
 }, { versionKey: false, timestamps: false });

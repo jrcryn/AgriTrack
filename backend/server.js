@@ -30,6 +30,7 @@ import initHVC from './config/hvcAppInitializer.js';
 import initMachineries from './config/machineriesAppInitializer.js';
 import initDocTrack from './config/doc-trackAppInitializer.js';
 import initGlobal from './config/globalAppInitilizer.js';
+import initSystemAdmin from './config/systemAdminAppInitializer.js';
 
 import highValueCropsRoutes from './routes/high-value-crops.routes.js';
 import machineriesRoutes from './routes/machineries.routes.js';
@@ -37,6 +38,7 @@ import docTrackRoutes from './routes/doc-track.routes.js';
 import authRoutes from './routes/auth.routes.js';
 import globalRoutes from './routes/global.routes.js';
 import userSettingsRoutes from './routes/userSettings.route.js';
+import systemAdminRoutes from './routes/systemAdmin.routes.js';
 
 import googleDriveRoutes from './routes/googleDrive.routes.js';
 
@@ -50,6 +52,7 @@ async function startServer() {
         initMachineries(),
         initDocTrack(),
         initGlobal(),
+        initSystemAdmin(),
     ]);
 
     try {
@@ -72,6 +75,7 @@ async function startServer() {
     app.use("/api/auth",authRoutes);
     app.use("/api/global", globalRoutes);
     app.use("/api/user-settings", userSettingsRoutes);
+    app.use("/api/system-admin", systemAdminRoutes);
 
     app.use("/api/google", googleDriveRoutes);
 

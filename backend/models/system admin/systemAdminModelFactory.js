@@ -1,3 +1,4 @@
+import { getSystemAdminDB } from '../../config/dbAccessHelper.js';
 import { SystemAdminAccountSchema } from './schemas/systemAdminAccount.schema.js';
 
 export const initializeSystemAdminModels = () => {
