@@ -992,5 +992,59 @@ export const getSystemAdminAccounts = async (req, res) => {
     }
 };
 
+// Get dashboard statistics
+export const getDashboardStats = async (req, res) => {
+    try {
+        // Get total employees count
+        const totalEmployees = await global.globalModels.EmployeeAccount.countDocuments({});
+
+        // Get total system admins count
+        const totalAdmins = await global.systemAdminModels.SystemAdminAccount.countDocuments({});
+
+        // Get active accounts (not archived and not locked)
+        // Using $ne: true to handle false, null, undefined, or missing fields
+        const activeAccounts = await global.globalModels.EmployeeAccount.countDocuments({
+            isArchived: { $ne: true },
+            isLocked: { $ne: true }
+        });
+
+        // Get locked accounts
+        const lockedAccounts = await global.globalModels.EmployeeAccount.countDocuments({
+            isLocked: true
+        });
+
+        // Get archived accounts
+        const archivedAccounts = await global.globalModels.EmployeeAccount.countDocuments({
+            isArchived: true
+        });
+
+        // Get recent actions from the past hour
+        const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+        const recentActions = await global.globalModels.GranularLog.countDocuments({
+            createdAt: { $gte: oneHourAgo }
+        });
+
+        res.status(200).json({
+            success: true,
+            stats: {
+                totalEmployees,
+                totalAdmins,
+                activeAccounts,
+                lockedAccounts,
+                archivedAccounts,
+                recentActions
+            }
+        });
+
+    } catch (error) {
+        console.error('Error fetching dashboard stats:', error);
+        return res.status(500).json({ 
+            success: false, 
+            message: 'Failed to fetch dashboard statistics.' 
+        });
+    }
+};
+
+
 
 

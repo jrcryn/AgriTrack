@@ -17,7 +17,8 @@ import {
     updateUserAccount,
     getActionLogs,
     getEmployeeAccounts,
-    getSystemAdminAccounts
+    getSystemAdminAccounts,
+    getDashboardStats
 } from '../controller/system admin/systemAdmin.controller.js';
 
 import { verifyAuthToken } from '../middleware/verifyToken.js';
@@ -50,5 +51,6 @@ router.post('/register-system-admin', systemAdminAuth, registerSystemAdmin);
 router.get('/action-logs', systemAdminAuth, getActionLogs);
 router.get('/employee-accounts', systemAdminAuth, getEmployeeAccounts);
 router.get('/system-admin-accounts', systemAdminAuth, getSystemAdminAccounts);
+router.get('/dashboard-stats', systemAdminAuth, getDashboardStats);
 
 export default router;

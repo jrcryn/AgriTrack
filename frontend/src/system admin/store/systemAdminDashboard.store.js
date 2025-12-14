@@ -224,36 +224,16 @@ export const useSystemAdminStore = create((set, get) => ({
     fetchDashboardStats: async () => {
         set({ dashboardStatsLoading: true, dashboardStatsError: null });
         try {
-            // Fetch employee accounts with status filters
-            const [employeesRes, adminsRes, recentLogsRes] = await Promise.all([
-                axios.get(`${API_URL}/api/system-admin/employee-accounts?limit=1&page=1`),
-                axios.get(`${API_URL}/api/system-admin/system-admin-accounts?limit=1&page=1`),
-                axios.get(`${API_URL}/api/system-admin/action-logs?limit=1&page=1`)
-            ]);
-
-            const totalEmployees = employeesRes.data.pagination?.totalEmployees || 0;
-            const totalAdmins = adminsRes.data.pagination?.totalAdmins || 0;
-            const recentActions = recentLogsRes.data.pagination?.totalLogs || 0;
-
-            // Fetch counts for different statuses
-            const [activeRes, lockedRes, archivedRes] = await Promise.all([
-                axios.get(`${API_URL}/api/system-admin/employee-accounts?status=active&limit=1&page=1`),
-                axios.get(`${API_URL}/api/system-admin/employee-accounts?status=locked&limit=1&page=1`),
-                axios.get(`${API_URL}/api/system-admin/employee-accounts?status=archived&limit=1&page=1`)
-            ]);
-
-            const activeAccounts = activeRes.data.pagination?.totalEmployees || 0;
-            const lockedAccounts = lockedRes.data.pagination?.totalEmployees || 0;
-            const archivedAccounts = archivedRes.data.pagination?.totalEmployees || 0;
+            const response = await axios.get(`${API_URL}/api/system-admin/dashboard-stats`);
 
             set({
                 dashboardStats: {
-                    totalEmployees,
-                    totalAdmins,
-                    recentActions,
-                    lockedAccounts,
-                    archivedAccounts,
-                    activeAccounts
+                    totalEmployees: response.data.stats.totalEmployees || 0,
+                    totalAdmins: response.data.stats.totalAdmins || 0,
+                    recentActions: response.data.stats.recentActions || 0,
+                    lockedAccounts: response.data.stats.lockedAccounts || 0,
+                    archivedAccounts: response.data.stats.archivedAccounts || 0,
+                    activeAccounts: response.data.stats.activeAccounts || 0
                 },
                 dashboardStatsLoading: false
             });
