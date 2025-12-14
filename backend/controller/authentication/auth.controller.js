@@ -136,17 +136,18 @@ export const login = async (req, res) => {
         }
 
         if (!user) {
-            await logAction(req, userId, 'USER_LOGIN', 'AUTHENTICATION', `Login attempt failed - User not found: ${email}`, 'FAILED');
+            // Log with null userId since user doesn't exist
+            await logAction(req, null, 'USER_LOGIN', 'AUTHENTICATION', `Login attempt failed - User not found: ${email}`, 'FAILED');
             return res.status(404).json({ success: false, message: 'Invalid credentials.' });
         }
 
+        // Now we can safely use userId
         if (user.isLocked) {
             await logAction(req, userId, 'USER_LOGIN', 'AUTHENTICATION', `Login attempt failed - Account is locked: ${email}`, 'FAILED');
             return res.status(403).json({ success: false, message: 'Account locked. Contact IT support to regain access.' });
         }
 
         const isPasswordValid = await bcrypt.compare(password, user.password);
-        //const isPasswordValid = (password === user.password) ? true : false; // for testing purposes, this will be changed to bcrypt.compare in the future
 
         if (!isPasswordValid) {
             // to avoid race conditions, suggestion ni ai, kasi atomic sya imbis na mag hahanap, modify then save.
@@ -154,6 +155,11 @@ export const login = async (req, res) => {
                 $inc: { 'failedLoginAttempts.count': 1 }, //incremment
                 $set: { 'failedLoginAttempts.lastAttempt': Date.now() } //set
             });
+
+            // Refetch user to get updated failedLoginAttempts count
+            user = accountType === 'admin' 
+                ? await global.systemAdminModels.SystemAdminAccount.findById(userId)
+                : await global.globalModels.EmployeeAccount.findById(userId);
 
             if (user.failedLoginAttempts.count >= 11) {
                 user.isLocked = true;
