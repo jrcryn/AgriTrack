@@ -1,5 +1,5 @@
 import ExcelJS from 'exceljs';
-import { logAction } from '../utils/logAction.js';
+import { logAction } from '../../utils/logAction.js';
 
 // Normalize date to YYYY-MM-DD (local)
 const toDateKey = (d) => {

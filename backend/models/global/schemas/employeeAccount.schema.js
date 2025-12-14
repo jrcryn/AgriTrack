@@ -55,4 +55,9 @@ export const EmployeeAccountSchema = new mongoose.Schema({
     createdAt: { type: Date, default: Date.now },
     isInLeave: { type: Boolean, default: false },
     
+    // Archive fields
+    isArchived: { type: Boolean, default: false },
+    archivedAt: { type: Date },
+    archivedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'EmployeeAccount' },
+    
 }, { versionKey: false, timestamps: false });

@@ -20,3 +20,8 @@ export const getGlobalDB = () => {
   const connections = getConnections();
   return connections.globalDb;
 };
+
+export const getSystemAdminDB = () => {
+  const connections = getConnections();
+  return connections.systemAdminDb;
+}

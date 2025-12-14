@@ -1,12 +1,10 @@
 import express from 'express';
 
-import { register, login, checkAuth, switchRole, logout, generate2FASecret, verify2FA, forgotPassword, resetPassword } from '../controller/authentication/auth.controller.js';
+import { login, checkAuth, switchRole, logout, generate2FASecret, verify2FA, forgotPassword, resetPassword } from '../controller/authentication/auth.controller.js';
 import { verifyPreAuthToken, verifyAuthToken } from '../middleware/verifyToken.js';
 import { loginLimiter, forgotPasswordLimiter, verify2FALimiter } from '../middleware/rateLimiter.js';
 
 const router = express.Router();
-
-router.post('/register', verifyAuthToken, register); // ililipat in the future to a separate route for admin job controllers
 
 router.get('/check-auth', verifyAuthToken, checkAuth);
 router.post('/switch-role', verifyAuthToken, switchRole);

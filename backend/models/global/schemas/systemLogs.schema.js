@@ -21,6 +21,18 @@ const actions = [
     
     /*-----------------------------------------------------------------------------------------*/
 
+    // System Admin - User Management
+    'USER_EMAIL_UPDATED',
+    'USER_NAME_UPDATED',
+    'USER_PHONE_UPDATED',
+    'USER_ROLES_UPDATED',
+    'USER_OFFICE_POSITION_UPDATED',
+    'USER_2FA_RESET',
+    'USER_ARCHIVED',
+    'USER_LOCKED',
+    
+    /*-----------------------------------------------------------------------------------------*/
+
 
     // Machinery Management - Machinery Types & Units
     'MACHINERY_TYPE_CREATED',

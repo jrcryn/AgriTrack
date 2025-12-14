@@ -13,6 +13,7 @@ export const connectDB = async() => {
         connections.docTrackDb = mongoose.connection.useDb('doc-track');
         connections.machineriesDb = mongoose.connection.useDb('machineries');
         connections.globalDb = mongoose.connection.useDb('global');
+        connections.systemAdminDb = mongoose.connection.useDb('system-admin');
         
     } catch (error) {
         console.error(`Error: ${error}`);
