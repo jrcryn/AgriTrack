@@ -101,6 +101,7 @@ export const login = async (req, res) => {
     const { email, password } = req.body;
 
     let userId = null;
+    let accountType = null;
 
     try {
         
@@ -108,10 +109,20 @@ export const login = async (req, res) => {
             await logAction(req, userId, 'USER_LOGIN', 'AUTHENTICATION', `Login attempt failed - Missing email or password`, 'VALIDATION_FAILED');
             return res.status(400).json({ success: false, message: 'All fields are required.'})
         }
-        const user = await global.globalModels.EmployeeAccount.findOne({ email }) 
-
+        
+        // Check employee account first
+        let user = await global.globalModels.EmployeeAccount.findOne({ email });
+        
         if (user) {
             userId = user._id;
+            accountType = 'employee';
+        } else {
+            // Check system admin account
+            user = await global.systemAdminModels.SystemAdminAccount.findOne({ email });
+            if (user) {
+                userId = user._id;
+                accountType = 'admin';
+            }
         }
 
         if (!user) {
@@ -152,7 +163,7 @@ export const login = async (req, res) => {
         user.failedLoginAttempts = { count: 0, lastAttempt: null };
         await user.save();
 
-        generatePreTokenAndSetCookie(res, user._id);
+        generatePreTokenAndSetCookie(res, user._id, accountType);
 
         if(!user.is2FAEnabled) {
             await logAction(req, userId, 'USER_LOGIN', 'AUTHENTICATION', `Login redirected to 2FA setup - 2FA not enabled for: ${email}`, 'VALIDATION_FAILED');
@@ -236,14 +247,23 @@ export const generate2FASecret = async (req, res) => {
 
 export const verify2FA = async (req, res) => {
     const { token, userId } = req.body;
+    
+    // Get accountType from the decoded preAuthToken middleware
+    const accountType = req.decodedPreAuthToken?.accountType || 'employee';
 
-    let userID = null
+    let userID = null;
 
     try {
-        const user = await global.globalModels.EmployeeAccount.findById(userId);
+        // Determine which schema to query based on accountType
+        let user;
+        if (accountType === 'admin') {
+            user = await global.systemAdminModels.SystemAdminAccount.findById(userId);
+        } else {
+            user = await global.globalModels.EmployeeAccount.findById(userId);
+        }
 
         if (user) {
-            userID = user._id
+            userID = user._id;
         }
 
         if (user.isLocked) {
@@ -268,9 +288,12 @@ export const verify2FA = async (req, res) => {
             secret: decryptedSecret
         });
 
-        const role = Array.isArray(user.roles) && user.roles.length > 0
-                    ? String(user.roles[0])
-                    : null;
+        // For admin accounts, role is 'ADMIN'; for employees, use their roles array
+        const role = accountType === 'admin' 
+                    ? 'ADMIN'
+                    : (Array.isArray(user.roles) && user.roles.length > 0
+                        ? String(user.roles[0])
+                        : null);
 
         if (!isValid) {
 
@@ -305,7 +328,7 @@ export const verify2FA = async (req, res) => {
             sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Strict', // Use 'None' for cross-site cookies in production, 'Strict' for local development
             path: '/' //cookie is cleared for the entire domain
         }); 
-        generateTokenAndSetCookie(res, user._id, role);
+        generateTokenAndSetCookie(res, user._id, role, accountType);
 
         await logAction(req, userID, '2FA_VERIFIED', 'AUTHENTICATION', `2FA verified successfully for user: ${user.email}`, 'SUCCESS');
 
@@ -319,7 +342,8 @@ export const verify2FA = async (req, res) => {
                 middle_name: user.middle_name,
                 suffix: user.suffix,
                 role: role,
-                office_position: user.office_position
+                office_position: accountType === 'employee' ? user.office_position : undefined,
+                accountType: accountType
             }
         });
 
