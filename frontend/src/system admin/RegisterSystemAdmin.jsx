@@ -17,11 +17,16 @@ import {
   Icon,
   List,
   ListItem,
-  ListIcon
+  ListIcon,
+  useToast
 } from '@chakra-ui/react';
 import { FiShield, FiMail, FiPhone, FiUser, FiCheckCircle, FiAlertCircle, FiCheck } from 'react-icons/fi';
+import { useSystemAdminStore } from './store/systemAdminDashboard.store';
 
 const RegisterSystemAdmin = () => {
+  const { registerSystemAdmin, allUsersLoading, allUsersError } = useSystemAdminStore();
+  const toast = useToast();
+
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -31,7 +36,6 @@ const RegisterSystemAdmin = () => {
     phone: ''
   });
 
-  const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
 
   const handleInputChange = (e) => {
@@ -44,34 +48,53 @@ const RegisterSystemAdmin = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setMessage({ type: '', text: '' });
 
     // Validation
     if (!formData.firstName || !formData.lastName || !formData.email || !formData.phone) {
       setMessage({ type: 'error', text: 'Please fill in all required fields.' });
-      setLoading(false);
       return;
     }
 
-    // Simulate API call
-    setTimeout(() => {
-      setMessage({ 
-        type: 'success', 
-        text: `System Admin ${formData.firstName} ${formData.lastName} registered successfully! Default password sent to ${formData.email}` 
-      });
-      setLoading(false);
+    try {
+      const result = await registerSystemAdmin(formData);
       
-      // Reset form
-      setFormData({
-        firstName: '',
-        lastName: '',
-        middleName: '',
-        suffix: '',
-        email: '',
-        phone: ''
+      if (result.success) {
+        setMessage({ 
+          type: 'success', 
+          text: `System Admin ${formData.firstName} ${formData.lastName} registered successfully! Default password sent to ${formData.email}` 
+        });
+        
+        toast({
+          title: 'Success',
+          description: 'System admin registered successfully',
+          status: 'success',
+          duration: 3000,
+          isClosable: true
+        });
+        
+        // Reset form
+        setFormData({
+          firstName: '',
+          lastName: '',
+          middleName: '',
+          suffix: '',
+          email: '',
+          phone: ''
+        });
+      }
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || allUsersError || 'Failed to register system admin';
+      setMessage({ type: 'error', text: errorMessage });
+      
+      toast({
+        title: 'Error',
+        description: errorMessage,
+        status: 'error',
+        duration: 5000,
+        isClosable: true
       });
-    }, 1500);
+    }
   };
 
   return (
@@ -220,7 +243,7 @@ const RegisterSystemAdmin = () => {
             <HStack spacing={3}>
               <Button
                 type="submit"
-                isLoading={loading}
+                isLoading={allUsersLoading}
                 loadingText="Registering..."
                 colorScheme="purple"
                 size="sm"

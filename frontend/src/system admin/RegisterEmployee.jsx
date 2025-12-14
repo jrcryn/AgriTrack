@@ -20,8 +20,12 @@ import {
   useToast
 } from '@chakra-ui/react';
 import { FiUserPlus, FiMail, FiPhone, FiUser, FiBriefcase, FiCheckCircle, FiAlertCircle } from 'react-icons/fi';
+import { useSystemAdminStore } from './store/systemAdminDashboard.store';
 
 const RegisterEmployee = () => {
+  const { registerEmployee, employeeAccountsLoading, employeeAccountsError } = useSystemAdminStore();
+  const toast = useToast();
+
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -33,7 +37,6 @@ const RegisterEmployee = () => {
     officePosition: ''
   });
 
-  const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
 
   const availableRoles = ['HVC', 'DMS', 'MACHINERIES', 'DOC_TRACK'];
@@ -58,48 +61,65 @@ const RegisterEmployee = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setMessage({ type: '', text: '' });
 
     // Validation
     if (!formData.firstName || !formData.lastName || !formData.email || !formData.phone) {
       setMessage({ type: 'error', text: 'Please fill in all required fields.' });
-      setLoading(false);
       return;
     }
 
     if (formData.roles.length === 0) {
       setMessage({ type: 'error', text: 'Please select at least one role.' });
-      setLoading(false);
       return;
     }
 
     if (formData.roles.includes('DMS') && !formData.officePosition) {
       setMessage({ type: 'error', text: 'Office position is required for DMS role.' });
-      setLoading(false);
       return;
     }
 
-    // Simulate API call
-    setTimeout(() => {
-      setMessage({ 
-        type: 'success', 
-        text: `Employee ${formData.firstName} ${formData.lastName} registered successfully! Default password sent to ${formData.email}` 
-      });
-      setLoading(false);
+    try {
+      const result = await registerEmployee(formData);
       
-      // Reset form
-      setFormData({
-        firstName: '',
-        lastName: '',
-        middleName: '',
-        suffix: '',
-        email: '',
-        phone: '',
-        roles: [],
-        officePosition: ''
+      if (result.success) {
+        setMessage({ 
+          type: 'success', 
+          text: `Employee ${formData.firstName} ${formData.lastName} registered successfully! Default password sent to ${formData.email}` 
+        });
+        
+        toast({
+          title: 'Success',
+          description: 'Employee registered successfully',
+          status: 'success',
+          duration: 3000,
+          isClosable: true
+        });
+        
+        // Reset form
+        setFormData({
+          firstName: '',
+          lastName: '',
+          middleName: '',
+          suffix: '',
+          email: '',
+          phone: '',
+          roles: [],
+          officePosition: ''
+        });
+      }
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || employeeAccountsError || 'Failed to register employee';
+      setMessage({ type: 'error', text: errorMessage });
+      
+      toast({
+        title: 'Error',
+        description: errorMessage,
+        status: 'error',
+        duration: 5000,
+        isClosable: true
       });
-    }, 1500);
+    }
   };
 
   return (
@@ -251,7 +271,7 @@ const RegisterEmployee = () => {
             <HStack spacing={3}>
               <Button
                 type="submit"
-                isLoading={loading}
+                isLoading={employeeAccountsLoading}
                 loadingText="Registering..."
                 colorScheme="blue"
                 size="sm"

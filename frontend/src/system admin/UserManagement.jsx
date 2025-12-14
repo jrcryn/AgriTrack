@@ -20,111 +20,125 @@ import {
   TableContainer,
   Badge,
   IconButton,
-  Tooltip
+  Tooltip,
+  Spinner,
+  useToast
 } from '@chakra-ui/react';
 import { FiSearch, FiFilter, FiEdit2, FiLock, FiUnlock } from 'react-icons/fi';
 import { FaArchive, FaPhone, FaUsers } from 'react-icons/fa';
+import { useSystemAdminStore } from './store/systemAdminDashboard.store';
 
 const UserManagement = () => {
-  const [users, setUsers] = useState([]);
+  const {
+    employeeAccounts,
+    employeeAccountsLoading,
+    employeeAccountsError,
+    employeeAccountsPagination,
+    fetchEmployeeAccounts,
+    allUsers,
+    fetchAllUsers,
+    lockUserAccount,
+    archiveUserAccount
+  } = useSystemAdminStore();
+
+  const toast = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
 
-  // Mock data
+  // Fetch employee accounts
   useEffect(() => {
-    const mockUsers = [
-      { 
-        id: 1, 
-        firstName: 'Juan', 
-        lastName: 'Dela Cruz',
-        middleName: 'Santos',
-        email: 'juan.delacruz@agritrack.com',
-        phone: '+63 912 345 6789',
-        roles: ['HVC', 'DMS'],
-        officePosition: 'CFS',
-        accountType: 'EMPLOYEE',
-        isLocked: false,
-        isArchived: false,
-        createdAt: '2024-01-15'
-      },
-      { 
-        id: 2, 
-        firstName: 'Maria', 
-        lastName: 'Santos',
-        middleName: 'Garcia',
-        email: 'maria.santos@agritrack.com',
-        phone: '+63 923 456 7890',
-        roles: ['MACHINERIES'],
-        officePosition: 'LPMS',
-        accountType: 'EMPLOYEE',
-        isLocked: false,
-        isArchived: false,
-        createdAt: '2024-02-20'
-      },
-      { 
-        id: 3, 
-        firstName: 'Admin', 
-        lastName: 'User',
-        middleName: '',
-        email: 'admin@agritrack.com',
-        phone: '+63 934 567 8901',
-        roles: [],
-        officePosition: null,
-        accountType: 'SYSTEM_ADMIN',
-        isLocked: false,
-        isArchived: false,
-        createdAt: '2023-12-01'
-      },
-      { 
-        id: 4, 
-        firstName: 'Pedro', 
-        lastName: 'Reyes',
-        middleName: 'Lopez',
-        email: 'pedro.reyes@agritrack.com',
-        phone: '+63 945 678 9012',
-        roles: ['DOC_TRACK', 'HVC'],
-        officePosition: 'ANMS',
-        accountType: 'EMPLOYEE',
-        isLocked: true,
-        isArchived: false,
-        createdAt: '2024-03-10'
-      },
-    ];
-    setUsers(mockUsers);
-  }, []);
+    fetchEmployeeAccounts({
+      page: currentPage,
+      limit: 50,
+      search: searchTerm,
+      role: filterRole,
+      status: filterStatus
+    });
+  }, [currentPage, searchTerm, filterRole, filterStatus, fetchEmployeeAccounts]);
 
-  const filteredUsers = users.filter(user => {
-    const matchesSearch = 
-      user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesRole = filterRole === 'all' || user.roles.includes(filterRole);
-    const matchesStatus = 
-      filterStatus === 'all' ||
-      (filterStatus === 'active' && !user.isLocked && !user.isArchived) ||
-      (filterStatus === 'locked' && user.isLocked) ||
-      (filterStatus === 'archived' && user.isArchived);
-
-    return matchesSearch && matchesRole && matchesStatus;
-  });
+  // Also fetch all users (for system admins if needed)
+  useEffect(() => {
+    fetchAllUsers();
+  }, [fetchAllUsers]);
 
   const handleEditUser = (user) => {
     console.log('Edit user:', user);
+    // TODO: Implement edit user functionality
   };
 
-  const handleLockToggle = (userId) => {
-    setUsers(users.map(user => 
-      user.id === userId ? { ...user, isLocked: !user.isLocked } : user
-    ));
+  const handleLockToggle = async (userId, accountType, currentLockStatus) => {
+    if (currentLockStatus) {
+      // Unlock - this would need a separate endpoint
+      toast({
+        title: 'Info',
+        description: 'Unlock functionality not yet implemented',
+        status: 'info',
+        duration: 3000,
+        isClosable: true
+      });
+      return;
+    }
+
+    try {
+      await lockUserAccount(userId, accountType);
+      toast({
+        title: 'Success',
+        description: 'User account locked successfully',
+        status: 'success',
+        duration: 3000,
+        isClosable: true
+      });
+      // Refresh the list
+      fetchEmployeeAccounts({
+        page: currentPage,
+        limit: 50,
+        search: searchTerm,
+        role: filterRole,
+        status: filterStatus
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.message || 'Failed to lock user account',
+        status: 'error',
+        duration: 5000,
+        isClosable: true
+      });
+    }
   };
 
-  const handleArchive = (userId) => {
-    if (confirm('Are you sure you want to archive this user?')) {
-      setUsers(users.map(user => 
-        user.id === userId ? { ...user, isArchived: true } : user
-      ));
+  const handleArchive = async (userId, accountType) => {
+    if (!window.confirm('Are you sure you want to archive this user?')) {
+      return;
+    }
+
+    try {
+      await archiveUserAccount(userId, accountType);
+      toast({
+        title: 'Success',
+        description: 'User account archived successfully',
+        status: 'success',
+        duration: 3000,
+        isClosable: true
+      });
+      // Refresh the list
+      fetchEmployeeAccounts({
+        page: currentPage,
+        limit: 50,
+        search: searchTerm,
+        role: filterRole,
+        status: filterStatus
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.message || 'Failed to archive user account',
+        status: 'error',
+        duration: 5000,
+        isClosable: true
+      });
     }
   };
 
@@ -157,7 +171,10 @@ const UserManagement = () => {
             <Input
               placeholder="Search users..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1);
+              }}
             />
           </InputGroup>
 
@@ -165,7 +182,10 @@ const UserManagement = () => {
           <Select 
             flex={1}
             value={filterRole}
-            onChange={(e) => setFilterRole(e.target.value)}
+            onChange={(e) => {
+              setFilterRole(e.target.value);
+              setCurrentPage(1);
+            }}
             icon={<FiFilter />}
           >
             <option value="all">All Roles</option>
@@ -179,7 +199,10 @@ const UserManagement = () => {
           <Select 
             flex={1}
             value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
+            onChange={(e) => {
+              setFilterStatus(e.target.value);
+              setCurrentPage(1);
+            }}
             icon={<FiFilter />}
           >
             <option value="all">All Status</option>
@@ -206,105 +229,158 @@ const UserManagement = () => {
               </Tr>
             </Thead>
             <Tbody>
-              {filteredUsers.map((user) => (
-                <Tr key={user.id} _hover={{ bg: 'gray.50' }}>
-                  <Td>
-                    <Box>
-                      <Text fontSize="sm" fontWeight="medium">
-                        {user.firstName} {user.middleName && user.middleName[0] + '.'} {user.lastName}
-                      </Text>
-                      <Text fontSize="xs" color="gray.500">{user.email}</Text>
-                    </Box>
-                  </Td>
-                  <Td>
-                    <Text fontSize="xs">{user.phone}</Text>
-                  </Td>
-                  <Td>
-                    <Flex flexWrap="wrap" gap={1}>
-                      {user.roles.length > 0 ? (
-                        user.roles.map((role) => (
-                          <Badge
-                            key={role}
-                            colorScheme={getRoleBadgeColor(role)}
-                            fontSize="xs"
-                          >
-                            {role}
-                          </Badge>
-                        ))
-                      ) : (
-                        <Text fontSize="xs" color="gray.400">-</Text>
-                      )}
-                    </Flex>
-                  </Td>
-                  <Td>
-                    <Text fontSize="xs">{user.officePosition || '-'}</Text>
-                  </Td>
-                  <Td>
-                    <Badge
-                      colorScheme={user.accountType === 'SYSTEM_ADMIN' ? 'purple' : 'blue'}
-                      fontSize="xs"
-                    >
-                      {user.accountType === 'SYSTEM_ADMIN' ? 'Admin' : 'Employee'}
-                    </Badge>
-                  </Td>
-                  <Td>
-                    <Badge 
-                      colorScheme={
-                        user.isArchived ? 'red' : 
-                        user.isLocked ? 'orange' : 
-                        'green'
-                      }
-                      fontSize="xs"
-                    >
-                      {user.isArchived ? 'Archived' : user.isLocked ? 'Locked' : 'Active'}
-                    </Badge>
-                  </Td>
-                  <Td>
-                    <HStack spacing={2}>
-                      <Tooltip label="Edit">
-                        <IconButton
-                          size="sm"
-                          icon={<FiEdit2 />}
-                          colorScheme="blue"
-                          variant="ghost"
-                          onClick={() => handleEditUser(user)}
-                        />
-                      </Tooltip>
-                      <Tooltip label={user.isLocked ? 'Unlock' : 'Lock'}>
-                        <IconButton
-                          size="sm"
-                          icon={user.isLocked ? <FiUnlock /> : <FiLock />}
-                          colorScheme={user.isLocked ? 'green' : 'orange'}
-                          variant="ghost"
-                          onClick={() => handleLockToggle(user.id)}
-                          isDisabled={user.isArchived}
-                        />
-                      </Tooltip>
-                      <Tooltip label="Archive">
-                        <IconButton
-                          size="sm"
-                          icon={<FaArchive />}
-                          colorScheme="red"
-                          variant="ghost"
-                          onClick={() => handleArchive(user.id)}
-                          isDisabled={user.isArchived}
-                        />
-                      </Tooltip>
-                    </HStack>
+              {employeeAccountsLoading ? (
+                <Tr>
+                  <Td colSpan={7} textAlign="center" py={8}>
+                    <Spinner size="md" color="blue.500" />
+                    <Text fontSize="xs" color="gray.500" mt={2}>Loading users...</Text>
                   </Td>
                 </Tr>
-              ))}
+              ) : employeeAccountsError ? (
+                <Tr>
+                  <Td colSpan={7} textAlign="center" py={8}>
+                    <Text fontSize="xs" color="red.500">{employeeAccountsError}</Text>
+                  </Td>
+                </Tr>
+              ) : employeeAccounts.length === 0 ? (
+                <Tr>
+                  <Td colSpan={7} textAlign="center" py={8}>
+                    <Icon as={FaUsers} boxSize={12} mb={4} color="gray.400" />
+                    <Text fontSize="sm" color="gray.500">No users found</Text>
+                  </Td>
+                </Tr>
+              ) : (
+                employeeAccounts.map((user) => (
+                  <Tr key={user._id} _hover={{ bg: 'gray.50' }}>
+                    <Td>
+                      <Box>
+                        <Text fontSize="sm" fontWeight="medium">
+                          {user.first_name} {user.middle_name && user.middle_name[0] + '.'} {user.last_name} {user.suffix || ''}
+                        </Text>
+                        <Text fontSize="xs" color="gray.500">{user.email}</Text>
+                      </Box>
+                    </Td>
+                    <Td>
+                      <Text fontSize="xs">{user.phone}</Text>
+                    </Td>
+                    <Td>
+                      <Flex flexWrap="wrap" gap={1}>
+                        {user.roles && user.roles.length > 0 ? (
+                          user.roles.map((role) => (
+                            <Badge
+                              key={role}
+                              colorScheme={getRoleBadgeColor(role)}
+                              fontSize="xs"
+                            >
+                              {role}
+                            </Badge>
+                          ))
+                        ) : (
+                          <Text fontSize="xs" color="gray.400">-</Text>
+                        )}
+                      </Flex>
+                    </Td>
+                    <Td>
+                      <Text fontSize="xs">{user.office_position || '-'}</Text>
+                    </Td>
+                    <Td>
+                      <Badge
+                        colorScheme="blue"
+                        fontSize="xs"
+                      >
+                        Employee
+                      </Badge>
+                    </Td>
+                    <Td>
+                      <Badge 
+                        colorScheme={
+                          user.isArchived ? 'red' : 
+                          user.isLocked ? 'orange' : 
+                          'green'
+                        }
+                        fontSize="xs"
+                      >
+                        {user.isArchived ? 'Archived' : user.isLocked ? 'Locked' : 'Active'}
+                      </Badge>
+                    </Td>
+                    <Td>
+                      <HStack spacing={2}>
+                        <Tooltip label="Edit">
+                          <IconButton
+                            size="sm"
+                            icon={<FiEdit2 />}
+                            colorScheme="blue"
+                            variant="ghost"
+                            onClick={() => handleEditUser(user)}
+                          />
+                        </Tooltip>
+                        <Tooltip label={user.isLocked ? 'Unlock' : 'Lock'}>
+                          <IconButton
+                            size="sm"
+                            icon={user.isLocked ? <FiUnlock /> : <FiLock />}
+                            colorScheme={user.isLocked ? 'green' : 'orange'}
+                            variant="ghost"
+                            onClick={() => handleLockToggle(user._id, 'EMPLOYEE', user.isLocked)}
+                            isDisabled={user.isArchived}
+                          />
+                        </Tooltip>
+                        <Tooltip label="Archive">
+                          <IconButton
+                            size="sm"
+                            icon={<FaArchive />}
+                            colorScheme="red"
+                            variant="ghost"
+                            onClick={() => handleArchive(user._id, 'EMPLOYEE')}
+                            isDisabled={user.isArchived}
+                          />
+                        </Tooltip>
+                      </HStack>
+                    </Td>
+                  </Tr>
+                ))
+              )}
             </Tbody>
           </Table>
         </TableContainer>
 
-        {filteredUsers.length === 0 && (
-          <Flex direction="column" align="center" justify="center" py={12} color="gray.500">
-            <Icon as={FaUsers} boxSize={12} mb={4} color="gray.400" />
-            <Text>No users found</Text>
-          </Flex>
-        )}
       </Box>
+
+      {/* Pagination */}
+      {employeeAccountsPagination.totalPages > 1 && (
+        <Flex
+          justify="space-between"
+          align="center"
+          bg="white"
+          border="1px"
+          borderColor="gray.200"
+          borderRadius="md"
+          p={3}
+          mt={4}
+        >
+          <Text fontSize="xs" color="gray.600">
+            Page {employeeAccountsPagination.currentPage} of {employeeAccountsPagination.totalPages} 
+            ({employeeAccountsPagination.totalEmployees} total)
+          </Text>
+          <HStack spacing={2}>
+            <Button
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              isDisabled={currentPage === 1 || employeeAccountsLoading}
+              size="sm"
+              variant="outline"
+            >
+              Previous
+            </Button>
+            <Button
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, employeeAccountsPagination.totalPages))}
+              isDisabled={currentPage === employeeAccountsPagination.totalPages || employeeAccountsLoading}
+              size="sm"
+              variant="outline"
+            >
+              Next
+            </Button>
+          </HStack>
+        </Flex>
+      )}
     </Box>
   );
 };

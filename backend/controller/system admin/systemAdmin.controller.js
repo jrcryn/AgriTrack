@@ -538,7 +538,7 @@ export const lockUserAccount = async (req, res) => {
 
 // Fetch action logs with pagination and search
 export const getActionLogs = async (req, res) => {
-    const { search = '', action = '', module = '', status = '' } = req.query;
+    const { search = '', action = '', module = '', status = '', userId = '' } = req.query;
 
     try {
         const page = parseInt(req.query.page) || 1;
@@ -568,18 +568,54 @@ export const getActionLogs = async (req, res) => {
             query.status = status;
         }
 
+        if (userId) {
+            query.userId = userId;
+        }
+
         const totalLogs = await global.globalModels.GranularLog.countDocuments(query);
         const logs = await global.globalModels.GranularLog.find(query)
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(limit)
-            .populate('userId', 'first_name last_name email')
             .lean();
+
+        // Manually populate userId field (can be EmployeeAccount or SystemAdminAccount)
+        // Collect all unique user IDs
+        const userIds = [...new Set(logs.map(log => log.userId).filter(Boolean))];
+        
+        // Batch fetch from both collections
+        const [employees, admins] = await Promise.all([
+            global.globalModels.EmployeeAccount.find({ _id: { $in: userIds } })
+                .select('first_name last_name middle_name suffix email')
+                .lean(),
+            global.systemAdminModels.SystemAdminAccount.find({ _id: { $in: userIds } })
+                .select('first_name last_name middle_name suffix email')
+                .lean()
+        ]);
+
+        // Create a map for quick lookup
+        const userMap = new Map();
+        [...employees, ...admins].forEach(user => {
+            userMap.set(user._id.toString(), user);
+        });
+
+        // Populate logs with user data
+        const populatedLogs = logs.map(log => {
+            if (!log.userId) {
+                return { ...log, userId: null };
+            }
+
+            const user = userMap.get(log.userId.toString());
+            return {
+                ...log,
+                userId: user || { _id: log.userId, first_name: 'Unknown', last_name: 'User' }
+            };
+        });
 
 
         res.status(200).json({
             success: true,
-            logs,
+            logs: populatedLogs,
             pagination: {
                 currentPage: page,
                 totalPages: Math.ceil(totalLogs / limit),
@@ -653,6 +689,65 @@ export const getEmployeeAccounts = async (req, res) => {
 
     } catch (error) {
         console.error('Error fetching employee accounts:', error);
+        return res.status(500).json({ success: false, message: 'Internal server error.' });
+    }
+};
+
+// Get system admin accounts
+export const getSystemAdminAccounts = async (req, res) => {
+    const { search = '', status = '' } = req.query;
+
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 50;
+        const skip = (page - 1) * limit;
+
+        // Build search query
+        const query = {};
+        
+        if (search) {
+            query.$or = [
+                { first_name: { $regex: search, $options: 'i' } },
+                { last_name: { $regex: search, $options: 'i' } },
+                { middle_name: { $regex: search, $options: 'i' } },
+                { email: { $regex: search, $options: 'i' } },
+                { phone: { $regex: search, $options: 'i' } }
+            ];
+        }
+
+        // Status filtering
+        if (status) {
+            if (status === 'active') {
+                query.isLocked = false;
+                query.isArchived = false;
+            } else if (status === 'locked') {
+                query.isLocked = true;
+            } else if (status === 'archived') {
+                query.isArchived = true;
+            }
+        }
+
+        const totalAdmins = await global.systemAdminModels.SystemAdminAccount.countDocuments(query);
+        const admins = await global.systemAdminModels.SystemAdminAccount.find(query)
+            .select('-password -twoFASecret -twoFAQRCode')
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit)
+            .lean();
+
+        res.status(200).json({
+            success: true,
+            admins,
+            pagination: {
+                currentPage: page,
+                totalPages: Math.ceil(totalAdmins / limit),
+                totalAdmins,
+                limit: limit
+            }
+        });
+
+    } catch (error) {
+        console.error('Error fetching system admin accounts:', error);
         return res.status(500).json({ success: false, message: 'Internal server error.' });
     }
 };

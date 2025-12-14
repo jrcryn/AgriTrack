@@ -4,9 +4,6 @@ import {
   Heading,
   Text,
   Button,
-  Input,
-  InputGroup,
-  InputLeftElement,
   Select,
   Flex,
   Grid,
@@ -17,137 +14,57 @@ import {
   Th,
   Td,
   TableContainer,
-  Badge,
   Icon,
-  HStack
+  HStack,
+  Spinner
 } from '@chakra-ui/react';
-import { FiSearch, FiFilter, FiDownload, FiCalendar, FiCheckCircle, FiXCircle, FiAlertTriangle, FiInfo } from 'react-icons/fi';
+import { FiFilter, FiDownload, FiCheckCircle, FiXCircle, FiAlertTriangle, FiInfo } from 'react-icons/fi';
+import { useSystemAdminStore } from './store/systemAdminDashboard.store';
 
 const ActionLogs = () => {
-  const [logs, setLogs] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
+  const {
+    actionLogs,
+    actionLogsLoading,
+    actionLogsError,
+    actionLogsPagination,
+    fetchActionLogs,
+    allUsers,
+    allUsersLoading,
+    fetchAllUsers
+  } = useSystemAdminStore();
+
+  const [filterUser, setFilterUser] = useState('all');
   const [filterAction, setFilterAction] = useState('all');
   const [filterModule, setFilterModule] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const logsPerPage = 20;
 
-  // Mock data
+  // Fetch users for dropdown
   useEffect(() => {
-    const mockLogs = [
-      {
-        id: 1,
-        action: 'USER_REGISTER',
-        module: 'SYSTEM ADMIN',
-        description: 'User registered: juan.delacruz@agritrack.com',
-        status: 'SUCCESS',
-        userId: 'admin123',
-        userName: 'Admin User',
-        timestamp: '2024-12-15T10:30:00',
-        ipAddress: '192.168.1.100'
-      },
-      {
-        id: 2,
-        action: 'USER_PASSWORD_CHANGED',
-        module: 'SYSTEM ADMIN',
-        description: 'Password changed for user 67890',
-        status: 'SUCCESS',
-        userId: 'admin123',
-        userName: 'Admin User',
-        timestamp: '2024-12-15T09:45:00',
-        ipAddress: '192.168.1.100'
-      },
-      {
-        id: 3,
-        action: 'USER_EMAIL_UPDATED',
-        module: 'SYSTEM ADMIN',
-        description: 'Email update error: User not found',
-        status: 'FAILED',
-        userId: 'admin456',
-        userName: 'Maria Santos',
-        timestamp: '2024-12-15T09:15:00',
-        ipAddress: '192.168.1.105'
-      },
-      {
-        id: 4,
-        action: 'USER_ROLES_UPDATED',
-        module: 'SYSTEM ADMIN',
-        description: 'Roles updated for user 12345: HVC -> HVC, DMS',
-        status: 'SUCCESS',
-        userId: 'admin123',
-        userName: 'Admin User',
-        timestamp: '2024-12-15T08:30:00',
-        ipAddress: '192.168.1.100'
-      },
-      {
-        id: 5,
-        action: 'USER_ARCHIVED',
-        module: 'SYSTEM ADMIN',
-        description: 'User archived: 54321',
-        status: 'SUCCESS',
-        userId: 'admin789',
-        userName: 'Pedro Reyes',
-        timestamp: '2024-12-14T16:20:00',
-        ipAddress: '192.168.1.110'
-      },
-      {
-        id: 6,
-        action: 'USER_2FA_RESET',
-        module: 'SYSTEM ADMIN',
-        description: '2FA reset for user 98765',
-        status: 'SUCCESS',
-        userId: 'admin123',
-        userName: 'Admin User',
-        timestamp: '2024-12-14T15:10:00',
-        ipAddress: '192.168.1.100'
-      },
-      {
-        id: 7,
-        action: 'SYSTEM_ADMIN_REGISTER',
-        module: 'SYSTEM ADMIN',
-        description: 'System admin registered: newadmin@agritrack.com',
-        status: 'SUCCESS',
-        userId: 'admin123',
-        userName: 'Admin User',
-        timestamp: '2024-12-14T14:00:00',
-        ipAddress: '192.168.1.100'
-      },
-      {
-        id: 8,
-        action: 'USER_PHONE_UPDATED',
-        module: 'SYSTEM ADMIN',
-        description: 'Phone updated for user 11111: +63 912 345 6789 -> +63 923 456 7890',
-        status: 'SUCCESS',
-        userId: 'admin456',
-        userName: 'Maria Santos',
-        timestamp: '2024-12-14T13:30:00',
-        ipAddress: '192.168.1.105'
-      },
-    ];
-    setLogs(mockLogs);
-  }, []);
+    fetchAllUsers();
+  }, [fetchAllUsers]);
+
+  // Fetch logs when filters or page change
+  useEffect(() => {
+    fetchActionLogs({
+      page: currentPage,
+      limit: logsPerPage,
+      action: filterAction !== 'all' ? filterAction : '',
+      module: filterModule !== 'all' ? filterModule : '',
+      status: filterStatus !== 'all' ? filterStatus : '',
+      userId: filterUser !== 'all' ? filterUser : ''
+    });
+  }, [currentPage, filterAction, filterModule, filterStatus, filterUser, fetchActionLogs]);
 
   const actionTypes = ['USER_REGISTER', 'USER_PASSWORD_CHANGED', 'USER_EMAIL_UPDATED', 'USER_ROLES_UPDATED', 'USER_ARCHIVED', 'USER_2FA_RESET', 'SYSTEM_ADMIN_REGISTER'];
   const modules = ['SYSTEM ADMIN', 'HVC', 'DMS', 'MACHINERIES', 'DOC_TRACK'];
 
-  const filteredLogs = logs.filter(log => {
-    const matchesSearch = 
-      log.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.action.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesAction = filterAction === 'all' || log.action === filterAction;
-    const matchesModule = filterModule === 'all' || log.module === filterModule;
-    const matchesStatus = filterStatus === 'all' || log.status === filterStatus;
-
-    return matchesSearch && matchesAction && matchesModule && matchesStatus;
-  });
-
-  // Pagination
-  const indexOfLastLog = currentPage * logsPerPage;
-  const indexOfFirstLog = indexOfLastLog - logsPerPage;
-  const currentLogs = filteredLogs.slice(indexOfFirstLog, indexOfLastLog);
-  const totalPages = Math.ceil(filteredLogs.length / logsPerPage);
+  const currentLogs = actionLogs || [];
+  const totalPages = actionLogsPagination.totalPages || 1;
+  const totalLogs = actionLogsPagination.totalLogs || 0;
+  const indexOfFirstLog = (currentPage - 1) * logsPerPage + 1;
+  const indexOfLastLog = Math.min(currentPage * logsPerPage, totalLogs);
 
   const getStatusIcon = (status) => {
     switch (status) {
@@ -173,6 +90,7 @@ const ActionLogs = () => {
   };
 
   const formatDate = (timestamp) => {
+    if (!timestamp) return 'N/A';
     const date = new Date(timestamp);
     return date.toLocaleString('en-US', {
       month: 'short',
@@ -181,6 +99,13 @@ const ActionLogs = () => {
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  const getUserName = (log) => {
+    if (!log.userId) return 'Unknown User';
+    const user = log.userId;
+    const name = `${user.first_name || ''} ${user.middle_name || ''} ${user.last_name || ''} ${user.suffix || ''}`.trim();
+    return name || user.email || 'Unknown User';
   };
 
   const handleExport = () => {
@@ -208,22 +133,35 @@ const ActionLogs = () => {
       {/* Filters */}
       <Box bg="white" border="1px" borderColor="gray.200" borderRadius="md" p={4} mb={4}>
         <Grid templateColumns={{ base: '1fr', md: 'repeat(4, 1fr)' }} gap={4}>
-          {/* Search */}
-          <InputGroup>
-            <InputLeftElement pointerEvents="none">
-              <Icon as={FiSearch} color="gray.400" />
-            </InputLeftElement>
-            <Input
-              placeholder="Search logs..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </InputGroup>
+          {/* User Filter */}
+          <Select
+            value={filterUser}
+            onChange={(e) => {
+              setFilterUser(e.target.value);
+              setCurrentPage(1);
+            }}
+            icon={<FiFilter />}
+            isDisabled={allUsersLoading}
+          >
+            <option value="all">All Users</option>
+            {allUsersLoading ? (
+              <option disabled>Loading users...</option>
+            ) : (
+              allUsers.map(user => (
+                <option key={user._id} value={user._id}>
+                  {user.displayName} ({user.accountType === 'SYSTEM_ADMIN' ? 'Admin' : 'Employee'})
+                </option>
+              ))
+            )}
+          </Select>
 
           {/* Action Filter */}
           <Select
             value={filterAction}
-            onChange={(e) => setFilterAction(e.target.value)}
+            onChange={(e) => {
+              setFilterAction(e.target.value);
+              setCurrentPage(1);
+            }}
             icon={<FiFilter />}
           >
             <option value="all">All Actions</option>
@@ -235,7 +173,10 @@ const ActionLogs = () => {
           {/* Module Filter */}
           <Select
             value={filterModule}
-            onChange={(e) => setFilterModule(e.target.value)}
+            onChange={(e) => {
+              setFilterModule(e.target.value);
+              setCurrentPage(1);
+            }}
             icon={<FiFilter />}
           >
             <option value="all">All Modules</option>
@@ -247,13 +188,15 @@ const ActionLogs = () => {
           {/* Status Filter */}
           <Select
             value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
+            onChange={(e) => {
+              setFilterStatus(e.target.value);
+              setCurrentPage(1);
+            }}
             icon={<FiFilter />}
           >
             <option value="all">All Status</option>
             <option value="SUCCESS">Success</option>
             <option value="FAILED">Failed</option>
-            <option value="WARNING">Warning</option>
           </Select>
         </Grid>
       </Box>
@@ -280,58 +223,81 @@ const ActionLogs = () => {
               </Tr>
             </Thead>
             <Tbody>
-              {currentLogs.map((log) => (
-                <Tr key={log.id} _hover={{ bg: 'gray.900' }}>
-                  <Td borderBottom="1px" borderColor="gray.800" py={2}>
-                    <Text fontSize="2xs" color="gray.300" fontFamily="mono">
-                      {formatDate(log.timestamp)}
-                    </Text>
-                  </Td>
-                  <Td borderBottom="1px" borderColor="gray.800" py={2}>
-                    <Text 
-                      fontSize="2xs" 
-                      color={getStatusColor(log.status)}
-                      fontWeight="bold"
-                      fontFamily="mono"
-                    >
-                      {log.status}
-                    </Text>
-                  </Td>
-                  <Td borderBottom="1px" borderColor="gray.800" py={2}>
-                    <Text fontSize="2xs" color="cyan.400" fontFamily="mono">
-                      {log.module}
-                    </Text>
-                  </Td>
-                  <Td borderBottom="1px" borderColor="gray.800" py={2}>
-                    <Text fontSize="2xs" color="gray.300" fontFamily="mono">
-                      [{log.action.replace(/_/g, ' ')}] {log.description}
-                    </Text>
-                  </Td>
-                  <Td borderBottom="1px" borderColor="gray.800" py={2}>
-                    <Box>
-                      <Text fontSize="2xs" color="yellow.400" fontFamily="mono">
-                        {log.userName}
-                      </Text>
-                      <Text fontSize="2xs" color="gray.500" fontFamily="mono">
-                        {log.ipAddress}
-                      </Text>
-                    </Box>
+              {actionLogsLoading ? (
+                <Tr>
+                  <Td colSpan={5} textAlign="center" py={8}>
+                    <Spinner size="md" color="cyan.400" />
+                    <Text fontSize="xs" color="gray.400" mt={2} fontFamily="mono">Loading logs...</Text>
                   </Td>
                 </Tr>
-              ))}
+              ) : actionLogsError ? (
+                <Tr>
+                  <Td colSpan={5} textAlign="center" py={8}>
+                    <Text fontSize="xs" color="red.400" fontFamily="mono">{actionLogsError}</Text>
+                  </Td>
+                </Tr>
+              ) : currentLogs.length === 0 ? (
+                <Tr>
+                  <Td colSpan={5} textAlign="center" py={8}>
+                    <Text fontSize="xs" color="gray.500" fontFamily="mono">No logs found</Text>
+                  </Td>
+                </Tr>
+              ) : (
+                currentLogs.map((log) => (
+                  <Tr key={log._id} _hover={{ bg: 'gray.900' }}>
+                    <Td borderBottom="1px" borderColor="gray.800" py={2}>
+                      <Text fontSize="2xs" color="gray.300" fontFamily="mono">
+                        {formatDate(log.createdAt)}
+                      </Text>
+                    </Td>
+                    <Td borderBottom="1px" borderColor="gray.800" py={2}>
+                      <HStack spacing={1}>
+                        <Icon 
+                          as={getStatusIcon(log.status)} 
+                          color={getStatusColor(log.status)}
+                          boxSize={3}
+                        />
+                        <Text 
+                          fontSize="2xs" 
+                          color={getStatusColor(log.status)}
+                          fontWeight="bold"
+                          fontFamily="mono"
+                        >
+                          {log.status}
+                        </Text>
+                      </HStack>
+                    </Td>
+                    <Td borderBottom="1px" borderColor="gray.800" py={2}>
+                      <Text fontSize="2xs" color="cyan.400" fontFamily="mono">
+                        {log.module}
+                      </Text>
+                    </Td>
+                    <Td borderBottom="1px" borderColor="gray.800" py={2}>
+                      <Text fontSize="2xs" color="gray.300" fontFamily="mono">
+                        [{log.action.replace(/_/g, ' ')}] {log.description}
+                      </Text>
+                    </Td>
+                    <Td borderBottom="1px" borderColor="gray.800" py={2}>
+                      <Box>
+                        <Text fontSize="2xs" color="yellow.400" fontFamily="mono">
+                          {getUserName(log)}
+                        </Text>
+                        <Text fontSize="2xs" color="gray.500" fontFamily="mono">
+                          {log.ip}
+                        </Text>
+                      </Box>
+                    </Td>
+                  </Tr>
+                ))
+              )}
             </Tbody>
           </Table>
         </TableContainer>
 
-        {currentLogs.length === 0 && (
-          <Flex direction="column" align="center" justify="center" py={12}>
-            <Text color="gray.500" fontSize="sm" fontFamily="mono">No logs found</Text>
-          </Flex>
-        )}
       </Box>
 
       {/* Pagination */}
-      {totalPages > 1 && (
+      {totalLogs > 0 && (
         <Flex
           justify="space-between"
           align="center"
@@ -342,12 +308,12 @@ const ActionLogs = () => {
           p={3}
         >
           <Text fontSize="xs" color="gray.600">
-            {indexOfFirstLog + 1}-{Math.min(indexOfLastLog, filteredLogs.length)} of {filteredLogs.length}
+            {indexOfFirstLog}-{indexOfLastLog} of {totalLogs}
           </Text>
           <HStack spacing={2}>
             <Button
               onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-              isDisabled={currentPage === 1}
+              isDisabled={currentPage === 1 || actionLogsLoading}
               size="sm"
               variant="outline"
             >
@@ -358,7 +324,7 @@ const ActionLogs = () => {
             </Text>
             <Button
               onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-              isDisabled={currentPage === totalPages}
+              isDisabled={currentPage === totalPages || actionLogsLoading}
               size="sm"
               variant="outline"
             >
