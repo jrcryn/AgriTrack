@@ -12,7 +12,8 @@ import {
     resetUser2FA,
     archiveUserAccount,
     lockUserAccount,
-    getActionLogs
+    getActionLogs,
+    getEmployeeAccounts
 } from '../controller/system admin/systemAdmin.controller.js';
 
 import { verifyAuthToken } from '../middleware/verifyToken.js';
@@ -38,7 +39,8 @@ router.put('/lock-account', systemAdminAuth, lockUserAccount);
 // System admin account management
 router.post('/register-system-admin', systemAdminAuth, registerSystemAdmin);
 
-// Action logs
+// Logs and data retrieval
 router.get('/action-logs', systemAdminAuth, getActionLogs);
+router.get('/employee-accounts', systemAdminAuth, getEmployeeAccounts);
 
 export default router;

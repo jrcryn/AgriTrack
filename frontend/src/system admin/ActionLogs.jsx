@@ -164,12 +164,12 @@ const ActionLogs = () => {
 
   const getStatusColor = (status) => {
     const colors = {
-      SUCCESS: 'green',
-      FAILED: 'red',
-      WARNING: 'orange',
-      INFO: 'blue'
+      SUCCESS: 'green.400',
+      FAILED: 'red.400',
+      WARNING: 'orange.400',
+      INFO: 'blue.400'
     };
-    return colors[status] || 'blue';
+    return colors[status] || 'blue.400';
   };
 
   const formatDate = (timestamp) => {
@@ -189,24 +189,24 @@ const ActionLogs = () => {
   };
 
   return (
-    <Box p={8} bg="gray.50" minH="100vh">
+    <Box p={6} minH="100vh">
       {/* Header */}
-      <Flex mb={8} justify="space-between" align="center">
+      <Flex mb={6} justify="space-between" align="center">
         <Box>
-          <Heading size="xl" color="gray.800">Action Logs</Heading>
-          <Text color="gray.600" mt={2}>Monitor and track all system activities</Text>
+          <Heading size="lg">Action Logs</Heading>
+          <Text color="gray.600" fontSize="sm" mt={1}>Monitor and track all system activities</Text>
         </Box>
         <Button
           onClick={handleExport}
-          colorScheme="blue"
+          size="sm"
           leftIcon={<Icon as={FiDownload} />}
         >
-          Export Logs
+          Export
         </Button>
       </Flex>
 
       {/* Filters */}
-      <Box bg="white" borderRadius="xl" boxShadow="md" p={6} mb={6}>
+      <Box bg="white" border="1px" borderColor="gray.200" borderRadius="md" p={4} mb={4}>
         <Grid templateColumns={{ base: '1fr', md: 'repeat(4, 1fr)' }} gap={4}>
           {/* Search */}
           <InputGroup>
@@ -258,63 +258,64 @@ const ActionLogs = () => {
         </Grid>
       </Box>
 
-      {/* Logs Table */}
-      <Box bg="white" borderRadius="xl" boxShadow="md" overflow="hidden" mb={6}>
+      {/* Logs Table - Terminal Style */}
+      <Box bg="black" borderRadius="md" overflow="hidden" mb={4} p={4}>
         <TableContainer>
-          <Table variant="simple">
-            <Thead bg="gray.50">
+          <Table 
+          variant="unstyled" 
+          size="xs" 
+          sx={{
+                'th, td': {
+                borderBottom: 'none',
+                },
+            }}
+          >
+            <Thead>
               <Tr>
-                <Th>Status</Th>
-                <Th>Action</Th>
-                <Th>Description</Th>
-                <Th>User</Th>
-                <Th>Module</Th>
-                <Th>Timestamp</Th>
+                <Th fontSize="2xs" color="gray.400" borderBottom="1px" borderColor="gray.700" textTransform="uppercase">Timestamp</Th>
+                <Th fontSize="2xs" color="gray.400" borderBottom="1px" borderColor="gray.700" textTransform="uppercase">Status</Th>
+                <Th fontSize="2xs" color="gray.400" borderBottom="1px" borderColor="gray.700" textTransform="uppercase">Module</Th>
+                <Th fontSize="2xs" color="gray.400" borderBottom="1px" borderColor="gray.700" textTransform="uppercase">Description</Th>
+                <Th fontSize="2xs" color="gray.400" borderBottom="1px" borderColor="gray.700" textTransform="uppercase">User</Th>
               </Tr>
             </Thead>
             <Tbody>
               {currentLogs.map((log) => (
-                <Tr key={log.id} _hover={{ bg: 'gray.50' }} transition="all 0.2s">
-                  <Td>
-                    <Icon
-                      as={getStatusIcon(log.status)}
-                      color={`${getStatusColor(log.status)}.600`}
-                      boxSize={5}
-                    />
-                  </Td>
-                  <Td>
-                    <Badge
-                      colorScheme={getStatusColor(log.status)}
-                      borderRadius="full"
-                      px={3}
-                      py={1}
-                    >
-                      {log.action.replace(/_/g, ' ')}
-                    </Badge>
-                  </Td>
-                  <Td>
-                    <Text fontSize="sm" color="gray.700" maxW="md">
-                      {log.description}
+                <Tr key={log.id} _hover={{ bg: 'gray.900' }}>
+                  <Td borderBottom="1px" borderColor="gray.800" py={2}>
+                    <Text fontSize="2xs" color="gray.300" fontFamily="mono">
+                      {formatDate(log.timestamp)}
                     </Text>
                   </Td>
-                  <Td>
+                  <Td borderBottom="1px" borderColor="gray.800" py={2}>
+                    <Text 
+                      fontSize="2xs" 
+                      color={getStatusColor(log.status)}
+                      fontWeight="bold"
+                      fontFamily="mono"
+                    >
+                      {log.status}
+                    </Text>
+                  </Td>
+                  <Td borderBottom="1px" borderColor="gray.800" py={2}>
+                    <Text fontSize="2xs" color="cyan.400" fontFamily="mono">
+                      {log.module}
+                    </Text>
+                  </Td>
+                  <Td borderBottom="1px" borderColor="gray.800" py={2}>
+                    <Text fontSize="2xs" color="gray.300" fontFamily="mono">
+                      [{log.action.replace(/_/g, ' ')}] {log.description}
+                    </Text>
+                  </Td>
+                  <Td borderBottom="1px" borderColor="gray.800" py={2}>
                     <Box>
-                      <Text fontSize="sm" fontWeight="medium" color="gray.900">
+                      <Text fontSize="2xs" color="yellow.400" fontFamily="mono">
                         {log.userName}
                       </Text>
-                      <Text fontSize="xs" color="gray.500">
+                      <Text fontSize="2xs" color="gray.500" fontFamily="mono">
                         {log.ipAddress}
                       </Text>
                     </Box>
-                  </Td>
-                  <Td>
-                    <Text fontSize="sm" color="gray.600">{log.module}</Text>
-                  </Td>
-                  <Td>
-                    <HStack spacing={2} fontSize="sm" color="gray.600">
-                      <Icon as={FiCalendar} boxSize={3} />
-                      <Text>{formatDate(log.timestamp)}</Text>
-                    </HStack>
                   </Td>
                 </Tr>
               ))}
@@ -323,9 +324,8 @@ const ActionLogs = () => {
         </TableContainer>
 
         {currentLogs.length === 0 && (
-          <Flex direction="column" align="center" justify="center" py={12} color="gray.500">
-            <Icon as={FiInfo} boxSize={12} mb={4} color="gray.400" />
-            <Text>No logs found</Text>
+          <Flex direction="column" align="center" justify="center" py={12}>
+            <Text color="gray.500" fontSize="sm" fontFamily="mono">No logs found</Text>
           </Flex>
         )}
       </Box>
@@ -336,27 +336,30 @@ const ActionLogs = () => {
           justify="space-between"
           align="center"
           bg="white"
-          borderRadius="xl"
-          boxShadow="md"
-          p={4}
+          border="1px"
+          borderColor="gray.200"
+          borderRadius="md"
+          p={3}
         >
-          <Text fontSize="sm" color="gray.600">
-            Showing {indexOfFirstLog + 1} to {Math.min(indexOfLastLog, filteredLogs.length)} of {filteredLogs.length} logs
+          <Text fontSize="xs" color="gray.600">
+            {indexOfFirstLog + 1}-{Math.min(indexOfLastLog, filteredLogs.length)} of {filteredLogs.length}
           </Text>
           <HStack spacing={2}>
             <Button
               onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
               isDisabled={currentPage === 1}
+              size="sm"
               variant="outline"
             >
               Previous
             </Button>
-            <Text fontSize="sm" color="gray.600" px={4}>
-              Page {currentPage} of {totalPages}
+            <Text fontSize="xs" px={2}>
+              {currentPage}/{totalPages}
             </Text>
             <Button
               onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
               isDisabled={currentPage === totalPages}
+              size="sm"
               variant="outline"
             >
               Next

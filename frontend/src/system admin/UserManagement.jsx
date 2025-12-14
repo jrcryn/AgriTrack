@@ -139,15 +139,15 @@ const UserManagement = () => {
   };
 
   return (
-    <Box p={8} bg="gray.50" minH="100vh">
+    <Box p={6} minH="100vh">
       {/* Header */}
-      <Box mb={8}>
-        <Heading size="xl" color="gray.800">User Management</Heading>
-        <Text color="gray.600" mt={2}>Manage employee and system admin accounts</Text>
+      <Box mb={6}>
+        <Heading size="lg">User Management</Heading>
+        <Text color="gray.600" fontSize="sm" mt={1}>Manage employee and system admin accounts</Text>
       </Box>
 
       {/* Filters */}
-      <Box bg="white" borderRadius="xl" boxShadow="md" p={6} mb={6}>
+      <Box bg="white" border="1px" borderColor="gray.200" borderRadius="md" p={4} mb={4}>
         <Flex gap={4} direction={{ base: 'column', md: 'row' }}>
           {/* Search */}
           <InputGroup flex={1}>
@@ -191,36 +191,33 @@ const UserManagement = () => {
       </Box>
 
       {/* Users Table */}
-      <Box bg="white" borderRadius="xl" boxShadow="md" overflow="hidden">
+      <Box bg="white" border="1px" borderColor="gray.200" borderRadius="md" overflow="hidden">
         <TableContainer>
-          <Table variant="simple">
+          <Table variant="simple" size="sm">
             <Thead bg="gray.50">
               <Tr>
-                <Th>Name</Th>
-                <Th>Contact</Th>
-                <Th>Roles</Th>
-                <Th>Position</Th>
-                <Th>Type</Th>
-                <Th>Status</Th>
-                <Th>Actions</Th>
+                <Th fontSize="xs">Name</Th>
+                <Th fontSize="xs">Contact</Th>
+                <Th fontSize="xs">Roles</Th>
+                <Th fontSize="xs">Position</Th>
+                <Th fontSize="xs">Type</Th>
+                <Th fontSize="xs">Status</Th>
+                <Th fontSize="xs">Actions</Th>
               </Tr>
             </Thead>
             <Tbody>
               {filteredUsers.map((user) => (
-                <Tr key={user.id} _hover={{ bg: 'gray.50' }} transition="all 0.2s">
+                <Tr key={user.id} _hover={{ bg: 'gray.50' }}>
                   <Td>
                     <Box>
-                      <Text fontWeight="medium" color="gray.900">
+                      <Text fontSize="sm" fontWeight="medium">
                         {user.firstName} {user.middleName && user.middleName[0] + '.'} {user.lastName}
                       </Text>
-                      <Text fontSize="sm" color="gray.500">{user.email}</Text>
+                      <Text fontSize="xs" color="gray.500">{user.email}</Text>
                     </Box>
                   </Td>
                   <Td>
-                    <HStack spacing={2}>
-                      <Icon as={FaPhone} boxSize={3} color="gray.600" />
-                      <Text fontSize="sm" color="gray.600">{user.phone}</Text>
-                    </HStack>
+                    <Text fontSize="xs">{user.phone}</Text>
                   </Td>
                   <Td>
                     <Flex flexWrap="wrap" gap={1}>
@@ -229,49 +226,38 @@ const UserManagement = () => {
                           <Badge
                             key={role}
                             colorScheme={getRoleBadgeColor(role)}
-                            borderRadius="full"
-                            px={2}
-                            py={1}
+                            fontSize="xs"
                           >
                             {role}
                           </Badge>
                         ))
                       ) : (
-                        <Text fontSize="sm" color="gray.400">No roles</Text>
+                        <Text fontSize="xs" color="gray.400">-</Text>
                       )}
                     </Flex>
                   </Td>
                   <Td>
-                    {user.officePosition ? (
-                      <Text fontSize="sm" color="gray.600">{user.officePosition}</Text>
-                    ) : (
-                      <Text fontSize="sm" color="gray.400">N/A</Text>
-                    )}
+                    <Text fontSize="xs">{user.officePosition || '-'}</Text>
                   </Td>
                   <Td>
                     <Badge
                       colorScheme={user.accountType === 'SYSTEM_ADMIN' ? 'purple' : 'blue'}
-                      borderRadius="full"
-                      px={3}
-                      py={1}
+                      fontSize="xs"
                     >
                       {user.accountType === 'SYSTEM_ADMIN' ? 'Admin' : 'Employee'}
                     </Badge>
                   </Td>
                   <Td>
-                    {user.isArchived ? (
-                      <Badge colorScheme="red" borderRadius="full" px={3} py={1}>
-                        Archived
-                      </Badge>
-                    ) : user.isLocked ? (
-                      <Badge colorScheme="orange" borderRadius="full" px={3} py={1}>
-                        Locked
-                      </Badge>
-                    ) : (
-                      <Badge colorScheme="green" borderRadius="full" px={3} py={1}>
-                        Active
-                      </Badge>
-                    )}
+                    <Badge 
+                      colorScheme={
+                        user.isArchived ? 'red' : 
+                        user.isLocked ? 'orange' : 
+                        'green'
+                      }
+                      fontSize="xs"
+                    >
+                      {user.isArchived ? 'Archived' : user.isLocked ? 'Locked' : 'Active'}
+                    </Badge>
                   </Td>
                   <Td>
                     <HStack spacing={2}>

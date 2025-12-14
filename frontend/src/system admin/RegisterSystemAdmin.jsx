@@ -75,27 +75,26 @@ const RegisterSystemAdmin = () => {
   };
 
   return (
-    <Box p={8} bg="gray.50" minH="100vh">
+    <Box p={6} minH="100vh">
       {/* Header */}
-      <Box mb={8}>
-        <Heading size="xl" color="gray.800">Register System Admin</Heading>
-        <Text color="gray.600" mt={2}>Create a new system administrator account</Text>
+      <Box mb={6}>
+        <Heading size="lg">Register System Admin</Heading>
+        <Text color="gray.600" fontSize="sm" mt={1}>Create a new system administrator account</Text>
       </Box>
 
       {/* Warning Banner */}
-      <Alert status="warning" borderRadius="lg" maxW="4xl" mb={6}>
-        <AlertIcon as={FiAlertCircle} />
-        <Box flex="1">
-          <Heading size="sm" mb={1}>Important Notice</Heading>
-          <Text fontSize="sm">
-            System administrators have full access to all system functions and user data. 
-            Only register trusted personnel as system administrators.
+      <Alert status="warning" borderRadius="md" maxW="4xl" mb={4}>
+        <AlertIcon />
+        <Box>
+          <Text fontSize="sm" fontWeight="medium" mb={1}>Important Notice</Text>
+          <Text fontSize="xs">
+            System administrators have full access to all system functions and user data.
           </Text>
         </Box>
       </Alert>
 
       {/* Form Card */}
-      <Box maxW="4xl" bg="white" borderRadius="xl" boxShadow="md" p={8}>
+      <Box maxW="4xl" bg="white" border="1px" borderColor="gray.200" borderRadius="md" p={6}>
         {/* Message Alert */}
         {message.text && (
           <Alert
@@ -109,61 +108,56 @@ const RegisterSystemAdmin = () => {
         )}
 
         <form onSubmit={handleSubmit}>
-          <VStack align="stretch" spacing={8}>
+          <VStack align="stretch" spacing={6}>
             {/* Personal Information */}
             <Box>
-              <Heading size="md" color="gray.800" mb={4}>
-                <HStack>
-                  <Icon as={FiUser} />
-                  <Text>Personal Information</Text>
-                </HStack>
-              </Heading>
-              <Grid templateColumns={{ base: '1fr', md: 'repeat(2, 1fr)' }} gap={6}>
+              <Heading size="sm" mb={3}>Personal Information</Heading>
+              <Grid templateColumns={{ base: '1fr', md: 'repeat(2, 1fr)' }} gap={4}>
                 <FormControl isRequired>
-                  <FormLabel>First Name</FormLabel>
+                  <FormLabel fontSize="sm">First Name</FormLabel>
                   <Input
                     type="text"
                     name="firstName"
                     value={formData.firstName}
                     onChange={handleInputChange}
                     placeholder="Juan"
-                    focusBorderColor="purple.500"
+                    size="sm"
                   />
                 </FormControl>
 
                 <FormControl isRequired>
-                  <FormLabel>Last Name</FormLabel>
+                  <FormLabel fontSize="sm">Last Name</FormLabel>
                   <Input
                     type="text"
                     name="lastName"
                     value={formData.lastName}
                     onChange={handleInputChange}
                     placeholder="Dela Cruz"
-                    focusBorderColor="purple.500"
+                    size="sm"
                   />
                 </FormControl>
 
                 <FormControl>
-                  <FormLabel>Middle Name</FormLabel>
+                  <FormLabel fontSize="sm">Middle Name</FormLabel>
                   <Input
                     type="text"
                     name="middleName"
                     value={formData.middleName}
                     onChange={handleInputChange}
                     placeholder="Santos"
-                    focusBorderColor="purple.500"
+                    size="sm"
                   />
                 </FormControl>
 
                 <FormControl>
-                  <FormLabel>Suffix</FormLabel>
+                  <FormLabel fontSize="sm">Suffix</FormLabel>
                   <Input
                     type="text"
                     name="suffix"
                     value={formData.suffix}
                     onChange={handleInputChange}
                     placeholder="Jr., Sr., III"
-                    focusBorderColor="purple.500"
+                    size="sm"
                   />
                 </FormControl>
               </Grid>
@@ -171,89 +165,73 @@ const RegisterSystemAdmin = () => {
 
             {/* Contact Information */}
             <Box>
-              <Heading size="md" color="gray.800" mb={4}>
-                <HStack>
-                  <Icon as={FiMail} />
-                  <Text>Contact Information</Text>
-                </HStack>
-              </Heading>
-              <Grid templateColumns={{ base: '1fr', md: 'repeat(2, 1fr)' }} gap={6}>
+              <Heading size="sm" mb={3}>Contact Information</Heading>
+              <Grid templateColumns={{ base: '1fr', md: 'repeat(2, 1fr)' }} gap={4}>
                 <FormControl isRequired>
-                  <FormLabel>Email Address</FormLabel>
+                  <FormLabel fontSize="sm">Email Address</FormLabel>
                   <Input
                     type="email"
                     name="email"
                     value={formData.email}
                     onChange={handleInputChange}
                     placeholder="admin@agritrack.com"
-                    focusBorderColor="purple.500"
+                    size="sm"
                   />
                 </FormControl>
 
                 <FormControl isRequired>
-                  <FormLabel>Phone Number</FormLabel>
+                  <FormLabel fontSize="sm">Phone Number</FormLabel>
                   <Input
                     type="tel"
                     name="phone"
                     value={formData.phone}
                     onChange={handleInputChange}
                     placeholder="+63 912 345 6789"
-                    focusBorderColor="purple.500"
+                    size="sm"
                   />
                 </FormControl>
               </Grid>
             </Box>
 
             {/* Permissions Info */}
-            <Box p={6} bg="purple.50" borderRadius="lg" border="1px" borderColor="purple.200">
-              <Heading size="sm" color="purple.900" mb={3}>
-                <HStack>
-                  <Icon as={FiShield} />
-                  <Text>System Admin Permissions</Text>
-                </HStack>
-              </Heading>
-              <List spacing={2} fontSize="sm" color="purple.800">
+            <Box p={3} bg="purple.50" borderRadius="md" border="1px" borderColor="purple.200">
+              <Text fontSize="sm" fontWeight="medium" mb={2}>System Admin Permissions</Text>
+              <List spacing={1} fontSize="xs">
                 <ListItem display="flex" alignItems="start">
-                  <ListIcon as={FiCheck} color="purple.600" mt={1} />
-                  <Text>Full access to all system modules and features</Text>
+                  <ListIcon as={FiCheck} color="purple.600" mt={0.5} />
+                  <Text>Full access to all system modules</Text>
                 </ListItem>
                 <ListItem display="flex" alignItems="start">
-                  <ListIcon as={FiCheck} color="purple.600" mt={1} />
-                  <Text>Ability to create, edit, and manage all user accounts</Text>
+                  <ListIcon as={FiCheck} color="purple.600" mt={0.5} />
+                  <Text>Manage all user accounts</Text>
                 </ListItem>
                 <ListItem display="flex" alignItems="start">
-                  <ListIcon as={FiCheck} color="purple.600" mt={1} />
-                  <Text>Access to view and manage action logs</Text>
+                  <ListIcon as={FiCheck} color="purple.600" mt={0.5} />
+                  <Text>View and manage action logs</Text>
                 </ListItem>
                 <ListItem display="flex" alignItems="start">
-                  <ListIcon as={FiCheck} color="purple.600" mt={1} />
-                  <Text>Permission to register other system administrators</Text>
-                </ListItem>
-                <ListItem display="flex" alignItems="start">
-                  <ListIcon as={FiCheck} color="purple.600" mt={1} />
-                  <Text>Ability to lock, unlock, and archive accounts</Text>
+                  <ListIcon as={FiCheck} color="purple.600" mt={0.5} />
+                  <Text>Register other system administrators</Text>
                 </ListItem>
               </List>
             </Box>
 
             {/* Submit Button */}
-            <HStack spacing={4}>
+            <HStack spacing={3}>
               <Button
                 type="submit"
                 isLoading={loading}
                 loadingText="Registering..."
                 colorScheme="purple"
-                leftIcon={<Icon as={FiShield} />}
-                fontWeight="medium"
+                size="sm"
               >
-                Register System Admin
+                Register Admin
               </Button>
               
               <Button
                 type="button"
                 variant="outline"
-                colorScheme="gray"
-                fontWeight="medium"
+                size="sm"
                 onClick={() => {
                   setFormData({
                     firstName: '',
@@ -266,16 +244,15 @@ const RegisterSystemAdmin = () => {
                   setMessage({ type: '', text: '' });
                 }}
               >
-                Clear Form
+                Clear
               </Button>
             </HStack>
 
             {/* Info Box */}
-            <Alert status="info" borderRadius="lg">
+            <Alert status="info" borderRadius="md" size="sm">
               <AlertIcon />
-              <AlertDescription>
-                <Text as="strong">Note:</Text> A randomly generated password will be sent to the admin's email address upon successful registration. 
-                The new administrator will be prompted to change their password and set up 2FA on first login.
+              <AlertDescription fontSize="xs">
+                A randomly generated password will be sent to the admin's email. 2FA setup required on first login.
               </AlertDescription>
             </Alert>
           </VStack>

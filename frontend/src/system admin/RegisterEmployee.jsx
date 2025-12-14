@@ -103,15 +103,15 @@ const RegisterEmployee = () => {
   };
 
   return (
-    <Box p={8} bg="gray.50" minH="100vh">
+    <Box p={6} minH="100vh">
       {/* Header */}
-      <Box mb={8}>
-        <Heading size="xl" color="gray.800">Register Employee</Heading>
-        <Text color="gray.600" mt={2}>Create a new employee account</Text>
+      <Box mb={6}>
+        <Heading size="lg">Register Employee</Heading>
+        <Text color="gray.600" fontSize="sm" mt={1}>Create a new employee account</Text>
       </Box>
 
       {/* Form Card */}
-      <Box maxW="4xl" bg="white" borderRadius="xl" boxShadow="md" p={8}>
+      <Box maxW="4xl" bg="white" border="1px" borderColor="gray.200" borderRadius="md" p={6}>
         {/* Message Alert */}
         {message.text && (
           <Alert
@@ -126,15 +126,10 @@ const RegisterEmployee = () => {
 
         <form onSubmit={handleSubmit}>
           {/* Personal Information */}
-          <VStack align="stretch" spacing={8}>
+          <VStack align="stretch" spacing={6}>
             <Box>
-              <Heading size="md" color="gray.800" mb={4}>
-                <HStack>
-                  <Icon as={FiUser} />
-                  <Text>Personal Information</Text>
-                </HStack>
-              </Heading>
-              <Grid templateColumns={{ base: '1fr', md: 'repeat(2, 1fr)' }} gap={6}>
+              <Heading size="sm" mb={3}>Personal Information</Heading>
+              <Grid templateColumns={{ base: '1fr', md: 'repeat(2, 1fr)' }} gap={4}>
                 <FormControl isRequired>
                   <FormLabel>First Name</FormLabel>
                   <Input
@@ -183,13 +178,8 @@ const RegisterEmployee = () => {
 
             {/* Contact Information */}
             <Box>
-              <Heading size="md" color="gray.800" mb={4}>
-                <HStack>
-                  <Icon as={FiMail} />
-                  <Text>Contact Information</Text>
-                </HStack>
-              </Heading>
-              <Grid templateColumns={{ base: '1fr', md: 'repeat(2, 1fr)' }} gap={6}>
+              <Heading size="sm" mb={3}>Contact Information</Heading>
+              <Grid templateColumns={{ base: '1fr', md: 'repeat(2, 1fr)' }} gap={4}>
                 <FormControl isRequired>
                   <FormLabel>Email Address</FormLabel>
                   <Input
@@ -216,25 +206,20 @@ const RegisterEmployee = () => {
 
             {/* Roles & Position */}
             <Box>
-              <Heading size="md" color="gray.800" mb={4}>
-                <HStack>
-                  <Icon as={FiBriefcase} />
-                  <Text>Roles & Position</Text>
-                </HStack>
-              </Heading>
+              <Heading size="sm" mb={3}>Roles & Position</Heading>
               
               {/* Roles */}
-              <FormControl isRequired mb={6}>
-                <FormLabel>Roles</FormLabel>
-                <Grid templateColumns={{ base: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }} gap={3}>
+              <FormControl isRequired mb={4}>
+                <FormLabel fontSize="sm">Roles</FormLabel>
+                <Grid templateColumns={{ base: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }} gap={2}>
                   {availableRoles.map((role) => (
                     <Button
                       key={role}
                       type="button"
+                      size="sm"
                       onClick={() => handleRoleToggle(role)}
                       variant={formData.roles.includes(role) ? 'solid' : 'outline'}
                       colorScheme={formData.roles.includes(role) ? 'blue' : 'gray'}
-                      fontWeight="medium"
                     >
                       {role}
                     </Button>
@@ -263,14 +248,13 @@ const RegisterEmployee = () => {
             </Box>
 
             {/* Submit Button */}
-            <HStack spacing={4}>
+            <HStack spacing={3}>
               <Button
                 type="submit"
                 isLoading={loading}
                 loadingText="Registering..."
                 colorScheme="blue"
-                leftIcon={<Icon as={FiUserPlus} />}
-                fontWeight="medium"
+                size="sm"
               >
                 Register Employee
               </Button>
@@ -278,8 +262,7 @@ const RegisterEmployee = () => {
               <Button
                 type="button"
                 variant="outline"
-                colorScheme="gray"
-                fontWeight="medium"
+                size="sm"
                 onClick={() => {
                   setFormData({
                     firstName: '',
@@ -294,16 +277,15 @@ const RegisterEmployee = () => {
                   setMessage({ type: '', text: '' });
                 }}
               >
-                Clear Form
+                Clear
               </Button>
             </HStack>
 
             {/* Info Box */}
-            <Alert status="info" borderRadius="lg">
+            <Alert status="info" borderRadius="md" size="sm">
               <AlertIcon />
-              <AlertDescription>
-                <Text as="strong">Note:</Text> A randomly generated password will be sent to the employee's email address upon successful registration. 
-                The employee will be prompted to change their password on first login.
+              <AlertDescription fontSize="xs">
+                A randomly generated password will be sent to the employee's email upon registration.
               </AlertDescription>
             </Alert>
           </VStack>

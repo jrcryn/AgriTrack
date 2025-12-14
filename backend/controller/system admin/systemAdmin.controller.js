@@ -538,13 +538,12 @@ export const lockUserAccount = async (req, res) => {
 
 // Fetch action logs with pagination and search
 export const getActionLogs = async (req, res) => {
-    const userId = req.decodedAuthToken.payload.userId;
-    const { page = 1, limit = 20, search = '', action = '', module = '', status = '' } = req.query;
+    const { search = '', action = '', module = '', status = '' } = req.query;
 
     try {
-        const pageNum = parseInt(page);
-        const limitNum = parseInt(limit);
-        const skip = (pageNum - 1) * limitNum;
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 20;
+        const skip = (page - 1) * limit;
 
         // Build search query
         const query = {};
@@ -573,26 +572,87 @@ export const getActionLogs = async (req, res) => {
         const logs = await global.globalModels.GranularLog.find(query)
             .sort({ createdAt: -1 })
             .skip(skip)
-            .limit(limitNum)
+            .limit(limit)
             .populate('userId', 'first_name last_name email')
             .lean();
 
-        await logAction(req, userId, 'LOGS_FETCHED', 'SYSTEM ADMIN', `Action logs fetched - Page ${pageNum}, Limit ${limitNum}`, 'SUCCESS');
 
         res.status(200).json({
             success: true,
             logs,
             pagination: {
-                currentPage: pageNum,
-                totalPages: Math.ceil(totalLogs / limitNum),
+                currentPage: page,
+                totalPages: Math.ceil(totalLogs / limit),
                 totalLogs,
-                limit: limitNum
+                limit: limit
             }
         });
 
     } catch (error) {
-        await logAction(req, userId, 'LOGS_FETCHED', 'SYSTEM ADMIN', `Fetch logs error: ${error.message}`, 'FAILED');
         console.error('Error fetching logs:', error);
+        return res.status(500).json({ success: false, message: 'Internal server error.' });
+    }
+};
+
+export const getEmployeeAccounts = async (req, res) => {
+    const { search = '', role = '', status = '' } = req.query;
+
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 50;
+        const skip = (page - 1) * limit;
+
+        // Build search query
+        const query = {};
+        
+        if (search) {
+            query.$or = [
+                { first_name: { $regex: search, $options: 'i' } },
+                { last_name: { $regex: search, $options: 'i' } },
+                { middle_name: { $regex: search, $options: 'i' } },
+                { email: { $regex: search, $options: 'i' } },
+                { phone: { $regex: search, $options: 'i' } }
+            ];
+        }
+
+        if (role && role !== 'all') {
+            query.roles = role;
+        }
+
+        // Status filtering
+        if (status) {
+            if (status === 'active') {
+                query.isLocked = false;
+                query.isArchived = false;
+            } else if (status === 'locked') {
+                query.isLocked = true;
+            } else if (status === 'archived') {
+                query.isArchived = true;
+            }
+        }
+
+        const totalEmployees = await global.globalModels.EmployeeAccount.countDocuments(query);
+        const employees = await global.globalModels.EmployeeAccount.find(query)
+            .select('-password -twoFASecret -twoFAQRCode')
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit)
+            .lean();
+
+
+        res.status(200).json({
+            success: true,
+            employees,
+            pagination: {
+                currentPage: page,
+                totalPages: Math.ceil(totalEmployees / limit),
+                totalEmployees,
+                limit: limit
+            }
+        });
+
+    } catch (error) {
+        console.error('Error fetching employee accounts:', error);
         return res.status(500).json({ success: false, message: 'Internal server error.' });
     }
 };
