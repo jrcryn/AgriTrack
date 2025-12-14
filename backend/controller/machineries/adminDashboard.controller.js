@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { logAction } from '../../utils/logAction.js';
 
 //UNUSED CONTROLLERS
 // export const updateMachineryType = async (req, res) => {
@@ -964,6 +965,8 @@ export const createTicketRequestForm = async (req, res) => {
             status: 'Pending'
         });
 
+        await logAction(req, farmerDoc._id, 'TICKET_REQUEST_SUBMITTED', 'machineries', `Ticket request ${refNumber} submitted by farmer ${farmerDoc.farmerId}`, 'SUCCESS');
+
         return res.status(201).json({
             success: true,
             message: "Ticket request submitted successfully.",
@@ -971,6 +974,7 @@ export const createTicketRequestForm = async (req, res) => {
         });
     } catch (error) {
         console.error("Error submitting ticket request:", error);
+        await logAction(req, req.userId || 'UNKNOWN', 'TICKET_REQUEST_SUBMITTED', 'machineries', `Failed to submit ticket request: ${error.message}`, 'FAILED');
         return res.status(500).json({ success: false, message: "Error submitting ticket request.", error: error.message });
     }
 };
@@ -1007,6 +1011,7 @@ export const formStatusEnable = async (req, res) => {
       );
       return res.status(200).json({ message: 'Free Tractor Services (Ticket Request) form enabled successfully.' });
     } catch (error) {
+      await logAction(req, req.userId || 'UNKNOWN', 'MACHINERY_FORM_ENABLED', 'machineries', `Failed to enable form: ${error.message}`, 'FAILED');
       return res.status(500).json({ message: 'Error enabling Free Tractor Services (Ticket Request) form', error: error.message });
     }
   };
@@ -1018,8 +1023,10 @@ export const formStatusDisable = async (req, res) => {
         { $set: { formStatus: false } },      // update
         { upsert: true, new: true }           // options
       );
+      await logAction(req, req.userId, 'MACHINERY_FORM_DISABLED', 'machineries', 'Free Tractor Services form disabled', 'SUCCESS');
       return res.status(200).json({ message: 'Free Tractor Services (Ticket Request) form disabled successfully.' });
     } catch (error) {
+      await logAction(req, req.userId || 'UNKNOWN', 'MACHINERY_FORM_DISABLED', 'machineries', `Failed to disable form: ${error.message}`, 'FAILED');
       return res.status(500).json({ message: 'Error disabling Free Tractor Services (Ticket Request) form', error: error.message });
     }
 };
@@ -1556,6 +1563,8 @@ export const createMachineriesType = async (req, res) => { //CREATE MACHINERIES 
             ratedCapacity
         });
 
+        await logAction(req, req.userId, 'MACHINERY_TYPE_CREATED', 'machineries', `Machinery type created: ${equipmentType} - ${ownerName}`, 'SUCCESS');
+
         return res.status(201).json({
             success: true, 
             message: "Machinery type created successfully.",
@@ -1563,6 +1572,7 @@ export const createMachineriesType = async (req, res) => { //CREATE MACHINERIES 
         });
     } catch (error) {
         console.error("Error creating machinery type:", error);
+        await logAction(req, req.userId || 'UNKNOWN', 'MACHINERY_TYPE_CREATED', 'machineries', `Failed to create machinery type: ${error.message}`, 'FAILED');
         return res.status(500).json({ success: false, message: "Error creating machinery type.", error: error.message });
     }
 };
@@ -1619,6 +1629,8 @@ export const addMachineryUnit = async (req, res) => {
             status: status || 'Available'  // Default value
         });
 
+        await logAction(req, req.userId, 'MACHINERY_UNIT_CREATED', 'machineries', `Machinery unit created: ${unitNumber}`, 'SUCCESS');
+
         return res.status(201).json({
             success: true, 
             message: "Machinery unit created successfully.",
@@ -1626,6 +1638,7 @@ export const addMachineryUnit = async (req, res) => {
         });
     } catch (error) {
         console.error("Error creating machinery unit:", error);
+        await logAction(req, req.userId || 'UNKNOWN', 'MACHINERY_UNIT_CREATED', 'machineries', `Failed to create machinery unit: ${error.message}`, 'FAILED');
         return res.status(500).json({ 
             success: false, 
             message: "Error creating machinery unit.", 
@@ -1737,6 +1750,8 @@ export const updateMachineryUnitStatus = async (req, res) => {
 
         await machineryUnit.save();
 
+        await logAction(req, employeeId, 'MACHINERY_UNIT_STATUS_UPDATED', 'machineries', `Machinery unit ${machineryUnit.unitNumber} status updated to ${newStatus} - ${newCondition}`, 'SUCCESS');
+
         return res.status(200).json({
             success: true,
             message: "Machinery unit status updated successfully.",
@@ -1745,6 +1760,7 @@ export const updateMachineryUnitStatus = async (req, res) => {
 
     } catch (error) {
         console.error("Error updating machinery unit status:", error);
+        await logAction(req, req.body.employeeId || req.userId || 'UNKNOWN', 'MACHINERY_UNIT_STATUS_UPDATED', 'machineries', `Failed to update machinery unit status: ${error.message}`, 'FAILED');
         return res.status(500).json({
             success: false,
             message: "Error updating machinery unit status.",
@@ -1810,6 +1826,8 @@ export const confirmIncidentReport = async (req, res) => {
             .populate('machineryTypeId', 'equipmentType')
             .populate('ticketRequestId', 'refNumber');
 
+        await logAction(req, employeeId, 'INCIDENT_REPORT_CONFIRMED', 'machineries', `Incident report for machinery unit ${populatedIncidentReport.machineryUnitId?.unitNumber} confirmed`, 'SUCCESS');
+
         return res.status(200).json({
             success: true,
             message: "Incident report confirmed successfully.",
@@ -1818,6 +1836,7 @@ export const confirmIncidentReport = async (req, res) => {
 
     } catch (error) {
         console.error("Error confirming incident report:", error);
+        await logAction(req, req.body.employeeId || req.userId || 'UNKNOWN', 'INCIDENT_REPORT_CONFIRMED', 'machineries', `Failed to confirm incident report: ${error.message}`, 'FAILED');
         return res.status(500).json({
             success: false,
             message: "Error confirming incident report.",
@@ -1979,6 +1998,8 @@ export const performMachineCountCheck = async (req, res) => {
             .populate('notFoundMachineUnits', 'unitNumber status')
             .lean();
 
+        await logAction(req, employeeId, 'MACHINE_COUNT_CHECK_PERFORMED', 'machineries', `Physical count check performed: ${foundMachineUnits.length} found, ${notFoundMachineUnits.length} missing`, 'SUCCESS');
+
         return res.status(201).json({
             success: true,
             message: discrepancyFound 
@@ -2050,6 +2071,8 @@ export const resolveDiscrepancyInPhysicalCount = async (req, res) => {
             .populate('notFoundMachineUnits', 'unitNumber status')
             .lean();
 
+        await logAction(req, req.userId, 'PHYSICAL_COUNT_DISCREPANCY_RESOLVED', 'machineries', `Physical count discrepancy resolved for counting ID: ${physicalCountingId}`, 'SUCCESS');
+
         return res.status(200).json({
             success: true,
             message: "Discrepancy in physical count has been resolved successfully.",
@@ -2060,6 +2083,7 @@ export const resolveDiscrepancyInPhysicalCount = async (req, res) => {
 
     } catch (error) {
         console.error("Error resolving discrepancy in physical count:", error);
+        await logAction(req, req.userId || 'UNKNOWN', 'PHYSICAL_COUNT_DISCREPANCY_RESOLVED', 'machineries', `Failed to resolve physical count discrepancy: ${error.message}`, 'FAILED');
         return res.status(500).json({
             success: false,
             message: "Failed to resolve discrepancy in physical count.",
@@ -2941,6 +2965,8 @@ export const createWeeklySchedule = async (req, res) => {
 
         const updatedTickets = await Promise.all(updateOperations);
 
+        await logAction(req, req.userId, 'WEEKLY_SCHEDULE_CREATED', 'machineries', `Weekly schedule ${scheduleRefNumber} created with ${tickets.length} tickets`, 'SUCCESS');
+
         return res.status(201).json({ success: true, message: "Weekly schedule created successfully.",
             data: {
                 schedule: newSchedule,
@@ -2949,6 +2975,7 @@ export const createWeeklySchedule = async (req, res) => {
         });
     } catch (error) {
         console.error("Error creating weekly schedule:", error);
+        await logAction(req, req.userId || 'UNKNOWN', 'WEEKLY_SCHEDULE_CREATED', 'machineries', `Failed to create weekly schedule: ${error.message}`, 'FAILED');
         return res.status(500).json({ success: false, message: "Error creating weekly schedule.", error: error.message });
     }
 };
@@ -3127,6 +3154,8 @@ export const updateWeeklySchedule = async (req, res) => { //pang update ng assig
 
         await Promise.all(updateOps);
 
+        await logAction(req, req.userId, 'WEEKLY_SCHEDULE_UPDATED', 'machineries', `Weekly schedule ${scheduleId} updated with ${tickets.length} tickets`, 'SUCCESS');
+
         return res.status(200).json({
             success: true,
             message: "Weekly schedule updated successfully.",
@@ -3136,6 +3165,7 @@ export const updateWeeklySchedule = async (req, res) => { //pang update ng assig
         });
     } catch (error) {
         console.error("Error updating weekly schedule:", error);
+        await logAction(req, req.userId || 'UNKNOWN', 'WEEKLY_SCHEDULE_UPDATED', 'machineries', `Failed to update weekly schedule: ${error.message}`, 'FAILED');
         return res.status(500).json({
             success: false,
             message: "Error updating weekly schedule.",
@@ -3191,6 +3221,8 @@ export const removeTicketRequestFromSchedule = async (req, res) => {
             { new: true }
         );
 
+        await logAction(req, req.userId, 'TICKET_REMOVED_FROM_SCHEDULE', 'machineries', `Ticket ${ticketRequest.refNumber} removed from schedule`, 'SUCCESS');
+
         return res.status(200).json({
             success: true,
             message: "Ticket request has been removed from the schedule.",
@@ -3201,6 +3233,7 @@ export const removeTicketRequestFromSchedule = async (req, res) => {
         });
     } catch (error) {
         console.error("Error removing ticket request from schedule:", error);
+        await logAction(req, req.userId || 'UNKNOWN', 'TICKET_REMOVED_FROM_SCHEDULE', 'machineries', `Failed to remove ticket from schedule: ${error.message}`, 'FAILED');
         return res.status(500).json({ success: false, message: "Error removing ticket request from schedule.", error: error.message });
     }
 };
@@ -3459,6 +3492,8 @@ export const moveTicketRequestToASchedule = async (req, res) => {
             Promise.all(scheduleUpdates)
         ]);
 
+        await logAction(req, req.userId, 'TICKET_MOVED_TO_SCHEDULE', 'machineries', `${tickets.length} ticket(s) moved to schedule ${targetScheduleId}`, 'SUCCESS');
+
         return res.status(200).json({
             success: true,
             message: "Ticket requests successfully moved to the target schedule.",
@@ -3469,6 +3504,7 @@ export const moveTicketRequestToASchedule = async (req, res) => {
         });
     } catch (error) {
         console.error("Error moving ticket requests to schedule:", error);
+        await logAction(req, req.userId || 'UNKNOWN', 'TICKET_MOVED_TO_SCHEDULE', 'machineries', `Failed to move tickets to schedule: ${error.message}`, 'FAILED');
         return res.status(500).json({ 
             success: false, 
             message: "Error moving ticket requests to schedule.", 
@@ -3895,6 +3931,8 @@ export const setRequestTicketToComplete = async (req, res) => { //kapag work don
         await session.commitTransaction();
         session.endSession();
 
+        await logAction(req, operatorId, 'TICKET_REQUEST_COMPLETED', 'machineries', `Ticket ${ticket.refNumber} marked as ${extensionRequest === 'true' ? 'partially completed with extension' : 'completed'}`, 'SUCCESS');
+
         return res.status(200).json({
             success: true,
             message: extensionRequest === 'true' 
@@ -3912,6 +3950,7 @@ export const setRequestTicketToComplete = async (req, res) => { //kapag work don
         await session.abortTransaction();
         session.endSession();
         console.error("Error marking ticket as completed:", error);
+        await logAction(req, req.body.operatorId || req.userId || 'UNKNOWN', 'TICKET_REQUEST_COMPLETED', 'machineries', `Failed to mark ticket as completed: ${error.message}`, 'FAILED');
         return res.status(500).json({
             success: false,
             message: "Error marking ticket as completed.",
@@ -4191,6 +4230,8 @@ export const approveExtensionRequest = async (req, res) => {
             }
         );
 
+        await logAction(req, employeeId, 'EXTENSION_REQUEST_APPROVED', 'machineries', `Extension request ${extensionTicket.refNumber} approved and scheduled`, 'SUCCESS');
+
         return res.status(200).json({
             success: true,
             message: "Extension request approved and scheduled successfully.",
@@ -4202,6 +4243,7 @@ export const approveExtensionRequest = async (req, res) => {
         });
     } catch (error) {
         console.error("Error approving extension request:", error);
+        await logAction(req, req.body.employeeId || req.userId || 'UNKNOWN', 'EXTENSION_REQUEST_APPROVED', 'machineries', `Failed to approve extension request: ${error.message}`, 'FAILED');
         return res.status(500).json({
             success: false,
             message: "Error approving extension request.",
@@ -4276,6 +4318,8 @@ export const declineExtensionRequest = async (req, res) => {
 
         await extensionTicket.save();
 
+        await logAction(req, employeeId, 'EXTENSION_REQUEST_DECLINED', 'machineries', `Extension request ${extensionTicket.refNumber} declined`, 'SUCCESS');
+
         return res.status(200).json({
             success: true,
             message: "Extension request declined successfully.",
@@ -4285,6 +4329,7 @@ export const declineExtensionRequest = async (req, res) => {
         });
     } catch (error) {
         console.error("Error declining extension request:", error);
+        await logAction(req, req.body.employeeId || req.userId || 'UNKNOWN', 'EXTENSION_REQUEST_DECLINED', 'machineries', `Failed to decline extension request: ${error.message}`, 'FAILED');
         return res.status(500).json({
             success: false,
             message: "Error declining extension request.",
@@ -4446,6 +4491,8 @@ export const setExtenstionTicketToComplete = async (req, res) => {
         await session.commitTransaction();
         session.endSession();
 
+        await logAction(req, operatorId, 'EXTENSION_TICKET_COMPLETED', 'machineries', `Extension ticket ${extTicket.refNumber} completed`, 'SUCCESS');
+
         return res.status(200).json({
             success: true,
             message: "Extension ticket and parent ticket marked as completed successfully.",
@@ -4460,6 +4507,7 @@ export const setExtenstionTicketToComplete = async (req, res) => {
         await session.abortTransaction();
         session.endSession();
         console.error("Error marking extension ticket as completed:", error);
+        await logAction(req, req.body.operatorId || req.userId || 'UNKNOWN', 'EXTENSION_TICKET_COMPLETED', 'machineries', `Failed to mark extension ticket as completed: ${error.message}`, 'FAILED');
         return res.status(500).json({
             success: false,
             message: "Error marking extension ticket as completed.",
@@ -4561,6 +4609,8 @@ export const declineIncidentReport = async (req, res) => {//FOR TESTING
             .populate('machineryTypeId', 'equipmentType')
             .populate('ticketRequestId', 'refNumber');
 
+        await logAction(req, employeeId, 'INCIDENT_REPORT_DECLINED', 'machineries', `Incident report for machinery unit ${populatedIncidentReport.machineryUnitId?.unitNumber} declined`, 'SUCCESS');
+
         return res.status(200).json({
             success: true,
             message: "Incident report declined successfully.",
@@ -4569,6 +4619,7 @@ export const declineIncidentReport = async (req, res) => {//FOR TESTING
 
     } catch (error) {
         console.error("Error declining incident report:", error);
+        await logAction(req, req.body.employeeId || req.userId || 'UNKNOWN', 'INCIDENT_REPORT_DECLINED', 'machineries', `Failed to decline incident report: ${error.message}`, 'FAILED');
         return res.status(500).json({
             success: false,
             message: "Error declining incident report.",
@@ -4710,6 +4761,8 @@ export const resolveIncidentReport = async (req, res) => {//FOR TESTING
             .populate('machineryTypeId', 'equipmentType')
             .populate('ticketRequestId', 'refNumber');
 
+        await logAction(req, employeeId, 'INCIDENT_REPORT_RESOLVED', 'machineries', `Incident report for machinery unit ${populatedIncidentReport.machineryUnitId?.unitNumber} resolved`, 'SUCCESS');
+
         return res.status(200).json({
             success: true,
             message: "Incident report resolved successfully.",
@@ -4718,6 +4771,7 @@ export const resolveIncidentReport = async (req, res) => {//FOR TESTING
 
     } catch (error) {
         console.error("Error resolving incident report:", error);
+        await logAction(req, req.body.employeeId || req.userId || 'UNKNOWN', 'INCIDENT_REPORT_RESOLVED', 'machineries', `Failed to resolve incident report: ${error.message}`, 'FAILED');
         return res.status(500).json({
             success: false,
             message: "Error resolving incident report.",
@@ -4951,6 +5005,8 @@ export const disableOperator = async (req, res) => {
         operator.isOperatorDisabled = true;
         await operator.save();
 
+        await logAction(req, employeeId, 'OPERATOR_DISABLED', 'machineries', `Operator ${operator.first_name} ${operator.last_name} disabled`, 'SUCCESS');
+
         return res.status(200).json({
             success: true,
             message: "Operator disabled successfully."
@@ -4958,6 +5014,7 @@ export const disableOperator = async (req, res) => {
 
     } catch (error) {
         console.error("Error disabling operator:", error);
+        await logAction(req, req.body.employeeId || req.userId || 'UNKNOWN', 'OPERATOR_DISABLED', 'machineries', `Failed to disable operator: ${error.message}`, 'FAILED');
         return res.status(500).json({
             success: false,
             message: "Error disabling operator.",
@@ -5023,6 +5080,8 @@ export const enableOperator = async (req, res) => {
         operator.isOperatorDisabled = false;
         await operator.save();
 
+        await logAction(req, employeeId, 'OPERATOR_ENABLED', 'machineries', `Operator ${operator.first_name} ${operator.last_name} enabled`, 'SUCCESS');
+
         return res.status(200).json({
             success: true,
             message: "Operator enabled successfully.",
@@ -5030,6 +5089,7 @@ export const enableOperator = async (req, res) => {
 
     } catch (error) {
         console.error("Error enabling operator:", error);
+        await logAction(req, req.body.employeeId || req.userId || 'UNKNOWN', 'OPERATOR_ENABLED', 'machineries', `Failed to enable operator: ${error.message}`, 'FAILED');
         return res.status(500).json({
             success: false,
             message: "Error enabling operator.",
@@ -5129,6 +5189,8 @@ export const removeOperatorLicense = async (req, res) => {
             });
         }
 
+        await logAction(req, req.userId, 'OPERATOR_LICENSE_REMOVED', 'machineries', `License ${removedLicense.licenseNumber} removed from operator ${operator.first_name} ${operator.last_name}`, 'SUCCESS');
+
         return res.status(200).json({
             success: true,
             message: "Operator license removed successfully.",
@@ -5140,6 +5202,7 @@ export const removeOperatorLicense = async (req, res) => {
 
     } catch (error) {
         console.error("Error removing operator license:", error);
+        await logAction(req, req.userId || 'UNKNOWN', 'OPERATOR_LICENSE_REMOVED', 'machineries', `Failed to remove operator license: ${error.message}`, 'FAILED');
         return res.status(500).json({
             success: false,
             message: "Error removing operator license.",
@@ -5262,6 +5325,8 @@ export const addOperatorLicense = async (req, res) => {
             newLicenseDoc.allowedMachineryTypes = populatedTypes;
         }
 
+        await logAction(req, req.userId, 'OPERATOR_LICENSE_ADDED', 'machineries', `License ${licenseNumber} added for operator ${operator.first_name} ${operator.last_name}`, 'SUCCESS');
+
         return res.status(201).json({
             success: true,
             message: "Operator license added successfully.",
@@ -5274,6 +5339,7 @@ export const addOperatorLicense = async (req, res) => {
 
     } catch (error) {
         console.error("Error adding operator license:", error);
+        await logAction(req, req.userId || 'UNKNOWN', 'OPERATOR_LICENSE_ADDED', 'machineries', `Failed to add operator license: ${error.message}`, 'FAILED');
         return res.status(500).json({
             success: false,
             message: "Error adding operator license.",
@@ -5408,6 +5474,8 @@ export const updateOperatorLicense = async (req, res) => {
             updatedLicense.allowedMachineryTypes = populatedTypes;
         }
 
+        await logAction(req, req.userId, 'OPERATOR_LICENSE_UPDATED', 'machineries', `License ${license.licenseNumber} updated for operator ${operator.first_name} ${operator.last_name}`, 'SUCCESS');
+
         return res.status(200).json({
             success: true,
             message: "Operator license updated successfully.",
@@ -5419,6 +5487,7 @@ export const updateOperatorLicense = async (req, res) => {
 
     } catch (error) {
         console.error("Error updating operator license:", error);
+        await logAction(req, req.userId || 'UNKNOWN', 'OPERATOR_LICENSE_UPDATED', 'machineries', `Failed to update operator license: ${error.message}`, 'FAILED');
         return res.status(500).json({
             success: false,
             message: "Error updating operator license.",
@@ -5468,6 +5537,8 @@ export const setEmployeeLeaveStatus = async (req, res) => {
         employee.isInLeave = isInLeave;
         await employee.save();
 
+        await logAction(req, req.userId, 'EMPLOYEE_LEAVE_STATUS_SET', 'machineries', `Employee ${employee.first_name} ${employee.last_name} leave status set to ${isInLeave ? 'on leave' : 'not on leave'}`, 'SUCCESS');
+
         return res.status(200).json({
             success: true,
             message: `Employee leave status ${isInLeave ? 'set to on leave' : 'set to not on leave'} successfully.`,
@@ -5486,6 +5557,7 @@ export const setEmployeeLeaveStatus = async (req, res) => {
 
     } catch (error) {
         console.error("Error setting employee leave status:", error);
+        await logAction(req, req.userId || 'UNKNOWN', 'EMPLOYEE_LEAVE_STATUS_SET', 'machineries', `Failed to set employee leave status: ${error.message}`, 'FAILED');
         return res.status(500).json({
             success: false,
             message: "Error setting employee leave status.",
