@@ -365,6 +365,42 @@ export const useSystemAdminStore = create((set, get) => ({
         }
     },
 
+    generateNewPassword: async (targetUserId, accountType) => {
+        try {
+            const response = await axios.put(
+                `${API_URL}/api/system-admin/generate-new-password`,
+                { targetUserId, accountType }
+            );
+            return response.data;
+        } catch (error) {
+            throw error;
+        }
+    },
+
+    resetUser2FA: async (targetUserId, accountType) => {
+        try {
+            const response = await axios.put(
+                `${API_URL}/api/system-admin/reset-2fa`,
+                { targetUserId, accountType }
+            );
+            return response.data;
+        } catch (error) {
+            throw error;
+        }
+    },
+
+    resetUserPasswordAndTwoFA: async (targetUserId, accountType) => {
+        try {
+            const response = await axios.put(
+                `${API_URL}/api/system-admin/reset-password-and-2fa`,
+                { targetUserId, accountType }
+            );
+            return response.data;
+        } catch (error) {
+            throw error;
+        }
+    },
+
     // Clear errors
     clearErrors: () => set({
         actionLogsError: null,

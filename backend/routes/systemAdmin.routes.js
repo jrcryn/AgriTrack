@@ -10,6 +10,8 @@ import {
     changeUserOfficePosition,
     changeUserPassword,
     resetUser2FA,
+    generateNewPassword,
+    resetUserPasswordAndTwoFA,
     archiveUserAccount,
     unarchiveUserAccount,
     lockUserAccount,
@@ -38,6 +40,8 @@ router.put('/change-roles', systemAdminAuth, changeUserRoles);
 router.put('/change-office-position', systemAdminAuth, changeUserOfficePosition);
 router.put('/change-password', systemAdminAuth, changeUserPassword);
 router.put('/reset-2fa', systemAdminAuth, resetUser2FA);
+router.put('/generate-new-password', systemAdminAuth, generateNewPassword);
+router.put('/reset-password-and-2fa', systemAdminAuth, resetUserPasswordAndTwoFA);
 router.put('/archive-account', systemAdminAuth, archiveUserAccount);
 router.put('/unarchive-account', systemAdminAuth, unarchiveUserAccount);
 router.put('/lock-account', systemAdminAuth, lockUserAccount);

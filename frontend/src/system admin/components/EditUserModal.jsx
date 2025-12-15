@@ -16,17 +16,36 @@ import {
   HStack,
   Text,
   Badge,
-  Checkbox,
-  CheckboxGroup,
-  Stack,
-  useToast
+  Grid,
+  Alert,
+  AlertIcon,
+  AlertDescription,
+  Box,
+  useToast,
+  Center,
+  Spinner,
+  Divider,
+  Code,
+  IconButton,
+  Tooltip,
+  useDisclosure
 } from '@chakra-ui/react';
+import { FiKey, FiShield, FiAlertTriangle, FiCopy } from 'react-icons/fi';
 import { useSystemAdminStore } from '../store/systemAdminDashboard.store';
 
 const EditUserModal = ({ isOpen, onClose, user, onSuccess }) => {
-  const { updateUserAccount } = useSystemAdminStore();
+  const { 
+    updateUserAccount, 
+    generateNewPassword, 
+    resetUser2FA, 
+    resetUserPasswordAndTwoFA 
+  } = useSystemAdminStore();
   const toast = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
+  const [isResetting2FA, setIsResetting2FA] = useState(false);
+  const [isResettingBoth, setIsResettingBoth] = useState(false);
+  const [generatedPassword, setGeneratedPassword] = useState('');
 
   const [formData, setFormData] = useState({
     first_name: '',
@@ -38,6 +57,28 @@ const EditUserModal = ({ isOpen, onClose, user, onSuccess }) => {
     roles: [],
     office_position: ''
   });
+
+  const availableRoles = ['DMS', 'DMM', 'MIS', 'MIM', 'HVCS', 'HVCM'];
+  const officePositions = ['CFS', 'LPMS', 'ANMS', 'RTSS'];
+  
+  const roleMeanings = {
+    'DMS': 'DOCUMENT MANAGEMENT STAFF',
+    'DMM': 'DOCUMENT MANAGEMENT MANAGER',
+    'MIS': 'MACHINE INVENTORY STAFF',
+    'MIM': 'MACHINE INVENTORY MANAGER',
+    'HVCS': 'HIGH-VALUE CROPS STAFF',
+    'HVCM': 'HIGH-VALUE CROPS MANAGER'
+  };
+
+  // Define mutually exclusive role pairs (staff <-> manager)
+  const rolePairs = {
+    'DMS': 'DMM',
+    'DMM': 'DMS',
+    'MIS': 'MIM',
+    'MIM': 'MIS',
+    'HVCS': 'HVCM',
+    'HVCM': 'HVCS'
+  };
 
   // Initialize form data when user prop changes
   useEffect(() => {
@@ -52,6 +93,7 @@ const EditUserModal = ({ isOpen, onClose, user, onSuccess }) => {
         roles: user.roles || [],
         office_position: user.office_position || ''
       });
+      setGeneratedPassword(''); // Clear password when modal opens
     }
   }, [user]);
 
@@ -62,11 +104,136 @@ const EditUserModal = ({ isOpen, onClose, user, onSuccess }) => {
     }));
   };
 
-  const handleRolesChange = (selectedRoles) => {
-    setFormData(prev => ({
-      ...prev,
-      roles: selectedRoles
-    }));
+  const handleRoleToggle = (role) => {
+    setFormData(prev => {
+      const isCurrentlySelected = prev.roles.includes(role);
+      const oppositeRole = rolePairs[role];
+      
+      if (isCurrentlySelected) {
+        // If deselecting, just remove the role
+        return {
+          ...prev,
+          roles: prev.roles.filter(r => r !== role)
+        };
+      } else {
+        // If selecting, remove the opposite role if it exists, then add the new role
+        const filteredRoles = prev.roles.filter(r => r !== oppositeRole);
+        return {
+          ...prev,
+          roles: [...filteredRoles, role]
+        };
+      }
+    });
+  };
+
+  // Check if a role should be disabled (when its opposite is selected)
+  const isRoleDisabled = (role) => {
+    const oppositeRole = rolePairs[role];
+    return formData.roles.includes(oppositeRole);
+  };
+
+  const handleGenerateNewPassword = async () => {
+    if (!user) return;
+
+    setIsResettingPassword(true);
+    try {
+      const result = await generateNewPassword(user._id, user.accountType);
+      
+      setGeneratedPassword(result.temporaryPassword || '');
+      
+      toast({
+        title: 'Success',
+        description: 'New password generated and sent to user via email',
+        status: 'success',
+        duration: 5000,
+        isClosable: true
+      });
+      
+      onSuccess?.();
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.message || 'Failed to generate new password',
+        status: 'error',
+        duration: 5000,
+        isClosable: true
+      });
+    } finally {
+      setIsResettingPassword(false);
+    }
+  };
+
+  const handleReset2FA = async () => {
+    if (!user) return;
+
+    setIsResetting2FA(true);
+    try {
+      await resetUser2FA(user._id, user.accountType);
+      
+      toast({
+        title: 'Success',
+        description: '2FA has been reset for this user',
+        status: 'success',
+        duration: 5000,
+        isClosable: true
+      });
+      
+      onSuccess?.();
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.message || 'Failed to reset 2FA',
+        status: 'error',
+        duration: 5000,
+        isClosable: true
+      });
+    } finally {
+      setIsResetting2FA(false);
+    }
+  };
+
+  const handleResetBoth = async () => {
+    if (!user) return;
+
+    setIsResettingBoth(true);
+    try {
+      const result = await resetUserPasswordAndTwoFA(user._id, user.accountType);
+      
+      setGeneratedPassword(result.temporaryPassword || '');
+      
+      toast({
+        title: 'Success',
+        description: 'Password and 2FA have been reset. New password sent via email.',
+        status: 'success',
+        duration: 5000,
+        isClosable: true
+      });
+      
+      onSuccess?.();
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.message || 'Failed to reset password and 2FA',
+        status: 'error',
+        duration: 5000,
+        isClosable: true
+      });
+    } finally {
+      setIsResettingBoth(false);
+    }
+  };
+
+  const copyPasswordToClipboard = () => {
+    if (generatedPassword) {
+      navigator.clipboard.writeText(generatedPassword);
+      toast({
+        title: 'Copied!',
+        description: 'Password copied to clipboard',
+        status: 'success',
+        duration: 2000,
+        isClosable: true
+      });
+    }
   };
 
   const handleSubmit = async () => {
@@ -162,7 +329,7 @@ const EditUserModal = ({ isOpen, onClose, user, onSuccess }) => {
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="xl">
+    <Modal isOpen={isOpen} onClose={onClose} size="3xl" motionPreset='none' scrollBehavior='inside'>
       <ModalOverlay />
       <ModalContent>
         {!user ? (
@@ -198,6 +365,84 @@ const EditUserModal = ({ isOpen, onClose, user, onSuccess }) => {
 
             <ModalBody>
               <VStack spacing={4} align="stretch">
+                {/* Generated Password Display */}
+                {generatedPassword && (
+                  <Alert status="success" borderRadius="md">
+                    <AlertIcon />
+                    <Box flex="1">
+                      <AlertDescription fontSize="sm">
+                        <Text fontWeight="medium" mb={2}>New Password Generated:</Text>
+                        <HStack>
+                          <Code colorScheme="green" fontSize="md" p={2} borderRadius="md" fontFamily="mono">
+                            {generatedPassword}
+                          </Code>
+                          <Tooltip label="Copy password">
+                            <IconButton
+                              icon={<FiCopy />}
+                              size="sm"
+                              onClick={copyPasswordToClipboard}
+                              aria-label="Copy password"
+                            />
+                          </Tooltip>
+                        </HStack>
+                        <Text fontSize="xs" color="gray.600" mt={2}>
+                          This password has been sent to the user's email.
+                        </Text>
+                      </AlertDescription>
+                    </Box>
+                  </Alert>
+                )}
+
+                {/* Security Actions */}
+                <Box>
+                  <Text fontSize="sm" fontWeight="semibold" mb={2}>Security Actions</Text>
+                  <VStack spacing={2} align="stretch">
+                    <HStack spacing={2}>
+                      <Button
+                        size="sm"
+                        leftIcon={<FiKey />}
+                        colorScheme="orange"
+                        variant="outline"
+                        onClick={handleGenerateNewPassword}
+                        isLoading={isResettingPassword}
+                        loadingText="Generating..."
+                        flex={1}
+                      >
+                        Generate New Password
+                      </Button>
+                      <Button
+                        size="sm"
+                        leftIcon={<FiShield />}
+                        colorScheme="purple"
+                        variant="outline"
+                        onClick={handleReset2FA}
+                        isLoading={isResetting2FA}
+                        loadingText="Resetting..."
+                        flex={1}
+                      >
+                        Reset 2FA
+                      </Button>
+                    </HStack>
+                    <Button
+                      size="sm"
+                      leftIcon={<FiAlertTriangle />}
+                      colorScheme="red"
+                      variant="outline"
+                      onClick={handleResetBoth}
+                      isLoading={isResettingBoth}
+                      loadingText="Resetting..."
+                      width="full"
+                    >
+                      Reset Password & 2FA
+                    </Button>
+                  </VStack>
+                  <Text fontSize="xs" color="gray.500" mt={2}>
+                    These actions will immediately affect the user's account. A new password will be sent via email.
+                  </Text>
+                </Box>
+
+                <Divider />
+
                 {/* Name Fields */}
                 <HStack spacing={4}>
                   <FormControl isRequired>
@@ -269,48 +514,69 @@ const EditUserModal = ({ isOpen, onClose, user, onSuccess }) => {
                 {/* Employee-specific fields */}
                 {user.accountType === 'EMPLOYEE' && (
                   <>
+                    {/* Role Meanings Note */}
+                    <Alert status="info" borderRadius="md" size="sm">
+                      <AlertIcon />
+                      <Box>
+                        <AlertDescription fontSize="xs">
+                          <Text as="span" fontWeight="medium">DMS</Text> = Document Management Staff |{' '}
+                          <Text as="span" fontWeight="medium">DMM</Text> = Document Management Manager |{' '}
+                          <Text as="span" fontWeight="medium">MIS</Text> = Machine Inventory Staff |{' '}
+                          <Text as="span" fontWeight="medium">MIM</Text> = Machine Inventory Manager |{' '}
+                          <Text as="span" fontWeight="medium">HVCS</Text> = High-Value Crops Staff |{' '}
+                          <Text as="span" fontWeight="medium">HVCM</Text> = High-Value Crops Manager
+                        </AlertDescription>
+                      </Box>
+                    </Alert>
+
+                    {/* Manager Role Priority Note */}
+                    <Alert status="warning" borderRadius="md" size="sm">
+                      <AlertIcon />
+                      <AlertDescription fontSize="xs">
+                        The first role selected will be the default module shown upon login. Please select the primary role first.
+                      </AlertDescription>
+                    </Alert>
+
                     <FormControl isRequired>
                       <FormLabel fontSize="sm">Roles</FormLabel>
-                      <CheckboxGroup
-                        value={formData.roles}
-                        onChange={handleRolesChange}
-                      >
-                        <Stack spacing={2}>
-                          <Checkbox value="DMS" colorScheme="blue">
-                            DMS - Document Management Staff
-                          </Checkbox>
-                          <Checkbox value="DMM" colorScheme="blue">
-                            DMM - Document Management Manager
-                          </Checkbox>
-                          <Checkbox value="MIS" colorScheme="orange">
-                            MIS - Machineries Management Staff
-                          </Checkbox>
-                          <Checkbox value="MIM" colorScheme="orange">
-                            MIM - Machineries Management Manager
-                          </Checkbox>
-                          <Checkbox value="HVCS" colorScheme="green">
-                            HVCS - High-Value Crops Staff
-                          </Checkbox>
-                          <Checkbox value="HVCM" colorScheme="green">
-                            HVCM - High-Value Crops Manager
-                          </Checkbox>
-                        </Stack>
-                      </CheckboxGroup>
+                      <Grid templateColumns={{ base: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' }} gap={2}>
+                        {availableRoles.map((role) => {
+                          const isDisabled = isRoleDisabled(role);
+                          const isSelected = formData.roles.includes(role);
+                          return (
+                            <Button
+                              key={role}
+                              type="button"
+                              size="sm"
+                              onClick={() => handleRoleToggle(role)}
+                              variant={isSelected ? 'solid' : 'outline'}
+                              colorScheme={isSelected ? 'blue' : 'gray'}
+                              title={isDisabled ? `${roleMeanings[role]} - Cannot select both staff and manager roles for the same module` : roleMeanings[role]}
+                              isDisabled={isDisabled}
+                              opacity={isDisabled ? 0.5 : 1}
+                              cursor={isDisabled ? 'not-allowed' : 'pointer'}
+                            >
+                              {role}
+                            </Button>
+                          );
+                        })}
+                      </Grid>
                     </FormControl>
 
                     {formData.roles.includes('DMS') && (
                       <FormControl isRequired>
-                        <FormLabel fontSize="sm">Office Position (for DMS)</FormLabel>
+                        <FormLabel fontSize="sm">Office Position</FormLabel>
                         <Select
                           value={formData.office_position}
                           onChange={(e) => handleInputChange('office_position', e.target.value)}
                           placeholder="Select office position"
                           size="sm"
                         >
-                          <option value="CFS">CFS - City Fishery Section</option>
-                          <option value="LPMS">LPMS - Livestock Poultry Management Section</option>
-                          <option value="ANMS">ANMS - Agricultural Nursery Management Section</option>
-                          <option value="RTSS">RTSS - Research Technology Support Section</option>
+                          {officePositions.map((position) => (
+                            <option key={position} value={position}>
+                              {position}
+                            </option>
+                          ))}
                         </Select>
                       </FormControl>
                     )}
