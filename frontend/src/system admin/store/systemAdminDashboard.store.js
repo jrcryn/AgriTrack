@@ -353,6 +353,18 @@ export const useSystemAdminStore = create((set, get) => ({
         }
     },
 
+    updateUserAccount: async (userData) => {
+        try {
+            const response = await axios.put(
+                `${API_URL}/api/system-admin/update-account`,
+                userData
+            );
+            return response.data;
+        } catch (error) {
+            throw error;
+        }
+    },
+
     // Clear errors
     clearErrors: () => set({
         actionLogsError: null,
