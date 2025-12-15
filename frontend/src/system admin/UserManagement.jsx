@@ -22,11 +22,13 @@ import {
   IconButton,
   Tooltip,
   Spinner,
-  useToast
+  useToast,
+  useDisclosure
 } from '@chakra-ui/react';
 import { FiSearch, FiFilter, FiEdit2, FiLock, FiUnlock } from 'react-icons/fi';
 import { FaArchive, FaPhone, FaUsers } from 'react-icons/fa';
 import { useSystemAdminStore } from './store/systemAdminDashboard.store';
+import EditUserModal from '../components/EditUserModal.jsx';
 
 const UserManagement = () => {
   const {
@@ -52,6 +54,9 @@ const UserManagement = () => {
   const [filterRole, setFilterRole] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedUser, setSelectedUser] = useState(null);
+  
+  const { isOpen: isEditModalOpen, onOpen: onEditModalOpen, onClose: onEditModalClose } = useDisclosure();
 
   // Fetch employee accounts
   useEffect(() => {
@@ -80,8 +85,25 @@ const UserManagement = () => {
   }, [fetchAllUsers]);
 
   const handleEditUser = (user) => {
-    console.log('Edit user:', user);
-    // TODO: Implement edit user functionality
+    setSelectedUser(user);
+    onEditModalOpen();
+  };
+
+  const handleEditSuccess = () => {
+    // Refresh the lists after successful edit
+    fetchEmployeeAccounts({
+      page: currentPage,
+      limit: 50,
+      search: searchTerm,
+      role: filterRole,
+      status: filterStatus
+    });
+    fetchSystemAdminAccounts({
+      page: currentPage,
+      limit: 50,
+      search: searchTerm,
+      status: filterStatus
+    });
   };
 
   const handleLockToggle = async (userId, accountType, currentLockStatus) => {
@@ -473,6 +495,14 @@ const UserManagement = () => {
           </HStack>
         </Flex>
       )}
+      
+      {/* Edit User Modal */}
+      <EditUserModal
+        isOpen={isEditModalOpen}
+        onClose={onEditModalClose}
+        user={selectedUser}
+        onSuccess={handleEditSuccess}
+      />
     </Box>
   );
 };

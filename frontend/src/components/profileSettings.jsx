@@ -322,43 +322,48 @@ const ProfileSettings = () => {
 
       </VStack>
 
-        <Divider orientation={stackDirection === 'row' ? 'vertical' : 'horizontal'} h="auto" mb={-3}/>
-        
-        <VStack align="stretch" flex={1} spacing={4} w="100%">
-          <Heading size="md">Switch Subsystem</Heading>
-          <Text fontSize="sm" color="gray.500">
-            Switch to another subsystem you have access to.
-          </Text>
-          <VStack align="stretch">
-            {isLoading ? (
-              <Box textAlign="center" mt={3}>
-                <Spinner size="md" />
-              </Box>
-            ) : (
-              <>
-                {(availableRoles || [])
-                  .filter(r => r !== user?.role)
-                  .map(r => (
-                    <Button
-                      key={r}
-                      onClick={() => handleSwitchSubsystem(r)}
-                      colorScheme="blue"
-                      justifyContent="flex-start"
-                    >
-                      {roleLabel(r)}
-                    </Button>
-                  ))
-                }
-              </>
-            )}
+        {/* Only show subsystem switcher for employees, not system admins */}
+        {user?.accountType === 'EMPLOYEE' && (
+          <>
+            <Divider orientation={stackDirection === 'row' ? 'vertical' : 'horizontal'} h="auto" mb={-3}/>
             
-            {(!availableRoles || availableRoles.filter(r => r !== user?.role).length === 0) && (
-              <Text fontSize="sm" color="gray.500">No other subsystems available.</Text>
-            )}
+            <VStack align="stretch" flex={1} spacing={4} w="100%">
+              <Heading size="md">Switch Subsystem</Heading>
+              <Text fontSize="sm" color="gray.500">
+                Switch to another subsystem you have access to.
+              </Text>
+              <VStack align="stretch">
+                {isLoading ? (
+                  <Box textAlign="center" mt={3}>
+                    <Spinner size="md" />
+                  </Box>
+                ) : (
+                  <>
+                    {(availableRoles || [])
+                      .filter(r => r !== user?.role)
+                      .map(r => (
+                        <Button
+                          key={r}
+                          onClick={() => handleSwitchSubsystem(r)}
+                          colorScheme="blue"
+                          justifyContent="flex-start"
+                        >
+                          {roleLabel(r)}
+                        </Button>
+                      ))
+                    }
+                  </>
+                )}
+                
+                {(!availableRoles || availableRoles.filter(r => r !== user?.role).length === 0) && (
+                  <Text fontSize="sm" color="gray.500">No other subsystems available.</Text>
+                )}
 
-            <Text fontSize="sm" color="gray.500" mt={2}>Note: Switching subsystems may take a moment depending on your network connection, device performance, or server load. If the page goes blank or does not refresh automatically, please refresh it manually.</Text>
-          </VStack>
-        </VStack>
+                <Text fontSize="sm" color="gray.500" mt={2}>Note: Switching subsystems may take a moment depending on your network connection, device performance, or server load. If the page goes blank or does not refresh automatically, please refresh it manually.</Text>
+              </VStack>
+            </VStack>
+          </>
+        )}
         
       </Stack>
     </Box>

@@ -417,7 +417,7 @@ export const resetUser2FA = async (req, res) => {
 
     try {
         if (!targetUserId || !accountType) {
-            await logAction(req, userId, 'USER_2FA_RESET', 'SYSTEM ADMIN', `2FA reset failed - Missing required fields`, 'VALIDATION_FAILED');
+            await logAction(req, userId, 'USER_2FA_RESET', 'SYSTEM ADMIN', `2FA reset failed - Missing required fields`, 'FAILED');
             return res.status(400).json({ success: false, message: 'Target user ID and account type are required.' });
         }
 
@@ -427,7 +427,7 @@ export const resetUser2FA = async (req, res) => {
 
         const user = await Model.findById(targetUserId);
         if (!user) {
-            await logAction(req, userId, 'USER_2FA_RESET', 'SYSTEM ADMIN', `2FA reset failed - User not found: ${targetUserId}`, 'VALIDATION_FAILED');
+            await logAction(req, userId, 'USER_2FA_RESET', 'SYSTEM ADMIN', `2FA reset failed - User not found: ${targetUserId}`, 'FAILED');
             return res.status(404).json({ success: false, message: 'User not found.' });
         }
 
@@ -446,6 +446,102 @@ export const resetUser2FA = async (req, res) => {
     } catch (error) {
         await logAction(req, userId, 'USER_2FA_RESET', 'SYSTEM ADMIN', `2FA reset error: ${error.message}`, 'FAILED');
         console.error('Error resetting 2FA:', error);
+        return res.status(500).json({ success: false, message: 'Internal server error.' });
+    }
+};
+
+// Generate new password for user
+export const generateNewPassword = async (req, res) => {
+    const { targetUserId, accountType } = req.body;
+    const userId = req.decodedAuthToken.payload.userId;
+
+    try {
+        if (!targetUserId || !accountType) {
+            await logAction(req, userId, 'USER_PASSWORD_GENERATE', 'SYSTEM ADMIN', `Password generation failed - Missing required fields`, 'FAILED');
+            return res.status(400).json({ success: false, message: 'Target user ID and account type are required.' });
+        }
+
+        const Model = accountType === 'SYSTEM_ADMIN' 
+            ? global.systemAdminModels.SystemAdminAccount 
+            : global.globalModels.EmployeeAccount;
+
+        const user = await Model.findById(targetUserId);
+        if (!user) {
+            await logAction(req, userId, 'USER_PASSWORD_GENERATE', 'SYSTEM ADMIN', `Password generation failed - User not found: ${targetUserId}`, 'FAILED');
+            return res.status(404).json({ success: false, message: 'User not found.' });
+        }
+
+        // Generate new random password
+        const newPassword = crypto.randomBytes(8).toString('hex');
+        const hashedPassword = await bcrypt.hash(newPassword, 12);
+
+        user.password = hashedPassword;
+        await user.save();
+
+        // Send email with new password
+        await sendWelcomeEmail(user.email, newPassword);
+
+        await logAction(req, userId, 'USER_PASSWORD_GENERATE', 'SYSTEM ADMIN', `New password generated for user ${targetUserId} (${user.email})`, 'SUCCESS');
+
+        res.status(200).json({ 
+            success: true, 
+            message: 'New password generated and sent via email successfully.',
+            temporaryPassword: newPassword
+        });
+
+    } catch (error) {
+        await logAction(req, userId, 'USER_PASSWORD_GENERATE', 'SYSTEM ADMIN', `Password generation error: ${error.message}`, 'FAILED');
+        console.error('Error generating new password:', error);
+        return res.status(500).json({ success: false, message: 'Internal server error.' });
+    }
+};
+
+// Reset user password and 2FA (combined action)
+export const resetUserPasswordAndTwoFA = async (req, res) => {
+    const { targetUserId, accountType } = req.body;
+    const userId = req.decodedAuthToken.payload.userId;
+
+    try {
+        if (!targetUserId || !accountType) {
+            await logAction(req, userId, 'USER_FULL_RESET', 'SYSTEM ADMIN', `Full reset failed - Missing required fields`, 'FAILED');
+            return res.status(400).json({ success: false, message: 'Target user ID and account type are required.' });
+        }
+
+        const Model = accountType === 'SYSTEM_ADMIN' 
+            ? global.systemAdminModels.SystemAdminAccount 
+            : global.globalModels.EmployeeAccount;
+
+        const user = await Model.findById(targetUserId);
+        if (!user) {
+            await logAction(req, userId, 'USER_FULL_RESET', 'SYSTEM ADMIN', `Full reset failed - User not found: ${targetUserId}`, 'FAILED');
+            return res.status(404).json({ success: false, message: 'User not found.' });
+        }
+
+        // Generate new random password
+        const newPassword = crypto.randomBytes(8).toString('hex');
+        const hashedPassword = await bcrypt.hash(newPassword, 12);
+
+        // Reset password and 2FA
+        user.password = hashedPassword;
+        user.twoFASecret = undefined;
+        user.twoFAQRCode = undefined;
+        user.is2FAEnabled = false;
+        await user.save();
+
+        // Send email with new password
+        await sendWelcomeEmail(user.email, newPassword);
+
+        await logAction(req, userId, 'USER_FULL_RESET', 'SYSTEM ADMIN', `Password and 2FA reset for user ${targetUserId} (${user.email})`, 'SUCCESS');
+
+        res.status(200).json({ 
+            success: true, 
+            message: 'Password and 2FA reset successfully. New password sent via email.',
+            temporaryPassword: newPassword
+        });
+
+    } catch (error) {
+        await logAction(req, userId, 'USER_FULL_RESET', 'SYSTEM ADMIN', `Full reset error: ${error.message}`, 'FAILED');
+        console.error('Error resetting user password and 2FA:', error);
         return res.status(500).json({ success: false, message: 'Internal server error.' });
     }
 };
@@ -1044,6 +1140,8 @@ export const getDashboardStats = async (req, res) => {
         });
     }
 };
+
+
 
 
 
