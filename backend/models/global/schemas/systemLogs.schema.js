@@ -140,7 +140,7 @@ const actions = [
 
 export const GranularLogSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, required: true },
-  userType: { type: String, enum: ['EmployeeAccount', 'SystemAdmin'], required: true },
+  userType: { type: String, enum: ['EmployeeAccount', 'SystemAdmin'] },
   action: { type: String, required: true, enum: actions },
   module: { type: String, required: true }, // e.g. 'machinery', 'documents', 'users'
   description: { type: String, required: true }, 
