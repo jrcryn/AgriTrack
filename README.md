@@ -20,18 +20,18 @@ In collaboration with the **City Agricultural Services Department, City Governme
 
 ## 📋 Table of Contents
 
-- [Overview](#overview)
-- [Features](#features)
-- [Tech Stack](#tech-stack)
-- [System Architecture](#system-architecture)
-- [Project Structure](#project-structure)
-- [Installation](#installation)
-- [Configuration](#configuration)
-- [Running the Application](#running-the-application)
-- [API Documentation](#api-documentation)
-- [Modules](#modules)
-- [Contributing](#contributing)
-- [License](#license)
+- [Overview](#-overview)
+- [Features](#-features)
+- [Tech Stack](#️-tech-stack)
+- [System Architecture](#️-system-architecture)
+- [Project Structure](#-project-structure)
+- [Installation](#-installation)
+- [Configuration](#️-configuration)
+- [Running the Application](#-running-the-application)
+- [API Documentation](#-api-documentation)
+- [Modules](#-modules)
+- [Contributing](#-contributing)
+- [License](#-license)
 
 ---
 
@@ -252,7 +252,7 @@ Create a `.env` file in the `backend` directory:
 
 ```env
 # Server
-PORT=5000
+PORT=3000
 NODE_ENV=development
 
 # Database
@@ -286,7 +286,7 @@ ENCRYPTION_KEY=your_encryption_key_32_chars
 Create a `.env` file in the `frontend` directory:
 
 ```env
-VITE_API_URL=http://localhost:5000/api
+VITE_API_URL=http://localhost:3000/api
 ```
 
 ---
@@ -300,7 +300,7 @@ VITE_API_URL=http://localhost:5000/api
 cd backend
 npm run dev
 ```
-The backend will run on `http://localhost:5000`
+The backend will run on `http://localhost:3000`
 
 #### Start Frontend Development Server
 ```bash
@@ -330,8 +330,9 @@ npm run preview
 
 ### Base URL
 ```
-http://localhost:5000/api
+http://localhost:3000/api
 ```
+### Note that all enpoints are not shown here, just the major ones;
 
 ### Authentication Endpoints
 - `POST /api/auth/signup` - Register new user
@@ -407,7 +408,7 @@ http://localhost:5000/api
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please follow these steps:
+For future developers who wants to improve and will be contributing, Please follow these steps:
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
