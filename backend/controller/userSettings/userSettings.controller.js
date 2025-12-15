@@ -4,7 +4,14 @@ import { decrypt } from '../../utils/encryption.js';
 export const changeUserPassword = async (req, res) => {
     const { currentPassword, newPassword } = req.body;
     try {
-        const user = await global.globalModels.EmployeeAccount.findById(req.decodedAuthToken.payload.userId);
+        const userId = req.decodedAuthToken.payload.userId;
+        
+        // Try to find user in EmployeeAccount first, then SystemAdminAccount
+        let user = await global.globalModels.EmployeeAccount.findById(userId);
+        if (!user) {
+            user = await global.systemAdminModels.SystemAdminAccount.findById(userId);
+        }
+        
         if (!user) {
             return res.status(404).json({ success: false, message: 'User not found.' });
         }
@@ -29,7 +36,14 @@ export const changeUserPassword = async (req, res) => {
 export const get2FAsecret = async (req, res) => {
     const { password } = req.body;
     try {
-        const user = await global.globalModels.EmployeeAccount.findById(req.decodedAuthToken.payload.userId);
+        const userId = req.decodedAuthToken.payload.userId;
+        
+        // Try to find user in EmployeeAccount first, then SystemAdminAccount
+        let user = await global.globalModels.EmployeeAccount.findById(userId);
+        if (!user) {
+            user = await global.systemAdminModels.SystemAdminAccount.findById(userId);
+        }
+        
         if (!user || !user.twoFAQRCode || !user.twoFASecret) {
             return res.status(404).json({ success: false, message: '2FA setup not found.' });
         } 

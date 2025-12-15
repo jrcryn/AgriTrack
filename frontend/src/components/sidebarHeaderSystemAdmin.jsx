@@ -21,6 +21,12 @@ import {
   Image,
   Button,
   useBreakpointValue,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalCloseButton,
 } from '@chakra-ui/react';
 import {
   FiMenu,
@@ -34,6 +40,7 @@ import {
 import { FaDoorOpen } from 'react-icons/fa';
 import { IoSettingsSharp } from 'react-icons/io5';
 import Logo from '../images/Calamba_Seal.png';
+import ProfileSettings from './profileSettings';
 
 const allLinkItems = [
   { name: 'Dashboard', icon: FiGrid, path: '/system-admin/dashboard' },
@@ -149,6 +156,7 @@ const NavItem = ({ icon, children, path, onClick, ...rest }) => {
 
 const MobileNav = ({ onOpen, ...rest }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
+  const { isOpen: isSettingsOpen, onOpen: onSettingsOpen, onClose: onSettingsClose } = useDisclosure();
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -227,7 +235,7 @@ const MobileNav = ({ onOpen, ...rest }) => {
             </MenuButton>
 
             <MenuList bg="white" borderColor="gray.200" boxShadow="md">
-              <MenuItem as="button" _focus={{ bg: 'blue.50' }}>
+              <MenuItem as="button" onClick={onSettingsOpen} _focus={{ bg: 'blue.50' }}>
                 <Icon as={IoSettingsSharp} mr={1.5} ml={2} />
                 Settings
               </MenuItem>
@@ -247,6 +255,18 @@ const MobileNav = ({ onOpen, ...rest }) => {
           </Menu>
         </Flex>
       </HStack>
+
+      {/* Profile Settings Modal */}
+      <Modal isOpen={isSettingsOpen} onClose={onSettingsClose} size="4xl" scrollBehavior="inside" motionPreset="none">
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Settings</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody pb={6}>
+            <ProfileSettings />
+          </ModalBody>
+        </ModalContent>
+      </Modal>
     </Flex>
   );
 };

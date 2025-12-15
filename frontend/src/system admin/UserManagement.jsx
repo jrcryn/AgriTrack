@@ -28,7 +28,7 @@ import {
 import { FiSearch, FiFilter, FiEdit2, FiLock, FiUnlock } from 'react-icons/fi';
 import { FaArchive, FaPhone, FaUsers } from 'react-icons/fa';
 import { useSystemAdminStore } from './store/systemAdminDashboard.store';
-import EditUserModal from './components/EditUserModal';
+import EditUserModal from '../components/EditUserModal.jsx';
 
 const UserManagement = () => {
   const {

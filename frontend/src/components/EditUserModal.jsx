@@ -31,7 +31,7 @@ import {
   useDisclosure
 } from '@chakra-ui/react';
 import { FiKey, FiShield, FiAlertTriangle, FiCopy } from 'react-icons/fi';
-import { useSystemAdminStore } from '../store/systemAdminDashboard.store';
+import { useSystemAdminStore } from '../system admin/store/systemAdminDashboard.store';
 
 const EditUserModal = ({ isOpen, onClose, user, onSuccess }) => {
   const { 
