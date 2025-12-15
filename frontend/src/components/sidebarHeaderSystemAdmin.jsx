@@ -41,6 +41,7 @@ import { FaDoorOpen } from 'react-icons/fa';
 import { IoSettingsSharp } from 'react-icons/io5';
 import Logo from '../images/Calamba_Seal.png';
 import ProfileSettings from './profileSettings';
+import { useAuthStore } from '../auth/store/authStore';
 
 const allLinkItems = [
   { name: 'Dashboard', icon: FiGrid, path: '/system-admin/dashboard' },
@@ -165,11 +166,11 @@ const MobileNav = ({ onOpen, ...rest }) => {
     return () => clearInterval(interval);
   }, []);
 
+  const { logout } = useAuthStore();
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    // TODO: Implement logout logic
-    navigate('/auth/login');
+    logout();
   };
 
   const formattedDate = currentTime.toLocaleDateString('en-US', {
