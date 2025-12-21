@@ -1828,6 +1828,11 @@ export const rejectValidationVisitDetails = async (req, res) => { //use for mana
   const session = await mongoose.startSession();
   session.startTransaction();
 
+  let userId = null;
+  if (req.decodedAuthToken?.payload?.userId) {
+    userId = req.decodedAuthToken.payload.userId;
+  }
+
   try {
     const { farmerId } = req.body;
 
@@ -2017,6 +2022,12 @@ export const archiveFarmerAccount = async (req, res) => {
   if (!farmerId) {
     return res.status(400).json({ message: 'Farmer ID is required.' });
   }
+
+  let userId = null;
+  if (req.decodedAuthToken?.payload?.userId) {
+    userId = req.decodedAuthToken.payload.userId;
+  }
+
   try {
     const farmerAccount = await global.globalModels.FarmerAccount.findOne({ farmerId: farmerId });
     if (!farmerAccount) {
