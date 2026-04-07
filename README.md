@@ -131,7 +131,7 @@ In collaboration with the **City Agricultural Services Department, City Governme
 - **Animations:** Framer Motion
 
 ### DevOps & Deployment
-- **Hosting:** Vercel (Frontend & Backend)
+- **Hosting:** Render (Frontend & Backend)
 - **Version Control:** Git
 - **Environment Management:** dotenv
 
