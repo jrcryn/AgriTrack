@@ -19,17 +19,17 @@ const usePendingTicketRequestsQuery = (page = 1, searchQuery = {}, role) =>
     });
 
 
-const useAvailableMachineryTypesQuery = () =>
+const useAvailableMachineryTypesQuery = (role) =>
     useQuery({
         queryKey: ['availableMachineryTypes'],
         queryFn: async () => {
             const res = await axios.get(`${API_URL}/api/machineries/get-available-machinery-types`);
             return res.data;
         },
-        enabled: true,
+        enabled: role === 'MIM' || role === 'MIS', // Enable for all roles since we need this data in the TicketRequestPanel
     });
 
-const useOperatorsListQuery = (requestedMachineTypeId = null) =>
+const useOperatorsListQuery = (requestedMachineTypeId = null, role) =>
     useQuery({
         queryKey: ['operatorsList', requestedMachineTypeId],
         queryFn: async () => {
@@ -37,7 +37,7 @@ const useOperatorsListQuery = (requestedMachineTypeId = null) =>
             const res = await axios.get(`${API_URL}/api/machineries/get-operators-list`, { params });
             return res.data;
         },
-        enabled: true, // Enable for all roles since we need this data in the TicketRequestPanel
+        enabled: role === 'MIM' || role === 'MIS', // Enable for all roles since we need this data in the TicketRequestPanel
     });
 
 const usePlannedWeeklySchedulesQuery = (page = 1, searchQuery = {}, role) =>
@@ -231,10 +231,10 @@ export const useAdminDashboard = (pages = {}, searchQuery = {}) => {
         usePendingTicketRequestsQuery(pendingPage, searchQuery, role);
 
     const { data: availableMachineryTypes = [], isLoading: isLoadingAvailableMachineryTypes, error: availableMachineryTypesError } =
-        useAvailableMachineryTypesQuery();
+        useAvailableMachineryTypesQuery(role);
 
     const { data: operatorsList = [], isLoading: isLoadingOperatorsList, error: operatorsListError } =
-        useOperatorsListQuery(null); // Pass null to get all operators (for backward compatibility)
+        useOperatorsListQuery(null, role); // Pass null to get all operators (for backward compatibility)
 
     const { data: plannedWeeklySchedules = [], isLoading: isLoadingPlannedWeeklySchedules, error: plannedWeeklySchedulesError } =
         usePlannedWeeklySchedulesQuery(schedulesPage, searchQuery, role);

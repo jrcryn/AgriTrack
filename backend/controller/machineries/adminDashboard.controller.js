@@ -1514,8 +1514,8 @@ export const getMachineTypesForAddingUnits = async (req, res) => { //ginagamit s
             .lean();
 
         if (!machineTypes || machineTypes.length === 0) {
-            return res.status(404).json({
-                success: false,
+            return res.json({
+                success: true,
                 message: "No machine types found."
             });
         }
