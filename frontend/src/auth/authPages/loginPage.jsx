@@ -89,7 +89,7 @@ const LoginPage = () => {
             isClosable: true,
           });
 
-        if (errorMessage.includes('You are required to set up 2FA first.')) {
+        if (errorMessage?.includes('You are required to set up 2FA first.')) {
           navigate('/auth/2fa/setup-2fa', { state: { userId } });
           return;
         }

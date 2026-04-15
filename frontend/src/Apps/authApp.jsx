@@ -15,9 +15,9 @@ const RedirectAuthenticatedUser = ({ children }) => {
       return null;
   }
   
-  if (isAuthenticated) {
+  if (isAuthenticated && user) {
 
-    if (!user.role) {
+    if (!user?.role) {
       return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
         <Spinner size={'xl'} /><Text ml={4}>Please wait...</Text>
       </div>;
@@ -38,10 +38,10 @@ const RedirectAuthenticatedUser = ({ children }) => {
     } else {
       return <Navigate to='/404' replace />;
     }
+  } else {
+    // User is not authenticated, so allow access to the auth pages
+    return children;
   }
-
-  // User is not authenticated, so allow access to the auth pages
-  return children;
 };
 
 const authApp = () => {

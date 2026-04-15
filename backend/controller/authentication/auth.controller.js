@@ -136,8 +136,7 @@ export const login = async (req, res) => {
         }
 
         if (!user) {
-            // Log with null userId since user doesn't exist
-            return res.status(404).json({ success: false, message: 'Invalid credentials.' });
+            return res.status(404).json({ success: false, message: 'Invalid credentials.' });       
         }
 
         // Now we can safely use userId
@@ -148,7 +147,7 @@ export const login = async (req, res) => {
 
         const isPasswordValid = await bcrypt.compare(password, user.password);
 
-        if (!isPasswordValid) {
+        if (!isPasswordValid && userId) {
             // to avoid race conditions, suggestion ni ai, kasi atomic sya imbis na mag hahanap, modify then save.
             await user.updateOne({
                 $inc: { 'failedLoginAttempts.count': 1 }, //incremment
@@ -173,7 +172,7 @@ export const login = async (req, res) => {
             await logAction(req, userId, 'USER_LOGIN', 'AUTHENTICATION', `Login error: Invalid credentials for email: ${email}`, 'FAILED', accountType);
 
             return res.status(401).json({ success: false, message: 'Invalid credentials.'})
-        }
+        };
 
         user.failedLoginAttempts = { count: 0, lastAttempt: null };
         await user.save();
