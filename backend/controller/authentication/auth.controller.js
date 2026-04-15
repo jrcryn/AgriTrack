@@ -154,11 +154,6 @@ export const login = async (req, res) => {
                 $set: { 'failedLoginAttempts.lastAttempt': Date.now() } //set
             });
 
-            // Refetch user to get updated failedLoginAttempts count
-            user = accountType === 'admin' 
-                ? await global.systemAdminModels.SystemAdminAccount.findById(userId)
-                : await global.globalModels.EmployeeAccount.findById(userId);
-
             if (user.failedLoginAttempts.count >= 11) {
                 user.isLocked = true;
                 await user.save();
@@ -247,7 +242,7 @@ export const generate2FASecret = async (req, res) => {
         const qr = await qrcode.toDataURL(otpauth);
         
         user.twoFASecret = encrypt(secret);
-        user.is2FAEnabled = false;
+        user.is2FAEnabled = true;
         user.twoFAQRCode = encrypt(qr); 
         await user.save();
 
@@ -289,10 +284,6 @@ export const verify2FA = async (req, res) => {
             userID = user._id;
         }
 
-        if (user.isLocked) {
-            await logAction(req, userID, '2FA_VERIFIED', 'AUTHENTICATION', `2FA verification attempt failed - Account is locked: ${userID}`, 'VALIDATION_FAILED', accountType);
-            return res.status(403).json({ success: false, message: 'Account locked. Contact IT support to regain access.' });
-        }
 
         if (!user) {
             await logAction(req, userID, '2FA_VERIFIED', 'AUTHENTICATION', `2FA verification attempt failed - User not found: ${userID}`, 'VALIDATION_FAILED', accountType);
