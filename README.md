@@ -95,7 +95,6 @@ In collaboration with the **City Agricultural Services Department, City Governme
 
 ### ☁️ Cloud Integration
 - Google Drive integration for file storage
-- Automated backup capabilities
 
 ---
 
