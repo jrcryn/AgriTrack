@@ -14,17 +14,6 @@ import AutoRefreshErrorBoundary from './components/AutoRefreshErrorBoundary.jsx'
 
 const queryClient = new QueryClient();
 
-if (import.meta.env.VITE_FRONTEND_ENV === "production") {
-  console.log(
-    '%c🚫 Warning!',
-    'color: red; font-size: 24px; font-weight: bold;'
-  );
-  console.log(
-    '%cAny attempt to tamper with the system may be logged.',
-    'font-size: 14px; font-style: italic; color: red;'
-  );
-}
-
 function App() {
 
   return (

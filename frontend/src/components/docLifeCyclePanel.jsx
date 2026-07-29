@@ -50,7 +50,6 @@ const DocumentLifeCycleModal = ({
   isDisposalPage
 }) => {
     const data = document;
-    console.log("DocumentLifeCycleModal data:", data);
     const toast = useToast();
     const queryClient = useQueryClient();
 
@@ -119,7 +118,6 @@ const DocumentLifeCycleModal = ({
 
       } catch (error) {
         toast({ title: "Error", description: error.response?.data?.message || "Failed to forward document.", status: "error", duration: 5000, isClosable: true });
-        console.log(error);
       }
     };
   
@@ -151,7 +149,6 @@ const DocumentLifeCycleModal = ({
         ])
 
       } catch (error) {
-        console.log(error);
         toast({ title: "Error", description: error.response?.data?.message || "Failed to archive document.", status: "error", duration: 5000, isClosable: true });
       }
     };
@@ -181,7 +178,6 @@ const DocumentLifeCycleModal = ({
             queryClient.invalidateQueries({ queryKey: ['documentWorkload'] }),
         ])
       } catch (error) {
-        console.log(error);
         toast({ title: "Error", description: error.response?.data?.message || "Failed to release document.", status: "error", duration: 5000, isClosable: true });
       }
     };
@@ -341,7 +337,6 @@ const DocumentLifeCycleModal = ({
           isClosable: true,
         });
       } catch (error) {
-        console.log(error);
         toast({
           title: "Error",
           description: error.response?.data?.message || 'Failed to download QR Code.',

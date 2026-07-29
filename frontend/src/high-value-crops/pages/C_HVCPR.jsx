@@ -97,7 +97,6 @@ const C_HVCPR = () => {
       // Now use the function from the store, passing employee ID
       const reportData = await generateHVCPR(selectedYear, selectedMonth, selectedBarangays, user?.id);
       const monthLabel = new Date(selectedYear, selectedMonth - 1, 1).toLocaleString('en-US', { month: 'long' });
-      console.log(selectedYear, selectedMonth, selectedBarangays);
 
       // Handle the download in the component (UI concern)
       const url = window.URL.createObjectURL(new Blob([reportData]));
@@ -117,7 +116,6 @@ const C_HVCPR = () => {
         isClosable: true,
       });
     } catch (error) {
-      console.error("Error generating report:", error);
       toast({
         title: "Error generating report",
         description: error.response?.data?.message || "Please try again later",

@@ -89,7 +89,6 @@ export const useTicketRequestFormStore = create((set, get) => ({
             set({ isLoading: false, success: true });
             return true;
         } catch (error) {
-            console.error('Form submission error:', error);
             set({
                 isLoading: false,
                 success: false,

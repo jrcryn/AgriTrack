@@ -54,7 +54,6 @@ const D2_bc_Other_fctNew = ({ onNext, onBack, inline }) => {
         onNext('/success', null, { state: { fromSubmission: true } });
       }
     } catch (error) {
-      console.error("Submission error:", error);
     }
   };
 

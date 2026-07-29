@@ -257,8 +257,6 @@ const B_MachineInventory = () => {
   };
 
   const filteredMachineUnits = filterMachineUnits();
-  
-  console.log(filteredMachineUnits);
 
   // Get all machine units for count check from the dedicated query
   const getAllMachineUnitsForCount = () => {

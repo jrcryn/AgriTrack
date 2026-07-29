@@ -86,7 +86,6 @@ const Responses = () => {
   const [pushType, setPushType] = useState(null);
 
   const { user } = useAuthStore();
-  console.log(user);
 
   const signatureRef = useRef(null);
   const canvasContainerRef = useRef(null);
@@ -409,7 +408,6 @@ const Responses = () => {
             await createUnifiedFarmerResponse(responseData);
             successCount++;
           } catch (error) {
-            console.error(`Error processing response ${response.farmerInput._id}:`, error);
             failCount++;
           }
         }
@@ -443,7 +441,6 @@ const Responses = () => {
           duration: 5000,
           isClosable: true,
         });
-        console.error("Batch processing error:", error);
       } finally {
         setIsBatchProcessing(false);
       }
@@ -710,7 +707,6 @@ const Responses = () => {
       queryClient.invalidateQueries({ queryKey: ['unvalidatedHarvesting'] });
 
     } catch (error) {
-      console.log(error);
       toast({
         title: "Error",
         description: error.response?.data?.message || "Failed updating fields.",
@@ -751,7 +747,6 @@ const Responses = () => {
     const selectableItems = data.filter(item => item.farmerInput.isForReview === false);
     const allSelected = selectableItems.length > 0 && selectableItems.every(item => selectedItems?.includes(item.farmerInput._id));
 
-    console.log(data);
     return(
         <TableContainer>
           <Table variant="simple" size='md'>
@@ -1136,7 +1131,6 @@ const Responses = () => {
       onCloseWarning();
       
     } catch (error) {
-      console.error("Error submitting response:", error);
       queryClient.invalidateQueries({ queryKey: ['unvalidatedNewlyPlanted'] });
       queryClient.invalidateQueries({ queryKey: ['unvalidatedHarvesting'] });
       
@@ -1308,7 +1302,6 @@ const Responses = () => {
       onCloseRequestEdit();
       onClose();
     } catch (error) {
-      console.log(error);
       toast({
         title: "Error",
         description: error.response?.data?.message || "Failed to send edit request.",
@@ -1371,7 +1364,6 @@ const Responses = () => {
       onClose();
       onCloseScheduleVisit();
     } catch (error) {
-      console.log(error);
       toast({
         title: "Error",
         description: error.response?.data?.message || "Failed to send edit request.",
@@ -1498,17 +1490,7 @@ const Responses = () => {
         formData.append('updates', JSON.stringify(updates));
       }
 
-      // Log FormData for debugging
-      for (const [key, value] of formData.entries()) {
-        if (value instanceof File) {
-          console.log(key, { name: value.name, size: value.size, type: value.type });
-        } else {
-          console.log(key, value);
-        }
-      }
-
       const response = await setValidationVisitCompleted(formData);
-      console.log(formData);
 
       toast({
         title: "Success",
@@ -1532,7 +1514,6 @@ const Responses = () => {
       setSelectedResponse(null);
 
     } catch (error) {
-      console.error('Error submitting validation proof:', error);
       toast({
         title: "Error",
         description: error.response?.data?.message || "Failed to submit validation proof",
@@ -1578,7 +1559,6 @@ const Responses = () => {
     setSelectedResponse(null);
 
   } catch (error) {
-    console.log(error);
     toast({
       title: "Error",
       description: error.response?.data?.message || "Failed to approve validation visit details.",
@@ -1624,7 +1604,6 @@ const Responses = () => {
     setSelectedResponse(null);
 
   } catch (error) {
-    console.log(error);
     toast({
       title: "Error",
       description: error.response?.data?.message || "Failed to reject validation visit details.",
@@ -1672,7 +1651,6 @@ const Responses = () => {
     const isNewlyPlanted = response.cropRecord?.crop_stage === 'NEWLY PLANTED';
     const isHarvesting = response.cropRecord?.crop_stage === 'HARVESTING';
     const isIndustrialCrop = response.cropType?.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS';
-    console.log(response);
     const formatDate = (dateString) => {
       if (!dateString) return '-';
       return new Date(dateString).toLocaleDateString('en-US', {

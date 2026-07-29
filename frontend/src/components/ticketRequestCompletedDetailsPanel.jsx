@@ -14,7 +14,6 @@ const TicketRequestCompletedDetailsPanel = ({
     selectedTicket,
     isExtensionTicket
  }) => {
-console.log('Selected Ticket in CompletedDetailsPanel:', selectedTicket);
   const { user } = useAuthStore();
   const toast = useToast();
   const [isApproveModalOpen, setIsApproveModalOpen] = useState(false);
@@ -110,7 +109,6 @@ console.log('Selected Ticket in CompletedDetailsPanel:', selectedTicket);
         duration: 5000,
         isClosable: true,
       });
-      console.error('Failed to approve extension:', e);
     }
   };
 
@@ -162,7 +160,6 @@ console.log('Selected Ticket in CompletedDetailsPanel:', selectedTicket);
         duration: 5000,
         isClosable: true,
       });
-      console.error('Failed to decline extension:', e);
     }
   };
 
@@ -179,7 +176,6 @@ console.log('Selected Ticket in CompletedDetailsPanel:', selectedTicket);
         const res = await getMachineryUnitsForDropDownByType(typeId);
         setUnitsByType(prev => ({ ...prev, [typeId]: res?.data || [] }));
       } catch (e) {
-        console.error('Failed to load units for type', typeId, e);
       }
     };
 

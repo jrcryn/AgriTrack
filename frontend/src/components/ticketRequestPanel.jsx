@@ -47,8 +47,6 @@ const TicketRequestPanel = ({
   const isPendingPage = pageType === 'pending';
   const isScheduledPage = pageType === 'scheduled';
   const isOngoingPage = pageType === 'ongoing';
-  // const isDeclinedPage = pageType === 'declined';
-  console.log('selectedTickets:', selectedTickets);
   // Schedule creation state
   const [scheduleData, setScheduleData] = useState({
     weekStart: '',
@@ -144,7 +142,6 @@ const TicketRequestPanel = ({
         const res = await getMachineryUnitsForDropDownByType(typeId);
         setUnitsByType(prev => ({ ...prev, [typeId]: res?.data || [] }));
       } catch (e) {
-        // Optional: handle error per type (e.g., console.error('Failed to load units for type', typeId, e));
       }
     });
   }, [selectedWeeklySchedule, isOpen]);
@@ -188,8 +185,6 @@ const TicketRequestPanel = ({
         const res = await getMachineryUnitsForDropDownByType(typeId);
         setUnitsByType(prev => ({ ...prev, [typeId]: res?.data || [] }));
       } catch (e) {
-        // optional: handle error per type
-        // console.error('Failed to load units for type', typeId, e);
       }
     });
   }, [selectedTickets, isOpen]);
@@ -212,8 +207,6 @@ const TicketRequestPanel = ({
         const res = await getOperatorsListByMachineType(typeId);
         setOperatorsByType(prev => ({ ...prev, [typeId]: res?.data || [] }));
       } catch (e) {
-        // optional: handle error per type
-        // console.error('Failed to load operators for type', typeId, e);
       }
     });
   }, [selectedTickets, isOpen, isPendingPage]); 
@@ -294,7 +287,6 @@ const TicketRequestPanel = ({
       ]);
       
     } catch (error) {
-      console.error('Error creating weekly schedule:', error);
       toast({
         title: "Error",
         description: error.response?.data?.message || "Failed to create weekly schedule",
@@ -344,7 +336,6 @@ const TicketRequestPanel = ({
       
       
     } catch (error) {
-      console.error('Error removing ticket from schedule:', error);
       setSelectedTicketForRemoval(null);
       onCloseRemoveModal();
       toast({
@@ -434,7 +425,6 @@ const TicketRequestPanel = ({
       onRequestReopenSchedule?.(selectedWeeklySchedule?._id);
 
     } catch (error) {
-      console.error('Error updating weekly schedule:', error);
       toast({
         title: "Error",
         description: error.response?.data?.message || "Failed to update weekly schedule",
@@ -1127,7 +1117,6 @@ const TicketRequestPanel = ({
                               // Show extension ticket if present, else regular ticket
                               const ticket = tr.extensionRequestId ? tr.extensionDetails : tr.ticketDetails;
                               if (!ticket) return null;
-                              console.log('ticket in ongoing schedule:', ticket);
                               
                               const updateTicket = ticketUpdateData.tickets.find(t => t.ticketId === tr.ticketRequestId);
                               const typeId = ticket?.requestedMachineType?.requestedMachineTypeId;
