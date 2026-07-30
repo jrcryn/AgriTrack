@@ -271,7 +271,8 @@ export const generate2FASecret = async (req, res) => {
 export const verify2FA = async (req, res) => {
     const { token, userId } = req.body;
     
-    // Get accountType from the decoded preAuthToken middleware
+    // Get accountType and userId from decoded preAuthToken middleware or body
+    const targetUserId = userId || req.decodedPreAuthToken?.userId;
     const accountType = req.decodedPreAuthToken?.accountType || 'employee';
 
     let userID = null;
@@ -280,23 +281,21 @@ export const verify2FA = async (req, res) => {
         // Determine which schema to query based on accountType
         let user;
         if (accountType === 'admin') {
-            user = await global.systemAdminModels.SystemAdminAccount.findById(userId);
+            user = await global.systemAdminModels.SystemAdminAccount.findById(targetUserId);
         } else {
-            user = await global.globalModels.EmployeeAccount.findById(userId);
+            user = await global.globalModels.EmployeeAccount.findById(targetUserId);
         }
 
-        if (user) {
-            userID = user._id;
+        if (!user) {
+            await logAction(req, userID, '2FA_VERIFIED', 'AUTHENTICATION', `2FA verification attempt failed - User not found: ${targetUserId}`, 'VALIDATION_FAILED', accountType);
+            return res.status(404).json({ success: false, message: 'User not found.' });
         }
+
+        userID = user._id;
 
         if (user.isLocked) {
             await logAction(req, userID, '2FA_VERIFIED', 'AUTHENTICATION', `2FA verification attempt failed - Account is locked: ${userID}`, 'VALIDATION_FAILED', accountType);
             return res.status(403).json({ success: false, message: 'Account locked. Contact IT support to regain access.' });
-        }
-
-        if (!user) {
-            await logAction(req, userID, '2FA_VERIFIED', 'AUTHENTICATION', `2FA verification attempt failed - User not found: ${userID}`, 'VALIDATION_FAILED', accountType);
-            return res.status(404).json({ success: false, message: 'User not found.' });
         }
 
         if (!user.twoFASecret) {
@@ -305,6 +304,9 @@ export const verify2FA = async (req, res) => {
         }
 
         const decryptedSecret = decrypt(user.twoFASecret);
+
+        // Allow 30-second clock drift window for TOTP verification across environments
+        authenticator.options = { window: 1 };
 
         const isValid = authenticator.verify({ 
             token,
@@ -345,11 +347,13 @@ export const verify2FA = async (req, res) => {
         user.failedOTPVerifications = { count: 0, lastAttempt: null };
         await user.save();
 
+        const isProd = process.env.NODE_ENV === 'production' || !!process.env.VERCEL || !!process.env.VERCEL_ENV;
+
         res.clearCookie('preAuthToken', {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production' ? true : false, // Set to true in production for secure cookies
-            sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Strict', // Use 'None' for cross-site cookies in production, 'Strict' for local development
-            path: '/' //cookie is cleared for the entire domain
+            secure: isProd ? true : false,
+            sameSite: isProd ? 'None' : 'Lax',
+            path: '/'
         }); 
         generateTokenAndSetCookie(res, user._id, role, accountType);
 
@@ -386,10 +390,12 @@ export const logout = async (req, res) => {
             userId = req.decodedAuthToken.payload.userId;
         }
         
+        const isProd = process.env.NODE_ENV === 'production' || !!process.env.VERCEL || !!process.env.VERCEL_ENV;
+
         res.clearCookie('authToken', {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production' ? true : false,
-            sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Strict',
+            secure: isProd ? true : false,
+            sameSite: isProd ? 'None' : 'Lax',
             path: '/'
         });
 

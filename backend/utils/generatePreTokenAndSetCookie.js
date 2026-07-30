@@ -1,5 +1,9 @@
 import jwt from 'jsonwebtoken';
 
+const isProductionEnv = () => {
+    return process.env.NODE_ENV === 'production' || !!process.env.VERCEL || !!process.env.VERCEL_ENV;
+};
+
 export const generatePreTokenAndSetCookie = (res, userId, accountType = 'employee') => {
 
     if (!userId) {
@@ -7,12 +11,13 @@ export const generatePreTokenAndSetCookie = (res, userId, accountType = 'employe
     };
 
     const preToken = jwt.sign({ userId, accountType }, process.env.JWT_SECRET, { expiresIn: '5m' });
+    const isProd = isProductionEnv();
 
     res.cookie('preAuthToken', preToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production' ? true : false, // Set to true in production or staging for secure cookies
-        sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Strict', // Use 'None' for cross-site cookies in production/staging, 'Strict' for local development
-        maxAge: 5 * 60 * 1000 //5 minutes
+        secure: isProd ? true : false, // Set to true in production/Vercel for secure cross-site cookies
+        sameSite: isProd ? 'None' : 'Lax', // Use 'None' for cross-site cookies in production/Vercel
+        maxAge: 5 * 60 * 1000 // 5 minutes
     });
 
     return preToken;

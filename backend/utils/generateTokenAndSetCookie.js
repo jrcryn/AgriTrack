@@ -1,5 +1,9 @@
 import jwt from 'jsonwebtoken';
 
+const isProductionEnv = () => {
+    return process.env.NODE_ENV === 'production' || !!process.env.VERCEL || !!process.env.VERCEL_ENV;
+};
+
 export const generateTokenAndSetCookie = (res, userId, role, accountType = 'employee') => {
 
     if (!userId || !role) {
@@ -12,12 +16,13 @@ export const generateTokenAndSetCookie = (res, userId, role, accountType = 'empl
         accountType // Include accountType to distinguish between employee and admin accounts
     };
     const token = jwt.sign({ payload }, process.env.JWT_SECRET, { expiresIn: '4h' });
+    const isProd = isProductionEnv();
 
     res.cookie('authToken', token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production' ? true : false, // Set to true in production for secure cookies
-        sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Strict', // Use 'None' for cross-site cookies in production, 'Strict' for local development
-        maxAge: 24 * 60 * 60 * 1000, // 24 hours (FOR DEVELOPMENT, CHANGE TO 10 HOURS LATER)
+        secure: isProd ? true : false, // Set to true in production/Vercel for secure cookies
+        sameSite: isProd ? 'None' : 'Lax', // Use 'None' for cross-site cookies in production/Vercel
+        maxAge: 24 * 60 * 60 * 1000, // 24 hours
     });
 
     return token;
