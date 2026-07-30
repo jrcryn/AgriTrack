@@ -57,7 +57,6 @@ const ConsentRequestPage = () => {
 
       } catch (err) {
         setError(err.response?.data?.message || 'Failed to load edit request details.');
-        console.error('Error fetching edit request details:', err);
       }
     };
 

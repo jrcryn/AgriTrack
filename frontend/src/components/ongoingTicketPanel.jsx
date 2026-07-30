@@ -23,7 +23,6 @@ const OngoingTicketPanel = ({
   const toast = useToast();
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
-  console.log('Selected Weekly Schedule:', selectedWeeklySchedule);
   const { isOpen: isOpenReturnModal, onOpen: onOpenReturnModal, onClose: onCloseReturnModal } = useDisclosure();
   const [selectedTicketForReturn, setSelectedTicketForReturn] = useState(null);
   

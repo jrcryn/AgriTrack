@@ -135,8 +135,7 @@ export const login = async (req, res) => {
             }
         }
 
-        if (!user) {
-            // Log with null userId since user doesn't exist
+        if (!user || user.isArchived === true) {
             return res.status(404).json({ success: false, message: 'Invalid credentials.' });
         }
 

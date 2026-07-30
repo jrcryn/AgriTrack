@@ -38,7 +38,6 @@ const GenReports = () => {
         isClosable: true,
       });
     } catch (error) {
-      console.error('Error generating report:', error);
       toast({
         title: 'Error generating report',
         description: error.message || 'Please try again later',

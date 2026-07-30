@@ -50,8 +50,6 @@ const TripTicketReturns = () => {
     setOngoingPage(1);
   }, [searchQuery]);
 
-  console.log('In-Progress Weekly Schedules:', inProgressWeeklySchedules);
-
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [selectedWeeklySchedule, setSelectedWeeklySchedule] = useState(null);
 
