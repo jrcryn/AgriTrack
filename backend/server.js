@@ -11,9 +11,7 @@ app.use(express.json());
 app.use(cookieParser());
 
 const allowedOrigins = [
-    'https://agritrack.online', //production
-    'https://www.agritrack.online', //production
-    'https://staging-frontend-5tcj.onrender.com', //staging
+    'https://agritrack-demo-frontend.vercel.app', //demo
     'http://localhost:5173',  
     process.env.CLIENT_URL,
 ];
