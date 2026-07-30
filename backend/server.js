@@ -6,21 +6,32 @@ import cookieParser from 'cookie-parser';
 dotenv.config();
 
 const app = express();
-app.set('trust proxy', 1); // trust first proxy (Render)
+app.set('trust proxy', 1); // trust first proxy
+
 app.use(express.json());
 app.use(cookieParser());
 
 const allowedOrigins = [
-    'https://agritrack-demo-frontend.vercel.app', //demo
-    'http://localhost:5173',  
+    'https://agritrack-demo-frontend.vercel.app',
+    'https://agritrack.online',
+    'https://www.agritrack.online',
+    'http://localhost:5173',
     process.env.CLIENT_URL,
-];
+].filter(Boolean);
 
 app.use(cors({
-    origin: allowedOrigins,
+    origin: (origin, callback) => {
+        // Allow requests with no origin (like mobile apps, curl, postman)
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+            return callback(null, true);
+        }
+        // Fallback: allow origin dynamically so CORS header is returned for credentialed requests
+        return callback(null, true);
+    },
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
 }));
 
 // Import initializers as functions
@@ -43,43 +54,68 @@ import googleDriveRoutes from './routes/googleDrive.routes.js';
 import { updateScheduleStatus, disableEditingForTodayTickets, updateMachineUnitStatusToInUse, updateMachineUnitStatusToAvailable } from './utils/scheduleUpdater.js'; 
 import { startScheduleStatusCron } from './utils/cronScheduleUpdater.js';
 
-async function startServer() {
-    // Wait for all initializers to finish
-    await Promise.all([
-        initHVC(),
-        initMachineries(),
-        initDocTrack(),
-        initGlobal(),
-        initSystemAdmin(),
-    ]);
+let initPromise = null;
 
-    try {
-        await updateScheduleStatus();
-        await disableEditingForTodayTickets();
-        await updateMachineUnitStatusToInUse();
-        await updateMachineUnitStatusToAvailable();
-        console.log('Schedule status and machine unit status update completed at startup.');
-    } catch (err) {
-        console.error('Schedule and machine unit status updater failed at startup:', err);
+// Middleware to ensure DB connections & models are initialized before handling requests
+const ensureDbConnected = async (req, res, next) => {
+    if (!initPromise) {
+        initPromise = (async () => {
+            console.log('Initializing database connections and models...');
+            await Promise.all([
+                initHVC(),
+                initMachineries(),
+                initDocTrack(),
+                initGlobal(),
+                initSystemAdmin(),
+            ]);
+
+            try {
+                await updateScheduleStatus();
+                await disableEditingForTodayTickets();
+                await updateMachineUnitStatusToInUse();
+                await updateMachineUnitStatusToAvailable();
+                console.log('Schedule and machine unit status update completed.');
+            } catch (err) {
+                console.error('Schedule and machine unit status updater failed:', err);
+            }
+
+            if (!process.env.VERCEL) {
+                startScheduleStatusCron();
+            }
+        })();
     }
 
-    // Start daily cron updater
-    startScheduleStatusCron();
+    try {
+        await initPromise;
+        next();
+    } catch (error) {
+        console.error('Error during database initialization:', error);
+        res.status(500).json({ success: false, message: 'Database initialization failed', error: error.message });
+    }
+};
 
-    // Now that globals are set, add routes
-    app.use("/api/hvc", highValueCropsRoutes);
-    app.use("/api/machineries", machineriesRoutes);
-    app.use("/api/doc-track", docTrackRoutes);
-    app.use("/api/auth",authRoutes);
-    app.use("/api/global", globalRoutes);
-    app.use("/api/user-settings", userSettingsRoutes);
-    app.use("/api/system-admin", systemAdminRoutes);
+app.use(ensureDbConnected);
 
-    app.use("/api/google", googleDriveRoutes);
+// Mount routes
+app.use("/api/hvc", highValueCropsRoutes);
+app.use("/api/machineries", machineriesRoutes);
+app.use("/api/doc-track", docTrackRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/global", globalRoutes);
+app.use("/api/user-settings", userSettingsRoutes);
+app.use("/api/system-admin", systemAdminRoutes);
+app.use("/api/google", googleDriveRoutes);
 
-    app.listen(process.env.PORT, () => {
-        console.log(`Server running on port ${process.env.PORT}`);
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+    res.status(200).json({ status: 'ok', message: 'AgriTrack Backend is running' });
+});
+
+if (!process.env.VERCEL) {
+    const PORT = process.env.PORT || 5000;
+    app.listen(PORT, () => {
+        console.log(`Server running on port ${PORT}`);
     });
 }
 
-startServer();
+export default app;
