@@ -135,8 +135,8 @@ export const login = async (req, res) => {
             }
         }
 
-        if (!user) {
-            // Log with null userId since user doesn't exist
+        if (!user || user.isArchived === true) {
+            await logAction(req, userId, 'USER_LOGIN', 'AUTHENTICATION', `Login attempt failed - Account is archived or not found: ${email}`, 'FAILED');
             return res.status(404).json({ success: false, message: 'Invalid credentials.' });
         }
 
