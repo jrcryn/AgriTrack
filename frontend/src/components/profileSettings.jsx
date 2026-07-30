@@ -323,7 +323,7 @@ const ProfileSettings = () => {
       </VStack>
 
         {/* Only show subsystem switcher for employees, not system admins */}
-        {user?.accountType === 'EMPLOYEE' && (
+        {user?.accountType?.toLowerCase() === 'employee' && (
           <>
             <Divider orientation={stackDirection === 'row' ? 'vertical' : 'horizontal'} h="auto" mb={-3}/>
             
