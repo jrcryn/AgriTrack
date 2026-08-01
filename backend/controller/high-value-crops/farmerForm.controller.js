@@ -158,7 +158,9 @@ export const submitMultipleFarmerForms = async (req, res) => {
     });
 
   } catch (error) {
-    await session.abortTransaction();
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
     console.error('Bulk Transaction Error:', error);
     res.status(500).json({ 
       message: 'Error submitting forms. Transaction rolled back.', 

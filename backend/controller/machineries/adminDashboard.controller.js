@@ -3744,7 +3744,9 @@ export const setRequestTicketToComplete = async (req, res) => { //kapag work don
         const ticket = await global.machineriesModels.TicketRequest.findById(ticketRequestId).session(session);
         
         if (!ticket) {
-            await session.abortTransaction();
+            if (session.inTransaction()) {
+              await session.abortTransaction();
+            }
             session.endSession();
             return res.status(404).json({
                 success: false,
@@ -3754,7 +3756,9 @@ export const setRequestTicketToComplete = async (req, res) => { //kapag work don
 
         // Validate ticket status
         if (ticket.status !== 'Ongoing') {
-            await session.abortTransaction();
+            if (session.inTransaction()) {
+              await session.abortTransaction();
+            }
             session.endSession();
             return res.status(400).json({
                 success: false,
@@ -3764,7 +3768,9 @@ export const setRequestTicketToComplete = async (req, res) => { //kapag work don
 
         // Validate schedule exists
         if (!ticket.scheduleId) {
-            await session.abortTransaction();
+            if (session.inTransaction()) {
+              await session.abortTransaction();
+            }
             session.endSession();
             return res.status(400).json({
                 success: false,
@@ -3785,7 +3791,9 @@ export const setRequestTicketToComplete = async (req, res) => { //kapag work don
 
         const operator = await global.globalModels.EmployeeAccount.findById(operatorId).lean();
         if (!operator) {
-            await session.abortTransaction();
+            if (session.inTransaction()) {
+              await session.abortTransaction();
+            }
             session.endSession();
             return res.status(404).json({
                 success: false,
@@ -3794,7 +3802,9 @@ export const setRequestTicketToComplete = async (req, res) => { //kapag work don
         }
 
         if (!operator.roles || !operator.roles.includes('MIS') && !operator.roles.includes('MIM')) {
-            await session.abortTransaction();
+            if (session.inTransaction()) {
+              await session.abortTransaction();
+            }
             session.endSession();
             return res.status(400).json({
                 success: false,
@@ -3803,7 +3813,9 @@ export const setRequestTicketToComplete = async (req, res) => { //kapag work don
         }
 
         if (operator.isOperatorDisabled === true) {
-            await session.abortTransaction();
+            if (session.inTransaction()) {
+              await session.abortTransaction();
+            }
             session.endSession();
             return res.status(400).json({
                 success: false,
@@ -3812,7 +3824,9 @@ export const setRequestTicketToComplete = async (req, res) => { //kapag work don
         }
 
         if (operator.isOperatorDisabled) {
-            await session.abortTransaction();
+            if (session.inTransaction()) {
+              await session.abortTransaction();
+            }
             session.endSession();
             return res.status(403).json({ 
                 success: false, 
@@ -3947,7 +3961,9 @@ export const setRequestTicketToComplete = async (req, res) => { //kapag work don
         });
 
     } catch (error) {
-        await session.abortTransaction();
+        if (session.inTransaction()) {
+          await session.abortTransaction();
+        }
         session.endSession();
         console.error("Error marking ticket as completed:", error);
         await logAction(req, req.body.operatorId || req.userId || 'UNKNOWN', 'TICKET_REQUEST_COMPLETED', 'machineries', `Failed to mark ticket as completed: ${error.message}`, 'FAILED');
@@ -4371,14 +4387,18 @@ export const setExtenstionTicketToComplete = async (req, res) => {
         // Load extension ticket
         const extTicket = await global.machineriesModels.ExtensionTicket.findById(extensionTicketId).session(session);
         if (!extTicket) {
-            await session.abortTransaction();
+            if (session.inTransaction()) {
+              await session.abortTransaction();
+            }
             session.endSession();
             return res.status(404).json({ success: false, message: "Extension ticket not found." });
         }
 
         // Only allow completion for ongoing extension tickets
         if (extTicket.status !== 'Ongoing') {
-            await session.abortTransaction();
+            if (session.inTransaction()) {
+              await session.abortTransaction();
+            }
             session.endSession();
             return res.status(400).json({
                 success: false,
@@ -4390,18 +4410,24 @@ export const setExtenstionTicketToComplete = async (req, res) => {
         // Validate operator
         const operator = await global.globalModels.EmployeeAccount.findById(operatorId).lean();
         if (!operator) {
-            await session.abortTransaction();
+            if (session.inTransaction()) {
+              await session.abortTransaction();
+            }
             session.endSession();
             return res.status(404).json({ success: false, message: "Operator account not found." });
         }
         if (!operator.roles || (!operator.roles.includes('MIS') && !operator.roles.includes('MIM'))) {
-            await session.abortTransaction();
+            if (session.inTransaction()) {
+              await session.abortTransaction();
+            }
             session.endSession();
             return res.status(400).json({ success: false, message: "The provided user is not an authorized operator." });
         }
 
         if (operator.isOperatorDisabled) {
-            await session.abortTransaction();
+            if (session.inTransaction()) {
+              await session.abortTransaction();
+            }
             session.endSession();
             return res.status(403).json({ 
                 success: false, 
@@ -4447,7 +4473,9 @@ export const setExtenstionTicketToComplete = async (req, res) => {
         const parentTicketId = extTicket.parentRequestTicketId;
         const parentTicket = await global.machineriesModels.TicketRequest.findById(parentTicketId).session(session);
         if (!parentTicket) {
-            await session.abortTransaction();
+            if (session.inTransaction()) {
+              await session.abortTransaction();
+            }
             session.endSession();
             return res.status(404).json({
                 success: false,
@@ -4457,7 +4485,9 @@ export const setExtenstionTicketToComplete = async (req, res) => {
         }
 
         if (parentTicket.status !== 'Partially Completed') {
-            await session.abortTransaction();
+            if (session.inTransaction()) {
+              await session.abortTransaction();
+            }
             session.endSession();
             return res.status(400).json({
                 success: false,
@@ -4504,7 +4534,9 @@ export const setExtenstionTicketToComplete = async (req, res) => {
         });
 
     } catch (error) {
-        await session.abortTransaction();
+        if (session.inTransaction()) {
+          await session.abortTransaction();
+        }
         session.endSession();
         console.error("Error marking extension ticket as completed:", error);
         await logAction(req, req.body.operatorId || req.userId || 'UNKNOWN', 'EXTENSION_TICKET_COMPLETED', 'machineries', `Failed to mark extension ticket as completed: ${error.message}`, 'FAILED');
