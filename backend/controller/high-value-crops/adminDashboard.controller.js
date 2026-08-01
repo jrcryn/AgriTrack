@@ -216,7 +216,9 @@ export const updateFarmerResponseFields = async (req, res) => {
   try {
     const { farmerId } = req.params;
     if (!farmerId) {
-      await session.abortTransaction();
+      if (session.inTransaction()) {
+        await session.abortTransaction();
+      }
       return res.status(400).json({ message: 'farmerId is required.' });
     }
 
@@ -227,22 +229,30 @@ export const updateFarmerResponseFields = async (req, res) => {
       .session(session);
 
     if (!farmerInput) {
-      await session.abortTransaction();
+      if (session.inTransaction()) {
+        await session.abortTransaction();
+      }
       return res.status(404).json({ message: 'Farmer response not found.' });
     }
 
     if (farmerInput.isForReview !== true) {
-      await session.abortTransaction();
+      if (session.inTransaction()) {
+        await session.abortTransaction();
+      }
       return res.status(400).json({ message: 'Only flagged responses can be updated.' });
     }
 
     if (farmerInput.editConsent.status !== 'Granted' && farmerInput.validationVisitDetails?.isValidationVisitDetailsApproved !== true) {
-      await session.abortTransaction();
+      if (session.inTransaction()) {
+        await session.abortTransaction();
+      }
       return res.status(403).json({ message: 'Updating this response requires either farmer consent (Granted) or manager approval (Validation Visit Approved).' });
     }
 
     if (!farmerInput.editConsent.editRequestId) {
-      await session.abortTransaction();
+      if (session.inTransaction()) {
+        await session.abortTransaction();
+      }
       return res.status(404).json({ message: 'Edit request not found.' });
     }
 
@@ -258,7 +268,9 @@ export const updateFarmerResponseFields = async (req, res) => {
     if (editRequest.total_weight != null) updates.total_weight = editRequest.total_weight;
 
     if (Object.keys(updates).length === 0) {
-      await session.abortTransaction();
+      if (session.inTransaction()) {
+        await session.abortTransaction();
+      }
       return res.status(400).json({ message: 'No valid updates found in edit request.' });
     }
 
@@ -269,7 +281,9 @@ export const updateFarmerResponseFields = async (req, res) => {
       .lean();
 
     if (!cropType) {
-      await session.abortTransaction();
+      if (session.inTransaction()) {
+        await session.abortTransaction();
+      }
       return res.status(404).json({ message: 'Crop type not found.' });
     }
 
@@ -281,7 +295,9 @@ export const updateFarmerResponseFields = async (req, res) => {
         .session(session);
 
       if (!cropRecord) {
-        await session.abortTransaction();
+        if (session.inTransaction()) {
+          await session.abortTransaction();
+        }
         return res.status(404).json({ message: 'Crop record not found.' });
       }
 
@@ -307,7 +323,9 @@ export const updateFarmerResponseFields = async (req, res) => {
         .session(session);
 
       if (!cropRecord) {
-        await session.abortTransaction();
+        if (session.inTransaction()) {
+          await session.abortTransaction();
+        }
         return res.status(404).json({ message: 'Crop record not found.' });
       }
 
@@ -330,7 +348,9 @@ export const updateFarmerResponseFields = async (req, res) => {
     }
 
     if (!cropDetails) {
-      await session.abortTransaction();
+      if (session.inTransaction()) {
+        await session.abortTransaction();
+      }
       return res.status(404).json({ message: 'Crop details not found.' });
     }
 
@@ -367,7 +387,9 @@ export const updateFarmerResponseFields = async (req, res) => {
       message: 'Fields updated successfully.'
     });
   } catch (error) {
-    await session.abortTransaction();
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
     console.error('Error updating fields:', error);
 
     await logAction(req, userId, 'FARMER_RESPONSE_FIELDS_UPDATED', 'HIGH-VALUE CROPS', `Error updating farmer response fields: ${error.message}`, 'FAILED');
@@ -547,7 +569,9 @@ export const createUnifiedFarmerResponse = async (req, res) => {
 
   } catch (error) {
 
-    await session.abortTransaction();
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
 
     await logAction(req, userId, 'FARMER_RESPONSE_SUBMITTED_TO_METRICS', 'HIGH-VALUE CROPS', `Error pushing farmer response to unified records: ${error.message}`, 'FAILED');
 
@@ -845,7 +869,9 @@ export const requestEdit = async (req, res) => {
     });
 
     if (!hasValidUpdates) {
-      await session.abortTransaction();
+      if (session.inTransaction()) {
+        await session.abortTransaction();
+      }
       return res.status(400).json({ 
         message: 'At least one valid update value is required.' 
       });
@@ -855,11 +881,15 @@ export const requestEdit = async (req, res) => {
     const farmerInput = await global.highValueCropsModels.A_farmer_inputs.findById(farmerId).session(session);
     console.log(farmerInput);
     if (!farmerInput) {
-      await session.abortTransaction();
+      if (session.inTransaction()) {
+        await session.abortTransaction();
+      }
       return res.status(404).json({ message: 'Farmer response not found.' }); 
     }
     if (farmerInput.isForReview !== true) {
-      await session.abortTransaction();
+      if (session.inTransaction()) {
+        await session.abortTransaction();
+      }
       return res.status(400).json({ message: 'Only flagged responses can be requested for edit.' });
     }
 
@@ -873,14 +903,18 @@ export const requestEdit = async (req, res) => {
     // Find crop type and crop record
     const cropType = await global.highValueCropsModels.B_crop_types.findOne({ farmer_input_id: farmerId }).session(session).lean();
     if (!cropType) {
-      await session.abortTransaction();
+      if (session.inTransaction()) {
+        await session.abortTransaction();
+      }
       return res.status(404).json({ message: 'Crop type not found.' });
     }
 
     //find the farmer account
     const farmer = await global.globalModels.FarmerAccount.findById(farmerInput.farmer_account_id).session(session);
     if (!farmer) {
-      await session.abortTransaction();
+      if (session.inTransaction()) {
+        await session.abortTransaction();
+      }
       return res.status(404).json({ message: 'Farmer account not found.' });
     }
 
@@ -892,7 +926,9 @@ export const requestEdit = async (req, res) => {
     if (cropType.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS') {
       cropRecord = await global.highValueCropsModels.C_crop_records_indus.findOne({ farmer_input_id: farmerId }).session(session);
       if (!cropRecord) {
-        await session.abortTransaction();
+        if (session.inTransaction()) {
+          await session.abortTransaction();
+        }
         return res.status(404).json({ message: 'Crop record not found.' });
       }
 
@@ -909,7 +945,9 @@ export const requestEdit = async (req, res) => {
     } else {
       cropRecord = await global.highValueCropsModels.C_crop_records_others.findOne({ farmer_input_id: farmerId }).session(session);
       if (!cropRecord) {
-        await session.abortTransaction();
+        if (session.inTransaction()) {
+          await session.abortTransaction();
+        }
         return res.status(404).json({ message: 'Crop record not found.' });
       }
 
@@ -926,12 +964,16 @@ export const requestEdit = async (req, res) => {
     }
     
     if (!cropDetails) {
-      await session.abortTransaction();
+      if (session.inTransaction()) {
+        await session.abortTransaction();
+      }
       return res.status(404).json({ message: 'Crop details not found.' });
     }
 
     if (Object.keys(updateFields).length === 0) {
-      await session.abortTransaction();
+      if (session.inTransaction()) {
+        await session.abortTransaction();
+      }
       return res.status(400).json({ message: 'No allowed fields provided for update.' });
     }
 
@@ -968,7 +1010,9 @@ export const requestEdit = async (req, res) => {
       }
     } catch (smsError) {
       // Rollback transaction if SMS fails
-      await session.abortTransaction();
+      if (session.inTransaction()) {
+        await session.abortTransaction();
+      }
       console.error('SMS sending failed:', smsError);
       return res.status(500).json({ 
         message: 'Failed to send SMS notification to farmer. Edit request was not created.', 
@@ -986,7 +1030,9 @@ export const requestEdit = async (req, res) => {
     });
   } catch (error) {
     // Rollback transaction on any error
-    await session.abortTransaction();
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
 
     await logAction(req, userId, 'SMS_SENT_FOR_EDIT_REQUEST', 'HIGH-VALUE CROPS', `Error recording edit request: ${error.message}`, 'FAILED');
 
@@ -1257,32 +1303,42 @@ export const handleConsentForEditRequest = async (req, res) => { // for handling
     const { editRequestId, consent } = req.body; // consent: 'granted' or 'denied'
     
     if (!editRequestId || !consent) {
-      await session.abortTransaction();
+      if (session.inTransaction()) {
+        await session.abortTransaction();
+      }
       return res.status(400).json({ message: 'Kinakailangan ang editRequestId at consent.' });
     }
 
     if (!['granted', 'denied'].includes(consent.toLowerCase())) {
-      await session.abortTransaction();
+      if (session.inTransaction()) {
+        await session.abortTransaction();
+      }
       return res.status(400).json({ message: 'Ang consent ay dapat "granted" o "denied" lamang.' });
     }
 
     // Find the edit request
     const editRequest = await global.highValueCropsModels.EditRequest.findById(editRequestId).session(session);
     if (!editRequest) {
-      await session.abortTransaction();
+      if (session.inTransaction()) {
+        await session.abortTransaction();
+      }
       return res.status(404).json({ message: 'Hindi nahanap ang kahilingang pag-edit.' });
     }
 
     // Find the farmer input
     const farmerInput = await global.highValueCropsModels.A_farmer_inputs.findById(editRequest.farmer_input_id).session(session);
     if (!farmerInput) {
-      await session.abortTransaction();
+      if (session.inTransaction()) {
+        await session.abortTransaction();
+      }
       return res.status(404).json({ message: 'Hindi nahanap ang inyong sagot.' });
     }
 
     // Check if already processed
     if (farmerInput.editConsent.status === 'Granted' || farmerInput.editConsent.status === 'Denied') {
-      await session.abortTransaction();
+      if (session.inTransaction()) {
+        await session.abortTransaction();
+      }
       return res.status(400).json({ message: 'Naproseso na ang kahilingang ito.' });
     }
 
@@ -1330,7 +1386,9 @@ export const handleConsentForEditRequest = async (req, res) => { // for handling
       });
     }
   } catch (error) {
-    await session.abortTransaction();
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
     console.log(error);
     return res.status(500).json({ message: 'May error sa pagproseso ng inyong consent.', error: error.message });
   } finally {
@@ -1352,7 +1410,9 @@ export const createValidationScheduleVisit = async (req, res) => { // for schedu
 
     // Validate required fields
     if (!farmerId || !updates || !crop_stage) {
-      await session.abortTransaction();
+      if (session.inTransaction()) {
+        await session.abortTransaction();
+      }
       return res.status(400).json({ 
         message: 'farmerId, updates, and crop_stage are required.' 
       });
@@ -1365,7 +1425,9 @@ export const createValidationScheduleVisit = async (req, res) => { // for schedu
     });
 
     if (!hasValidUpdates) {
-      await session.abortTransaction();
+      if (session.inTransaction()) {
+        await session.abortTransaction();
+      }
       return res.status(400).json({ 
         message: 'At least one valid update value is required.' 
       });
@@ -1377,13 +1439,17 @@ export const createValidationScheduleVisit = async (req, res) => { // for schedu
       .session(session);
 
     if (!farmerInput) {
-      await session.abortTransaction();
+      if (session.inTransaction()) {
+        await session.abortTransaction();
+      }
       return res.status(404).json({ message: 'Farmer response not found.' });
     }
 
     // Check if validation visit is already scheduled
     if (farmerInput.validationVisitDetails?.status === 'Pending') {
-      await session.abortTransaction();
+      if (session.inTransaction()) {
+        await session.abortTransaction();
+      }
       return res.status(400).json({ 
         message: 'Validation visit is already made for this farmer response.' 
       });
@@ -1391,7 +1457,9 @@ export const createValidationScheduleVisit = async (req, res) => { // for schedu
 
     // Check if the response is flagged for review
     if (farmerInput.isForReview !== true) {
-      await session.abortTransaction();
+      if (session.inTransaction()) {
+        await session.abortTransaction();
+      }
       return res.status(400).json({ message: 'Only flagged responses can have validation visits scheduled.' });
     }
 
@@ -1402,7 +1470,9 @@ export const createValidationScheduleVisit = async (req, res) => { // for schedu
       .lean();
 
     if (!cropType) {
-      await session.abortTransaction();
+      if (session.inTransaction()) {
+        await session.abortTransaction();
+      }
       return res.status(404).json({ message: 'Crop type not found.' });
     }
 
@@ -1415,7 +1485,9 @@ export const createValidationScheduleVisit = async (req, res) => { // for schedu
         .session(session);
 
       if (!cropRecord) {
-        await session.abortTransaction();
+        if (session.inTransaction()) {
+          await session.abortTransaction();
+        }
         return res.status(404).json({ message: 'Crop record not found.' });
       }
 
@@ -1441,7 +1513,9 @@ export const createValidationScheduleVisit = async (req, res) => { // for schedu
         .session(session);
 
       if (!cropRecord) {
-        await session.abortTransaction();
+        if (session.inTransaction()) {
+          await session.abortTransaction();
+        }
         return res.status(404).json({ message: 'Crop record not found.' });
       }
 
@@ -1462,12 +1536,16 @@ export const createValidationScheduleVisit = async (req, res) => { // for schedu
     }
 
     if (!cropDetails) {
-      await session.abortTransaction();
+      if (session.inTransaction()) {
+        await session.abortTransaction();
+      }
       return res.status(404).json({ message: 'Crop details not found.' });
     }
 
     if (Object.keys(updateFields).length === 0) {
-      await session.abortTransaction();
+      if (session.inTransaction()) {
+        await session.abortTransaction();
+      }
       return res.status(400).json({ message: 'No allowed fields provided for update.' });
     }
 
@@ -1514,7 +1592,9 @@ export const createValidationScheduleVisit = async (req, res) => { // for schedu
     });
 
   } catch (error) {
-    await session.abortTransaction();
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
 
     await logAction(req, userId, 'VALIDATION_VISIT_SCHEDULED_FOR_EDIT_REQUEST', 'HIGH-VALUE CROPS', `Error scheduling validation visit: ${error.message}`, 'FAILED');
 
@@ -1550,14 +1630,18 @@ export const setValidationVisitCompleted = async (req, res) => { //for submittin
           ? JSON.parse(req.body.updates)
           : req.body.updates;
       } catch (e) {
-        await session.abortTransaction();
+        if (session.inTransaction()) {
+          await session.abortTransaction();
+        }
         return res.status(400).json({ message: 'Invalid updates payload (must be valid JSON).' });
       }
     }
 
     // Validate required fields
     if (!farmerId || !validatorEmployeeId) {
-      await session.abortTransaction();
+      if (session.inTransaction()) {
+        await session.abortTransaction();
+      }
       return res.status(400).json({ 
         message: 'Farmer ID and validator employee are required.' 
       });
@@ -1565,7 +1649,9 @@ export const setValidationVisitCompleted = async (req, res) => { //for submittin
 
     // Check if files are uploaded
     if (!req.files || !req.files.proofImage || !req.files.signature) {
-      await session.abortTransaction();
+      if (session.inTransaction()) {
+        await session.abortTransaction();
+      }
       return res.status(400).json({
         message: 'Please provide both proof image and signature.'
       });
@@ -1578,20 +1664,26 @@ export const setValidationVisitCompleted = async (req, res) => { //for submittin
       .session(session);
 
     if (!farmerInput) {
-      await session.abortTransaction();
+      if (session.inTransaction()) {
+        await session.abortTransaction();
+      }
       return res.status(404).json({ message: 'Farmer response not found.' });
     }
 
     // Validate that validation visit is required and pending
     if (!farmerInput.requiredValidationVisit) {
-      await session.abortTransaction();
+      if (session.inTransaction()) {
+        await session.abortTransaction();
+      }
       return res.status(400).json({ 
         message: 'Validation visit is not required for this farmer response.' 
       });
     }
 
     if (farmerInput.validationVisitDetails?.status !== 'Pending' && farmerInput.validationVisitDetails?.status === 'Completed') {
-      await session.abortTransaction();
+      if (session.inTransaction()) {
+        await session.abortTransaction();
+      }
       return res.status(400).json({ 
         message: 'Validation visit proof may have already been submitted.' 
       });
@@ -1603,7 +1695,9 @@ export const setValidationVisitCompleted = async (req, res) => { //for submittin
       .session(session);
 
     if (!validator) {
-      await session.abortTransaction();
+      if (session.inTransaction()) {
+        await session.abortTransaction();
+      }
       return res.status(404).json({ message: 'Employee account not found.' });
     }
 
@@ -1611,7 +1705,9 @@ export const setValidationVisitCompleted = async (req, res) => { //for submittin
     if (parsedUpdates && Object.keys(parsedUpdates).length > 0) {
       // Check if edit request exists
       if (!farmerInput.editConsent?.editRequestId) {
-        await session.abortTransaction();
+        if (session.inTransaction()) {
+          await session.abortTransaction();
+        }
         return res.status(404).json({ message: 'No existing edit request found to update.' });
       }
 
@@ -1622,7 +1718,9 @@ export const setValidationVisitCompleted = async (req, res) => { //for submittin
         .lean();
 
       if (!cropType) {
-        await session.abortTransaction();
+        if (session.inTransaction()) {
+          await session.abortTransaction();
+        }
         return res.status(404).json({ message: 'Crop type not found.' });
       }
 
@@ -1635,7 +1733,9 @@ export const setValidationVisitCompleted = async (req, res) => { //for submittin
           .session(session);
 
         if (!cropRecord) {
-          await session.abortTransaction();
+          if (session.inTransaction()) {
+            await session.abortTransaction();
+          }
           return res.status(404).json({ message: 'Crop record not found.' });
         }
 
@@ -1653,7 +1753,9 @@ export const setValidationVisitCompleted = async (req, res) => { //for submittin
           .session(session);
 
         if (!cropRecord) {
-          await session.abortTransaction();
+          if (session.inTransaction()) {
+            await session.abortTransaction();
+          }
           return res.status(404).json({ message: 'Crop record not found.' });
         }
 
@@ -1731,7 +1833,9 @@ export const setValidationVisitCompleted = async (req, res) => { //for submittin
     });
 
   } catch (error) {
-    await session.abortTransaction();
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
 
     await logAction(req, userId, 'VALIDATION_VISIT_COMPLETED', 'HIGH-VALUE CROPS', `Error completing validation visit: ${error.message}`, 'FAILED');
 
@@ -1759,7 +1863,9 @@ export const approveValidationVisitDetails = async (req, res) => { //use for man
 
     // Validate required fields
     if (!farmerId) {
-      await session.abortTransaction();
+      if (session.inTransaction()) {
+        await session.abortTransaction();
+      }
       return res.status(400).json({ 
         message: 'Selected response is required.' 
       });
@@ -1771,20 +1877,26 @@ export const approveValidationVisitDetails = async (req, res) => { //use for man
       .session(session);
 
     if (!farmerInput) {
-      await session.abortTransaction();
+      if (session.inTransaction()) {
+        await session.abortTransaction();
+      }
       return res.status(404).json({ message: 'Farmer response not found.' });
     }
 
     // Validate that validation visit exists and is completed
     if (!farmerInput.requiredValidationVisit) {
-      await session.abortTransaction();
+      if (session.inTransaction()) {
+        await session.abortTransaction();
+      }
       return res.status(400).json({ 
         message: 'Validation visit is not required for this farmer response.' 
       });
     }
 
     if (farmerInput.validationVisitDetails?.status !== 'Completed') {
-      await session.abortTransaction();
+      if (session.inTransaction()) {
+        await session.abortTransaction();
+      }
       return res.status(400).json({ 
         message: 'Validation visit must be completed before approval.' 
       });
@@ -1810,7 +1922,9 @@ export const approveValidationVisitDetails = async (req, res) => { //use for man
     });
 
   } catch (error) {
-    await session.abortTransaction();
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
 
     await logAction(req, userId, 'VALIDATION_VISIT_APPROVED', 'HIGH-VALUE CROPS', `Error approving validation visit details: ${error.message}`, 'FAILED');
 
@@ -1838,7 +1952,9 @@ export const rejectValidationVisitDetails = async (req, res) => { //use for mana
 
     // Validate required fields
     if (!farmerId) {
-      await session.abortTransaction();
+      if (session.inTransaction()) {
+        await session.abortTransaction();
+      }
       return res.status(400).json({ 
         message: 'Selected response is required.' 
       });
@@ -1850,20 +1966,26 @@ export const rejectValidationVisitDetails = async (req, res) => { //use for mana
       .session(session);
 
     if (!farmerInput) {
-      await session.abortTransaction();
+      if (session.inTransaction()) {
+        await session.abortTransaction();
+      }
       return res.status(404).json({ message: 'Farmer response not found.' });
     }
 
     // Validate that validation visit exists and is completed
     if (!farmerInput.requiredValidationVisit) {
-      await session.abortTransaction();
+      if (session.inTransaction()) {
+        await session.abortTransaction();
+      }
       return res.status(400).json({ 
         message: 'Validation visit is not required for this farmer response.' 
       });
     }
 
     if (farmerInput.validationVisitDetails?.status !== 'Completed') {
-      await session.abortTransaction();
+      if (session.inTransaction()) {
+        await session.abortTransaction();
+      }
       return res.status(400).json({ 
         message: 'Validation visit must be completed before rejection.' 
       });
@@ -1927,7 +2049,9 @@ export const rejectValidationVisitDetails = async (req, res) => { //use for mana
     });
 
   } catch (error) {
-    await session.abortTransaction();
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
 
     await logAction(req, userId, 'VALIDATION_VISIT_REJECTED', 'HIGH-VALUE CROPS', `Error rejecting validation visit details: ${error.message}`, 'FAILED');
 
