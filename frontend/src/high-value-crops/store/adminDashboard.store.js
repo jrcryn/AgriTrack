@@ -412,6 +412,14 @@ export const useAdminDashboard = (searchParams = {}) => {
       );
       return response.data;
     } catch (error) {
+      if (error.response && error.response.data instanceof Blob) {
+        try {
+          const text = await error.response.data.text();
+          error.response.data = JSON.parse(text);
+        } catch (e) {
+          // ignore
+        }
+      }
       throw error;
     } finally {
       setIsGeneratingReport(false);
@@ -426,6 +434,14 @@ export const useAdminDashboard = (searchParams = {}) => {
       );
       return response.data;
     } catch (error) {
+      if (error.response && error.response.data instanceof Blob) {
+        try {
+          const text = await error.response.data.text();
+          error.response.data = JSON.parse(text);
+        } catch (e) {
+          // ignore
+        }
+      }
       throw error;
     } finally {
       setIsGeneratingReport(false);

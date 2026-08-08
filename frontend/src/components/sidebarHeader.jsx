@@ -178,6 +178,7 @@ const SidebarContent = ({ onClose, ...rest }) => {
       <Divider my={4} borderColor="gray.600" />
 
       <Button 
+        isDisabled
         size={"sm"}  
         colorScheme="red" 
         px="10"
@@ -377,7 +378,8 @@ const MobileNav = ({ onOpen, ...rest }) => {
       />
       {/* Removed the Logo text for mobile view */}
       <HStack spacing={{ base: '2', md: '4' }}>
-        <Text fontSize="sm">{currentDateTime}</Text>
+        <Badge colorScheme="red" variant="solid" px={2} py={1} borderRadius="md" fontSize="xs">DEMO - MOST FUNCTIONS ARE DISABLED</Badge>
+        <Text fontSize="sm" display={{ base: 'none', sm: 'block' }}>{currentDateTime}</Text>
         <Divider orientation="vertical" height="20px" borderColor="gray.400" />
         <Flex alignItems="center">
           <Menu>

@@ -65,10 +65,10 @@ const router = express.Router();
 
 router.get('/get-unvalidated-inputs', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), getUnvalidatedFarmerInputs);
 //router.get('/get-validated-inputs', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), getValidatedFarmerInputs);
-router.post('/flag-response-for-review/:farmerId', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), (req, res) => res.status(403).json({success:false, message: "Disabled in demo version."}));
-router.post('/unflag-response-for-review/:farmerId', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), (req, res) => res.status(403).json({success:false, message: "Disabled in demo version."}));
-router.post('/form-status-enable', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), (req, res) => res.status(403).json({success:false, message: "Disabled in demo version."}));
-router.post('/form-status-disable', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), (req, res) => res.status(403).json({success:false, message: "Disabled in demo version."}));
+router.post('/flag-response-for-review/:farmerId', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), flagResponseForReview);
+router.post('/unflag-response-for-review/:farmerId', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), unflagResponseForReview);
+router.post('/form-status-enable', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), formStatusEnable);
+router.post('/form-status-disable', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), formStatusDisable);
 
 router.post('/archive-response', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), (req, res) => res.status(403).json({success:false, message: "Disabled in demo version."}));
 router.post('/unarchive-response', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), (req, res) => res.status(403).json({success:false, message: "Disabled in demo version."}));

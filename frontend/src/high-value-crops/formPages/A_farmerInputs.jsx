@@ -717,7 +717,7 @@ const FarmerInput = ({ onNext, onBack }) => {
     }
     
     // Log the data being submitted for debugging
-    console.log('Submitting forms:', JSON.stringify(allFormData, null, 2));
+
     
     // Submit all forms in a single request
     try {
@@ -742,7 +742,7 @@ const FarmerInput = ({ onNext, onBack }) => {
       }
       
     } catch (error) {
-      console.error('Submission error:', error);
+
       toast({
         title: "Error",
         description: error.message || "Failed to submit forms. Please try again.",
