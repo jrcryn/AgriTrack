@@ -65,22 +65,22 @@ const router = express.Router();
 
 router.get('/get-unvalidated-inputs', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), getUnvalidatedFarmerInputs);
 //router.get('/get-validated-inputs', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), getValidatedFarmerInputs);
-router.post('/flag-response-for-review/:farmerId', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), flagResponseForReview);
-router.post('/unflag-response-for-review/:farmerId', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), unflagResponseForReview);
-router.post('/form-status-enable', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), formStatusEnable);
-router.post('/form-status-disable', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), formStatusDisable);
+router.post('/flag-response-for-review/:farmerId', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), (req, res) => res.status(403).json({success:false, message: "Disabled in demo version."}));
+router.post('/unflag-response-for-review/:farmerId', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), (req, res) => res.status(403).json({success:false, message: "Disabled in demo version."}));
+router.post('/form-status-enable', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), (req, res) => res.status(403).json({success:false, message: "Disabled in demo version."}));
+router.post('/form-status-disable', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), (req, res) => res.status(403).json({success:false, message: "Disabled in demo version."}));
 
-router.post('/archive-response', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), archiveResponse);
-router.post('/unarchive-response', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), unarchiveResponse);
+router.post('/archive-response', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), (req, res) => res.status(403).json({success:false, message: "Disabled in demo version."}));
+router.post('/unarchive-response', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), (req, res) => res.status(403).json({success:false, message: "Disabled in demo version."}));
 router.get('/get-unvalidated-archived-inputs', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), getUnvalidatedArchivedFarmerInputs);
 
-router.post('/request-edit', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), requestEdit);
+router.post('/request-edit', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), (req, res) => res.status(403).json({success:false, message: "Disabled in demo version."}));
 
 router.get('/get-edit-request-details-for-farmer-view/:id', getRequestEditDetailsForFarmerView);
-router.post('/handle-consent-for-edit-request', handleConsentForEditRequest);
-router.post('/update-farmer-response-fields/:farmerId', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), updateFarmerResponseFields); //sa new responses page dapat ito
+router.post('/handle-consent-for-edit-request', (req, res) => res.status(403).json({success:false, message: "Disabled in demo version."}));
+router.post('/update-farmer-response-fields/:farmerId', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), (req, res) => res.status(403).json({success:false, message: "Disabled in demo version."})); //sa new responses page dapat ito
 
-router.post('/create-validation-schedule-visit', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), createValidationScheduleVisit);
+router.post('/create-validation-schedule-visit', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), (req, res) => res.status(403).json({success:false, message: "Disabled in demo version."}));
 
 router.post(
   '/set-validation-visit-completed', 
@@ -90,28 +90,28 @@ router.post(
     { name: 'proofImage', maxCount: 1 },
     { name: 'signature', maxCount: 1 }
   ]),
-  setValidationVisitCompleted
+  (req, res) => res.status(403).json({success:false, message: "Disabled in demo version."})
 );
 
-router.post('/approve-validation-visit-details', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), approveValidationVisitDetails);
-router.post('/reject-validation-visit-details', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), rejectValidationVisitDetails);
+router.post('/approve-validation-visit-details', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), (req, res) => res.status(403).json({success:false, message: "Disabled in demo version."}));
+router.post('/reject-validation-visit-details', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), (req, res) => res.status(403).json({success:false, message: "Disabled in demo version."}));
 
 
 //________________________________ DASHBOARD (FARMERS) PAGE ____________________________________
 
 
-router.post('/create-farmer-account', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), createFarmerAccount);
+router.post('/create-farmer-account', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), (req, res) => res.status(403).json({success:false, message: "Disabled in demo version."}));
 
-router.post('/archive-farmer-account', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), archiveFarmerAccount);
-router.post('/unarchive-farmer-account', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), unarchiveFarmerAccount);
+router.post('/archive-farmer-account', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), (req, res) => res.status(403).json({success:false, message: "Disabled in demo version."}));
+router.post('/unarchive-farmer-account', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), (req, res) => res.status(403).json({success:false, message: "Disabled in demo version."}));
 
 router.get('/get-farmer-accounts', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), getFarmerAccounts);
 router.get('/get-archived-farmer-accounts', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), getArchivedFarmerAccounts);
 
 router.post('/get-farmer-account-by-name-user', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), getFarmerAccountByNameUser);
 //router.post('/get-farmer-account', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), getFarmerAccountById);
-router.post('/create-unified-farmer-response', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), createUnifiedFarmerResponse);
-router.put('/farmer-accounts/update', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), updateFarmerAccount);
+router.post('/create-unified-farmer-response', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), (req, res) => res.status(403).json({success:false, message: "Disabled in demo version."}));
+router.put('/farmer-accounts/update', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), (req, res) => res.status(403).json({success:false, message: "Disabled in demo version."}));
 
 
 //________________________________ DASHBOARD (METRICS) PAGE ____________________________________
@@ -127,8 +127,8 @@ router.get('/metrics/data/:year/:month', verifyAuthToken, verifyRole(['HVCM', 'H
 
 router.get('/report-date-ranges/:year/:month', verifyAuthToken, verifyRole(['HVCM']), getAvailableDateRanges);
 router.get('/available-barangays/:year/:month', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), getAvailableBarangays);
-router.post('/generate-hvc-sampr', verifyAuthToken, verifyRole(['HVCM']), generateHVCSaMPR);
-router.post('/generate-hvc-pr', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), generateHVCPR); // FOR TESTING
+router.post('/generate-hvc-sampr', verifyAuthToken, verifyRole(['HVCM']), (req, res) => res.status(403).json({success:false, message: "Disabled in demo version."}));
+router.post('/generate-hvc-pr', verifyAuthToken, (req, res) => res.status(403).json({success:false, message: "Disabled in demo version."}));
 
 
 //________________________________ FARMER FORM PAGES ____________________________________
