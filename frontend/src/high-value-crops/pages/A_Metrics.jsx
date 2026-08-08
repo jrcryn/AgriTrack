@@ -65,8 +65,7 @@ const Metrics = () => {
   } = useAdminDashboard();
 
   // useEffect(() => {
-  //   console.log("Year:", selectedYear, "Month:", selectedMonth);
-  //   console.log("Metrics data:", metricsData);
+
   // }, [selectedYear, selectedMonth, metricsData]);
   
   // Month names array for display purposes (converting numeric month to name)

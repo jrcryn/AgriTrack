@@ -157,7 +157,7 @@ const B_HVCSaMPR = () => {
         isClosable: true,
       });
     } catch (error) {
-      console.error("Error generating report:", error);
+
       toast({
         title: "Error generating report",
         description: error.response?.data?.message || "Please try again later",

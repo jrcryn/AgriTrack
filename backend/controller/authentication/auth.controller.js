@@ -135,6 +135,12 @@ export const login = async (req, res) => {
             }
         }
 
+        const role = accountType === 'admin' 
+                    ? 'ADMIN'
+                    : (Array.isArray(user.roles) && user.roles.length > 0
+                        ? String(user.roles[0])
+                        : null);
+
         if (!user) {
             return res.status(404).json({ success: false, message: 'Invalid credentials.' });       
         }
@@ -172,7 +178,7 @@ export const login = async (req, res) => {
         user.failedLoginAttempts = { count: 0, lastAttempt: null };
         await user.save();
 
-        generatePreTokenAndSetCookie(res, user._id, accountType);
+        generateTokenAndSetCookie(res, user._id, role, accountType);
 
         if(!user.is2FAEnabled) {
             await logAction(req, userId, 'USER_LOGIN', 'AUTHENTICATION', `Login redirected to 2FA setup - 2FA not enabled for: ${email}`, 'SUCCESS', accountType);
@@ -186,8 +192,17 @@ export const login = async (req, res) => {
         await logAction(req, userId, 'USER_LOGIN', 'AUTHENTICATION', `Login successful for user: ${email}`, 'SUCCESS', accountType);
         res.status(200).json({
             success: true,
-            message: 'Login successful.',
-            userId: user._id // redirect to 2fa verification page send userId too
+            message: 'Login Successful.', 
+            user: {
+                id: user._id,
+                first_name: user.first_name,
+                last_name: user.last_name,
+                middle_name: user.middle_name,
+                suffix: user.suffix,
+                role: role,
+                office_position: accountType === 'employee' ? user.office_position : undefined,
+                accountType: accountType
+            }
         });
 
 

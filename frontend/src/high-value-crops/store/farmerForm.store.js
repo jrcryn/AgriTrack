@@ -96,7 +96,7 @@ export const useFarmerFormStore = create((set, get) => ({
         throw new Error('Unexpected response from server');
       }
     } catch (error) {
-      console.error('Bulk form submission error:', error);
+
       const errorMessage = error.response?.data?.message || error.message || 'Error submitting forms';
       set({ 
         isLoading: false, 
