@@ -1,9 +1,7 @@
 import axios from 'axios';
-import { create } from 'zustand';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '../../auth/store/authStore';
-import { set } from 'lodash';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -17,7 +15,7 @@ export const useUnvalidatedNewlyPlantedQuery = (page = 1, isPaused = false, role
       return response.data;
     },
     staleTime: 0,
-    refetchInterval: isPaused ? false : 1000, // Refetch every second unless paused
+    refetchInterval: isPaused ? false : 30000, // Refetch every 30 seconds unless paused
     enabled: role === 'HVCM' || role === 'HVCS' 
   });
 
@@ -30,7 +28,7 @@ export const useUnvalidatedHarvestingQuery = (page = 1, isPaused = false, role) 
       return response.data;
     },
     staleTime: 0,
-    refetchInterval: isPaused ? false : 1000, // Refetch every second unless paused
+    refetchInterval: isPaused ? false : 30000, // Refetch every 30 seconds unless paused
     enabled: role === 'HVCM' || role === 'HVCS' 
   });
 
@@ -43,7 +41,7 @@ export const useUnvalidatedNewlyPlantedArchivedQuery = (page = 1, isPaused = fal
       return response.data;
     },
     staleTime: 0,
-    refetchInterval: isPaused ? false : 1000, // Refetch every second unless paused
+    refetchInterval: isPaused ? false : 30000, // Refetch every 30 seconds unless paused
     enabled: role === 'HVCM' || role === 'HVCS' 
   });
 
@@ -56,7 +54,7 @@ export const useUnvalidatedHarvestingArchivedQuery = (page = 1, isPaused = false
       return response.data;
     },
     staleTime: 0,
-    refetchInterval: isPaused ? false : 1000, // Refetch every second unless paused
+    refetchInterval: isPaused ? false : 30000, // Refetch every 30 seconds unless paused
     enabled: role === 'HVCM' || role === 'HVCS' 
   });
 
@@ -154,7 +152,7 @@ export const useUnifiedFarmerResponseYearQuery = (role) =>
       return response.data;
     },
     staleTime: 0, // Data is always fresh
-    refetchInterval: 1000, // Refetch every second
+    refetchInterval: 60000, // Refetch every minute
     enabled: role === 'HVCM' || role === 'HVCS' 
   });
 

@@ -70,7 +70,17 @@ const LoginPage = () => {
           duration: 3000,
           isClosable: true,
         });
-        navigate('/auth/2fa/verify-2fa', { state: { userId: response.userId } });
+
+        if (response.user?.accountType === 'admin' || response.user?.role === 'ADMIN') {
+          navigate('/system-admin/dashboard');
+        } else if (response.user?.role === 'HVCM' || response.user?.role === 'HVCS') {
+          navigate('/hvc/metrics');
+        } else if (response.user?.role === 'DMM' || response.user?.role === 'DMS') {
+          navigate('/doc-track/metrics');
+        } else {
+          navigate('/machineries/metrics');
+        }
+        
       } catch (error) {
 
         const errorMessage = error.response?.data?.message;
