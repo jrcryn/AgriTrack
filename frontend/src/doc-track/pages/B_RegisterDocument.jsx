@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Scanner } from '@yudiel/react-qr-scanner'
 import { 
   Box, Heading, Text, VStack, Button, FormControl, FormLabel, 
@@ -38,7 +38,7 @@ const B_RegisterDocument = () => {
     const { mutateAsync: registerDocument, isPending: isRegisteringDocument } = useRegisterDocumentMutation();
     const { mutateAsync: registerAndForwardDocument, isPending: isRegisteringAndForwardingDocument } = useRegisterAndForwardDocumentMutation();
     const { mutateAsync: documentStatus, isPending: isGettingDocumentStatus } = useDocumentStatusMutation();
-    const { mutateAsync: downloadQRCode, isPending: isDownloadingQRCode } = useDownloadQRCodeMutation();
+    const { mutateAsync: downloadQRCode } = useDownloadQRCodeMutation();
 
     const toast = useToast();
     const { isOpen, onOpen, onClose } = useDisclosure();

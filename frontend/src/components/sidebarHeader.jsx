@@ -92,7 +92,6 @@ const SidebarContent = ({ onClose, ...rest }) => {
 
   const { user } = useAuthStore();
   const [ dashboardName, setDashboardName ] = useState('');
-  const navigate = useNavigate();
   const LinkItems = allLinkItems.filter(link => link.roles.includes(user?.role));
 
   useEffect(() => {
@@ -316,7 +315,6 @@ const MobileNav = ({ onOpen, ...rest }) => {
   }, [])
 
   const { user, logout } = useAuthStore();
-  const navigate = useNavigate();
   const [ roleName, setRoleName ] = useState('');
 
   const middle_name = user?.middle_name 
@@ -460,7 +458,7 @@ const SidebarHeader = () => {
   // auto-close Drawer when route changes (mobile nav)
   useEffect(() => {
     if (isOpen) onClose();
-  }, [location.pathname]); // added
+  }, [location.pathname, isOpen, onClose]); // added
 
   return (
     <Box>

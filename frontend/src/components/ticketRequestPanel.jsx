@@ -27,7 +27,6 @@ import {
 import { useAuthStore } from '../auth/store/authStore.js';
 import { useQueryClient } from '@tanstack/react-query';
 import AddTicketPanel from './addTicketPanel.jsx';
-import { assign } from 'lodash';
 
 // Status badge styles
 const statusStyles = {
@@ -46,7 +45,6 @@ const TicketRequestPanel = ({
   isViewingDetails,
   selectedTicketsSetter,
   width,
-  height,
   onRequestReopenSchedule
 }) => {
   const toast = useToast();
@@ -75,17 +73,15 @@ const TicketRequestPanel = ({
   const [initialTicketData, setInitialTicketData] = useState([]);
 
   const role = user?.role;
-  const { data: operatorsList, isLoading: isLoadingOperatorsList, error: operatorsListError } = useOperatorsListQuery(null, role);
+  const { data: operatorsList, isLoading: isLoadingOperatorsList } = useOperatorsListQuery(null, role);
   const { data: occupiedDatesForScheduling, isLoading: isLoadingOccupiedDatesForScheduling, error: occupiedDatesForSchedulingError } = useOccupiedDatesForSchedulingQuery(role);
   const { data: operatorAssignedNumbers, isLoading: isLoadingOperatorAssignedNumbers, error: operatorAssignedNumbersError } = useOperatorAssignedNumbersQuery(role);
 
   const { mutateAsync: createWeeklySchedule, isPending: isCreatingWeeklySchedule } = useCreateWeeklyScheduleMutation();
   const { mutateAsync: removeFromSchedule, isPending: isRemovingFromSchedule } = useRemoveFromScheduleMutation();
-  const { mutateAsync: moveToSchedule, isPending: isMovingToSchedule } = useMoveToScheduleMutation();
   const { mutateAsync: updateWeeklySchedule, isPending: isUpdatingWeeklySchedule } = useUpdateWeeklyScheduleMutation();
 
   const [selectedTicketForRemoval, setSelectedTicketForRemoval] = useState(null);
-  const [declineReason, setDeclineReason] = useState('');
   const [unitsByType, setUnitsByType] = useState({}); // Map of units per machineryTypeId
   const [operatorsByType, setOperatorsByType] = useState({}); // Map of operators per machineryTypeId
 
@@ -130,10 +126,12 @@ const TicketRequestPanel = ({
       try {
         const res = await getMachineryUnitsForDropDownByType(typeId);
         setUnitsByType(prev => ({ ...prev, [typeId]: res?.data || [] }));
-      } catch (e) {
+      } catch (error) {
+        console.error(error);
         // Optional: handle error per type (e.g., console.error('Failed to load units for type', typeId, e));
       }
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedWeeklySchedule, isOpen]);
 
   //initialize scheduled tickets for updating 
@@ -174,11 +172,13 @@ const TicketRequestPanel = ({
       try {
         const res = await getMachineryUnitsForDropDownByType(typeId);
         setUnitsByType(prev => ({ ...prev, [typeId]: res?.data || [] }));
-      } catch (e) {
+      } catch (error) {
+        console.error(error);
         // optional: handle error per type
         // console.error('Failed to load units for type', typeId, e);
       }
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTickets, isOpen]);
 
   // Fetch operators for each unique requestedMachineType when selection changes (for pending page)
@@ -198,11 +198,13 @@ const TicketRequestPanel = ({
       try {
         const res = await getOperatorsListByMachineType(typeId);
         setOperatorsByType(prev => ({ ...prev, [typeId]: res?.data || [] }));
-      } catch (e) {
+      } catch (error) {
+        console.error(error);
         // optional: handle error per type
         // console.error('Failed to load operators for type', typeId, e);
       }
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTickets, isOpen, isPendingPage]); 
 
   // Update a specific ticket in the schedule, pag gagawa ng schedule yung
@@ -443,17 +445,6 @@ const TicketRequestPanel = ({
     });
   };
 
-  const formatDateWithTime = (dateString) => {
-    if (!dateString) return 'Not assigned';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
 
   const ticketDetailsSection = (
     <Box>
@@ -920,7 +911,7 @@ const TicketRequestPanel = ({
                                   </Tr>
                                 </Thead>
                                 <Tbody>
-                                  {selectedWeeklySchedule.ticketRequests.map((tr, index) => {
+                                  {selectedWeeklySchedule.ticketRequests.map((tr) => {
                                     const ticket = tr.ticketDetails;
                                     if (!ticket) return null;
                                     

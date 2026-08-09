@@ -48,7 +48,7 @@ const H_IncomingDashboard = () => {
   const role = user?.role?.toString();
   const searchParams = { searchQuery };
 
-  const { data: totalIncomingDocuments = [], isLoading: isLoadingTotalIncomingDocuments, error: totalIncomingDocumentsError } = useTotalIncomingDocumentsQuery(totalIncomingPage, searchParams, role);
+  const { data: totalIncomingDocuments = [], isLoading: isLoadingTotalIncomingDocuments } = useTotalIncomingDocumentsQuery(totalIncomingPage, searchParams, role);
 
   useEffect(() => {
     setTotalIncomingPage(1);

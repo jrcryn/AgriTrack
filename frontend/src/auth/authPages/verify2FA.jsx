@@ -27,7 +27,7 @@ import { WarningIcon } from '@chakra-ui/icons';
 
 const Verify2FA = () => {
   const [token, setToken] = useState('');
-  const { verify2FA, isLoading, user } = useAuthStore();
+  const { verify2FA, isLoading } = useAuthStore();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [modalMessage, setModalMessage] = useState('');
   

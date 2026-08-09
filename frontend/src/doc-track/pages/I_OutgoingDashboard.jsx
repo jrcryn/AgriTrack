@@ -49,7 +49,7 @@ const I_OutgoingDashboard = () => {
   const role = user?.role?.toString();
   const searchParams = { searchQuery };
 
-  const { data: releasedDocuments = [], isLoading: isLoadingReleasedDocuments, error: releasedDocumentsError } = useReleasedDocumentsQuery(releasedPage, searchParams, role);
+  const { data: releasedDocuments = [], isLoading: isLoadingReleasedDocuments } = useReleasedDocumentsQuery(releasedPage, searchParams, role);
 
   useEffect(() => {
     setTotalReleasedPage(1);

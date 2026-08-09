@@ -44,7 +44,6 @@ const ProfileSettings = () => {
     fetch2FASecret,
     isChangingPassword,
     isFetching2FASecret,
-    error,
   } = useUserSettingsStore();
 
   const { user, availableRoles, switchRole, isLoading } = useAuthStore();

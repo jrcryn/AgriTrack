@@ -35,7 +35,6 @@ import {
   Divider,
   SimpleGrid,
   useDisclosure,
-  useToast,
   Select,
 } from '@chakra-ui/react';
 import { FiSearch, FiInbox } from 'react-icons/fi';
@@ -69,7 +68,7 @@ const D_Pending = () => {
   //const [scanResults, setScanResults] = useState(null)
   const [scanNow, setScanNow] = useState(false);
 
-  const toast = useToast();
+
 
   const [selectedDoc, setSelectedDoc] = useState(null);
   

@@ -75,7 +75,7 @@ const A_Dashboard = () => {
   const { data: totalIncomingDocuments = [] } = useTotalIncomingDocumentsQuery(1, {}, role);
   const { data: releasedDocuments = [] } = useReleasedDocumentsQuery(1, {}, role);
   const { data: archivedDocuments = [] } = useArchivedDocumentsQuery(1, {}, role);
-  const { data: sectionDocumentCount = [], isLoading: isLoadingSectionDocumentCount, error: sectionDocumentCountError } = useSectionDocumentCount(role);
+  const { data: sectionDocumentCount = [] } = useSectionDocumentCount(role);
 
   const { mutateAsync: createDocument, isPending: isCreatingDocument } = useCreateDocumentMutation();
   const { mutateAsync: updateDocumentType, isPending: isUpdatingDocumentType } = useUpdateDocumentTypeMutation();

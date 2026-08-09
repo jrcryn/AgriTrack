@@ -58,15 +58,15 @@ const C_Incoming = () => {
   const queryClient = useQueryClient();
 
   const { isOpen: isOpenQr, onOpen: onOpenQr , onClose: onCloseQr } = useDisclosure();
-  const [selectedDoc, setSelectedDoc] = useState(null);
+  const [, setSelectedDoc] = useState(null);
   const [scanNow, setScanNow] = useState(false);
   
   const role = user?.role?.toString();
   const id = user?.id;
 
   const searchParams = { searchQuery };
-  const { data: forwardedDocuments = [], isLoading: isLoadingForwardedDocuments, error: forwardedDocumentsError } = useIncomingForwardedDocumentsQuery(id, page, searchParams, role);
-  const { mutateAsync: receiveDocument, isPending: isReceivingDocument } = useReceiveDocumentMutation();
+  const { data: forwardedDocuments = [], isLoading: isLoadingForwardedDocuments } = useIncomingForwardedDocumentsQuery(id, page, searchParams, role);
+  const { mutateAsync: receiveDocument } = useReceiveDocumentMutation();
 
   // Reset to first page when search changes
   useEffect(() => { setPage(1); }, [searchQuery]);

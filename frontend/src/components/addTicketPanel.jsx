@@ -83,7 +83,7 @@ const AddTicketPanel = ({
         // silent
       }
     });
-  }, [isOpen, addTicketsData, selectablePending, getMachineryUnitsForDropDownByType, unitsByType]);
+  }, [isOpen, addTicketsData, selectablePending, unitsByType]);
 
   const isSelectedForAdd = (ticketId) => addTicketsData.some(t => t.ticketId === ticketId);
 

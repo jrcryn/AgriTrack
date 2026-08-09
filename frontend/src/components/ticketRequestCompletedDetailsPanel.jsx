@@ -63,7 +63,7 @@ console.log('Selected Ticket in CompletedDetailsPanel:', selectedTicket);
   };
 
   //helper handler para i reasy yung data
-  const handleApproveExtension = (extension, index) => {
+  const handleApproveExtension = (extension) => {
     // Next day relative to the ticket's original assigned date
     const base = selectedTicket?.assignedDate ? new Date(selectedTicket.assignedDate) : new Date();
     const next = new Date(base);
@@ -183,7 +183,7 @@ console.log('Selected Ticket in CompletedDetailsPanel:', selectedTicket);
     };
 
     fetchUnits();
-  }, [selectedExtension, isApproveModalOpen, selectedTicket]);
+  }, [selectedExtension, isApproveModalOpen, selectedTicket, unitsByType, getMachineryUnitsForDropDownByType]);
 
   return (
     <>

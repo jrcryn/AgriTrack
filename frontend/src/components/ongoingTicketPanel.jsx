@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter,
   Box, VStack, Text, Heading, Divider, SimpleGrid, Badge, Flex, Button, Tabs, TabList, TabPanels, Tab, TabPanel,
@@ -20,8 +20,6 @@ const OngoingTicketPanel = ({
   selectedWeeklySchedule = null,
   onRequestReopenSchedule
 }) => {
-  const toast = useToast();
-  const queryClient = useQueryClient();
   const { user } = useAuthStore();
   console.log('Selected Weekly Schedule:', selectedWeeklySchedule);
   const { isOpen: isOpenReturnModal, onOpen: onOpenReturnModal, onClose: onCloseReturnModal } = useDisclosure();
@@ -43,7 +41,7 @@ const OngoingTicketPanel = ({
         setSelectedCompletedTicket(null);
       }
     }
-  }, [isOpen]);
+  }, [isOpen, isOpenCompletedDetails, isOpenReturnModal, onCloseCompletedDetails, onCloseReturnModal]);
 
   const handleOpenReturnModal = (ticket) => {
     setSelectedTicketForReturn(ticket);
@@ -71,12 +69,7 @@ const OngoingTicketPanel = ({
     });
   };
 
-  const isToday = (dateString) => {
-    if (!dateString) return false;
-    const today = new Date();
-    const assignedDate = new Date(dateString);
-    return today.toDateString() === assignedDate.toDateString();
-  };
+
 
   const isTodayOrPast = (dateString) => {
     if (!dateString) return false;

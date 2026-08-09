@@ -68,7 +68,7 @@ axios.interceptors.response.use(
   }
 );
 
-const machineriesApp = () => {
+const MachineriesApp = () => {
     const navigate = useNavigate();
     const navigationType = useNavigationType();
     const location = useLocation();
@@ -145,4 +145,4 @@ const machineriesApp = () => {
     );
 };
 
-export default machineriesApp
+export default MachineriesApp

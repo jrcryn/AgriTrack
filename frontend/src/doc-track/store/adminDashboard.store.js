@@ -1,6 +1,6 @@
 import axios from 'axios'
 import { useQuery } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useAuthStore } from '../../auth/store/authStore';
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -277,7 +277,7 @@ export const useDeleteRegisteredDocumentMutation = () => useMutation({
     }
 });
 
-const useAdminDashboard = (pages = {}, searchParams = {}) => {
+export const useAdminDashboard = (pages = {}, searchParams = {}) => {
     const { user } = useAuthStore()
     const id = user?.id
     const role = user?.role?.toString();
@@ -340,6 +340,7 @@ const useAdminDashboard = (pages = {}, searchParams = {}) => {
             const response = await axios.post(`${API_URL}/api/doc-track/create-document`, data);
             return response.data;
         } catch (error) {
+            console.error(error);
             throw error;
         } finally {
             setIsCreatingDocument(false);
@@ -352,6 +353,7 @@ const useAdminDashboard = (pages = {}, searchParams = {}) => {
             const response = await axios.post(`${API_URL}/api/doc-track/update-document-type`, data);
             return response.data;
         } catch (error) {
+            console.error(error);
             throw error;
         } finally {
             setIsUpdatingDocumentType(false);
@@ -364,6 +366,7 @@ const useAdminDashboard = (pages = {}, searchParams = {}) => {
             const response = await axios.post(`${API_URL}/api/doc-track/register-document`, data);
             return response.data;
         } catch (error) {
+            console.error(error);
             throw error;
         } finally {
             setIsRegisteringDocument(false);
@@ -376,6 +379,7 @@ const useAdminDashboard = (pages = {}, searchParams = {}) => {
             const response = await axios.post(`${API_URL}/api/doc-track/forward-document`, data)
             return response.data;
         } catch (error) {
+            console.error(error);
             throw error;
         } finally {
             setIsForwardingDocument(false);
@@ -388,6 +392,7 @@ const useAdminDashboard = (pages = {}, searchParams = {}) => {
             const response = await axios.post(`${API_URL}/api/doc-track/register-forward-document`, data)
             return response.data;
         } catch (error) {
+            console.error(error);
             throw error;
         } finally {
             setIsRegisteringAndForwardingDocument(false);
@@ -400,6 +405,7 @@ const useAdminDashboard = (pages = {}, searchParams = {}) => {
             const response = await axios.post(`${API_URL}/api/doc-track/receive-document`, data)
             return response.data;
         } catch (error) {
+            console.error(error);
             throw error;
         } finally {
             setIsReceivingDocument(false);
@@ -412,6 +418,7 @@ const useAdminDashboard = (pages = {}, searchParams = {}) => {
             const response = await axios.post(`${API_URL}/api/doc-track/archive-document`, data)
             return response.data;
         } catch (error) {
+            console.error(error);
             throw error;
         } finally {
             setIsArchivingDocument(false);
@@ -424,6 +431,7 @@ const useAdminDashboard = (pages = {}, searchParams = {}) => {
             const response = await axios.post(`${API_URL}/api/doc-track/release-document`, data)
             return response.data;
         } catch (error) {
+            console.error(error);
             throw error;
         } finally {
             setIsReleasingDocument(false);
@@ -438,6 +446,7 @@ const useAdminDashboard = (pages = {}, searchParams = {}) => {
             });
             return response.data;
         } catch (error) {
+            console.error(error);
             throw error;
         } finally {
             setIsDownloadingQRCode(false);
@@ -451,6 +460,7 @@ const useAdminDashboard = (pages = {}, searchParams = {}) => {
             const response = await axios.post(`${API_URL}/api/doc-track/get-document-status`, data)
             return response.data;
         } catch (error) {
+            console.error(error);
             throw error;
         } finally {
             setIsGettingDocumentStatus(false);
@@ -464,6 +474,7 @@ const useAdminDashboard = (pages = {}, searchParams = {}) => {
             const response = await axios.post(`${API_URL}/api/doc-track/unarchive-document`, data)
             return response.data;
         } catch (error) {
+            console.error(error);
             throw error;
         } finally {
             setIsUnarchivingDocument(false);
@@ -477,6 +488,7 @@ const useAdminDashboard = (pages = {}, searchParams = {}) => {
             const response = await axios.post(`${API_URL}/api/doc-track/unrelease-document`, data)
             return response.data;
         } catch (error) {
+            console.error(error);
             throw error;
         } finally {
             setIsUnreleasingDocument(false);
@@ -490,6 +502,7 @@ const useAdminDashboard = (pages = {}, searchParams = {}) => {
             const response = await axios.post(`${API_URL}/api/doc-track/reroute-document`, data)
             return response.data;
         } catch (error) {
+            console.error(error);
             throw error;
         } finally {
             setIsReroutingDocument(false);
@@ -502,6 +515,7 @@ const useAdminDashboard = (pages = {}, searchParams = {}) => {
             const response = await axios.post(`${API_URL}/api/doc-track/dispose-documents`, data)
             return response.data;
         } catch (error) {
+            console.error(error);
             throw error;
         } finally {
             setIsDisposingDocuments(false);
@@ -514,6 +528,7 @@ const useAdminDashboard = (pages = {}, searchParams = {}) => {
             const response = await axios.post(`${API_URL}/api/doc-track/delete-registered-document/${id}`);
             return response.data;
         } catch (error) {
+            console.error(error);
             throw error;
         } finally {
             setIsDeletingRegisteredDocument(false);

@@ -52,9 +52,9 @@ const F_ArchivedDocuments = () => {
   const role = user?.role?.toString();
   const searchParams = { searchQuery };
 
-  const { data: archivedDocuments = [], isLoading: isLoadingArchivedDocuments, error: archivedDocumentsError } = useArchivedDocumentsQuery(archivedPage, searchParams, role);
-  const { data: expiredDocuments = [], isLoading: isLoadingExpiredDocuments, error: expiredDocumentsError } = useExpiredDocumentsQuery(expiredPage, searchParams, role);
-  const { data: disposedDocuments = [], isLoading: isLoadingDisposedDocuments, error: disposedDocumentError } = useDisposedDocumentsQuery(disposalPage, searchParams, role);
+  const { data: archivedDocuments = [], isLoading: isLoadingArchivedDocuments } = useArchivedDocumentsQuery(archivedPage, searchParams, role);
+  const { data: expiredDocuments = [], isLoading: isLoadingExpiredDocuments } = useExpiredDocumentsQuery(expiredPage, searchParams, role);
+  const { data: disposedDocuments = [], isLoading: isLoadingDisposedDocuments } = useDisposedDocumentsQuery(disposalPage, searchParams, role);
 
   useEffect(() => {
     setArchivedPage(1);
@@ -76,9 +76,6 @@ const F_ArchivedDocuments = () => {
   const expiredTotalItems = expiredDocuments?.data?.totalCount || 0;
 
   const disposedDocs = disposedDocuments?.data?.relevantDocs || [];
-  const disposedTotalPages = disposedDocuments?.data?.totalPages || 1;
-  const disposedCurrentPage = disposedDocuments?.data?.currentPage || 1;
-  const disposedTotalItems = disposedDocuments?.data?.totalCount || 0;
 
   const handleOpenDetails = (doc, { archived = false, disposal = false, isDisposalPage = false } = {}) => {
     setSelectedDoc(doc);

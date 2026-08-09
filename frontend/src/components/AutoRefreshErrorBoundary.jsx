@@ -35,7 +35,7 @@ export default class AutoRefreshErrorBoundary extends React.Component {
   componentDidMount() {
     // Clear flag on a clean mount (no error)
     if (!this.state.hasError) {
-      try { sessionStorage.removeItem(this.storageKey); } catch {}
+      try { sessionStorage.removeItem(this.storageKey); } catch (e) { /* ignore */ }
     }
   }
 

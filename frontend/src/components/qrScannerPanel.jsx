@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Scanner } from '@yudiel/react-qr-scanner';
 import { Box, VStack, Text, Button, FormControl, FormLabel, Select, Spinner, useToast } from '@chakra-ui/react';
 import { HiMiniViewfinderCircle } from 'react-icons/hi2';
@@ -42,7 +42,7 @@ const QrScannerPanel = ({
           const rearCamera = videoDevices.find(device => device.label.toLowerCase().includes('back'));
           setSelectedDeviceId(rearCamera ? rearCamera.deviceId : videoDevices[0].deviceId);
         }
-      } catch (err) {
+      } catch {
         toast({
           title: "Camera Error",
           description: "Could not access camera devices. Please check permissions.",

@@ -41,9 +41,8 @@ const G_Staffs = () => {
   const { data: usersDocumentWorkload = [], isLoading: isLoadingUsersDocumentWorkload } = useUsersDocumentWorkloadQuery(role);
   const { mutateAsync: documentStatus, isPending: isGettingDocumentStatus } = useDocumentStatusMutation();
 
-  const results = usersDocumentWorkload?.data || [];
-
   const filtered = useMemo(() => {
+    const results = usersDocumentWorkload?.data || [];
     const q = searchQuery.trim().toLowerCase();
     if (!q) return results;
     return results.filter(r => {
@@ -51,7 +50,7 @@ const G_Staffs = () => {
       const pos = (r.office_position || r.role || '').toString().toLowerCase();
       return name.includes(q) || pos.includes(q);
     });
-  }, [results, searchQuery]);
+  }, [usersDocumentWorkload, searchQuery]);
 
   // added: modal + selection state
   const { isOpen, onOpen, onClose } = useDisclosure();
@@ -65,6 +64,7 @@ const G_Staffs = () => {
       setSelectedDoc(res.data);
       onOpen();
     } catch (e) {
+      console.error(e);
       // optionally handle error/toast
     } finally {
       setLoadingDocRef(null);

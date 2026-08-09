@@ -61,7 +61,7 @@ const E_Outgoing = () => {
   const id = user?.id;
   const searchParams = { searchQuery };
   
-  const { data: outgoingDocuments = [], isLoading: isLoadingOutgoingDocuments, error: outgoingDocumentsError } = useOutgoingDocumentsQuery(id, page, searchParams, role);
+  const { data: outgoingDocuments = [], isLoading: isLoadingOutgoingDocuments } = useOutgoingDocumentsQuery(id, page, searchParams, role);
 
   // Reset to first page when search changes
   useEffect(() => { setPage(1); }, [searchQuery]);

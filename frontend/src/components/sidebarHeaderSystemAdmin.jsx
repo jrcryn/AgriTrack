@@ -52,7 +52,6 @@ const allLinkItems = [
 ];
 
 const SidebarContent = ({ onClose, ...rest }) => {
-  const navigate = useNavigate();
   const isMobile = useBreakpointValue({ base: true, md: false });
 
   const handleNavClick = () => {
@@ -167,7 +166,6 @@ const MobileNav = ({ onOpen, ...rest }) => {
   }, []);
 
   const { logout } = useAuthStore();
-  const navigate = useNavigate();
 
   const handleLogout = () => {
     logout();
@@ -279,7 +277,7 @@ const SidebarHeaderSystemAdmin = () => {
   // Auto-close Drawer when route changes (mobile nav)
   useEffect(() => {
     if (isOpen) onClose();
-  }, [location.pathname]);
+  }, [location.pathname, isOpen, onClose]);
 
   return (
     <Box>

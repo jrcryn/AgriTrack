@@ -31,7 +31,7 @@ const NetworkStatusAlert = () => {
       // If the fetch promise resolves, it means we have a connection.
       setHasInternet(true);
       return true;
-    } catch (error) {
+    } catch {
       // The promise rejects on network errors or timeout.
       setHasInternet(false);
       return false;
