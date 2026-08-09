@@ -16,7 +16,7 @@ import {
 import DateMonthOptions from '../../components/dateMonthOptions.js';
 import { useFarmerFormStore } from '../store/farmerForm.store.js';
 
-const bc_other_fctNew = ({ onNext, onBack, disabled = false }) => {
+const BcOtherFctNew = ({ onNext, onBack, disabled = false }) => {
   const toast = useToast();
   const dateOptions = DateMonthOptions();
   const { formData, updateCropOtherNew } = useFarmerFormStore();
@@ -244,4 +244,4 @@ const bc_other_fctNew = ({ onNext, onBack, disabled = false }) => {
   );
 };
 
-export default bc_other_fctNew;
+export default BcOtherFctNew;

@@ -441,11 +441,6 @@ const FarmerInput = ({ onNext, onBack }) => {
     setLocalFormData((prevData) => ({ ...prevData, [name]: value }));
   };
 
-  const handleNext = () => {
-    // Update the store with the form data
-    updateFarmerInput(localFormData);
-    onNext();
-  };
 
   // Find farmer by ID
   const handleFindFarmer = async () => {
@@ -492,7 +487,8 @@ const FarmerInput = ({ onNext, onBack }) => {
           isClosable: true,
         });
       }
-    } catch (error) {
+    } catch (_error) {
+      console.error(_error);
       toast({
         title: "Error",
         description: "Farmer not found.",
@@ -581,7 +577,7 @@ const FarmerInput = ({ onNext, onBack }) => {
     if (hasChanges) {
       setAccordionCompletions(prev => ({ ...prev, ...newCompletions }));
     }
-  }, [accordionIds.length]); // Only depend on the length, not the array itself
+  }, [accordionIds.length, accordionCompletions]); // Only depend on the length, not the array itself
   
   const handleAddAccordion = () => {
     const newId = accordionIds.length > 0 ? Math.max(...accordionIds) + 1 : 0;

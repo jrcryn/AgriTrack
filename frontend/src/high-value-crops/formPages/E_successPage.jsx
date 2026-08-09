@@ -48,6 +48,7 @@ const SuccessPage = () => {
       });
       navigate('/hvc/form/istcns', { replace: true });
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Run only once on mount
 
   const handleReturnToStart = () => {

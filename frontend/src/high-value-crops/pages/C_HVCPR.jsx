@@ -15,7 +15,7 @@ import {
 import { useAuthStore } from '../../auth/store/authStore';
 
 const C_HVCPR = () => {
-  const [selectedRange, setSelectedRange] = useState('');
+  const [, setSelectedRange] = useState('');
   const [selectedBarangays, setSelectedBarangays] = useState([]); // array of selected brgys
 
   const { user } = useAuthStore();

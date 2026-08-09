@@ -77,7 +77,7 @@ import {
   useResolveDiscrepancyInPhysicalCountMutation
 } from "../store/adminDashboard.store";
 import { useAuthStore } from "../../auth/store/authStore";
-import { useQueryClient, useQuery } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { FaListCheck } from "react-icons/fa6";
 import { FaStickyNote } from "react-icons/fa";
 

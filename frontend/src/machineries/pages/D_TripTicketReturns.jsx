@@ -41,8 +41,7 @@ const TripTicketReturns = () => {
   const role = user?.role;
   const { 
     data: inProgressWeeklySchedules, 
-    isLoading: isLoadingInProgressWeeklySchedules, 
-    error: inProgressWeeklySchedulesError 
+    isLoading: isLoadingInProgressWeeklySchedules
   } = useInProgressWeeklySchedulesQuery(ongoingPage, { searchQuery }, role);
   useEffect(() => {
     setOngoingPage(1);
@@ -146,7 +145,7 @@ const TripTicketReturns = () => {
       onOpen();
       setReopenScheduleId(null);
     }
-  }, [reopenScheduleId, isLoadingInProgressWeeklySchedules, inProgressWeeklySchedules]);
+  }, [reopenScheduleId, isLoadingInProgressWeeklySchedules, inProgressWeeklySchedules, onOpen]);
 
   const ButtonWithNotification = ({ children, showNotification, dotColor }) => {
     return (

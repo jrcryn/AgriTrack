@@ -3,7 +3,7 @@ import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-export const useFarmerFormStore = create((set, get) => ({
+export const useFarmerFormStore = create((set) => ({
   // Store the form data temporarily using Zustand
   formData: {
     privacyConsent: '',
@@ -159,7 +159,7 @@ export const useFarmerFormStore = create((set, get) => ({
   })),
 }));
 
-export const useFormStatusCheck = create((set, get) => ({
+export const useFormStatusCheck = create((set) => ({
   isFormOpen: false,
   isCheckingFormStatus: false,
   
@@ -169,6 +169,7 @@ export const useFormStatusCheck = create((set, get) => ({
       const response = await axios.get(`${API_URL}/api/hvc/check-form-status`);
       set({ isFormOpen: Boolean(response.data.open), isCheckingFormStatus: false });
     } catch (error) {
+      console.error(error);
       set({ isFormOpen: false, isCheckingFormStatus: false });
     }
   }

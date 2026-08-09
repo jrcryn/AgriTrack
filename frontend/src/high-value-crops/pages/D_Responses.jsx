@@ -78,7 +78,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../auth/store/authStore.js';
 
 import SignatureCanvas from 'react-signature-canvas';
-import { initial, set } from 'lodash';
 
 const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL;
 
@@ -281,28 +280,8 @@ const Responses = () => {
 
   // Date format for harvest date, plantation date, and month-year
   const plnt_harvDate = { year: 'numeric', month: 'short', day: 'numeric' };  
-  const harvMonthYear = { year: 'numeric', month: 'short' };
-  const harvMonthYearFull = { year: 'numeric', month: 'long' };
   
-    // Show error state
-    if (newlyPlantedError && harvestingError) {
-      return (
-        <Box 
-          overflow="hidden" 
-          bg="white" 
-          p={5} 
-          minH="100vh"
-        >
-          <Alert status="error" borderRadius="md">
-            <AlertIcon />
-            <AlertTitle>Error loading data!</AlertTitle>
-            <AlertDescription>
-              {error || "Unable to load new farmer responses. Please try again later."}
-            </AlertDescription>
-          </Alert>
-        </Box>
-      );
-    }
+
 
     const handleSelectNewlyPlanted = (id) => {
       setSelectedNewlyPlanted(prev => 
@@ -398,7 +377,7 @@ const Responses = () => {
             await createUnifiedFarmerResponse(responseData);
             successCount++;
           } catch (error) {
-
+            console.error(error);
             failCount++;
           }
         }
@@ -1139,50 +1118,13 @@ const Responses = () => {
     }
   };
 
-  // State for editable fields in modal
-  const [editFields, setEditFields] = useState({});
-
   // Request-edit state
   const [requestEditValues, setRequestEditValues] = useState({});
   const [requestEditReason, setRequestEditReason] = useState("");
   const [hasRequestEditChanges, setHasRequestEditChanges] = useState(false);
 
   // fields for scheduling validation visit
-  const [validationVisitDate, setValidationVisitDate] = useState('');
   const [validationVisitRemarks, setValidationVisitRemarks] = useState('');
-
-  // When selectedResponse changes, reset editFields
-  useEffect(() => {
-    if (!selectedResponse) {
-      setEditFields({});
-      return;
-    }
-    const isNewlyPlanted = selectedResponse.cropRecord?.crop_stage === 'NEWLY PLANTED';
-    const isIndustrialCrop = selectedResponse.cropType?.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS';
-    if (isNewlyPlanted) {
-      if (isIndustrialCrop) {
-        setEditFields({
-          total_area_planted: selectedResponse.cropDetails?.total_area_planted ?? ''
-        });
-      } else {
-        setEditFields({
-          total_trees: selectedResponse.cropDetails?.total_trees ?? ''
-        });
-      }
-    } else {
-      if (isIndustrialCrop) {
-        setEditFields({
-          total_weight: selectedResponse.cropDetails?.total_weight ?? '',
-          total_area_harvested: selectedResponse.cropDetails?.total_area_harvested ?? ''
-        });
-      } else {
-        setEditFields({
-          total_weight: selectedResponse.cropDetails?.total_weight ?? '',
-          trees_harvested: selectedResponse.cropDetails?.trees_harvested ?? ''
-        });
-      }
-    }
-  }, [selectedResponse]);
 
 
   // Initialize request-edit values when the Request Edit modal opens
@@ -1488,14 +1430,6 @@ const Responses = () => {
       }
 
       // Log FormData for debugging
-      for (const [key, value] of formData.entries()) {
-        if (value instanceof File) {
-
-        } else {
-
-        }
-      }
-
       const response = await setValidationVisitCompleted(formData);
 
 
@@ -2110,6 +2044,26 @@ const Responses = () => {
     );
   });
   
+    // Show error state
+    if (newlyPlantedError && harvestingError) {
+      return (
+        <Box 
+          overflow="hidden" 
+          bg="white" 
+          p={5} 
+          minH="100vh"
+        >
+          <Alert status="error" borderRadius="md">
+            <AlertIcon />
+            <AlertTitle>Error loading data!</AlertTitle>
+            <AlertDescription>
+              {newlyPlantedError?.message || harvestingError?.message || "Unable to load new farmer responses. Please try again later."}
+            </AlertDescription>
+          </Alert>
+        </Box>
+      );
+    }
+
     return ( 
       <Box 
         overflow="hidden" 

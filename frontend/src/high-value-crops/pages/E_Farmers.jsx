@@ -419,8 +419,6 @@ const E_Farmers = () => {
   // });
   
   // Pagination calculation
-  const itemsPerPage = 10;
-  
   // Conditionally select data based on viewMode
   const isArchiveView = viewMode === 'archived';
   const activeData = farmerAccounts || {};
@@ -453,7 +451,7 @@ const E_Farmers = () => {
           <AlertIcon />
           <AlertTitle>Error loading data!</AlertTitle>
           <AlertDescription>
-            {error || `Unable to load ${isArchiveView ? 'archived' : 'registered'} farmers. Please try again later.`}
+            {currentError?.message || `Unable to load ${isArchiveView ? 'archived' : 'registered'} farmers. Please try again later.`}
           </AlertDescription>
         </Alert>
       </Box>

@@ -47,7 +47,6 @@ const TicketRequests = () => {
   const { user } = useAuthStore();
 
   const [pendingPage, setPendingPage] = useState(1);
-  const [ongoingPage, setOngoingPage] = useState(1);
   const [schedulesPage, setSchedulesPage] = useState(1);
 
   const [reopenScheduleId, setReopenScheduleId] = useState(null);
@@ -58,9 +57,9 @@ const TicketRequests = () => {
   const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL;
 
   const role = user?.role;
-  const { data: pendingTicketRequests, isLoading: isLoadingPendingTicketRequests, error: pendingTicketRequestsError } = usePendingTicketRequestsQuery(pendingPage, { searchQuery }, role);
-  const { data: plannedWeeklySchedules, isLoading: isLoadingPlannedWeeklySchedules, error: plannedWeeklySchedulesError } = usePlannedWeeklySchedulesQuery(schedulesPage, { searchQuery }, role);
-  const { data: inProgressWeeklySchedules, isLoading: isLoadingInProgressWeeklySchedules, error: inProgressWeeklySchedulesError } = useInProgressWeeklySchedulesQuery(schedulesPage, { searchQuery }, role);
+  const { data: pendingTicketRequests, isLoading: isLoadingPendingTicketRequests } = usePendingTicketRequestsQuery(pendingPage, { searchQuery }, role);
+  const { data: plannedWeeklySchedules, isLoading: isLoadingPlannedWeeklySchedules } = usePlannedWeeklySchedulesQuery(schedulesPage, { searchQuery }, role);
+  const { data: inProgressWeeklySchedules, isLoading: isLoadingInProgressWeeklySchedules } = useInProgressWeeklySchedulesQuery(schedulesPage, { searchQuery }, role);
 
   useEffect(() => {
     setPendingPage(1);
@@ -128,7 +127,7 @@ const TicketRequests = () => {
       onOpen();
       setReopenScheduleId(null);
     }
-  }, [ reopenScheduleId, isLoadingPlannedWeeklySchedules, isLoadingInProgressWeeklySchedules, plannedWeeklySchedules, inProgressWeeklySchedules, pageType ]);
+  }, [ reopenScheduleId, isLoadingPlannedWeeklySchedules, isLoadingInProgressWeeklySchedules, plannedWeeklySchedules, inProgressWeeklySchedules, pageType, onOpen ]);
 
 
   const pendingTickets = pendingTicketRequests?.data?.relevantTickets || [];
@@ -813,7 +812,7 @@ const TicketRequests = () => {
           <Flex justifyContent="space-between" alignItems="center" mt={4}>
             <PaginationControls
               currentPage={inProgressSchedulesCurrentPage}
-              setCurrentPage={setOngoingPage}
+              setCurrentPage={setSchedulesPage}
               totalPages={inProgressSchedulesTotalPages}
               totalItems={inProgressSchedulesTotalItems}
               colorScheme='purple'

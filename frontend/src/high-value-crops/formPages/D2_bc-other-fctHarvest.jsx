@@ -18,7 +18,7 @@ import ModeOfDelivery from '../../components/modeOfDelivery.js';
 import DateMonthOptions from '../../components/dateMonthOptions.js';
 import { useFarmerFormStore } from '../store/farmerForm.store.js';
 
-const bc_other_fctHarvest = ({ onNext, onBack, disabled = false }) => {
+const BcOtherFctHarvest = ({ onNext, onBack, disabled = false }) => {
   const toast = useToast();
   const dateOptions = DateMonthOptions();
 
@@ -340,4 +340,4 @@ const bc_other_fctHarvest = ({ onNext, onBack, disabled = false }) => {
   );
 };
 
-export default bc_other_fctHarvest;
+export default BcOtherFctHarvest;

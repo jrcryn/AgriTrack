@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import {
   Box,
   Heading,
@@ -32,13 +32,13 @@ import { useQueryClient } from '@tanstack/react-query';
 
 const ConsentRequestPage = () => {
   const { editRequestId } = useParams();
-  const navigate = useNavigate();
+
   const toast = useToast();
   const [isGettingEditRequestDetails, setIsGettingEditRequestDetails] = useState(false);
   const { mutateAsync: handleConsentForEditRequest, isPending: isHandlingConsent } = useHandleConsentForEditRequestMutation();
 
   const [editRequestData, setEditRequestData] = useState(null);
-  const [error, setError] = useState(null);
+  const [, setError] = useState(null);
   const [isProcessed, setIsProcessed] = useState(false);
   const [consentStatus, setConsentStatus] = useState(null);
   const queryClient = useQueryClient();
