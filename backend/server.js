@@ -6,7 +6,7 @@ import cookieParser from 'cookie-parser';
 dotenv.config();
 
 const app = express();
-app.set('trust proxy', 1); // trust first proxy (Render)
+app.set('trust proxy', 1); // trust first proxy (Render/Vercel)
 app.use(express.json());
 app.use(cookieParser());
 
@@ -49,43 +49,69 @@ import googleDriveRoutes from './routes/googleDrive.routes.js';
 import { updateScheduleStatus, disableEditingForTodayTickets, updateMachineUnitStatusToInUse, updateMachineUnitStatusToAvailable } from './utils/scheduleUpdater.js'; 
 import { startScheduleStatusCron } from './utils/cronScheduleUpdater.js';
 
-async function startServer() {
-    // Wait for all initializers to finish
-    await Promise.all([
-        initHVC(),
-        initMachineries(),
-        initDocTrack(),
-        initGlobal(),
-        initSystemAdmin(),
-    ]);
+// Initialize the app (DB connections, models, etc.)
+// This promise is awaited before handling any request on Vercel
+let initPromise = null;
 
-    try {
-        await updateScheduleStatus();
-        await disableEditingForTodayTickets();
-        await updateMachineUnitStatusToInUse();
-        await updateMachineUnitStatusToAvailable();
-        console.log('Schedule status and machine unit status update completed at startup.');
-    } catch (err) {
-        console.error('Schedule and machine unit status updater failed at startup:', err);
+async function ensureInitialized() {
+    if (!initPromise) {
+        initPromise = (async () => {
+            await Promise.all([
+                initHVC(),
+                initMachineries(),
+                initDocTrack(),
+                initGlobal(),
+                initSystemAdmin(),
+            ]);
+
+            try {
+                await updateScheduleStatus();
+                await disableEditingForTodayTickets();
+                await updateMachineUnitStatusToInUse();
+                await updateMachineUnitStatusToAvailable();
+                console.log('Schedule status and machine unit status update completed at startup.');
+            } catch (err) {
+                console.error('Schedule and machine unit status updater failed at startup:', err);
+            }
+
+            // Start daily cron updater (only meaningful for long-running processes)
+            startScheduleStatusCron();
+        })();
     }
+    return initPromise;
+}
 
-    // Start daily cron updater
-    startScheduleStatusCron();
+// Middleware that ensures initialization is complete before handling requests
+app.use(async (req, res, next) => {
+    try {
+        await ensureInitialized();
+        next();
+    } catch (err) {
+        console.error('Initialization failed:', err);
+        res.status(500).json({ success: false, message: 'Server initialization failed.' });
+    }
+});
 
-    // Now that globals are set, add routes
-    app.use("/api/hvc", highValueCropsRoutes);
-    app.use("/api/machineries", machineriesRoutes);
-    app.use("/api/doc-track", docTrackRoutes);
-    app.use("/api/auth",authRoutes);
-    app.use("/api/global", globalRoutes);
-    app.use("/api/user-settings", userSettingsRoutes);
-    app.use("/api/system-admin", systemAdminRoutes);
+// Register routes synchronously so they exist when Vercel inspects the app
+app.use("/api/hvc", highValueCropsRoutes);
+app.use("/api/machineries", machineriesRoutes);
+app.use("/api/doc-track", docTrackRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/global", globalRoutes);
+app.use("/api/user-settings", userSettingsRoutes);
+app.use("/api/system-admin", systemAdminRoutes);
 
-    app.use("/api/google", googleDriveRoutes);
+app.use("/api/google", googleDriveRoutes);
 
-    app.listen(process.env.PORT, () => {
-        console.log(`Server running on port ${process.env.PORT}`);
+// For local development: start listening
+const PORT = process.env.PORT || 5000;
+if (process.env.VERCEL !== '1') {
+    ensureInitialized().then(() => {
+        app.listen(PORT, () => {
+            console.log(`Server running on port ${PORT}`);
+        });
     });
 }
 
-startServer();
+// Export for Vercel serverless
+export default app;
