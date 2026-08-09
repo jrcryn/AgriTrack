@@ -28,7 +28,7 @@ import { LuLogs } from "react-icons/lu";
 import { FaEye } from 'react-icons/fa';
 import { useAuthStore } from '../../auth/store/authStore.js';
 
-import { useAdminDashboard } from '../store/adminDashboard.store.js';
+import { useInProgressWeeklySchedulesQuery } from '../store/adminDashboard.store.js';
 import OngoingTicketPanel from '../../components/ongoingTicketPanel.jsx';
 
 const TripTicketReturns = () => {
@@ -38,19 +38,14 @@ const TripTicketReturns = () => {
   const [showOnlyMySchedules, setShowOnlyMySchedules] = useState(false);
   const { user } = useAuthStore();
 
-  const {
-    inProgressWeeklySchedules,
-    isLoadingInProgressWeeklySchedules,
-    inProgressWeeklySchedulesError,
-  } = useAdminDashboard(
-    { ongoingPage },
-    { searchQuery }
-  );
+  const role = user?.role;
+  const { 
+    data: inProgressWeeklySchedules, 
+    isLoading: isLoadingInProgressWeeklySchedules
+  } = useInProgressWeeklySchedulesQuery(ongoingPage, { searchQuery }, role);
   useEffect(() => {
     setOngoingPage(1);
   }, [searchQuery]);
-
-  console.log('In-Progress Weekly Schedules:', inProgressWeeklySchedules);
 
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [selectedWeeklySchedule, setSelectedWeeklySchedule] = useState(null);
@@ -148,7 +143,7 @@ const TripTicketReturns = () => {
       onOpen();
       setReopenScheduleId(null);
     }
-  }, [reopenScheduleId, isLoadingInProgressWeeklySchedules, inProgressWeeklySchedules]);
+  }, [reopenScheduleId, isLoadingInProgressWeeklySchedules, inProgressWeeklySchedules, onOpen]);
 
   const ButtonWithNotification = ({ children, showNotification, dotColor }) => {
     return (

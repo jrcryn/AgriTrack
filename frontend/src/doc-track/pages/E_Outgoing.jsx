@@ -46,7 +46,7 @@ import { HiMiniViewfinderCircle } from 'react-icons/hi2';
 
 import { FaQrcode, FaArchive } from 'react-icons/fa';
 import { useAuthStore } from '../../auth/store/authStore';
-import { useAdminDashboard } from '../store/adminDashboard.store';
+import { useOutgoingDocumentsQuery } from '../store/adminDashboard.store';
 import  DocumentLifeCycleModal  from '../../components/docLifeCyclePanel.jsx';
 import QrScannerPanel from '../../components/qrScannerPanel.jsx';
 
@@ -57,11 +57,11 @@ const E_Outgoing = () => {
 
   const { user } = useAuthStore();
 
-  const {
-    outgoingDocuments,
-    isLoadingOutgoingDocuments,
-    outgoingDocumentsError,
-  } = useAdminDashboard({ outgoingPage: page }, { searchQuery }); // send search to backend
+  const role = user?.role?.toString();
+  const id = user?.id;
+  const searchParams = { searchQuery };
+  
+  const { data: outgoingDocuments = [], isLoading: isLoadingOutgoingDocuments } = useOutgoingDocumentsQuery(id, page, searchParams, role);
 
   // Reset to first page when search changes
   useEffect(() => { setPage(1); }, [searchQuery]);

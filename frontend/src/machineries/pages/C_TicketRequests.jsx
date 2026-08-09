@@ -32,7 +32,11 @@ import { FiSearch, FiInbox } from 'react-icons/fi';
 import { LuLogs } from "react-icons/lu";
 import { FaEye, FaLink, FaExternalLinkAlt } from 'react-icons/fa';
 
-import { useAdminDashboard } from '../store/adminDashboard.store.js';
+import { 
+  usePendingTicketRequestsQuery, 
+  usePlannedWeeklySchedulesQuery, 
+  useInProgressWeeklySchedulesQuery 
+} from '../store/adminDashboard.store.js';
 import TicketRequestPanel from '../../components/ticketRequestPanel.jsx';
 import { useAuthStore } from '../../auth/store/authStore.js';
 
@@ -43,7 +47,6 @@ const TicketRequests = () => {
   const { user } = useAuthStore();
 
   const [pendingPage, setPendingPage] = useState(1);
-  const [ongoingPage, setOngoingPage] = useState(1);
   const [schedulesPage, setSchedulesPage] = useState(1);
 
   const [reopenScheduleId, setReopenScheduleId] = useState(null);
@@ -53,24 +56,10 @@ const TicketRequests = () => {
   const [isViewingDetails, setIsViewingDetails] = useState(false)
   const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL;
 
-  const {
-    pendingTicketRequests,
-    
-    isLoadingPendingTicketRequests,
-
-    pendingTicketRequestsError,
-
-    plannedWeeklySchedules,
-    isLoadingPlannedWeeklySchedules,
-    plannedWeeklySchedulesError,
-
-    inProgressWeeklySchedules,
-    isLoadingInProgressWeeklySchedules,
-    inProgressWeeklySchedulesError,
-  } = useAdminDashboard(
-    { pendingPage, schedulesPage },
-    { searchQuery }
-  );
+  const role = user?.role;
+  const { data: pendingTicketRequests, isLoading: isLoadingPendingTicketRequests } = usePendingTicketRequestsQuery(pendingPage, { searchQuery }, role);
+  const { data: plannedWeeklySchedules, isLoading: isLoadingPlannedWeeklySchedules } = usePlannedWeeklySchedulesQuery(schedulesPage, { searchQuery }, role);
+  const { data: inProgressWeeklySchedules, isLoading: isLoadingInProgressWeeklySchedules } = useInProgressWeeklySchedulesQuery(schedulesPage, { searchQuery }, role);
 
   useEffect(() => {
     setPendingPage(1);
@@ -80,7 +69,6 @@ const TicketRequests = () => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [selectedTickets, setSelectedTickets] = useState([]);
   const [selectedWeeklySchedule, setSelectedWeeklySchedule] = useState(null);
-  console.log(selectedTickets);
 
   const handleSelectTickets = (ticket) => {
     setSelectedTickets(prev => {
@@ -138,7 +126,7 @@ const TicketRequests = () => {
       onOpen();
       setReopenScheduleId(null);
     }
-  }, [ reopenScheduleId, isLoadingPlannedWeeklySchedules, isLoadingInProgressWeeklySchedules, plannedWeeklySchedules, inProgressWeeklySchedules, pageType ]);
+  }, [ reopenScheduleId, isLoadingPlannedWeeklySchedules, isLoadingInProgressWeeklySchedules, plannedWeeklySchedules, inProgressWeeklySchedules, pageType, onOpen ]);
 
 
   const pendingTickets = pendingTicketRequests?.data?.relevantTickets || [];
@@ -550,7 +538,6 @@ const TicketRequests = () => {
                             ) : (
                               <Flex direction="column" gap={2}>
                                 {schedule.ticketRequests.map((ticket) => (
-                                  console.log('ticket in scheduled schedule:', ticket),
                                   <Flex key={ticket._id} align='center' justify="space-between" gap={2}>
                                     <Flex direction='column'>
                                       <Text>{ticket?.ticketDetails?.assignedMachineUnit?.unitNumber} - {ticket?.ticketDetails?.requestedMachineType?.equipmentType}</Text>
@@ -823,7 +810,7 @@ const TicketRequests = () => {
           <Flex justifyContent="space-between" alignItems="center" mt={4}>
             <PaginationControls
               currentPage={inProgressSchedulesCurrentPage}
-              setCurrentPage={setOngoingPage}
+              setCurrentPage={setSchedulesPage}
               totalPages={inProgressSchedulesTotalPages}
               totalItems={inProgressSchedulesTotalItems}
               colorScheme='purple'

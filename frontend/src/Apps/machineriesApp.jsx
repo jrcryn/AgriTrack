@@ -1,5 +1,5 @@
 import { Box, Spinner, Text } from '@chakra-ui/react';
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { Routes, Route, Navigate, useNavigate, useNavigationType, useLocation } from 'react-router-dom'
 import axios from 'axios';
 
@@ -68,7 +68,7 @@ axios.interceptors.response.use(
   }
 );
 
-const machineriesApp = () => {
+const MachineriesApp = () => {
     const navigate = useNavigate();
     const navigationType = useNavigationType();
     const location = useLocation();
@@ -145,4 +145,4 @@ const machineriesApp = () => {
     );
 };
 
-export default machineriesApp
+export default MachineriesApp

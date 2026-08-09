@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react'
-import {  Link as RouterLink, useLocation, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react'
+import {  Link as RouterLink, useLocation } from 'react-router-dom';
 import {
   IconButton,
   Avatar,
@@ -52,8 +52,15 @@ import { IoDocumentAttachOutline } from "react-icons/io5";
 import Logo from '../images/Calamba_Seal.png'
 import { useAuthStore } from '../auth/store/authStore.js'
 import ProfileSettings from './profileSettings.jsx';
-import { useAdminDashboard as useDocTrackDashboard } from '../doc-track/store/adminDashboard.store.js';
-import { useAdminDashboard as  useMachineriesDashboard } from '../machineries/store/adminDashboard.store.js';
+import { 
+  useIncomingForwardedDocumentsQuery,
+  usePendingDocumentsQuery,
+  useOutgoingDocumentsQuery
+} from '../doc-track/store/adminDashboard.store.js';
+import { 
+  usePendingExtensionRequestsCountQuery, 
+  usePendingIncidentReportsCountQuery 
+} from '../machineries/store/adminDashboard.store.js';
 
 const allLinkItems = [
   // high-value-crops
@@ -85,7 +92,6 @@ const SidebarContent = ({ onClose, ...rest }) => {
 
   const { user } = useAuthStore();
   const [ dashboardName, setDashboardName ] = useState('');
-  const navigate = useNavigate();
   const LinkItems = allLinkItems.filter(link => link.roles.includes(user?.role));
 
   useEffect(() => {
@@ -102,13 +108,15 @@ const SidebarContent = ({ onClose, ...rest }) => {
       }
     }, [user?.role]);
 
-  const {
-    forwardedDocuments,
-    pendingDocuments,
-    outgoingDocuments,
-  } = useDocTrackDashboard();
+  const role = user?.role?.toString();
+  const id = user?.id;
 
-  const { pendingExtensionCount, pendingIncidentReportsCount } = useMachineriesDashboard();
+  const { data: forwardedDocuments } = useIncomingForwardedDocumentsQuery(id, 1, {}, role);
+  const { data: pendingDocuments } = usePendingDocumentsQuery(id, 1, {}, role);
+  const { data: outgoingDocuments } = useOutgoingDocumentsQuery(id, 1, {}, role);
+
+  const { data: pendingExtensionCount } = usePendingExtensionRequestsCountQuery(user?.role);
+  const { data: pendingIncidentReportsCount } = usePendingIncidentReportsCountQuery(user?.role);
 
   const extensionCount = pendingExtensionCount?.data?.count ?? 0;
   const incidentReportsCount = pendingIncidentReportsCount?.data?.count ?? 0;
@@ -307,7 +315,6 @@ const MobileNav = ({ onOpen, ...rest }) => {
   }, [])
 
   const { user, logout } = useAuthStore();
-  const navigate = useNavigate();
   const [ roleName, setRoleName ] = useState('');
 
   const middle_name = user?.middle_name 
@@ -451,7 +458,7 @@ const SidebarHeader = () => {
   // auto-close Drawer when route changes (mobile nav)
   useEffect(() => {
     if (isOpen) onClose();
-  }, [location.pathname]); // added
+  }, [location.pathname, isOpen, onClose]); // added
 
   return (
     <Box>

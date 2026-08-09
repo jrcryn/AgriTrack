@@ -6,7 +6,12 @@ import {
 } from '@chakra-ui/react';
 import { FaCheckCircle } from "react-icons/fa";
 import { useAuthStore } from '../auth/store/authStore.js';
-import { useAdminDashboard } from '../machineries/store/adminDashboard.store.js';
+import { 
+  useOperatorsListQuery,
+  getMachineryUnitsForDropDownByType,
+  useApproveExtensionRequestMutation,
+  useDeclineExtensionRequestMutation
+} from '../machineries/store/adminDashboard.store.js';
 
 const TicketRequestCompletedDetailsPanel = ({ 
     isOpen, 
@@ -14,7 +19,6 @@ const TicketRequestCompletedDetailsPanel = ({
     selectedTicket,
     isExtensionTicket
  }) => {
-console.log('Selected Ticket in CompletedDetailsPanel:', selectedTicket);
   const { user } = useAuthStore();
   const toast = useToast();
   const [isApproveModalOpen, setIsApproveModalOpen] = useState(false);
@@ -27,16 +31,10 @@ console.log('Selected Ticket in CompletedDetailsPanel:', selectedTicket);
     assignedMachineUnitId: ''
   });
 
-  const {
-    operatorsList,
-    isLoadingOperatorsList,
-    getMachineryUnitsForDropDownByType,
-
-    approveExtensionRequest,
-    isApprovingExtensionRequest,
-    declineExtensionRequest,
-    isDecliningExtensionRequest,
-  } = useAdminDashboard();
+  const role = user?.role;
+  const { data: operatorsList, isLoading: isLoadingOperatorsList } = useOperatorsListQuery(null, role);
+  const { mutateAsync: approveExtensionRequest, isPending: isApprovingExtensionRequest } = useApproveExtensionRequestMutation();
+  const { mutateAsync: declineExtensionRequest, isPending: isDecliningExtensionRequest } = useDeclineExtensionRequestMutation();
 
   const formatDate = (dateString) => {
     if (!dateString) return 'Not assigned';
@@ -64,7 +62,7 @@ console.log('Selected Ticket in CompletedDetailsPanel:', selectedTicket);
   };
 
   //helper handler para i reasy yung data
-  const handleApproveExtension = (extension, index) => {
+  const handleApproveExtension = (extension) => {
     // Next day relative to the ticket's original assigned date
     const base = selectedTicket?.assignedDate ? new Date(selectedTicket.assignedDate) : new Date();
     const next = new Date(base);
@@ -184,7 +182,7 @@ console.log('Selected Ticket in CompletedDetailsPanel:', selectedTicket);
     };
 
     fetchUnits();
-  }, [selectedExtension, isApproveModalOpen, selectedTicket]);
+  }, [selectedExtension, isApproveModalOpen, selectedTicket, unitsByType]);
 
   return (
     <>

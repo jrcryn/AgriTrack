@@ -9,7 +9,10 @@ import {
 import { FaCheckCircle, FaCamera, FaSignature } from "react-icons/fa";
 import { CloseIcon, WarningIcon } from '@chakra-ui/icons';
 import SignatureCanvas from 'react-signature-canvas';
-import { useAdminDashboard } from '../machineries/store/adminDashboard.store.js';
+import { 
+  useSetTicketToCompleteMutation, 
+  useSetExtensionTicketToCompleteMutation 
+} from '../machineries/store/adminDashboard.store.js';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../auth/store/authStore.js';
 
@@ -25,8 +28,6 @@ const ReturnTicketPanel = ({
   const queryClient = useQueryClient();
   const signatureRef = useRef(null);
   const canvasContainerRef = useRef(null);
-  console.log('Selected Ticket in ReturnTicketPanel:', selectedTicket);
-  console.log('Is Extension Ticket:', isExtensionTicket);
   
   const [proofImage, setProofImage] = useState(null);
   const [proofImagePreview, setProofImagePreview] = useState(null);
@@ -46,13 +47,8 @@ const ReturnTicketPanel = ({
     incidentType: '',
     incidentDescription: ''
   });
-  const {
-    setTicketToComplete,
-    isSettingTicketToComplete,
-
-    setExtensionTicketToComplete,
-    isSettingExtensionTicketToComplete,
-  } = useAdminDashboard();
+  const { mutateAsync: setTicketToComplete, isPending: isSettingTicketToComplete } = useSetTicketToCompleteMutation();
+  const { mutateAsync: setExtensionTicketToComplete, isPending: isSettingExtensionTicketToComplete } = useSetExtensionTicketToCompleteMutation();
 
   // Calculate canvas size based on container width
   useEffect(() => {
@@ -176,7 +172,6 @@ const ReturnTicketPanel = ({
       });
       return;
     }
-    console.log('handleSubmit');
     setIsSubmitting(true);
 
     try {
@@ -208,14 +203,6 @@ const ReturnTicketPanel = ({
         formData.append('incidentReport', 'true');
         formData.append('incidentType', additionalInfoData.incidentType);
         formData.append('incidentDescription', additionalInfoData.incidentDescription.trim());
-      }
-
-      for (const [key, value] of formData.entries()) {
-        if (value instanceof File) {
-          console.log(key, { name: value.name, size: value.size, type: value.type });
-        } else {
-          console.log(key, value);
-        }
       }
 
       const response = await setTicketToComplete(formData);
@@ -281,7 +268,6 @@ const ReturnTicketPanel = ({
       // Convert signature data URL to blob
       const signatureBlob = await fetch(signature).then(r => r.blob());
       const signatureFile = new File([signatureBlob], `signature_${selectedTicket.refNumber}.png`, { type: 'image/png' });
-      console.log('handleSubmitExtensionTicket');
       // Create FormData
       const formData = new FormData();
       formData.append('extensionTicketId', selectedTicket._id);
@@ -297,14 +283,6 @@ const ReturnTicketPanel = ({
 
       formData.append('proofImage', proofImage);
       formData.append('signature', signatureFile);
-
-      for (const [key, value] of formData.entries()) {
-        if (value instanceof File) {
-          console.log(key, { name: value.name, size: value.size, type: value.type });
-        } else {
-          console.log(key, value);
-        }
-      }
 
       const response = await setExtensionTicketToComplete(formData);
 

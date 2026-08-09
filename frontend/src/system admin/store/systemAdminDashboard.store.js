@@ -306,99 +306,67 @@ export const useSystemAdminStore = create((set, get) => ({
 
     // User Management Actions
     lockUserAccount: async (targetUserId, accountType) => {
-        try {
-            const response = await axios.put(
-                `${API_URL}/api/system-admin/lock-account`,
-                { targetUserId, accountType }
-            );
-            return response.data;
-        } catch (error) {
-            throw error;
-        }
+        const response = await axios.put(
+            `${API_URL}/api/system-admin/lock-account`,
+            { targetUserId, accountType }
+        );
+        return response.data;
     },
 
     unlockUserAccount: async (targetUserId, accountType) => {
-        try {
-            const response = await axios.put(
-                `${API_URL}/api/system-admin/unlock-account`,
-                { targetUserId, accountType }
-            );
-            return response.data;
-        } catch (error) {
-            throw error;
-        }
+        const response = await axios.put(
+            `${API_URL}/api/system-admin/unlock-account`,
+            { targetUserId, accountType }
+        );
+        return response.data;
     },
 
     archiveUserAccount: async (targetUserId, accountType) => {
-        try {
-            const response = await axios.put(
-                `${API_URL}/api/system-admin/archive-account`,
-                { targetUserId, accountType }
-            );
-            return response.data;
-        } catch (error) {
-            throw error;
-        }
+        const response = await axios.put(
+            `${API_URL}/api/system-admin/archive-account`,
+            { targetUserId, accountType }
+        );
+        return response.data;
     },
 
     unarchiveUserAccount: async (targetUserId, accountType) => {
-        try {
-            const response = await axios.put(
-                `${API_URL}/api/system-admin/unarchive-account`,
-                { targetUserId, accountType }
-            );
-            return response.data;
-        } catch (error) {
-            throw error;
-        }
+        const response = await axios.put(
+            `${API_URL}/api/system-admin/unarchive-account`,
+            { targetUserId, accountType }
+        );
+        return response.data;
     },
 
     updateUserAccount: async (userData) => {
-        try {
-            const response = await axios.put(
-                `${API_URL}/api/system-admin/update-account`,
-                userData
-            );
-            return response.data;
-        } catch (error) {
-            throw error;
-        }
+        const response = await axios.put(
+            `${API_URL}/api/system-admin/update-account`,
+            userData
+        );
+        return response.data;
     },
 
     generateNewPassword: async (targetUserId, accountType) => {
-        try {
-            const response = await axios.put(
-                `${API_URL}/api/system-admin/generate-new-password`,
-                { targetUserId, accountType }
-            );
-            return response.data;
-        } catch (error) {
-            throw error;
-        }
+        const response = await axios.put(
+            `${API_URL}/api/system-admin/generate-new-password`,
+            { targetUserId, accountType }
+        );
+        return response.data;
     },
 
     resetUser2FA: async (targetUserId, accountType) => {
-        try {
-            const response = await axios.put(
-                `${API_URL}/api/system-admin/reset-2fa`,
-                { targetUserId, accountType }
-            );
-            return response.data;
-        } catch (error) {
-            throw error;
-        }
+        const response = await axios.put(
+            `${API_URL}/api/system-admin/reset-2fa`,
+            { targetUserId, accountType }
+        );
+        return response.data;
     },
 
     resetUserPasswordAndTwoFA: async (targetUserId, accountType) => {
-        try {
-            const response = await axios.put(
-                `${API_URL}/api/system-admin/reset-password-and-2fa`,
-                { targetUserId, accountType }
-            );
-            return response.data;
-        } catch (error) {
-            throw error;
-        }
+        const response = await axios.put(
+            `${API_URL}/api/system-admin/reset-password-and-2fa`,
+            { targetUserId, accountType }
+        );
+        return response.data;
     },
 
     // Clear errors

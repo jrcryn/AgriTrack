@@ -54,13 +54,30 @@ import numOfTreesToHectares from '../../components/conversions.js';
 import { FaSearch, FaEye, FaSeedling, FaBoxes, FaUser, FaLeaf, FaWifi, FaUpload, FaInfo, FaCheck, FaStop, FaLink, FaExternalLinkAlt, FaCamera, FaSignature, FaCheckCircle  } from 'react-icons/fa';
 import { GoAlertFill } from "react-icons/go";
 import { CloseIcon } from '@chakra-ui/icons';
-import { useAdminDashboard } from '../store/adminDashboard.store.js';
+import { 
+  useUnvalidatedNewlyPlantedQuery,
+  useUnvalidatedHarvestingQuery,
+  useUnvalidatedNewlyPlantedArchivedQuery,
+  useUnvalidatedHarvestingArchivedQuery,
+  useCreateUnifiedFarmerResponseMutation,
+  useFlagResponseForReviewMutation,
+  useUnflagResponseForReviewMutation,
+  useFormStatusEnableMutation,
+  useFormStatusDisableMutation,
+  useArchiveResponseMutation,
+  useUnarchiveResponseMutation,
+  useRequestEditMutation,
+  useUpdateFarmerResponseFieldsMutation,
+  useCreateValidationScheduleVisitMutation,
+  useSetValidationVisitCompletedMutation,
+  useApproveValidationVisitDetailsMutation,
+  useRejectValidationVisitDetailsMutation
+} from '../store/adminDashboard.store.js';
 import { useFormStatusCheck } from '../store/farmerForm.store.js'
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../auth/store/authStore.js';
 
 import SignatureCanvas from 'react-signature-canvas';
-import { initial, set } from 'lodash';
 
 const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL;
 
@@ -202,65 +219,36 @@ const Responses = () => {
   const [viewMode, setViewMode] = useState('unvalidated'); // 'unvalidated' or 'archived'
 
   // Unvalidated farmer inputs
-  const { 
-    newlyPlantedInputs,
-    harvestingInputs,
-    isLoadingNewlyPlanted,
-    isLoadingHarvesting,
-    isCreatingUnifiedResponse,
-    flagResponseForReview,
-    unflagResponseForReview,
-    error,
-    createUnifiedFarmerResponse,
-    newlyPlantedPage,
-    setNewlyPlantedPage,
-    harvestingPage,
-    setHarvestingPage,
+  const role = user?.role?.toString().toUpperCase();
 
-    newlyPlantedError,
-    harvestingError,
-    setIsModalOpen,
+  const [newlyPlantedPage, setNewlyPlantedPage] = useState(1);
+  const [harvestingPage, setHarvestingPage] = useState(1);
+  const [newlyPlantedArchivedPage, setNewlyPlantedArchivedPage] = useState(1);
+  const [harvestingArchivedPage, setHarvestingArchivedPage] = useState(1);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-    FormStatusEnable,
-    FormStatusDisable,
-    isUpdatingFormStatus,
+  const { data: newlyPlantedInputs = { results: [], totalPages: 1, totalCount: 0 }, isLoading: isLoadingNewlyPlanted, error: newlyPlantedError } = useUnvalidatedNewlyPlantedQuery(newlyPlantedPage, isModalOpen, role);
+  const { data: harvestingInputs = { results: [], totalPages: 1, totalCount: 0 }, isLoading: isLoadingHarvesting, error: harvestingError } = useUnvalidatedHarvestingQuery(harvestingPage, isModalOpen, role);
 
-    archiveResponse,
-    isArchivingResponse,
+  const { data: archivedNewlyPlantedInputs = { results: [], totalPages: 1, totalCount: 0 }, isLoading: isLoadingNewlyPlantedArchived, error: archivedNewlyPlantedError } = useUnvalidatedNewlyPlantedArchivedQuery(newlyPlantedArchivedPage, isModalOpen, role);
+  const { data: archivedHarvestingInputs = { results: [], totalPages: 1, totalCount: 0 }, isLoading: isLoadingHarvestingArchived, error: archivedHarvestingError } = useUnvalidatedHarvestingArchivedQuery(harvestingArchivedPage, isModalOpen, role);
 
-    setNewlyPlantedArchivedPage,
-    newlyPlantedArchivedPage,
-    setHarvestingArchivedPage,
-    harvestingArchivedPage,
+  const { mutateAsync: createUnifiedFarmerResponse, isPending: isCreatingUnifiedResponse } = useCreateUnifiedFarmerResponseMutation();
+  const { mutateAsync: flagResponseForReview } = useFlagResponseForReviewMutation();
+  const { mutateAsync: unflagResponseForReview } = useUnflagResponseForReviewMutation();
+  const { mutateAsync: FormStatusEnable, isPending: isUpdatingFormStatusEnable } = useFormStatusEnableMutation();
+  const { mutateAsync: FormStatusDisable, isPending: isUpdatingFormStatusDisable } = useFormStatusDisableMutation();
+  const isUpdatingFormStatus = isUpdatingFormStatusEnable || isUpdatingFormStatusDisable;
 
-    archivedNewlyPlantedInputs,
-    archivedHarvestingInputs,
-
-    isLoadingNewlyPlantedArchived,
-    isLoadingHarvestingArchived,
-
-    archivedNewlyPlantedError,
-    archivedHarvestingError,
-
-    unarchiveResponse,
-    isUnarchivingResponse,
-
-    requestEdit,
-    isRequestingEdit,
-
-    updateFarmerResponseFields,
-    isUpdatingFarmerResponse,
-
-    createValidationScheduleVisit,
-    setValidationVisitCompleted,
-    approveValidationVisitDetails,
-    rejectValidationVisitDetails,
-    isCreatingValidationSchedule,
-    isSettingVisitCompleted,
-    isApprovingVisitDetails,
-    isRejectingVisitDetails,
-
-  } = useAdminDashboard();
+  const { mutateAsync: archiveResponse, isPending: isArchivingResponse } = useArchiveResponseMutation();
+  const { mutateAsync: unarchiveResponse, isPending: isUnarchivingResponse } = useUnarchiveResponseMutation();
+  const { mutateAsync: requestEdit, isPending: isRequestingEdit } = useRequestEditMutation();
+  const { mutateAsync: updateFarmerResponseFields, isPending: isUpdatingFarmerResponse } = useUpdateFarmerResponseFieldsMutation();
+  
+  const { mutateAsync: createValidationScheduleVisit, isPending: isCreatingValidationSchedule } = useCreateValidationScheduleVisitMutation();
+  const { mutateAsync: setValidationVisitCompleted, isPending: isSettingVisitCompleted } = useSetValidationVisitCompletedMutation();
+  const { mutateAsync: approveValidationVisitDetails, isPending: isApprovingVisitDetails } = useApproveValidationVisitDetailsMutation();
+  const { mutateAsync: rejectValidationVisitDetails, isPending: isRejectingVisitDetails } = useRejectValidationVisitDetailsMutation();
 
   const toast = useToast();
   const queryClient = useQueryClient();
@@ -292,28 +280,8 @@ const Responses = () => {
 
   // Date format for harvest date, plantation date, and month-year
   const plnt_harvDate = { year: 'numeric', month: 'short', day: 'numeric' };  
-  const harvMonthYear = { year: 'numeric', month: 'short' };
-  const harvMonthYearFull = { year: 'numeric', month: 'long' };
   
-    // Show error state
-    if (newlyPlantedError && harvestingError) {
-      return (
-        <Box 
-          overflow="hidden" 
-          bg="white" 
-          p={5} 
-          minH="100vh"
-        >
-          <Alert status="error" borderRadius="md">
-            <AlertIcon />
-            <AlertTitle>Error loading data!</AlertTitle>
-            <AlertDescription>
-              {error || "Unable to load new farmer responses. Please try again later."}
-            </AlertDescription>
-          </Alert>
-        </Box>
-      );
-    }
+
 
     const handleSelectNewlyPlanted = (id) => {
       setSelectedNewlyPlanted(prev => 
@@ -409,7 +377,7 @@ const Responses = () => {
             await createUnifiedFarmerResponse(responseData);
             successCount++;
           } catch (error) {
-
+            console.error(error);
             failCount++;
           }
         }
@@ -1150,50 +1118,13 @@ const Responses = () => {
     }
   };
 
-  // State for editable fields in modal
-  const [editFields, setEditFields] = useState({});
-
   // Request-edit state
   const [requestEditValues, setRequestEditValues] = useState({});
   const [requestEditReason, setRequestEditReason] = useState("");
   const [hasRequestEditChanges, setHasRequestEditChanges] = useState(false);
 
   // fields for scheduling validation visit
-  const [validationVisitDate, setValidationVisitDate] = useState('');
   const [validationVisitRemarks, setValidationVisitRemarks] = useState('');
-
-  // When selectedResponse changes, reset editFields
-  useEffect(() => {
-    if (!selectedResponse) {
-      setEditFields({});
-      return;
-    }
-    const isNewlyPlanted = selectedResponse.cropRecord?.crop_stage === 'NEWLY PLANTED';
-    const isIndustrialCrop = selectedResponse.cropType?.crop_type === 'VEGETABLES, ROOT CROPS AND OTHER INDUSTRIAL CROPS';
-    if (isNewlyPlanted) {
-      if (isIndustrialCrop) {
-        setEditFields({
-          total_area_planted: selectedResponse.cropDetails?.total_area_planted ?? ''
-        });
-      } else {
-        setEditFields({
-          total_trees: selectedResponse.cropDetails?.total_trees ?? ''
-        });
-      }
-    } else {
-      if (isIndustrialCrop) {
-        setEditFields({
-          total_weight: selectedResponse.cropDetails?.total_weight ?? '',
-          total_area_harvested: selectedResponse.cropDetails?.total_area_harvested ?? ''
-        });
-      } else {
-        setEditFields({
-          total_weight: selectedResponse.cropDetails?.total_weight ?? '',
-          trees_harvested: selectedResponse.cropDetails?.trees_harvested ?? ''
-        });
-      }
-    }
-  }, [selectedResponse]);
 
 
   // Initialize request-edit values when the Request Edit modal opens
@@ -1499,14 +1430,6 @@ const Responses = () => {
       }
 
       // Log FormData for debugging
-      for (const [key, value] of formData.entries()) {
-        if (value instanceof File) {
-
-        } else {
-
-        }
-      }
-
       const response = await setValidationVisitCompleted(formData);
 
 
@@ -2121,6 +2044,26 @@ const Responses = () => {
     );
   });
   
+    // Show error state
+    if (newlyPlantedError && harvestingError) {
+      return (
+        <Box 
+          overflow="hidden" 
+          bg="white" 
+          p={5} 
+          minH="100vh"
+        >
+          <Alert status="error" borderRadius="md">
+            <AlertIcon />
+            <AlertTitle>Error loading data!</AlertTitle>
+            <AlertDescription>
+              {newlyPlantedError?.message || harvestingError?.message || "Unable to load new farmer responses. Please try again later."}
+            </AlertDescription>
+          </Alert>
+        </Box>
+      );
+    }
+
     return ( 
       <Box 
         overflow="hidden" 

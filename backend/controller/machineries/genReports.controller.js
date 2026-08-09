@@ -54,6 +54,10 @@ const fullMonthName = (key) => {
 };
 
 export const exportMachineriesUsageReport = async (req, res) => {
+  let userId = null;
+  if (req.decodedAuthToken?.payload?.userId) {
+    userId = req.decodedAuthToken.payload.userId;
+  }
   try {
     const { start, end } = getRangeFromQuery(req);
 
@@ -265,12 +269,12 @@ export const exportMachineriesUsageReport = async (req, res) => {
     await workbook.xlsx.write(res);
     
     // Log successful report generation
-    await logAction(req, req.userId, 'MACHINERY_USAGE_REPORT_GENERATED', 'machineries', `Machinery usage report generated for period ${periodLabel}`, 'SUCCESS');
+    await logAction(req, userId, 'MACHINERY_USAGE_REPORT_GENERATED', 'machineries', `Machinery usage report generated for period ${periodLabel}`, 'SUCCESS');
     
     res.end();
   } catch (error) {
     console.error('Monthly report generation error:', error);
-    await logAction(req, req.userId || 'UNKNOWN', 'MACHINERY_USAGE_REPORT_GENERATED', 'machineries', `Failed to generate machinery usage report: ${error.message}`, 'FAILED');
+    await logAction(req, userId, 'MACHINERY_USAGE_REPORT_GENERATED', 'machineries', `Failed to generate machinery usage report: ${error.message}`, 'FAILED');
     res.status(500).json({ success:false, message:'Error generating monthly report.', error: error.message });
   }
 };

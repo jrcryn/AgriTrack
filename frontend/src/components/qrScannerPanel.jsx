@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Scanner } from '@yudiel/react-qr-scanner';
 import { Box, VStack, Text, Button, FormControl, FormLabel, Select, Spinner, useToast } from '@chakra-ui/react';
 import { HiMiniViewfinderCircle } from 'react-icons/hi2';
 import { MdCancel } from 'react-icons/md';
 
-import { useAdminDashboard } from '../doc-track/store/adminDashboard.store.js';
+import { useDocumentStatusMutation } from '../doc-track/store/adminDashboard.store.js';
 
 const QrScannerPanel = ({
   scanResults,
@@ -29,7 +29,7 @@ const QrScannerPanel = ({
   const [scanNowQ, setScanNowQ] = useState(scanNow);
   const toast = useToast();
 
-  const { isGettingDocumentStatus, documentStatus } = useAdminDashboard();
+  const { mutateAsync: documentStatus, isPending: isGettingDocumentStatus } = useDocumentStatusMutation();
 
   const handleStartScanning = async () => {
       setScanning(true);
@@ -42,7 +42,7 @@ const QrScannerPanel = ({
           const rearCamera = videoDevices.find(device => device.label.toLowerCase().includes('back'));
           setSelectedDeviceId(rearCamera ? rearCamera.deviceId : videoDevices[0].deviceId);
         }
-      } catch (err) {
+      } catch {
         toast({
           title: "Camera Error",
           description: "Could not access camera devices. Please check permissions.",
@@ -86,7 +86,6 @@ const QrScannerPanel = ({
         handleReceive?.(response.data);
         searchQuery?.(response.data.refNumber);
       } catch (error) {
-        console.log(error)
         toast({
           title: "Error",
           description: error.response?.data?.message || "Failed to retrieve document status.",

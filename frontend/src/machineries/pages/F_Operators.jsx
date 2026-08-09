@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   Heading,
@@ -60,7 +60,17 @@ import {
 import { FiSearch, FiInbox, FiEdit2, FiTrash2, FiPlus } from 'react-icons/fi';
 import { FaUserCog, FaUserSlash, FaUserCheck, FaInfo, FaClipboardList, FaIdCard } from 'react-icons/fa';
 import { GoAlertFill } from 'react-icons/go';
-import { useAdminDashboard } from '../store/adminDashboard.store';
+import { 
+  useOperatorAccountsQuery,
+  useOperatorAssignedNumbersQuery,
+  useMachineTypesQuery,
+  useEnableOperatorAccountMutation,
+  useDisableOperatorAccountMutation,
+  useSetEmployeeLeaveStatusMutation,
+  useAddOperatorLicenseMutation,
+  useUpdateOperatorLicenseMutation,
+  useRemoveOperatorLicenseMutation
+} from '../store/adminDashboard.store';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../auth/store/authStore';
 
@@ -68,7 +78,6 @@ const Operators = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [operatorAccountsPage, setOperatorAccountsPage] = useState(1);
   const [selectedOperator, setSelectedOperator] = useState(null);
-  console.log("Selected Operator License: ", selectedOperator?.operatorLicense);
   const [licenseFormData, setLicenseFormData] = useState({
     licenseNumber: '',
     licenseType: '',
@@ -88,38 +97,24 @@ const Operators = () => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { isOpen: isOpenRemoveModal, onOpen: onOpenRemoveModal, onClose: onCloseRemoveModal } = useDisclosure();
 
-  const {
-    operatorAccounts,
-    isLoadingOperatorAccounts,
-    operatorAccountsError,
-    operatorAssignedNumbers,
-    isLoadingOperatorAssignedNumbers,
-    operatorAssignedNumbersError,
-    machineTypes,
-    isLoadingMachineTypes,
+  const role = user?.role;
+  const { data: operatorAccounts, isLoading: isLoadingOperatorAccounts, error: operatorAccountsError } = useOperatorAccountsQuery(operatorAccountsPage, { searchQuery }, role);
+  const { data: operatorAssignedNumbers, isLoading: isLoadingOperatorAssignedNumbers, error: operatorAssignedNumbersError } = useOperatorAssignedNumbersQuery(role);
+  const { data: machineTypes, isLoading: isLoadingMachineTypes } = useMachineTypesQuery(role);
 
-    enableOperatorAccount,
-    disableOperatorAccount,
-    isEnablingDisablingOperatorAccount,
-    setEmployeeLeaveStatus,
-    isSettingEmployeeLeaveStatus,
-    addOperatorLicense,
-    updateOperatorLicense,
-    removeOperatorLicense,
-    isAddingOperatorLicense,
-    isUpdatingOperatorLicense,
-    isRemovingOperatorLicense,
-  } = useAdminDashboard(
-    { operatorAccountsPage },
-    { searchQuery }
-  );
+  const { mutateAsync: enableOperatorAccount, isPending: isEnablingDisablingOperatorAccount } = useEnableOperatorAccountMutation();
+  const { mutateAsync: disableOperatorAccount } = useDisableOperatorAccountMutation();
+  const { mutateAsync: setEmployeeLeaveStatus, isPending: isSettingEmployeeLeaveStatus } = useSetEmployeeLeaveStatusMutation();
+  const { mutateAsync: addOperatorLicense, isPending: isAddingOperatorLicense } = useAddOperatorLicenseMutation();
+  const { mutateAsync: updateOperatorLicense, isPending: isUpdatingOperatorLicense } = useUpdateOperatorLicenseMutation();
+  const { mutateAsync: removeOperatorLicense, isPending: isRemovingOperatorLicense } = useRemoveOperatorLicenseMutation();
 
   // Reset to page 1 when search query changes
   useEffect(() => {
     setOperatorAccountsPage(1);
   }, [searchQuery]);
 
-  const operatorAccountsList = operatorAccounts?.data?.operators || [];
+  const operatorAccountsList = useMemo(() => operatorAccounts?.data?.operators || [], [operatorAccounts]);
   const operatorAccountsTotalPages = operatorAccounts?.data?.totalPages || 1;
   const operatorAccountsCurrentPage = operatorAccounts?.data?.currentPage || 1;
   const operatorAccountsTotalItems = operatorAccounts?.data?.totalCount || 0;
@@ -197,55 +192,7 @@ const Operators = () => {
     return isActive ? 'Active' : 'Disabled';
   };
 
-  const handleEnableOperator = async (operatorId) => {
-    try {
-      await enableOperatorAccount( {operatorId: operatorId, employeeId: user.id} );
-      
-      toast({
-        title: "Success",
-        description: "Operator account has been enabled",
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
 
-      // Refetch operator accounts
-      await queryClient.invalidateQueries({ queryKey: ['operatorAccounts'] });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: error?.response?.data?.message || error?.message || "Failed to enable operator account",
-        status: "error",
-        duration: 5000,
-        isClosable: true,
-      });
-    }
-  };
-
-  const handleDisableOperator = async (operatorId) => {
-    try {
-      await disableOperatorAccount( {operatorId: operatorId, employeeId: user.id} );
-      
-      toast({
-        title: "Success",
-        description: "Operator account has been disabled",
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
-
-      // Refetch operator accounts
-      await queryClient.invalidateQueries({ queryKey: ['operatorAccounts'] });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: error?.response?.data?.message || error?.message || "Failed to disable operator account",
-        status: "error",
-        duration: 5000,
-        isClosable: true,
-      });
-    }
-  };
 
   const handleOpenModal = (operator) => {
     setSelectedOperator(operator);
@@ -505,7 +452,6 @@ const Operators = () => {
   };
 
   const handleConfirmRemoveLicense = async () => {
-    //console.log(selectedOperator, selectedLicenseForRemoval); //walang license id for removal
 
     if (!selectedOperator || !selectedLicenseForRemoval) return;
     
@@ -573,11 +519,11 @@ const Operators = () => {
   useEffect(() => {
     if (selectedOperator && operatorAccountsList.length > 0) {
       const updated = operatorAccountsList.find(op => op._id === selectedOperator._id);
-      if (updated) {
+      if (updated && updated !== selectedOperator) {
         setSelectedOperator(updated);
       }
     }
-  }, [operatorAccountsList]);
+  }, [operatorAccountsList, selectedOperator]);
 
   return (
     <Box overflow="hidden" bg="white" p={{ base: 3, md: 5 }} minH="100vh">

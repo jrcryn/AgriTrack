@@ -26,7 +26,7 @@ import { Form } from 'react-router-dom';
 
 const TicketRequestForm = ({ onNext, onBack }) => {
   // Get the existing farmer input data from the store
-  const { formData, updateFarmerInput, isLoading, fetchAvailableMachineTypes, availableMachineTypes, availableMachineTypesLoading, availableMachineTypesError, submitFarmerForm, error: submitError, success: submitSuccess } = useTicketRequestFormStore();
+  const { formData, updateFarmerInput, isLoading, fetchAvailableMachineTypes, availableMachineTypes, availableMachineTypesLoading, availableMachineTypesError, submitFarmerForm, error: submitError } = useTicketRequestFormStore();
   const { getFarmerAccountByName } = usePublicFormStore();
   
   // Initialize form data with existing data from the store
@@ -71,11 +71,6 @@ const TicketRequestForm = ({ onNext, onBack }) => {
     setLocalFormData(formData.farmerInput);
   }, [formData.farmerInput]);
 
-  const handleNext = () => {
-    // Update the store with the form data
-    updateFarmerInput(localFormData);
-    onNext();
-  };
 
   // Find farmer by ID
   const handleFindFarmer = async () => {
@@ -123,6 +118,7 @@ const TicketRequestForm = ({ onNext, onBack }) => {
         });
       }
     } catch (error) {
+      console.error(error);
       toast({
         title: "Error",
         description: "Farmer not found.",

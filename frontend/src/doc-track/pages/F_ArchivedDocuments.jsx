@@ -18,7 +18,6 @@ import {
   FormControl,
   FormLabel,
   Center,
-  Spinner,
   TableContainer,
   Select,
   useDisclosure,
@@ -27,8 +26,12 @@ import { FiSearch, FiInbox } from 'react-icons/fi';
 import { LuLogs } from "react-icons/lu";
 import { FaEye } from 'react-icons/fa';
 import { TbFileShredder } from "react-icons/tb";
-
-import { useAdminDashboard } from '../store/adminDashboard.store.js';
+import { 
+  useArchivedDocumentsQuery,
+  useExpiredDocumentsQuery,
+  useDisposedDocumentsQuery
+} from '../store/adminDashboard.store.js';
+import { useAuthStore } from '../../auth/store/authStore';
 import DocumentLifeCycleModal from '../../components/docLifeCyclePanel.jsx';
 
 const F_ArchivedDocuments = () => {
@@ -45,22 +48,13 @@ const F_ArchivedDocuments = () => {
 
   const [logType, setLogType] = useState('archived');
 
-  const {
-    archivedDocuments,
-    isLoadingArchivedDocuments,
-    archivedDocumentsError,
+  const { user } = useAuthStore();
+  const role = user?.role?.toString();
+  const searchParams = { searchQuery };
 
-    expiredDocuments,
-    isLoadingExpiredDocuments,
-    expiredDocumentsError,
-
-    disposedDocuments,
-    isLoadingDisposedDocuments,
-    disposedDocumentError
-  } = useAdminDashboard(
-    { archivedPage, expiredPage },
-    { searchQuery }
-  );
+  const { data: archivedDocuments = [], isLoading: isLoadingArchivedDocuments } = useArchivedDocumentsQuery(archivedPage, searchParams, role);
+  const { data: expiredDocuments = [], isLoading: isLoadingExpiredDocuments } = useExpiredDocumentsQuery(expiredPage, searchParams, role);
+  const { data: disposedDocuments = [], isLoading: isLoadingDisposedDocuments } = useDisposedDocumentsQuery(disposalPage, searchParams, role);
 
   useEffect(() => {
     setArchivedPage(1);
@@ -82,9 +76,6 @@ const F_ArchivedDocuments = () => {
   const expiredTotalItems = expiredDocuments?.data?.totalCount || 0;
 
   const disposedDocs = disposedDocuments?.data?.relevantDocs || [];
-  const disposedTotalPages = disposedDocuments?.data?.totalPages || 1;
-  const disposedCurrentPage = disposedDocuments?.data?.currentPage || 1;
-  const disposedTotalItems = disposedDocuments?.data?.totalCount || 0;
 
   const handleOpenDetails = (doc, { archived = false, disposal = false, isDisposalPage = false } = {}) => {
     setSelectedDoc(doc);

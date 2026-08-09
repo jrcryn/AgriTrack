@@ -116,7 +116,7 @@ export const login = async (req, res) => {
     try {
         
         if (!email || !password) {
-            await logAction(req, userId, 'USER_LOGIN', 'AUTHENTICATION', `Login attempt failed - Missing email or password`, 'FAILED', accountType);
+            await logAction(req, userId, 'USER_LOGIN', 'AUTHENTICATION', `Login attempt failed - Missing email or password`, 'FAILED');
             return res.status(400).json({ success: false, message: 'All fields are required.'})
         }
         
@@ -147,7 +147,7 @@ export const login = async (req, res) => {
 
         // Now we can safely use userId
         if (user.isLocked) {
-            await logAction(req, userId, 'USER_LOGIN', 'AUTHENTICATION', `Login attempt failed - Account is locked: ${email}`, 'FAILED', accountType);
+            await logAction(req, userId, 'USER_LOGIN', 'AUTHENTICATION', `Login attempt failed - Account is locked: ${email}`, 'FAILED');
             return res.status(403).json({ success: false, message: 'Account locked. Contact IT support to regain access.' });
         }
 
@@ -163,14 +163,14 @@ export const login = async (req, res) => {
             if (user.failedLoginAttempts.count >= 11) {
                 user.isLocked = true;
                 await user.save();
-                await logAction(req, userId, 'USER_LOGIN', 'AUTHENTICATION', `Account locked due to multiple failed login attempts: ${email}`, 'FAILED', accountType);
+                await logAction(req, userId, 'USER_LOGIN', 'AUTHENTICATION', `Account locked due to multiple failed login attempts: ${email}`, 'FAILED');
                 return res.status(403).json({ success: false, message: 'Account is now locked due to multiple failed login attempts. Contact IT support to regain access.' });
             }
 
             const delay = Math.min(user.failedLoginAttempts.count * 1000, 10000); // up to 10s
             await new Promise(res => setTimeout(res, delay));
 
-            await logAction(req, userId, 'USER_LOGIN', 'AUTHENTICATION', `Login error: Invalid credentials for email: ${email}`, 'FAILED', accountType);
+            await logAction(req, userId, 'USER_LOGIN', 'AUTHENTICATION', `Login error: Invalid credentials for email: ${email}`, 'FAILED');
 
             return res.status(401).json({ success: false, message: 'Invalid credentials.'})
         };
@@ -180,16 +180,17 @@ export const login = async (req, res) => {
 
         generateTokenAndSetCookie(res, user._id, role, accountType);
 
-        if(!user.is2FAEnabled) {
-            await logAction(req, userId, 'USER_LOGIN', 'AUTHENTICATION', `Login redirected to 2FA setup - 2FA not enabled for: ${email}`, 'SUCCESS', accountType);
-            return res.status(401).json({ 
-                success: false, 
-                message: 'You are required to set up 2FA first.',
-                userId: user._id, //  redirect to setup 2fa page send userId for 2FA setup
-            });
-        };
+        //Disabled in demo version
+        // if(!user.is2FAEnabled) {
+        //     await logAction(req, userId, 'USER_LOGIN', 'AUTHENTICATION', `Login redirected to 2FA setup - 2FA not enabled for: ${email}`, 'SUCCESS');
+        //     return res.status(401).json({ 
+        //         success: false, 
+        //         message: 'You are required to set up 2FA first.',
+        //         userId: user._id, //  redirect to setup 2fa page send userId for 2FA setup
+        //     });
+        // };
         
-        await logAction(req, userId, 'USER_LOGIN', 'AUTHENTICATION', `Login successful for user: ${email}`, 'SUCCESS', accountType);
+        await logAction(req, userId, 'USER_LOGIN', 'AUTHENTICATION', `Login successful for user: ${email}`, 'SUCCESS');
         res.status(200).json({
             success: true,
             message: 'Login Successful.', 
@@ -207,7 +208,7 @@ export const login = async (req, res) => {
 
 
     } catch (error) {
-        await logAction(req, userId, 'USER_LOGIN', 'AUTHENTICATION', `Login error: ${error.message}`, 'FAILED', accountType);
+        await logAction(req, userId, 'USER_LOGIN', 'AUTHENTICATION', `Login error: ${error.message}`, 'FAILED');
         console.error('Error logging in:', error);
         return res.status(500).json({ success: false, message: 'Internal server error.' });
     }
@@ -235,7 +236,7 @@ export const generate2FASecret = async (req, res) => {
         }
         
         if (!user) {
-            await logAction(req, userID, '2FA_SECRET_GENERATED', 'AUTHENTICATION', `2FA setup attempt failed - User not found: ${userId}`, 'VALIDATION_FAILED', accountType);
+            await logAction(req, userID, '2FA_SECRET_GENERATED', 'AUTHENTICATION', `2FA setup attempt failed - User not found: ${userId}`, 'VALIDATION_FAILED');
             return res.status(404).json({ success: false, message: 'User not found.' });
         }
 
@@ -261,7 +262,7 @@ export const generate2FASecret = async (req, res) => {
         user.twoFAQRCode = encrypt(qr); 
         await user.save();
 
-        await logAction(req, userID, '2FA_SECRET_GENERATED', 'AUTHENTICATION', `2FA secret generated for user: ${user.email}`, 'SUCCESS', accountType);
+        await logAction(req, userID, '2FA_SECRET_GENERATED', 'AUTHENTICATION', `2FA secret generated for user: ${user.email}`, 'SUCCESS');
 
         res.status(200).json({
             success: true,
@@ -272,7 +273,7 @@ export const generate2FASecret = async (req, res) => {
         });
 
     } catch (error) {
-        await logAction(req, userID, '2FA_SECRET_GENERATED', 'AUTHENTICATION', `Error generating 2FA secret: ${error.message}`, 'FAILED', accountType);
+        await logAction(req, userID, '2FA_SECRET_GENERATED', 'AUTHENTICATION', `Error generating 2FA secret: ${error.message}`, 'FAILED');
         console.error('Error generating 2FA secret:', error);
         return res.status(500).json({ success: false, message: 'Internal server error.' });
     }
@@ -301,12 +302,12 @@ export const verify2FA = async (req, res) => {
 
 
         if (!user) {
-            await logAction(req, userID, '2FA_VERIFIED', 'AUTHENTICATION', `2FA verification attempt failed - User not found: ${userID}`, 'VALIDATION_FAILED', accountType);
+            await logAction(req, userID, '2FA_VERIFIED', 'AUTHENTICATION', `2FA verification attempt failed - User not found: ${userID}`, 'VALIDATION_FAILED');
             return res.status(404).json({ success: false, message: 'User not found.' });
         }
 
         if (!user.twoFASecret) {
-            await logAction(req, userID, '2FA_VERIFIED', 'AUTHENTICATION', `2FA verification attempt failed - 2FA not enabled for user: ${userID}`, 'VALIDATION_FAILED', accountType);
+            await logAction(req, userID, '2FA_VERIFIED', 'AUTHENTICATION', `2FA verification attempt failed - 2FA not enabled for user: ${userID}`, 'VALIDATION_FAILED');
             return res.status(400).json({ success: false, message: '2FA is not enabled for this user.' });
         }
 
@@ -334,14 +335,14 @@ export const verify2FA = async (req, res) => {
             if (user.failedOTPVerifications.count >= 11) {
                 user.isLocked = true;
                 await user.save();
-                await logAction(req, userID, '2FA_VERIFIED', 'AUTHENTICATION', `Account locked due to multiple failed 2FA attempts for user: ${user.email}`, 'VALIDATION_FAILED', accountType);
+                await logAction(req, userID, '2FA_VERIFIED', 'AUTHENTICATION', `Account locked due to multiple failed 2FA attempts for user: ${user.email}`, 'VALIDATION_FAILED');
                 return res.status(403).json({ success: false, message: 'Account is now locked due to multiple failed 2FA attempts. Contact IT support to regain access.' });
             }
 
             const delay = Math.min(user.failedOTPVerifications.count * 1000, 10000); // up to 10s
             await new Promise(res => setTimeout(res, delay));
 
-            await logAction(req, userID, '2FA_VERIFIED', 'AUTHENTICATION', `Error verifying 2FA: Invalid token for user: ${user.email}`, 'FAILED', accountType);
+            await logAction(req, userID, '2FA_VERIFIED', 'AUTHENTICATION', `Error verifying 2FA: Invalid token for user: ${user.email}`, 'FAILED');
             
             return res.status(400).json({ success: false, message: 'Invalid 2FA token.' });
         }
@@ -359,7 +360,7 @@ export const verify2FA = async (req, res) => {
         }); 
         generateTokenAndSetCookie(res, user._id, role, accountType);
 
-        await logAction(req, userID, '2FA_VERIFIED', 'AUTHENTICATION', `2FA verified successfully for user: ${user.email}`, 'SUCCESS', accountType);
+        await logAction(req, userID, '2FA_VERIFIED', 'AUTHENTICATION', `2FA verified successfully for user: ${user.email}`, 'SUCCESS');
 
         res.status(200).json({
             success: true,
@@ -377,7 +378,7 @@ export const verify2FA = async (req, res) => {
         });
 
     } catch (error) {
-        await logAction(req, userID, '2FA_VERIFIED', 'AUTHENTICATION', `Error verifying 2FA: ${error.message}`, 'FAILED', accountType);
+        await logAction(req, userID, '2FA_VERIFIED', 'AUTHENTICATION', `Error verifying 2FA: ${error.message}`, 'FAILED');
         console.error('Error verifying 2FA:', error);
         return res.status(500).json({ success: false, message: 'Internal server error.' });
     }

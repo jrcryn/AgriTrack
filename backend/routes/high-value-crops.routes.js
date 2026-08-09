@@ -127,8 +127,8 @@ router.get('/metrics/data/:year/:month', verifyAuthToken, verifyRole(['HVCM', 'H
 
 router.get('/report-date-ranges/:year/:month', verifyAuthToken, verifyRole(['HVCM']), getAvailableDateRanges);
 router.get('/available-barangays/:year/:month', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), getAvailableBarangays);
-router.post('/generate-hvc-sampr', verifyAuthToken, verifyRole(['HVCM']), (req, res) => res.status(403).json({success:false, message: "Disabled in demo version."}));
-router.post('/generate-hvc-pr', verifyAuthToken, (req, res) => res.status(403).json({success:false, message: "Disabled in demo version."}));
+router.post('/generate-hvc-sampr', verifyAuthToken, verifyRole(['HVCM']), generateHVCSaMPR);
+router.post('/generate-hvc-pr', verifyAuthToken, verifyRole(['HVCM', 'HVCS']), generateHVCPR);
 
 
 //________________________________ FARMER FORM PAGES ____________________________________

@@ -53,7 +53,6 @@ const SuccessPage = () => {
   }, [location, navigate, resetForm]);
 
   const cardBg = 'white';
-  const accentColor = 'blue.600';
   const borderColor = 'gray.200';
 
   return (

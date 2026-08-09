@@ -9,7 +9,7 @@ import {
 } from '@chakra-ui/react';
 
 const Instructions = ({ onNext }) => {
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading] = useState(false);
   
   const cardBg = 'white';
   const accentColor = 'blue.600';

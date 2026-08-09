@@ -27,8 +27,7 @@ import {
   Divider,
   Code,
   IconButton,
-  Tooltip,
-  useDisclosure
+  Tooltip
 } from '@chakra-ui/react';
 import { FiKey, FiShield, FiAlertTriangle, FiCopy } from 'react-icons/fi';
 import { useSystemAdminStore } from '../system admin/store/systemAdminDashboard.store';

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter,
   Box, VStack, Text, Heading, Divider, SimpleGrid, Badge, Flex, Button, Tabs, TabList, TabPanels, Tab, TabPanel,
@@ -14,7 +14,18 @@ import { MdOutgoingMail } from "react-icons/md";
 import { FaBoxOpen } from "react-icons/fa";
 import { RiMailDownloadFill } from "react-icons/ri";
 
-import { useAdminDashboard } from '../doc-track/store/adminDashboard.store';
+import { 
+  useForwardDocumentMutation,
+  useArchiveDocumentMutation,
+  useReleaseDocumentMutation,
+  useStaffAndAdminAccountsQuery,
+  useUnarchiveDocumentMutation,
+  useUnreleaseDocumentMutation,
+  useRerouteDocumentMutation,
+  useDisposeDocumentsMutation,
+  useDeleteRegisteredDocumentMutation,
+  useDownloadQRCodeMutation
+} from '../doc-track/store/adminDashboard.store';
 import { useAuthStore } from '../auth/store/authStore.js';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -50,37 +61,25 @@ const DocumentLifeCycleModal = ({
   isDisposalPage
 }) => {
     const data = document;
-    console.log("DocumentLifeCycleModal data:", data);
     const toast = useToast();
     const queryClient = useQueryClient();
 
     const { user } = useAuthStore();
 
-    const {
-        forwardDocument,
-        isForwardingDocument,
-        archiveDocument,
-        isArchivingDocument,
-        releaseDocument,
-        isReleasingDocument,
-        adminAndStaffAccounts,
-        isLoadingAdminAndStaffAccounts,
+    const role = user?.role?.toString();
+    const id = user?.id;
 
-        unarchiveDocument,           
-        isUnarchivingDocument,       
-        unreleaseDocument,           
-        isUnreleasingDocument,      
-        rerouteDocument,            
-        isReroutingDocument,
-        disposeDocuments,
-        isDisposingDocuments,
+    const { data: adminAndStaffAccounts = [], isLoading: isLoadingAdminAndStaffAccounts } = useStaffAndAdminAccountsQuery(id, role);
 
-        deleteRegisteredDocument,
-        isDeletingRegisteredDocument,
-
-        downloadQRCode,
-        isDownloadingQRCode
-    } = useAdminDashboard();
+    const { mutateAsync: forwardDocument, isPending: isForwardingDocument } = useForwardDocumentMutation();
+    const { mutateAsync: archiveDocument, isPending: isArchivingDocument } = useArchiveDocumentMutation();
+    const { mutateAsync: releaseDocument, isPending: isReleasingDocument } = useReleaseDocumentMutation();
+    const { mutateAsync: unarchiveDocument, isPending: isUnarchivingDocument } = useUnarchiveDocumentMutation();
+    const { mutateAsync: unreleaseDocument, isPending: isUnreleasingDocument } = useUnreleaseDocumentMutation();
+    const { mutateAsync: rerouteDocument, isPending: isReroutingDocument } = useRerouteDocumentMutation();
+    const { mutateAsync: disposeDocuments, isPending: isDisposingDocuments } = useDisposeDocumentsMutation();
+    const { mutateAsync: deleteRegisteredDocument, isPending: isDeletingRegisteredDocument } = useDeleteRegisteredDocumentMutation();
+    const { mutateAsync: downloadQRCode, isPending: isDownloadingQRCode } = useDownloadQRCodeMutation();
     const [isUnderstood, setIsUnderstood] = useState(false);
     const [forwardData, setForwardData] = useState({ forwardAccountId: '', forwardRemarks: '' });
     const [archiveData, setArchiveData] = useState({ 
@@ -119,7 +118,6 @@ const DocumentLifeCycleModal = ({
 
       } catch (error) {
         toast({ title: "Error", description: error.response?.data?.message || "Failed to forward document.", status: "error", duration: 5000, isClosable: true });
-        console.log(error);
       }
     };
   
@@ -151,7 +149,6 @@ const DocumentLifeCycleModal = ({
         ])
 
       } catch (error) {
-        console.log(error);
         toast({ title: "Error", description: error.response?.data?.message || "Failed to archive document.", status: "error", duration: 5000, isClosable: true });
       }
     };
@@ -181,7 +178,6 @@ const DocumentLifeCycleModal = ({
             queryClient.invalidateQueries({ queryKey: ['documentWorkload'] }),
         ])
       } catch (error) {
-        console.log(error);
         toast({ title: "Error", description: error.response?.data?.message || "Failed to release document.", status: "error", duration: 5000, isClosable: true });
       }
     };
@@ -341,7 +337,6 @@ const DocumentLifeCycleModal = ({
           isClosable: true,
         });
       } catch (error) {
-        console.log(error);
         toast({
           title: "Error",
           description: error.response?.data?.message || 'Failed to download QR Code.',

@@ -1,6 +1,6 @@
 import { Box, Spinner, Text } from '@chakra-ui/react';
-import { useEffect, useState, useRef } from 'react';
-import { Routes, Route, useNavigate, Navigate, useLocation } from 'react-router-dom'
+import { useEffect } from 'react';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import axios from 'axios';
 
 import Layout from '../components/layout.jsx';
@@ -63,7 +63,7 @@ axios.interceptors.response.use(
   }
 );
 
-const doctrackApp = () => {
+const DoctrackApp = () => {
   return (
     <Box>
       <Routes>
@@ -83,4 +83,4 @@ const doctrackApp = () => {
   );
 };
 
-export default doctrackApp
+export default DoctrackApp

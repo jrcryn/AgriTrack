@@ -45,7 +45,15 @@ import {
 } from "@chakra-ui/react";
 import { FaSearch, FaEye, FaEdit, FaUserPlus, FaUsers, FaUser, FaAddressCard, FaInfo } from "react-icons/fa";
 import { GoAlertFill } from "react-icons/go";
-import { useAdminDashboard } from '../store/adminDashboard.store';
+import { 
+  useFarmerAccountsQuery,
+  useArchivedFarmerAccountsQuery,
+  useCreateFarmerAccountMutation,
+  useArchiveFarmerAccountMutation,
+  useUnarchiveFarmerAccountMutation,
+  useUpdateFarmerAccountMutation
+} from '../store/adminDashboard.store';
+import { useAuthStore } from '../../auth/store/authStore';
 import { useQueryClient } from '@tanstack/react-query';
 import Barangays from '../../components/barangays';
 import debounce from 'lodash/debounce';
@@ -74,23 +82,20 @@ const E_Farmers = () => {
     };
   }, [farmerNameSearch, debouncedSetSearch]);
 
-  const { 
-    farmerAccounts,
-    isCreatingFarmerAccount, 
-    archiveFarmerAccount,
-    unarchiveFarmerAccount,
-    isDeletingFarmerAccount,
-    error, 
-    createFarmerAccount, 
-    isLoading, 
-    isUpdatingFarmerAccount, 
-    updateFarmerAccount,
-    farmerAccountsError,
+  const { user } = useAuthStore();
+  const role = user?.role?.toString().toUpperCase();
+  const searchParams = { farmerName: debouncedSearch, page: currentPage };
 
-    archivedFarmerAccounts,
-    archivedFarmerAccountsError,
+  const { data: farmerAccounts = [], isLoading: isLoadingAccounts, error: farmerAccountsError } = useFarmerAccountsQuery(searchParams, role);
+  const { data: archivedFarmerAccounts = [], isLoading: isLoadingArchivedAccounts, error: archivedFarmerAccountsError } = useArchivedFarmerAccountsQuery(searchParams, role);
 
-   } = useAdminDashboard({farmerName: debouncedSearch, page: currentPage});
+  const { mutateAsync: createFarmerAccount, isPending: isCreatingFarmerAccount } = useCreateFarmerAccountMutation();
+  const { mutateAsync: archiveFarmerAccount, isPending: isArchivingFarmerAccount } = useArchiveFarmerAccountMutation();
+  const { mutateAsync: unarchiveFarmerAccount, isPending: isUnarchivingFarmerAccount } = useUnarchiveFarmerAccountMutation();
+  const { mutateAsync: updateFarmerAccount, isPending: isUpdatingFarmerAccount } = useUpdateFarmerAccountMutation();
+
+  const isDeletingFarmerAccount = isArchivingFarmerAccount || isUnarchivingFarmerAccount;
+  const isLoading = isLoadingAccounts || isLoadingArchivedAccounts;
 
   const [isEditMode, setIsEditMode] = useState(false);
   const [originalFormData, setOriginalFormData] = useState(null);
@@ -414,8 +419,6 @@ const E_Farmers = () => {
   // });
   
   // Pagination calculation
-  const itemsPerPage = 10;
-  
   // Conditionally select data based on viewMode
   const isArchiveView = viewMode === 'archived';
   const activeData = farmerAccounts || {};
@@ -448,7 +451,7 @@ const E_Farmers = () => {
           <AlertIcon />
           <AlertTitle>Error loading data!</AlertTitle>
           <AlertDescription>
-            {error || `Unable to load ${isArchiveView ? 'archived' : 'registered'} farmers. Please try again later.`}
+            {currentError?.message || `Unable to load ${isArchiveView ? 'archived' : 'registered'} farmers. Please try again later.`}
           </AlertDescription>
         </Alert>
       </Box>

@@ -1,21 +1,15 @@
 import React, { useState } from 'react';
 import {
-  Box, Button, FormControl, FormLabel, Heading, Input, Select, Spinner, Text, useToast, VStack
+  Box, Button, FormControl, FormLabel, Heading, Input, Select, Stack, Text, VStack
 } from '@chakra-ui/react';
-import { useNavigate, useLocation } from 'react-router-dom';
 import { useFarmerFormStore } from '../store/farmerForm.store.js';
 
 const D2_bc_Other_fctNew = ({ onNext, onBack, inline }) => {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const toast = useToast();
   const { 
     formData, 
-    updateFarmerInput, 
+    updateCropOtherNew,
     submitFarmerForm, 
     isLoading, 
-    success, 
-    error 
   } = useFarmerFormStore();
 
   const [localData, setLocalData] = useState({
@@ -44,7 +38,9 @@ const D2_bc_Other_fctNew = ({ onNext, onBack, inline }) => {
       try {
         const success = await submitFarmerForm();
         if (success) onNext();
-      } catch {}
+      } catch (err) {
+        console.error(err);
+      }
       return;
     }
 
@@ -53,8 +49,8 @@ const D2_bc_Other_fctNew = ({ onNext, onBack, inline }) => {
       if (success) {
         onNext('/success', null, { state: { fromSubmission: true } });
       }
-    } catch (error) {
-
+    } catch (err) {
+      console.error(err);
     }
   };
 

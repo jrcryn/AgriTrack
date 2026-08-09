@@ -40,7 +40,10 @@ import { FaQrcode } from 'react-icons/fa';
 import { HiMiniViewfinderCircle } from 'react-icons/hi2';
 
 import { useAuthStore } from '../../auth/store/authStore';
-import { useAdminDashboard } from '../store/adminDashboard.store';
+import { 
+  useIncomingForwardedDocumentsQuery,
+  useReceiveDocumentMutation
+} from '../store/adminDashboard.store';
 import { useQueryClient } from '@tanstack/react-query';
 import QrScannerPanel from '../../components/qrScannerPanel.jsx';
 
@@ -55,15 +58,15 @@ const C_Incoming = () => {
   const queryClient = useQueryClient();
 
   const { isOpen: isOpenQr, onOpen: onOpenQr , onClose: onCloseQr } = useDisclosure();
-  const [selectedDoc, setSelectedDoc] = useState(null);
+  const [, setSelectedDoc] = useState(null);
   const [scanNow, setScanNow] = useState(false);
   
-  const {
-    forwardedDocuments,
-    isLoadingForwardedDocuments,
-    forwardedDocumentsError,
-    receiveDocument,
-  } = useAdminDashboard({ incomingPage: page }, { searchQuery }); // send search to backend
+  const role = user?.role?.toString();
+  const id = user?.id;
+
+  const searchParams = { searchQuery };
+  const { data: forwardedDocuments = [], isLoading: isLoadingForwardedDocuments } = useIncomingForwardedDocumentsQuery(id, page, searchParams, role);
+  const { mutateAsync: receiveDocument } = useReceiveDocumentMutation();
 
   // Reset to first page when search changes
   useEffect(() => { setPage(1); }, [searchQuery]);

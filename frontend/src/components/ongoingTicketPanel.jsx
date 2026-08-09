@@ -1,18 +1,15 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter,
-  Box, VStack, Text, Heading, Divider, SimpleGrid, Badge, Flex, Button, Tabs, TabList, TabPanels, Tab, TabPanel,
-  FormControl, FormLabel, Input, Select, useToast, Table, Thead, Tbody, Tr, Th, Td,
+  Box, VStack, Text, Heading, Divider, SimpleGrid, Badge, Button, Tabs, TabList, TabPanels, Tab, TabPanel,
+  Table, Thead, Tbody, Tr, Th, Td,
   useDisclosure, Icon
 } from '@chakra-ui/react';
 
 import { FaCalendarAlt } from "react-icons/fa";
 
-import { useAdminDashboard } from '../machineries/store/adminDashboard.store.js';
-import { useQueryClient } from '@tanstack/react-query';
 import ReturnTicketPanel from './returnTicketPanel.jsx';
 import TicketRequestCompletedDetailsPanel from './ticketRequestCompletedDetailsPanel.jsx';
-import { useAuthStore } from '../auth/store/authStore.js';
 
 const OngoingTicketPanel = ({
   isOpen,
@@ -20,10 +17,6 @@ const OngoingTicketPanel = ({
   selectedWeeklySchedule = null,
   onRequestReopenSchedule
 }) => {
-  const toast = useToast();
-  const queryClient = useQueryClient();
-  const { user } = useAuthStore();
-  console.log('Selected Weekly Schedule:', selectedWeeklySchedule);
   const { isOpen: isOpenReturnModal, onOpen: onOpenReturnModal, onClose: onCloseReturnModal } = useDisclosure();
   const [selectedTicketForReturn, setSelectedTicketForReturn] = useState(null);
   
@@ -43,7 +36,7 @@ const OngoingTicketPanel = ({
         setSelectedCompletedTicket(null);
       }
     }
-  }, [isOpen]);
+  }, [isOpen, isOpenCompletedDetails, isOpenReturnModal, onCloseCompletedDetails, onCloseReturnModal]);
 
   const handleOpenReturnModal = (ticket) => {
     setSelectedTicketForReturn(ticket);
@@ -71,12 +64,7 @@ const OngoingTicketPanel = ({
     });
   };
 
-  const isToday = (dateString) => {
-    if (!dateString) return false;
-    const today = new Date();
-    const assignedDate = new Date(dateString);
-    return today.toDateString() === assignedDate.toDateString();
-  };
+
 
   const isTodayOrPast = (dateString) => {
     if (!dateString) return false;

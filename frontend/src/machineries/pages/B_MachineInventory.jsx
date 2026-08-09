@@ -63,9 +63,21 @@ import {
   FaInfo,
   FaPlus
 } from "react-icons/fa";
-import { useAdminDashboard } from "../store/adminDashboard.store";
+import { 
+  useMachineUnitsQuery,
+  useMachineOverviewQuery,
+  useUpdateMachineryUnitStatusMutation,
+  useMachineTypesQuery,
+  useMachineTypeUnitCountsQuery,
+  useCreateMachineryTypeMutation,
+  useCreateMachineryUnitMutation,
+  usePerformMachineCountCheckMutation,
+  useMachineUnitsForPhysicalCountingQuery,
+  usePhysicalCountingRecordsQuery,
+  useResolveDiscrepancyInPhysicalCountMutation
+} from "../store/adminDashboard.store";
 import { useAuthStore } from "../../auth/store/authStore";
-import { useQueryClient, useQuery } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { FaListCheck } from "react-icons/fa6";
 import { FaStickyNote } from "react-icons/fa";
 
@@ -122,44 +134,17 @@ const B_MachineInventory = () => {
   const { user } = useAuthStore();
   const role = user?.role?.toString();
 
-  const {
-    machineUnits,
-    isLoadingMachineUnits,
-    machineUnitsError,
-
-    machineOverview,
-    isLoadingMachineOverview,
-    machineOverviewError,
-
-    updateMachineryUnitStatus,
-    isUpdatingMachineryUnitStatus,
-
-    machineTypes,
-    isLoadingMachineTypes,
-    machineTypesError,
-
-    machineTypeUnitCounts,
-    isLoadingMachineTypeUnitCounts,
-    machineTypeUnitCountsError,
-
-    createMachineryType,
-    isCreatingMachineryType,
-    createMachineryUnit,
-    isCreatingMachineryUnit,
-    performMachineCountCheck,
-    isPerformingMachineCountCheck,
-
-    machineUnitsForPhysicalCounting,
-    isLoadingMachineUnitsForPhysicalCounting,
-    machineUnitsForPhysicalCountingError,
-
-    physicalCountingRecords,
-    isLoadingPhysicalCountingRecords,
-    physicalCountingRecordsError,
-
-    resolveDiscrepancyInPhysicalCount,
-    isResolvingDiscrepancyInPhysicalCount
-  } = useAdminDashboard({ machineUnitsPage, previousCountsPage }, { searchQuery });
+  const { data: machineUnits, isLoading: isLoadingMachineUnits, error: machineUnitsError } = useMachineUnitsQuery(machineUnitsPage, searchQuery, role);
+  const { data: machineOverview, isLoading: isLoadingMachineOverview, error: machineOverviewError } = useMachineOverviewQuery(role);
+  const { mutateAsync: updateMachineryUnitStatus, isPending: isUpdatingMachineryUnitStatus } = useUpdateMachineryUnitStatusMutation();
+  const { data: machineTypes, isLoading: isLoadingMachineTypes, error: machineTypesError } = useMachineTypesQuery(role);
+  const { data: machineTypeUnitCounts, isLoading: isLoadingMachineTypeUnitCounts, error: machineTypeUnitCountsError } = useMachineTypeUnitCountsQuery(role);
+  const { mutateAsync: createMachineryType, isPending: isCreatingMachineryType } = useCreateMachineryTypeMutation();
+  const { mutateAsync: createMachineryUnit, isPending: isCreatingMachineryUnit } = useCreateMachineryUnitMutation();
+  const { mutateAsync: performMachineCountCheck, isPending: isPerformingMachineCountCheck } = usePerformMachineCountCheckMutation();
+  const { data: machineUnitsForPhysicalCounting, isLoading: isLoadingMachineUnitsForPhysicalCounting, error: machineUnitsForPhysicalCountingError } = useMachineUnitsForPhysicalCountingQuery(role);
+  const { data: physicalCountingRecords, isLoading: isLoadingPhysicalCountingRecords, error: physicalCountingRecordsError } = usePhysicalCountingRecordsQuery(previousCountsPage, searchQuery, role);
+  const { mutateAsync: resolveDiscrepancyInPhysicalCount, isPending: isResolvingDiscrepancyInPhysicalCount } = useResolveDiscrepancyInPhysicalCountMutation();
 
   const getOverviewStats = () => {
     if (!machineOverview?.data) {

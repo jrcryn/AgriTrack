@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link as RouterLink, useLocation } from 'react-router-dom';
 import {
   IconButton,
   Box,
@@ -52,7 +52,6 @@ const allLinkItems = [
 ];
 
 const SidebarContent = ({ onClose, ...rest }) => {
-  const navigate = useNavigate();
   const isMobile = useBreakpointValue({ base: true, md: false });
 
   const handleNavClick = () => {
@@ -167,7 +166,6 @@ const MobileNav = ({ onOpen, ...rest }) => {
   }, []);
 
   const { logout } = useAuthStore();
-  const navigate = useNavigate();
 
   const handleLogout = () => {
     logout();
@@ -279,7 +277,7 @@ const SidebarHeaderSystemAdmin = () => {
   // Auto-close Drawer when route changes (mobile nav)
   useEffect(() => {
     if (isOpen) onClose();
-  }, [location.pathname]);
+  }, [location.pathname, isOpen, onClose]);
 
   return (
     <Box>

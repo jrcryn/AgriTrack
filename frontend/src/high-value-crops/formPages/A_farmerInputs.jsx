@@ -159,7 +159,7 @@ const CropFormAccordion = ({
   };
   
   // Check if form is complete
-  const checkFormCompletion = () => {
+  const checkFormCompletion = useCallback(() => {
     const hasFarmLocation = !!accordionFormData.farm_location;
     const hasCropType = !!accordionFormData.cropType;
     
@@ -179,7 +179,7 @@ const CropFormAccordion = ({
     }
     
     return false;
-  };
+  }, [accordionFormData]);
   
   // Update completion status when form data changes
   useEffect(() => {
@@ -188,6 +188,7 @@ const CropFormAccordion = ({
       onCompletionChange(accordionId, isComplete);
     }
   }, [
+    checkFormCompletion,
     accordionFormData.farm_location,
     accordionFormData.cropType,
     accordionFormData.cropRecordIndus,
@@ -390,7 +391,7 @@ const CropFormAccordion = ({
   );
 };
 
-const FarmerInput = ({ onNext, onBack }) => {
+const FarmerInput = () => {
   // Get the existing farmer input data from the store
   const { 
     formData, 
@@ -408,7 +409,7 @@ const FarmerInput = ({ onNext, onBack }) => {
   
   // Initialize form data with existing data from the store
   const [localFormData, setLocalFormData] = useState(formData.farmerInput);
-  const [isFormValid, setIsFormValid] = useState(false);
+  // const [isFormValid, setIsFormValid] = useState(false);
   
   const [isSearching, setIsSearching] = useState(false);
 
@@ -436,16 +437,6 @@ const FarmerInput = ({ onNext, onBack }) => {
 
   const toast = useToast();
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setLocalFormData((prevData) => ({ ...prevData, [name]: value }));
-  };
-
-  const handleNext = () => {
-    // Update the store with the form data
-    updateFarmerInput(localFormData);
-    onNext();
-  };
 
   // Find farmer by ID
   const handleFindFarmer = async () => {
@@ -492,7 +483,8 @@ const FarmerInput = ({ onNext, onBack }) => {
           isClosable: true,
         });
       }
-    } catch (error) {
+    } catch (_error) {
+      console.error(_error);
       toast({
         title: "Error",
         description: "Farmer not found.",
@@ -551,10 +543,7 @@ const FarmerInput = ({ onNext, onBack }) => {
     setIsResettingFarmerSelection(false);
   };
 
-  useEffect(() => {
-    const { farm_location } = localFormData;
-    setIsFormValid(farm_location);
-  }, [localFormData]);
+
   
   const cardBg = 'white';
   const headerBorder = 'gray.200';
@@ -581,7 +570,8 @@ const FarmerInput = ({ onNext, onBack }) => {
     if (hasChanges) {
       setAccordionCompletions(prev => ({ ...prev, ...newCompletions }));
     }
-  }, [accordionIds.length]); // Only depend on the length, not the array itself
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accordionIds.length, accordionCompletions]); // Only depend on the length, not the array itself
   
   const handleAddAccordion = () => {
     const newId = accordionIds.length > 0 ? Math.max(...accordionIds) + 1 : 0;

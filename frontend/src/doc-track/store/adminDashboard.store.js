@@ -1,11 +1,11 @@
 import axios from 'axios'
 import { useQuery } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useAuthStore } from '../../auth/store/authStore';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-const useDocumentTypesQuery = (role) => 
+export const useDocumentTypesQuery = (role) => 
     useQuery({
         queryKey: ['documentTypes'],
         queryFn: async () => {
@@ -16,7 +16,7 @@ const useDocumentTypesQuery = (role) =>
         enabled: role === 'DMM' || role === 'DMS',
     });
 
-const useStaffAndAdminAccountsQuery = (id, role) => 
+export const useStaffAndAdminAccountsQuery = (id, role) => 
     useQuery({
         queryKey: ['adminStaffAccounts', id],
         queryFn: async () => {
@@ -26,7 +26,7 @@ const useStaffAndAdminAccountsQuery = (id, role) =>
         enabled: !!id && (role === 'DMM' || role === 'DMS'),
     });
 
-const useIncomingForwardedDocumentsQuery = (id, page = 1, searchParams = {}, role) =>
+export const useIncomingForwardedDocumentsQuery = (id, page = 1, searchParams = {}, role) =>
     useQuery({
         queryKey: ['forwardedDocuments', id, page, searchParams],
         queryFn: async () => {
@@ -39,7 +39,7 @@ const useIncomingForwardedDocumentsQuery = (id, page = 1, searchParams = {}, rol
         enabled: !!id && (role === 'DMM' || role === 'DMS'),
     });
 
-const usePendingDocumentsQuery = (id, page = 1, searchParams = {}, role) =>
+export const usePendingDocumentsQuery = (id, page = 1, searchParams = {}, role) =>
     useQuery({
         queryKey: ['pendingDocuments', id, page, searchParams],
         queryFn: async () => {
@@ -52,7 +52,7 @@ const usePendingDocumentsQuery = (id, page = 1, searchParams = {}, role) =>
         enabled: !!id && (role === 'DMM' || role === 'DMS')
     });
 
-const useOutgoingDocumentsQuery = (id, page = 1, searchParams = {}, role) =>
+export const useOutgoingDocumentsQuery = (id, page = 1, searchParams = {}, role) =>
     useQuery({
         queryKey: ['outgoingDocuments', id, page, searchParams],
         queryFn: async () => {
@@ -82,7 +82,7 @@ const useOutgoingDocumentsQuery = (id, page = 1, searchParams = {}, role) =>
 
 
 
-const useArchivedDocumentsQuery = (page = 1, searchParams = {}, role) =>
+export const useArchivedDocumentsQuery = (page = 1, searchParams = {}, role) =>
     useQuery({
         queryKey: ['archivedDocuments', page, searchParams],
         queryFn: async () => {
@@ -95,7 +95,7 @@ const useArchivedDocumentsQuery = (page = 1, searchParams = {}, role) =>
         enabled: role === 'DMM', 
     });
 
-const useExpiredDocumentsQuery = (page = 1, searchParams = {}, role) =>
+export const useExpiredDocumentsQuery = (page = 1, searchParams = {}, role) =>
     useQuery({
         queryKey: ['expiredDocuments', page, searchParams],
         queryFn: async () => {
@@ -108,7 +108,7 @@ const useExpiredDocumentsQuery = (page = 1, searchParams = {}, role) =>
         enabled: role === 'DMM',
     });
 
-const useDisposedDocumentsQuery = (page = 1, searchParams = {}, role) =>
+export const useDisposedDocumentsQuery = (page = 1, searchParams = {}, role) =>
     useQuery({
         queryKey: ['disposedDocuments', page, searchParams],
         queryFn: async () => {
@@ -121,7 +121,7 @@ const useDisposedDocumentsQuery = (page = 1, searchParams = {}, role) =>
         enabled: role === 'DMM',
     });
 
-const useReleasedDocumentsQuery = (page = 1, searchParams = {}, role) =>
+export const useReleasedDocumentsQuery = (page = 1, searchParams = {}, role) =>
     useQuery({
         queryKey: ['releasedDocuments', page, searchParams],
         queryFn: async () => {
@@ -134,7 +134,7 @@ const useReleasedDocumentsQuery = (page = 1, searchParams = {}, role) =>
         enabled: role === 'DMM',
     });
 
-const useUsersDocumentWorkloadQuery = (role) =>
+export const useUsersDocumentWorkloadQuery = (role) =>
     useQuery({
         queryKey: ['documentWorkload'],
         queryFn: async () => {
@@ -144,7 +144,7 @@ const useUsersDocumentWorkloadQuery = (role) =>
         enabled: role === 'DMM',
     });
 
-const useTotalIncomingDocumentsQuery = (page = 1, searchParams = {}, role) =>
+export const useTotalIncomingDocumentsQuery = (page = 1, searchParams = {}, role) =>
     useQuery({
         queryKey: ['totalIncomingDocuments', page, searchParams],
         queryFn: async () => {
@@ -157,7 +157,7 @@ const useTotalIncomingDocumentsQuery = (page = 1, searchParams = {}, role) =>
         enabled: role === 'DMM',
     });
 
-const useSectionDocumentCount = (role) =>
+export const useSectionDocumentCount = (role) =>
     useQuery({
         queryKey: ['sectionDocumentCount'],
         queryFn: async () => {
@@ -168,6 +168,114 @@ const useSectionDocumentCount = (role) =>
         enabled: role === 'DMM',
     });
 
+import { useMutation } from '@tanstack/react-query';
+
+export const useCreateDocumentMutation = () => useMutation({
+    mutationFn: async (data) => {
+        const response = await axios.post(`${API_URL}/api/doc-track/create-document`, data);
+        return response.data;
+    }
+});
+
+export const useUpdateDocumentTypeMutation = () => useMutation({
+    mutationFn: async (data) => {
+        const response = await axios.post(`${API_URL}/api/doc-track/update-document-type`, data);
+        return response.data;
+    }
+});
+
+export const useRegisterDocumentMutation = () => useMutation({
+    mutationFn: async (data) => {
+        const response = await axios.post(`${API_URL}/api/doc-track/register-document`, data);
+        return response.data;
+    }
+});
+
+export const useForwardDocumentMutation = () => useMutation({
+    mutationFn: async (data) => {
+        const response = await axios.post(`${API_URL}/api/doc-track/forward-document`, data);
+        return response.data;
+    }
+});
+
+export const useRegisterAndForwardDocumentMutation = () => useMutation({
+    mutationFn: async (data) => {
+        const response = await axios.post(`${API_URL}/api/doc-track/register-forward-document`, data);
+        return response.data;
+    }
+});
+
+export const useReceiveDocumentMutation = () => useMutation({
+    mutationFn: async (data) => {
+        const response = await axios.post(`${API_URL}/api/doc-track/receive-document`, data);
+        return response.data;
+    }
+});
+
+export const useArchiveDocumentMutation = () => useMutation({
+    mutationFn: async (data) => {
+        const response = await axios.post(`${API_URL}/api/doc-track/archive-document`, data);
+        return response.data;
+    }
+});
+
+export const useReleaseDocumentMutation = () => useMutation({
+    mutationFn: async (data) => {
+        const response = await axios.post(`${API_URL}/api/doc-track/release-document`, data);
+        return response.data;
+    }
+});
+
+export const useDownloadQRCodeMutation = () => useMutation({
+    mutationFn: async (id) => {
+        const response = await axios.get(`${API_URL}/api/doc-track/download-qr-code/${id}`, {
+            responseType: 'blob'
+        });
+        return response.data;
+    }
+});
+
+export const useDocumentStatusMutation = () => useMutation({
+    mutationFn: async (data) => {
+        const response = await axios.post(`${API_URL}/api/doc-track/get-document-status`, data);
+        return response.data;
+    }
+});
+
+export const useUnarchiveDocumentMutation = () => useMutation({
+    mutationFn: async (data) => {
+        const response = await axios.post(`${API_URL}/api/doc-track/unarchive-document`, data);
+        return response.data;
+    }
+});
+
+export const useUnreleaseDocumentMutation = () => useMutation({
+    mutationFn: async (data) => {
+        const response = await axios.post(`${API_URL}/api/doc-track/unrelease-document`, data);
+        return response.data;
+    }
+});
+
+export const useRerouteDocumentMutation = () => useMutation({
+    mutationFn: async (data) => {
+        const response = await axios.post(`${API_URL}/api/doc-track/reroute-document`, data);
+        return response.data;
+    }
+});
+
+export const useDisposeDocumentsMutation = () => useMutation({
+    mutationFn: async (data) => {
+        const response = await axios.post(`${API_URL}/api/doc-track/dispose-documents`, data);
+        return response.data;
+    }
+});
+
+export const useDeleteRegisteredDocumentMutation = () => useMutation({
+    mutationFn: async (id) => {
+        const response = await axios.post(`${API_URL}/api/doc-track/delete-registered-document/${id}`);
+        return response.data;
+    }
+});
 
 export const useAdminDashboard = (pages = {}, searchParams = {}) => {
     const { user } = useAuthStore()
@@ -232,6 +340,7 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
             const response = await axios.post(`${API_URL}/api/doc-track/create-document`, data);
             return response.data;
         } catch (error) {
+            console.error(error);
             throw error;
         } finally {
             setIsCreatingDocument(false);
@@ -244,6 +353,7 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
             const response = await axios.post(`${API_URL}/api/doc-track/update-document-type`, data);
             return response.data;
         } catch (error) {
+            console.error(error);
             throw error;
         } finally {
             setIsUpdatingDocumentType(false);
@@ -256,6 +366,7 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
             const response = await axios.post(`${API_URL}/api/doc-track/register-document`, data);
             return response.data;
         } catch (error) {
+            console.error(error);
             throw error;
         } finally {
             setIsRegisteringDocument(false);
@@ -268,6 +379,7 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
             const response = await axios.post(`${API_URL}/api/doc-track/forward-document`, data)
             return response.data;
         } catch (error) {
+            console.error(error);
             throw error;
         } finally {
             setIsForwardingDocument(false);
@@ -280,6 +392,7 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
             const response = await axios.post(`${API_URL}/api/doc-track/register-forward-document`, data)
             return response.data;
         } catch (error) {
+            console.error(error);
             throw error;
         } finally {
             setIsRegisteringAndForwardingDocument(false);
@@ -292,6 +405,7 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
             const response = await axios.post(`${API_URL}/api/doc-track/receive-document`, data)
             return response.data;
         } catch (error) {
+            console.error(error);
             throw error;
         } finally {
             setIsReceivingDocument(false);
@@ -304,6 +418,7 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
             const response = await axios.post(`${API_URL}/api/doc-track/archive-document`, data)
             return response.data;
         } catch (error) {
+            console.error(error);
             throw error;
         } finally {
             setIsArchivingDocument(false);
@@ -316,6 +431,7 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
             const response = await axios.post(`${API_URL}/api/doc-track/release-document`, data)
             return response.data;
         } catch (error) {
+            console.error(error);
             throw error;
         } finally {
             setIsReleasingDocument(false);
@@ -330,6 +446,7 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
             });
             return response.data;
         } catch (error) {
+            console.error(error);
             throw error;
         } finally {
             setIsDownloadingQRCode(false);
@@ -343,6 +460,7 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
             const response = await axios.post(`${API_URL}/api/doc-track/get-document-status`, data)
             return response.data;
         } catch (error) {
+            console.error(error);
             throw error;
         } finally {
             setIsGettingDocumentStatus(false);
@@ -356,6 +474,7 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
             const response = await axios.post(`${API_URL}/api/doc-track/unarchive-document`, data)
             return response.data;
         } catch (error) {
+            console.error(error);
             throw error;
         } finally {
             setIsUnarchivingDocument(false);
@@ -369,6 +488,7 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
             const response = await axios.post(`${API_URL}/api/doc-track/unrelease-document`, data)
             return response.data;
         } catch (error) {
+            console.error(error);
             throw error;
         } finally {
             setIsUnreleasingDocument(false);
@@ -382,6 +502,7 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
             const response = await axios.post(`${API_URL}/api/doc-track/reroute-document`, data)
             return response.data;
         } catch (error) {
+            console.error(error);
             throw error;
         } finally {
             setIsReroutingDocument(false);
@@ -394,6 +515,7 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
             const response = await axios.post(`${API_URL}/api/doc-track/dispose-documents`, data)
             return response.data;
         } catch (error) {
+            console.error(error);
             throw error;
         } finally {
             setIsDisposingDocuments(false);
@@ -406,6 +528,7 @@ export const useAdminDashboard = (pages = {}, searchParams = {}) => {
             const response = await axios.post(`${API_URL}/api/doc-track/delete-registered-document/${id}`);
             return response.data;
         } catch (error) {
+            console.error(error);
             throw error;
         } finally {
             setIsDeletingRegisteredDocument(false);
