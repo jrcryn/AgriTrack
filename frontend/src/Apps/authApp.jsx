@@ -44,7 +44,7 @@ const RedirectAuthenticatedUser = ({ children }) => {
   }
 };
 
-const authApp = () => {
+const AuthApp = () => {
     const { checkAuth } = useAuthStore();
 
     useEffect(() => {
@@ -94,4 +94,4 @@ const authApp = () => {
     );
 };
 
-export default authApp
+export default AuthApp

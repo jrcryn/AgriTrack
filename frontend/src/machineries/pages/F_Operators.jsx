@@ -78,7 +78,6 @@ const Operators = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [operatorAccountsPage, setOperatorAccountsPage] = useState(1);
   const [selectedOperator, setSelectedOperator] = useState(null);
-  console.log("Selected Operator License: ", selectedOperator?.operatorLicense);
   const [licenseFormData, setLicenseFormData] = useState({
     licenseNumber: '',
     licenseType: '',
@@ -453,7 +452,6 @@ const Operators = () => {
   };
 
   const handleConfirmRemoveLicense = async () => {
-    //console.log(selectedOperator, selectedLicenseForRemoval); //walang license id for removal
 
     if (!selectedOperator || !selectedLicenseForRemoval) return;
     

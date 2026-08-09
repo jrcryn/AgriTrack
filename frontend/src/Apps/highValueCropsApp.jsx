@@ -113,7 +113,7 @@ axios.interceptors.response.use( //if forbidden (form closed) redirect to form c
   }
 );
 
-const highValueCropsApp = () => {
+const HighValueCropsApp = () => {
   const navigate = useNavigate();
   const navigationType = useNavigationType();
   const location = useLocation();
@@ -212,4 +212,4 @@ const handleNext = (path, cropType, options = {}) => {
   );
 };
 
-export default highValueCropsApp;
+export default HighValueCropsApp;

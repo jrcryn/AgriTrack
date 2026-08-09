@@ -17,7 +17,6 @@ import {
   useOperatorsListQuery,
   useCreateWeeklyScheduleMutation,
   useRemoveFromScheduleMutation,
-  useMoveToScheduleMutation,
   useUpdateWeeklyScheduleMutation,
   useOccupiedDatesForSchedulingQuery,
   useOperatorAssignedNumbersQuery,
@@ -56,7 +55,6 @@ const TicketRequestPanel = ({
   const isScheduledPage = pageType === 'scheduled';
   const isOngoingPage = pageType === 'ongoing';
   // const isDeclinedPage = pageType === 'declined';
-  console.log('selectedTickets:', selectedTickets);
   // Schedule creation state
   const [scheduleData, setScheduleData] = useState({
     weekStart: '',
@@ -1105,7 +1103,6 @@ const TicketRequestPanel = ({
                               // Show extension ticket if present, else regular ticket
                               const ticket = tr.extensionRequestId ? tr.extensionDetails : tr.ticketDetails;
                               if (!ticket) return null;
-                              console.log('ticket in ongoing schedule:', ticket);
                               
                               const updateTicket = ticketUpdateData.tickets.find(t => t.ticketId === tr.ticketRequestId);
                               const typeId = ticket?.requestedMachineType?.requestedMachineTypeId;

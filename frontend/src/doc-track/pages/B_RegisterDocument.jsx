@@ -127,7 +127,6 @@ const B_RegisterDocument = () => {
           duration: 5000,
           isClosable: true,
         });
-        console.log(error);
       }
     };
 

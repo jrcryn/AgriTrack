@@ -19,7 +19,6 @@ const TicketRequestCompletedDetailsPanel = ({
     selectedTicket,
     isExtensionTicket
  }) => {
-console.log('Selected Ticket in CompletedDetailsPanel:', selectedTicket);
   const { user } = useAuthStore();
   const toast = useToast();
   const [isApproveModalOpen, setIsApproveModalOpen] = useState(false);
@@ -183,7 +182,7 @@ console.log('Selected Ticket in CompletedDetailsPanel:', selectedTicket);
     };
 
     fetchUnits();
-  }, [selectedExtension, isApproveModalOpen, selectedTicket, unitsByType, getMachineryUnitsForDropDownByType]);
+  }, [selectedExtension, isApproveModalOpen, selectedTicket, unitsByType]);
 
   return (
     <>

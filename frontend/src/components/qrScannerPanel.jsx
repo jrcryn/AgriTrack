@@ -86,7 +86,6 @@ const QrScannerPanel = ({
         handleReceive?.(response.data);
         searchQuery?.(response.data.refNumber);
       } catch (error) {
-        console.log(error)
         toast({
           title: "Error",
           description: error.response?.data?.message || "Failed to retrieve document status.",

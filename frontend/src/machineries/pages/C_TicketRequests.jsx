@@ -69,7 +69,6 @@ const TicketRequests = () => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [selectedTickets, setSelectedTickets] = useState([]);
   const [selectedWeeklySchedule, setSelectedWeeklySchedule] = useState(null);
-  console.log(selectedTickets);
 
   const handleSelectTickets = (ticket) => {
     setSelectedTickets(prev => {
@@ -539,7 +538,6 @@ const TicketRequests = () => {
                             ) : (
                               <Flex direction="column" gap={2}>
                                 {schedule.ticketRequests.map((ticket) => (
-                                  console.log('ticket in scheduled schedule:', ticket),
                                   <Flex key={ticket._id} align='center' justify="space-between" gap={2}>
                                     <Flex direction='column'>
                                       <Text>{ticket?.ticketDetails?.assignedMachineUnit?.unitNumber} - {ticket?.ticketDetails?.requestedMachineType?.equipmentType}</Text>

@@ -36,7 +36,6 @@ const AddTicketPanel = ({
   // Local selection state
   const [addTicketsData, setAddTicketsData] = useState([]); // [{ ticketId, assignedDate, assignedOperatorId, assignedMachineUnitId }]
   const [unitsByType, setUnitsByType] = useState({}); // typeId -> units
-  console.log('Add Tickets Data:', addTicketsData);
   // Reset state when modal opens/closes
   useEffect(() => {
     if (!isOpen) {
@@ -215,7 +214,6 @@ const AddTicketPanel = ({
 
   const takenDates = selectedWeeklySchedule?.ticketRequests?.map(td => new Date(td.assignedDate).toISOString().split('T')[0]);
 
-  console.log('Taken Dates in Schedule:', takenDates);
   return (
     <Modal
       isOpen={isOpen}

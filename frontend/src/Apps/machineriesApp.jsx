@@ -1,5 +1,5 @@
 import { Box, Spinner, Text } from '@chakra-ui/react';
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { Routes, Route, Navigate, useNavigate, useNavigationType, useLocation } from 'react-router-dom'
 import axios from 'axios';
 
