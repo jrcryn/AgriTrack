@@ -6,7 +6,13 @@ import {
   Menu, MenuButton, MenuList, Checkbox, CheckboxGroup
 } from "@chakra-ui/react";
 import { FaFileExcel, FaDownload, FaCalendarAlt, FaChartBar, FaMapMarkerAlt, FaChevronDown } from 'react-icons/fa';
-import { useAdminDashboard } from '../store/adminDashboard.store';
+import { 
+  useUnifiedFarmerResponseYearQuery,
+  useUnifiedFarmerResponseMonthsQuery,
+  useDateRangesQuery,
+  useAvailableBarangaysQuery,
+  useGenerateHVCSaMPRMutation
+} from '../store/adminDashboard.store';
 import { useAuthStore } from '../../auth/store/authStore';
 
 const B_HVCSaMPR = () => {
@@ -14,28 +20,24 @@ const B_HVCSaMPR = () => {
   const [selectedBarangays, setSelectedBarangays] = useState([]); // array of selected brgys
   
   const { user } = useAuthStore();
-  const { 
-    availableYears, 
-    availableMonths, 
-    selectedYear, 
-    selectedMonth,
-    setSelectedYear,
-    setSelectedMonth,
-    dateRanges,
-    barangays,
-    isLoading,
-    isLoadingUFRY,
-    isLoadingUFRM,
-    isLoadingBarangays,
-    isGeneratingReport, 
-    generateHVCSaMPR, 
-    ufrYearsError, 
-    ufrMonthsError,
-    dateRangesError,
-    barangaysError, 
-  } = useAdminDashboard();
-  
+  const role = user?.role?.toString().toUpperCase();
+  const [selectedYear, setSelectedYear] = useState(null);
+  const [selectedMonth, setSelectedMonth] = useState(null);
+
+  const { data: availableYears = [], isLoading: isLoadingUFRY, error: ufrYearsError } = useUnifiedFarmerResponseYearQuery(role);
+  const { data: availableMonths = [], isLoading: isLoadingUFRM, error: ufrMonthsError } = useUnifiedFarmerResponseMonthsQuery(selectedYear, role);
+  const { data: dateRanges = [], error: dateRangesError } = useDateRangesQuery(selectedYear, selectedMonth, role);
+  const { data: barangays = [], isLoading: isLoadingBarangays, error: barangaysError } = useAvailableBarangaysQuery(selectedYear, selectedMonth, role);
+
+  const { mutateAsync: generateHVCSaMPR, isPending: isGeneratingReport } = useGenerateHVCSaMPRMutation();
+  const isLoading = isLoadingUFRY || isLoadingUFRM || isLoadingBarangays;
   const toast = useToast();
+
+  useEffect(() => {
+    if (!selectedYear && availableYears && availableYears.length > 0) {
+      setSelectedYear(availableYears[0]);
+    }
+  }, [availableYears, selectedYear]);
 
   // Reset selectedMonth when year changes
   useEffect(() => {

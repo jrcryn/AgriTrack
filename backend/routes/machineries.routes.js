@@ -25,7 +25,7 @@ import {
     getOccupiedDatesForScheduling,
     getMachineUnits,
     getMachineOverview,
-    //updateMachineryUnitStatus,
+    updateMachineryUnitStatus,
     getMachineTypesForAddingUnits,
     getTicketStatusCounts,
     getUpcomingAndOngoingSchedules,
@@ -115,7 +115,7 @@ router.post('/extension-ticket-complete',
 router.post('/get-occupied-dates-for-scheduling', verifyAuthToken, verifyRole(['MIM']), getOccupiedDatesForScheduling);
 router.get('/get-machine-units', verifyAuthToken, verifyRole(['MIM', 'MIS']), getMachineUnits);
 router.get('/get-machine-overview', verifyAuthToken, verifyRole(['MIM','MIS' ]), getMachineOverview);
-//router.post('/update-machinery-unit-status', verifyAuthToken, verifyRole(['MIM', 'MIS']), updateMachineryUnitStatus);
+router.post('/update-machinery-unit-status', verifyAuthToken, verifyRole(['MIM', 'MIS']), (req, res) => res.status(403).json({success:false, message: "Disabled in demo version."}));
 router.get('/get-machine-types-for-adding-units', verifyAuthToken, verifyRole(['MIM', 'MIS']), getMachineTypesForAddingUnits);
 router.get('/get-machine-type-unit-counts', verifyAuthToken, verifyRole(['MIM', 'MIS']), getMachineTypeUnitCounts);
 

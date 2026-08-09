@@ -32,7 +32,11 @@ import { FiSearch, FiInbox } from 'react-icons/fi';
 import { LuLogs } from "react-icons/lu";
 import { FaEye, FaLink, FaExternalLinkAlt } from 'react-icons/fa';
 
-import { useAdminDashboard } from '../store/adminDashboard.store.js';
+import { 
+  usePendingTicketRequestsQuery, 
+  usePlannedWeeklySchedulesQuery, 
+  useInProgressWeeklySchedulesQuery 
+} from '../store/adminDashboard.store.js';
 import TicketRequestPanel from '../../components/ticketRequestPanel.jsx';
 import { useAuthStore } from '../../auth/store/authStore.js';
 
@@ -53,24 +57,10 @@ const TicketRequests = () => {
   const [isViewingDetails, setIsViewingDetails] = useState(false)
   const FRONTEND_URL = import.meta.env.VITE_FRONTEND_URL;
 
-  const {
-    pendingTicketRequests,
-    
-    isLoadingPendingTicketRequests,
-
-    pendingTicketRequestsError,
-
-    plannedWeeklySchedules,
-    isLoadingPlannedWeeklySchedules,
-    plannedWeeklySchedulesError,
-
-    inProgressWeeklySchedules,
-    isLoadingInProgressWeeklySchedules,
-    inProgressWeeklySchedulesError,
-  } = useAdminDashboard(
-    { pendingPage, schedulesPage },
-    { searchQuery }
-  );
+  const role = user?.role;
+  const { data: pendingTicketRequests, isLoading: isLoadingPendingTicketRequests, error: pendingTicketRequestsError } = usePendingTicketRequestsQuery(pendingPage, { searchQuery }, role);
+  const { data: plannedWeeklySchedules, isLoading: isLoadingPlannedWeeklySchedules, error: plannedWeeklySchedulesError } = usePlannedWeeklySchedulesQuery(schedulesPage, { searchQuery }, role);
+  const { data: inProgressWeeklySchedules, isLoading: isLoadingInProgressWeeklySchedules, error: inProgressWeeklySchedulesError } = useInProgressWeeklySchedulesQuery(schedulesPage, { searchQuery }, role);
 
   useEffect(() => {
     setPendingPage(1);

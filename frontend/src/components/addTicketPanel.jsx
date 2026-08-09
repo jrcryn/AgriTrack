@@ -6,7 +6,12 @@ import {
 } from '@chakra-ui/react';
 import { FaCalendarAlt } from 'react-icons/fa';
 import { useQueryClient } from '@tanstack/react-query';
-import { useAdminDashboard } from '../machineries/store/adminDashboard.store.js';
+import { 
+  useOperatorsListQuery, 
+  getMachineryUnitsForDropDownByType,
+  useMoveToScheduleMutation,
+  usePendingTicketRequestsQuery
+} from '../machineries/store/adminDashboard.store.js';
 import { useAuthStore } from '../auth/store/authStore.js';
 
 const AddTicketPanel = ({
@@ -23,19 +28,10 @@ const AddTicketPanel = ({
   // Pagination for pending tickets in modal
   const [addModalPendingPage, setAddModalPendingPage] = useState(1);
 
-  const {
-    operatorsList,
-    isLoadingOperatorsList,
-    getMachineryUnitsForDropDownByType,
-    
-    moveToSchedule,
-    isMovingToSchedule,
-    pendingTicketRequests,
-    isLoadingPendingTicketRequests
-  } = useAdminDashboard(
-    { pendingPage: addModalPendingPage },
-    {}
-  );
+  const role = user?.role;
+  const { data: operatorsList, isLoading: isLoadingOperatorsList } = useOperatorsListQuery(null, role);
+  const { mutateAsync: moveToSchedule, isPending: isMovingToSchedule } = useMoveToScheduleMutation();
+  const { data: pendingTicketRequests, isLoading: isLoadingPendingTicketRequests } = usePendingTicketRequestsQuery(addModalPendingPage, {}, role);
 
   // Local selection state
   const [addTicketsData, setAddTicketsData] = useState([]); // [{ ticketId, assignedDate, assignedOperatorId, assignedMachineUnitId }]

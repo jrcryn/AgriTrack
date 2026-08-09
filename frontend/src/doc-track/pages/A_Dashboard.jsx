@@ -49,7 +49,16 @@ import { FaArchive } from "react-icons/fa";
 import { GoArchive } from "react-icons/go";
 import { FileOutput, FileInput } from "lucide-react";
 
-import { useAdminDashboard } from '../store/adminDashboard.store.js';
+import { 
+  useDocumentTypesQuery,
+  useCreateDocumentMutation,
+  useUpdateDocumentTypeMutation,
+  useTotalIncomingDocumentsQuery,
+  useReleasedDocumentsQuery,
+  useArchivedDocumentsQuery,
+  useSectionDocumentCount
+} from '../store/adminDashboard.store.js';
+import { useAuthStore } from '../../auth/store/authStore';
 import F_ArchivedDocuments from './F_ArchivedDocuments.jsx';
 
 
@@ -59,23 +68,17 @@ const A_Dashboard = () => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { isOpen: isOpenEditDocTypes, onOpen: onOpenEditDocTypes, onClose: onCloseEditDocTypes } = useDisclosure();
 
-  const {
-    documentTypes,
-    isLoadingDocumentTypes,
-    documentTypesError,
-    createDocument,
-    isCreatingDocument,
-    updateDocumentType,
-    isUpdatingDocumentType,
+  const { user } = useAuthStore();
+  const role = user?.role?.toString();
 
-    totalIncomingDocuments,
-    releasedDocuments,
-    archivedDocuments,
+  const { data: documentTypes = [], isLoading: isLoadingDocumentTypes, error: documentTypesError } = useDocumentTypesQuery(role);
+  const { data: totalIncomingDocuments = [] } = useTotalIncomingDocumentsQuery(1, {}, role);
+  const { data: releasedDocuments = [] } = useReleasedDocumentsQuery(1, {}, role);
+  const { data: archivedDocuments = [] } = useArchivedDocumentsQuery(1, {}, role);
+  const { data: sectionDocumentCount = [], isLoading: isLoadingSectionDocumentCount, error: sectionDocumentCountError } = useSectionDocumentCount(role);
 
-    sectionDocumentCount,
-    isLoadingSectionDocumentCount,
-    sectionDocumentCountError
-  } = useAdminDashboard();
+  const { mutateAsync: createDocument, isPending: isCreatingDocument } = useCreateDocumentMutation();
+  const { mutateAsync: updateDocumentType, isPending: isUpdatingDocumentType } = useUpdateDocumentTypeMutation();
   
   // Mock metrics data
   const metrics = {

@@ -60,7 +60,17 @@ import {
 import { FiSearch, FiInbox, FiEdit2, FiTrash2, FiPlus } from 'react-icons/fi';
 import { FaUserCog, FaUserSlash, FaUserCheck, FaInfo, FaClipboardList, FaIdCard } from 'react-icons/fa';
 import { GoAlertFill } from 'react-icons/go';
-import { useAdminDashboard } from '../store/adminDashboard.store';
+import { 
+  useOperatorAccountsQuery,
+  useOperatorAssignedNumbersQuery,
+  useMachineTypesQuery,
+  useEnableOperatorAccountMutation,
+  useDisableOperatorAccountMutation,
+  useSetEmployeeLeaveStatusMutation,
+  useAddOperatorLicenseMutation,
+  useUpdateOperatorLicenseMutation,
+  useRemoveOperatorLicenseMutation
+} from '../store/adminDashboard.store';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../auth/store/authStore';
 
@@ -88,31 +98,17 @@ const Operators = () => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { isOpen: isOpenRemoveModal, onOpen: onOpenRemoveModal, onClose: onCloseRemoveModal } = useDisclosure();
 
-  const {
-    operatorAccounts,
-    isLoadingOperatorAccounts,
-    operatorAccountsError,
-    operatorAssignedNumbers,
-    isLoadingOperatorAssignedNumbers,
-    operatorAssignedNumbersError,
-    machineTypes,
-    isLoadingMachineTypes,
+  const role = user?.role;
+  const { data: operatorAccounts, isLoading: isLoadingOperatorAccounts, error: operatorAccountsError } = useOperatorAccountsQuery(operatorAccountsPage, { searchQuery }, role);
+  const { data: operatorAssignedNumbers, isLoading: isLoadingOperatorAssignedNumbers, error: operatorAssignedNumbersError } = useOperatorAssignedNumbersQuery(role);
+  const { data: machineTypes, isLoading: isLoadingMachineTypes } = useMachineTypesQuery(role);
 
-    enableOperatorAccount,
-    disableOperatorAccount,
-    isEnablingDisablingOperatorAccount,
-    setEmployeeLeaveStatus,
-    isSettingEmployeeLeaveStatus,
-    addOperatorLicense,
-    updateOperatorLicense,
-    removeOperatorLicense,
-    isAddingOperatorLicense,
-    isUpdatingOperatorLicense,
-    isRemovingOperatorLicense,
-  } = useAdminDashboard(
-    { operatorAccountsPage },
-    { searchQuery }
-  );
+  const { mutateAsync: enableOperatorAccount, isPending: isEnablingDisablingOperatorAccount } = useEnableOperatorAccountMutation();
+  const { mutateAsync: disableOperatorAccount } = useDisableOperatorAccountMutation();
+  const { mutateAsync: setEmployeeLeaveStatus, isPending: isSettingEmployeeLeaveStatus } = useSetEmployeeLeaveStatusMutation();
+  const { mutateAsync: addOperatorLicense, isPending: isAddingOperatorLicense } = useAddOperatorLicenseMutation();
+  const { mutateAsync: updateOperatorLicense, isPending: isUpdatingOperatorLicense } = useUpdateOperatorLicenseMutation();
+  const { mutateAsync: removeOperatorLicense, isPending: isRemovingOperatorLicense } = useRemoveOperatorLicenseMutation();
 
   // Reset to page 1 when search query changes
   useEffect(() => {

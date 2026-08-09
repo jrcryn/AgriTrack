@@ -25,18 +25,21 @@ import {
 } from '@chakra-ui/react';
 import { FiSearch, FiUsers } from 'react-icons/fi';
 import { HiDocumentText } from 'react-icons/hi'; // added
-import { useAdminDashboard } from '../store/adminDashboard.store';
+import { 
+  useUsersDocumentWorkloadQuery,
+  useDocumentStatusMutation
+} from '../store/adminDashboard.store';
+import { useAuthStore } from '../../auth/store/authStore';
 import DocumentLifeCycleModal from '../../components/docLifeCyclePanel.jsx'; // added
 
 const G_Staffs = () => {
   const [searchQuery, setSearchQuery] = useState('');
 
-  const {
-    usersDocumentWorkload,
-    isLoadingUsersDocumentWorkload,
-    documentStatus,            // added
-    isGettingDocumentStatus,   // added
-  } = useAdminDashboard();
+  const { user } = useAuthStore();
+  const role = user?.role?.toString();
+  
+  const { data: usersDocumentWorkload = [], isLoading: isLoadingUsersDocumentWorkload } = useUsersDocumentWorkloadQuery(role);
+  const { mutateAsync: documentStatus, isPending: isGettingDocumentStatus } = useDocumentStatusMutation();
 
   const results = usersDocumentWorkload?.data || [];
 

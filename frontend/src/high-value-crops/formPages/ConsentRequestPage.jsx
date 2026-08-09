@@ -27,14 +27,15 @@ import {
   InputRightAddon,
 } from '@chakra-ui/react';
 import { FaUser, FaSeedling, FaBoxes, FaCheck, FaTimes } from 'react-icons/fa';
-import { useAdminDashboard } from '../store/adminDashboard.store.js';
+import { getEditRequestDetailsRaw, useHandleConsentForEditRequestMutation } from '../store/adminDashboard.store.js';
 import { useQueryClient } from '@tanstack/react-query';
 
 const ConsentRequestPage = () => {
   const { editRequestId } = useParams();
   const navigate = useNavigate();
   const toast = useToast();
-  const { getEditRequestDetails, handleConsentForEditRequest, isGettingEditRequestDetails, isHandlingConsent } = useAdminDashboard();
+  const [isGettingEditRequestDetails, setIsGettingEditRequestDetails] = useState(false);
+  const { mutateAsync: handleConsentForEditRequest, isPending: isHandlingConsent } = useHandleConsentForEditRequestMutation();
 
   const [editRequestData, setEditRequestData] = useState(null);
   const [error, setError] = useState(null);
@@ -45,7 +46,8 @@ const ConsentRequestPage = () => {
   useEffect(() => {
     const fetchEditRequest = async () => {
       try {
-        const data = await getEditRequestDetails(editRequestId);
+        setIsGettingEditRequestDetails(true);
+        const data = await getEditRequestDetailsRaw(editRequestId);
         setEditRequestData(data);
         
         // Check if already processed
@@ -57,7 +59,8 @@ const ConsentRequestPage = () => {
 
       } catch (err) {
         setError(err.response?.data?.message || 'Failed to load edit request details.');
-
+      } finally {
+        setIsGettingEditRequestDetails(false);
       }
     };
 

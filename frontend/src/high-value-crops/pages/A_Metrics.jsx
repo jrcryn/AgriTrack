@@ -37,36 +37,46 @@ import {
   FaChartLine,
   FaUsers      
 } from "react-icons/fa";
-import { useAdminDashboard } from "../store/adminDashboard.store.js";
+import { 
+  useUnifiedFarmerResponseYearQuery,
+  useUnifiedFarmerResponseMonthsQuery,
+  useMetricsForYearMonthQuery
+} from "../store/adminDashboard.store.js";
+import { useAuthStore } from "../../auth/store/authStore";
 import Barangays from "../../components/barangays.js";
 import Commodities from "../../components/commodities.js";
 
 const Metrics = () => {
   // Get data from the store (similar to E_Farmers.jsx)
-  const { 
-    availableYears, 
-    availableMonths, 
-    selectedYear,
+  const { user } = useAuthStore();
+  const role = user?.role?.toString().toUpperCase();
+
+  const [selectedYear, setSelectedYear] = useState(null);
+  const [selectedMonth, setSelectedMonth] = useState(null);
+  const [selectedBarangay, setSelectedBarangay] = useState('');
+  const [selectedCommodity, setSelectedCommodity] = useState('');
+
+  const { data: availableYears = [], isLoading: isLoadingUFRY, error: ufrYearsError } = useUnifiedFarmerResponseYearQuery(role);
+  const { data: availableMonths = [], isLoading: isLoadingUFRM, error: ufrMonthsError } = useUnifiedFarmerResponseMonthsQuery(selectedYear, role);
+  const { data: metricsData, isLoading: isLoadingMetrics, error: metricsError } = useMetricsForYearMonthQuery(
+    selectedYear, 
     selectedMonth,
-    setSelectedYear,
-    setSelectedMonth,
-    selectedBarangay,     
-    setSelectedBarangay,  
-    selectedCommodity,    
-    setSelectedCommodity, 
-    metricsData,
-    isLoading,
-    isLoadingUFRY,
-    isLoadingUFRM,
-    error,
-    ufrYearsError,
-    ufrMonthsError,
-    metricsError,
-  } = useAdminDashboard();
+    selectedBarangay || null,
+    selectedCommodity || null,
+    role
+  );
 
-  // useEffect(() => {
+  useEffect(() => {
+    if (!selectedYear && availableYears && availableYears.length > 0) {
+      setSelectedYear(availableYears[0]);
+    }
+  }, [availableYears, selectedYear]);
 
-  // }, [selectedYear, selectedMonth, metricsData]);
+  useEffect(() => {
+    setSelectedMonth(null);
+  }, [selectedYear]);
+
+  const isLoading = isLoadingUFRY || isLoadingUFRM || isLoadingMetrics;
   
   // Month names array for display purposes (converting numeric month to name)
   const months = [

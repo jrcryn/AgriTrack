@@ -35,7 +35,8 @@ import { FaEye, FaInfo, FaQrcode } from 'react-icons/fa';
 import { TbFileShredder } from "react-icons/tb";
 import { HiMiniViewfinderCircle } from 'react-icons/hi2';
 
-import { useAdminDashboard } from '../store/adminDashboard.store.js';
+import { useReleasedDocumentsQuery } from '../store/adminDashboard.store.js';
+import { useAuthStore } from '../../auth/store/authStore.js';
 import DocumentLifeCycleModal from '../../components/docLifeCyclePanel.jsx';
 import QrScannerPanel from '../../components/qrScannerPanel.jsx';
 
@@ -44,14 +45,11 @@ const I_OutgoingDashboard = () => {
   const [releasedPage, setTotalReleasedPage] = useState(1);
   const [isOutgoingPage, setIsOutgoingPage] = useState(false);
 
-  const {
-    releasedDocuments,
-    isLoadingReleasedDocuments,
-    releasedDocumentsError
-  } = useAdminDashboard(
-    { releasedPage },
-    { searchQuery }
-  );
+  const { user } = useAuthStore();
+  const role = user?.role?.toString();
+  const searchParams = { searchQuery };
+
+  const { data: releasedDocuments = [], isLoading: isLoadingReleasedDocuments, error: releasedDocumentsError } = useReleasedDocumentsQuery(releasedPage, searchParams, role);
 
   useEffect(() => {
     setTotalReleasedPage(1);

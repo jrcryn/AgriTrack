@@ -4,10 +4,10 @@ import {
   useToast, Spinner, Alert, AlertIcon, Badge
 } from "@chakra-ui/react";
 import { FaFileExcel, FaDownload, FaChartBar } from 'react-icons/fa';
-import { useAdminDashboard } from '../store/adminDashboard.store';
+import { useGenerateMachineryReportMutation } from '../store/adminDashboard.store.js';
 
 const GenReports = () => {
-  const { isGeneratingReport, generateMachineryReport, isLoading, error } = useAdminDashboard();
+  const { mutateAsync: generateMachineryReport, isPending: isGeneratingReport } = useGenerateMachineryReportMutation();
   const toast = useToast();
 
   const buildFilename = () => {
@@ -49,44 +49,7 @@ const GenReports = () => {
     }
   };
 
-  // Show loading state
-  if (isLoading) {
-    return (
-      <Box overflow="hidden" bg="white" p={5} minH="100vh">
-        <Heading as="h1" size="xl" mb={2} color="black">
-          Generate Reports
-        </Heading>
-        <Alert 
-          bgColor="green.100"
-          borderRadius="md" 
-          mt={4}
-          display="flex"
-          alignItems="center"
-          py={3}
-        >
-          <AlertIcon color="green.500"/>
-          <Text fontWeight="medium" mr={3}>Please Wait:</Text>
-          <Spinner size="md" thickness="3px" color="green.500" mr={3} />
-          <Text>Loading Machinery Data...</Text>
-        </Alert>
-      </Box>
-    );
-  }
 
-  // Show error state
-  if (error) {
-    return (
-      <Box overflow="hidden" bg="white" p={5} minH="100vh">
-        <Alert status="error" borderRadius="md">
-          <AlertIcon />
-          <Heading as="h2" size="md">Error loading data!</Heading>
-          <Text mt={2}>
-            {error || "Unable to load machinery data. Please try again later."}
-          </Text>
-        </Alert>
-      </Box>
-    );
-  }
 
   return (
     <Box overflow="hidden" bg="white" p={5} minH="100vh">

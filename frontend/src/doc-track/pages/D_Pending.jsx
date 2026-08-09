@@ -44,7 +44,7 @@ import { HiDocumentDuplicate } from "react-icons/hi2";
 import { HiMiniViewfinderCircle } from 'react-icons/hi2';
 
 import { useAuthStore } from '../../auth/store/authStore';
-import { useAdminDashboard } from '../store/adminDashboard.store';
+import { usePendingDocumentsQuery } from '../store/adminDashboard.store';
 import  DocumentLifeCycleModal  from '../../components/docLifeCyclePanel.jsx';
 import QrScannerPanel from '../../components/qrScannerPanel.jsx';
 
@@ -55,10 +55,11 @@ const D_Pending = () => {
 
   const { user } = useAuthStore();
 
-  const {
-    pendingDocuments,
-    isLoadingPendingDocuments,
-  } = useAdminDashboard({ pendingPage: page }, { searchQuery }); // send search to backend
+  const role = user?.role?.toString();
+  const id = user?.id;
+  const searchParams = { searchQuery };
+
+  const { data: pendingDocuments = [], isLoading: isLoadingPendingDocuments } = usePendingDocumentsQuery(id, page, searchParams, role);
 
   // Reset to first page when search changes
   useEffect(() => { setPage(1); }, [searchQuery]);

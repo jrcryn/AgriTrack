@@ -34,18 +34,27 @@ import {
   FaUser,
   FaTractor,
 } from "react-icons/fa";
-import { useAdminDashboard } from '../store/adminDashboard.store';
+import { useAuthStore } from '../../auth/store/authStore.js';
+import { 
+  useTicketStatusCountsQuery, 
+  useUpcomingAndOngoingSchedulesQuery 
+} from '../store/adminDashboard.store.js';
 
 const A_Metrics = () => {
-  const {
-    ticketStatusCounts,
-    isLoadingTicketStatusCounts,
-    ticketStatusCountsError,
+  const { user } = useAuthStore();
+  const role = user?.role;
 
-    upcomingAndOngoingSchedules,
-    isLoadingUpcomingAndOngoingSchedules,
-    upcomingAndOngoingSchedulesError,
-  } = useAdminDashboard();
+  const { 
+    data: ticketStatusCounts, 
+    isLoading: isLoadingTicketStatusCounts, 
+    error: ticketStatusCountsError 
+  } = useTicketStatusCountsQuery(role);
+
+  const { 
+    data: upcomingAndOngoingSchedules, 
+    isLoading: isLoadingUpcomingAndOngoingSchedules, 
+    error: upcomingAndOngoingSchedulesError 
+  } = useUpcomingAndOngoingSchedulesQuery(role);
 
   // Removed mock stats; use live data instead
   const counts = ticketStatusCounts?.data || {};

@@ -13,7 +13,17 @@ import { IoIosRemoveCircle } from "react-icons/io";
 import { GiFarmTractor } from "react-icons/gi";
 import { GoAlertFill } from "react-icons/go";
 
-import { useAdminDashboard } from '../machineries/store/adminDashboard.store.js';
+import { 
+  useOperatorsListQuery,
+  useCreateWeeklyScheduleMutation,
+  useRemoveFromScheduleMutation,
+  useMoveToScheduleMutation,
+  useUpdateWeeklyScheduleMutation,
+  useOccupiedDatesForSchedulingQuery,
+  useOperatorAssignedNumbersQuery,
+  getMachineryUnitsForDropDownByType,
+  getOperatorsListByMachineType
+} from '../machineries/store/adminDashboard.store.js';
 import { useAuthStore } from '../auth/store/authStore.js';
 import { useQueryClient } from '@tanstack/react-query';
 import AddTicketPanel from './addTicketPanel.jsx';
@@ -64,38 +74,15 @@ const TicketRequestPanel = ({
   // Add state for initial ticket data to detect changes
   const [initialTicketData, setInitialTicketData] = useState([]);
 
-  const {
-    operatorsList,
-    isLoadingOperatorsList,
-    operatorsListError,
-    
-    createWeeklySchedule,
-    isCreatingWeeklySchedule,
+  const role = user?.role;
+  const { data: operatorsList, isLoading: isLoadingOperatorsList, error: operatorsListError } = useOperatorsListQuery(null, role);
+  const { data: occupiedDatesForScheduling, isLoading: isLoadingOccupiedDatesForScheduling, error: occupiedDatesForSchedulingError } = useOccupiedDatesForSchedulingQuery(role);
+  const { data: operatorAssignedNumbers, isLoading: isLoadingOperatorAssignedNumbers, error: operatorAssignedNumbersError } = useOperatorAssignedNumbersQuery(role);
 
-    removeFromSchedule,
-    isRemovingFromSchedule,
-    
-    moveToSchedule,
-    isMovingToSchedule,
-
-    getMachineryUnitsForDropDownByType,
-    getOperatorsListByMachineType,
-
-    declineTicketRequests,
-    isDecliningTicketRequests,
-
-    updateWeeklySchedule,
-    isUpdatingWeeklySchedule,
-    undeclineTicketRequest,           
-    isUndecliningTicketRequest,
-    
-    occupiedDatesForScheduling,
-    isLoadingOccupiedDatesForScheduling,
-    occupiedDatesForSchedulingError,
-    operatorAssignedNumbers,
-    isLoadingOperatorAssignedNumbers,
-    operatorAssignedNumbersError
-  } = useAdminDashboard();
+  const { mutateAsync: createWeeklySchedule, isPending: isCreatingWeeklySchedule } = useCreateWeeklyScheduleMutation();
+  const { mutateAsync: removeFromSchedule, isPending: isRemovingFromSchedule } = useRemoveFromScheduleMutation();
+  const { mutateAsync: moveToSchedule, isPending: isMovingToSchedule } = useMoveToScheduleMutation();
+  const { mutateAsync: updateWeeklySchedule, isPending: isUpdatingWeeklySchedule } = useUpdateWeeklyScheduleMutation();
 
   const [selectedTicketForRemoval, setSelectedTicketForRemoval] = useState(null);
   const [declineReason, setDeclineReason] = useState('');

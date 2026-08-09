@@ -52,8 +52,15 @@ import { IoDocumentAttachOutline } from "react-icons/io5";
 import Logo from '../images/Calamba_Seal.png'
 import { useAuthStore } from '../auth/store/authStore.js'
 import ProfileSettings from './profileSettings.jsx';
-import { useAdminDashboard as useDocTrackDashboard } from '../doc-track/store/adminDashboard.store.js';
-import { useAdminDashboard as  useMachineriesDashboard } from '../machineries/store/adminDashboard.store.js';
+import { 
+  useIncomingForwardedDocumentsQuery,
+  usePendingDocumentsQuery,
+  useOutgoingDocumentsQuery
+} from '../doc-track/store/adminDashboard.store.js';
+import { 
+  usePendingExtensionRequestsCountQuery, 
+  usePendingIncidentReportsCountQuery 
+} from '../machineries/store/adminDashboard.store.js';
 
 const allLinkItems = [
   // high-value-crops
@@ -102,13 +109,15 @@ const SidebarContent = ({ onClose, ...rest }) => {
       }
     }, [user?.role]);
 
-  const {
-    forwardedDocuments,
-    pendingDocuments,
-    outgoingDocuments,
-  } = useDocTrackDashboard();
+  const role = user?.role?.toString();
+  const id = user?.id;
 
-  const { pendingExtensionCount, pendingIncidentReportsCount } = useMachineriesDashboard();
+  const { data: forwardedDocuments } = useIncomingForwardedDocumentsQuery(id, 1, {}, role);
+  const { data: pendingDocuments } = usePendingDocumentsQuery(id, 1, {}, role);
+  const { data: outgoingDocuments } = useOutgoingDocumentsQuery(id, 1, {}, role);
+
+  const { data: pendingExtensionCount } = usePendingExtensionRequestsCountQuery(user?.role);
+  const { data: pendingIncidentReportsCount } = usePendingIncidentReportsCountQuery(user?.role);
 
   const extensionCount = pendingExtensionCount?.data?.count ?? 0;
   const incidentReportsCount = pendingIncidentReportsCount?.data?.count ?? 0;

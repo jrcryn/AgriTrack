@@ -12,7 +12,14 @@ import { HiMiniViewfinderCircle } from "react-icons/hi2";
 import { MdCancel } from "react-icons/md";
 import { FiSearch } from 'react-icons/fi';
 
-import { useAdminDashboard } from '../store/adminDashboard.store.js';
+import { 
+  useDocumentTypesQuery,
+  useStaffAndAdminAccountsQuery,
+  useRegisterDocumentMutation,
+  useRegisterAndForwardDocumentMutation,
+  useDocumentStatusMutation,
+  useDownloadQRCodeMutation
+} from '../store/adminDashboard.store.js';
 import { useAuthStore } from '../../auth/store/authStore.js';
 import { useQueryClient } from '@tanstack/react-query';
 import  DocumentLifeCycleModal  from '../../components/docLifeCyclePanel.jsx';
@@ -22,26 +29,16 @@ const B_RegisterDocument = () => {
 
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
-  const {
-      documentTypes,
-      isLoadingDocumentTypes,
-      documentTypesError,
+    const role = user?.role?.toString();
+    const id = user?.id;
 
-      adminAndStaffAccounts,
-      isLoadingAdminAndStaffAccounts,
-      adminAndStaffAccountsError,
+    const { data: documentTypes = [], isLoading: isLoadingDocumentTypes, error: documentTypesError } = useDocumentTypesQuery(role);
+    const { data: adminAndStaffAccounts = [], isLoading: isLoadingAdminAndStaffAccounts, error: adminAndStaffAccountsError } = useStaffAndAdminAccountsQuery(id, role);
 
-      registerDocument,
-      isRegisteringDocument,
-      registerAndForwardDocument,
-      isRegisteringAndForwardingDocument,
-
-      documentStatus,
-      isGettingDocumentStatus,
-
-      downloadQRCode,
-      isDownloadingQRCode
-    } = useAdminDashboard();
+    const { mutateAsync: registerDocument, isPending: isRegisteringDocument } = useRegisterDocumentMutation();
+    const { mutateAsync: registerAndForwardDocument, isPending: isRegisteringAndForwardingDocument } = useRegisterAndForwardDocumentMutation();
+    const { mutateAsync: documentStatus, isPending: isGettingDocumentStatus } = useDocumentStatusMutation();
+    const { mutateAsync: downloadQRCode, isPending: isDownloadingQRCode } = useDownloadQRCodeMutation();
 
     const toast = useToast();
     const { isOpen, onOpen, onClose } = useDisclosure();

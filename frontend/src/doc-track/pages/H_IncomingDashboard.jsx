@@ -34,7 +34,8 @@ import { FaEye, FaQrcode } from 'react-icons/fa';
 import { TbFileShredder } from "react-icons/tb";
 import { HiMiniViewfinderCircle } from 'react-icons/hi2';
 
-import { useAdminDashboard } from '../store/adminDashboard.store.js';
+import { useTotalIncomingDocumentsQuery } from '../store/adminDashboard.store.js';
+import { useAuthStore } from '../../auth/store/authStore.js';
 import DocumentLifeCycleModal from '../../components/docLifeCyclePanel.jsx';
 import QrScannerPanel from '../../components/qrScannerPanel.jsx';
 
@@ -43,14 +44,11 @@ const H_IncomingDashboard = () => {
   const [totalIncomingPage, setTotalIncomingPage] = useState(1);
   const [isIncomingPage, setIsIncomingPage] = useState(false);
 
-  const {
-    totalIncomingDocuments,
-    isLoadingTotalIncomingDocuments,
-    totalIncomingDocumentsError
-  } = useAdminDashboard(
-    { totalIncomingPage },
-    { searchQuery }
-  );
+  const { user } = useAuthStore();
+  const role = user?.role?.toString();
+  const searchParams = { searchQuery };
+
+  const { data: totalIncomingDocuments = [], isLoading: isLoadingTotalIncomingDocuments, error: totalIncomingDocumentsError } = useTotalIncomingDocumentsQuery(totalIncomingPage, searchParams, role);
 
   useEffect(() => {
     setTotalIncomingPage(1);

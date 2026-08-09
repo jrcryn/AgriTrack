@@ -9,7 +9,10 @@ import {
 import { FaCheckCircle, FaCamera, FaSignature } from "react-icons/fa";
 import { CloseIcon, WarningIcon } from '@chakra-ui/icons';
 import SignatureCanvas from 'react-signature-canvas';
-import { useAdminDashboard } from '../machineries/store/adminDashboard.store.js';
+import { 
+  useSetTicketToCompleteMutation, 
+  useSetExtensionTicketToCompleteMutation 
+} from '../machineries/store/adminDashboard.store.js';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../auth/store/authStore.js';
 
@@ -46,13 +49,8 @@ const ReturnTicketPanel = ({
     incidentType: '',
     incidentDescription: ''
   });
-  const {
-    setTicketToComplete,
-    isSettingTicketToComplete,
-
-    setExtensionTicketToComplete,
-    isSettingExtensionTicketToComplete,
-  } = useAdminDashboard();
+  const { mutateAsync: setTicketToComplete, isPending: isSettingTicketToComplete } = useSetTicketToCompleteMutation();
+  const { mutateAsync: setExtensionTicketToComplete, isPending: isSettingExtensionTicketToComplete } = useSetExtensionTicketToCompleteMutation();
 
   // Calculate canvas size based on container width
   useEffect(() => {

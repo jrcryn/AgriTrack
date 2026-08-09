@@ -4,7 +4,7 @@ import { Box, VStack, Text, Button, FormControl, FormLabel, Select, Spinner, use
 import { HiMiniViewfinderCircle } from 'react-icons/hi2';
 import { MdCancel } from 'react-icons/md';
 
-import { useAdminDashboard } from '../doc-track/store/adminDashboard.store.js';
+import { useDocumentStatusMutation } from '../doc-track/store/adminDashboard.store.js';
 
 const QrScannerPanel = ({
   scanResults,
@@ -29,7 +29,7 @@ const QrScannerPanel = ({
   const [scanNowQ, setScanNowQ] = useState(scanNow);
   const toast = useToast();
 
-  const { isGettingDocumentStatus, documentStatus } = useAdminDashboard();
+  const { mutateAsync: documentStatus, isPending: isGettingDocumentStatus } = useDocumentStatusMutation();
 
   const handleStartScanning = async () => {
       setScanning(true);
