@@ -98,7 +98,7 @@ const C_HVCPR = () => {
     
     try {
       // Now use the function from the store, passing employee ID
-      const reportData = await generateHVCPR(selectedYear, selectedMonth, selectedBarangays, user?.id);
+      const reportData = await generateHVCPR({ year: selectedYear, month: selectedMonth, barangays: selectedBarangays, employeeId: user?.id });
       const monthLabel = new Date(selectedYear, selectedMonth - 1, 1).toLocaleString('en-US', { month: 'long' });
 
 

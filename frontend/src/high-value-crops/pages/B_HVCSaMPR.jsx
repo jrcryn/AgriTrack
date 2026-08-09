@@ -133,7 +133,7 @@ const B_HVCSaMPR = () => {
     
     try {
       // Now use the function from the store, passing employee ID and barangays
-      const reportData = await generateHVCSaMPR(startDate, endDate, selectedBarangays, user?.id);
+      const reportData = await generateHVCSaMPR({ startDate, endDate, barangays: selectedBarangays, employeeId: user?.id });
       
       // Handle the download in the component (UI concern)
       const url = window.URL.createObjectURL(new Blob([reportData]));
