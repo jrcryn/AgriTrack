@@ -386,6 +386,7 @@ const MobileNav = ({ onOpen, ...rest }) => {
       {/* Removed the Logo text for mobile view */}
       <HStack spacing={{ base: '2', md: '4' }}>
         <Badge colorScheme="red" variant="solid" px={2} py={1} borderRadius="md" fontSize="xs">DEMO - MOST FUNCTIONS ARE DISABLED</Badge>
+        <Badge colorScheme="blue" variant="solid" px={2} py={1} borderRadius="md" fontSize="xs">DUMMY DATA</Badge>
         <Text fontSize="sm" display={{ base: 'none', sm: 'block' }}>{currentDateTime}</Text>
         <Divider orientation="vertical" height="20px" borderColor="gray.400" />
         <Flex alignItems="center">
